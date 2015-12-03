@@ -1,0 +1,130 @@
+.lolines textarea {
+ height:4em;
+}
+.midlines textarea {
+ height:7em;
+}
+.hilines textarea {
+ height:15em;
+}
+.pageoverflow {
+ overflow:auto;
+}
+/* parameter-tip icons displayed by jQuery if working */
+div.pageoverflow img.tipper {
+ display:none;
+}
+/* radio buttons */
+label.radiolabel {
+ margin:0 0.5em;
+ vertical-align:0.2em;
+}
+
+/* empty = just kill .pagetable settings */
+table.pagetable th {}
+
+table.leftwards {
+ margin-left:5%;
+ width:auto;
+ table-layout:auto;
+}
+
+table.rightwards {
+ margin-right:5%;
+ width:auto;
+ table-layout:auto;
+}
+
+table.table_sort th
+{
+ padding: 5px;
+ margin-left: 20px;
+ margin-right: 20px;
+ border-collapse:collapse;
+ background-image: none;
+ text-align: left;
+ cursor: default;
+}
+
+table.table_sort th.SortAble
+{
+ padding-left: 10px;
+ background-image: url(../images/bgdark.gif);
+ background-repeat: no-repeat;
+ background-position: center left;
+ cursor: pointer;
+}
+
+table.table_sort th.SortUp
+{
+ padding-left: 10px;
+ background-image: url(../images/ascdark.gif);
+ background-repeat: no-repeat;
+ background-position: center left;
+ cursor: pointer;
+}
+
+table.table_sort th.SortDown
+{
+ padding-left: 10px;
+ background-image: url(../images/descdark.gif);
+ background-repeat: no-repeat;
+ background-position: center left;
+ cursor: pointer;
+}
+
+table.table_sort td.row1s {
+ background-color: #E9E9E9;
+}
+
+table.table_sort td.row2s {
+ background: #D9D9D9;
+}
+/* for popup-modal confirmation */
+div.modal\-overlay
+{
+	display:none;
+	position:fixed;
+	top:0;
+	left:0;
+	height:100%;
+	width:100%;
+	z-index:1001;
+	background-color:rgba(0,0,0,.3); //can be safely ignored
+}
+div.confirm\-container
+{
+	display:none;
+	position:absolute;
+	top:50%;
+	left:50%;
+	border:2px solid #847B7B;
+	-moz-border-radius:5px 5px 5px 5px;
+	-webkit-border-radius:5px 5px 5px 5px;
+	border-radius:5px 5px 5px 5px;
+	padding:10px 40px;
+	z-index:1002;
+	background:#E4E2E2;
+}
+input.btn_conf
+{
+	font-weight:bold;
+	color:#000;
+	background:#B5B0B0;
+}
+input.btn_conf:hover
+{
+	color:#FFF;
+	background:#00B200;
+}
+input.btn_deny
+{
+	font-weight:bold;
+	color:#000;
+	background:#B5B0B0;
+}
+input.btn_deny:hover
+{
+	color:#FFF;
+	background:#F00;
+}

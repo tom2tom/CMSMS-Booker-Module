@@ -1,0 +1,158 @@
+/* para containing feedback/error message */
+.pagemessage {
+ color:red;
+ font-weight:bold;
+ text-align:center;
+}
+/* para containing item title */
+.bkgtitle {
+ font-weight:bold;
+ text-align:center;
+}
+/* div containing item description */
+.bkgdesc{
+}
+/* div containing item image(s) */
+.bkgimg{
+}
+/* bookings-data list */
+.bkglist{
+}
+/* bookings-data table */
+table.daily {
+}
+table.weekly {
+}
+table.monthly {
+}
+table.yearly {
+}
+
+table.booker {
+ border:0;
+ border-collapse:collapse;
+ color:black;
+}
+
+table.booker th {
+ border:1px solid #AAA;
+}
+table.booker th.topleft{
+ border-top-color:#FFF;
+ border-left-color:#FFF;
+}
+table.booker th.periodname {
+ text-align:center;
+ color:black;
+ background-color:#FFE6E6; /*pink*/
+}
+
+table.booker td {
+ color:black;
+ border:1px solid #AAA;
+}
+
+table.booker td.list {
+ border-left:0;
+ border-right:0;
+}
+
+table.booker td.slotname{
+ text-align:right;
+ background-color:#FFE6E6; /*pink*/
+}
+
+table.booker td.vacant {
+ background-color:#FFF; /*white*/
+}
+
+/*slot requested*/
+table.booker td.request {
+ color:#F2F2F2; //light grey
+ background-color:#6B246B; /*dark purple*/
+}
+
+/*slot unavailable*/
+table.booker td.impossible {
+ background-color:#999; /*mid-grey*/
+}
+
+/*fully booked slot, multiple users */
+table.booker td.fullm {
+ color:#E9E9E9;
+ background-color:#669; /*dull-violet*/
+}
+/*part-booked, multi-users */
+table.booker td.partm {
+ background-color:#B2B2CC; /*dull-mauve*/
+}
+
+/* user-classes, each full- and part-booked */
+table.booker td.full {
+ background-color:#090; /*green*/
+}
+table.booker td.part {
+ background-color:#99D699;
+}
+
+table.booker td.full1 {
+ background-color:#090; /*green*/
+}
+table.booker td.part1 {
+ background-color:#99D699;
+}
+
+table.booker td.full2 {
+ background-color:#F00; /*red*/
+}
+table.booker td.part2 {
+ background-color:#F66;
+}
+
+table.booker td.full3 {
+ background-color:#06F; /*blue*/
+}
+table.booker td.part3 {
+ background-color:#80B2FF;
+}
+
+table.booker td.full4 {
+ background-color:#F3F; /*purple*/
+}
+table.booker td.part4 {
+ background-color:#F9F;
+}
+
+table.booker td.full5 {
+ background-color:#F90; /*orange*/
+}
+table.booker td.part5 {
+ background-color:#FFD699;
+}
+
+/*action-buttons table */
+#bookactions {
+ border:0;
+ max-width:100%;
+}
+#bookactions td {
+ border:0;
+ padding:5px 5px 0 5px;
+}
+/*booking-request-page table */
+table.plain {
+ border:0;
+ max-width:100%;
+}
+table.plain td {
+ padding:2px;
+}
+/*radio buttons*/
+.radiolabel {
+ margin-right:5px;
+ vertical-align:top;
+}
+input.captcha {
+ display:table-cell;
+ vertical-align:28px;
+}
