@@ -33,10 +33,10 @@ class bkrshared
 		default empty
 	Returns: reference to static cache-object (after creating it if not already done) or NULL
 	*/
-	public function GetCache($storage='auto',$settings=array())
+	public function &GetCache($storage='auto',$settings=array())
 	{
 		if($this->bkrcache)
-			return &$this->bkrcache;
+			return $this->bkrcache;
 
 		$config = cmsms()->GetConfig();
 		$url = $config['root_url'];
@@ -77,11 +77,18 @@ class bkrshared
 			try
 			{
 				$this->bkrcache = new $class($settings);
-				return &$this->bkrcache;
+				return $this->bkrcache;
 			}
 			catch(Exception $e) {}
 		}
 		return NULL;
+	}
+
+	//For end-of-session cleanup
+	public function ClearCache()
+	{
+		unset($this->bkrcache);
+		$this->bkrcache = NULL;
 	}
 
 	/**
