@@ -305,7 +305,7 @@ TODO support 'past' data without both date/time $params[]
 		if(!$pref)
 			return FALSE; //'""';
 		$parts = explode(',',$pref);
-		if(isset($parts[1]))
+		if(isset($parts[1])) //>1 array-member
 		{
 			$parts = array_unique($parts);
 			ksort($parts);
@@ -471,7 +471,7 @@ EOS;
 EOS;
 		}
 		else //no date checks
-		{ 
+		{
  			$js2 = <<<EOS
 function validate(ev){
  var ok = true,
@@ -485,7 +485,7 @@ function validate(ev){
 
 EOS;
 		}
- 
+
 		try
 		{
 			$lzone = new DateTimeZone($zonename);
@@ -600,7 +600,7 @@ EOS;
 
 EOS;
 		return $js1.$js2.$js3.$js4.$js5.$js6.$js7;
-	} 
+	}
 
 }
 
