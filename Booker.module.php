@@ -82,9 +82,7 @@ class Booker extends CMSModule
 	protected $PermAddName = 'Booker Resource Add';
 	protected $PermModName = 'Booker Resource Modify';
 	protected $PermDelName = 'Booker Resource Delete';
-	/**
-	Class constructor
-	*/
+
 	function __construct()
 	{
 		parent::__construct();
@@ -102,33 +100,21 @@ class Booker extends CMSModule
 		$this->UserTable = $pre.'users';
 	}
 
-	/**
-	GetName()
-	*/
 	function GetName()
 	{
 		return 'Booker';
 	}
 
-	/**
-	GetFriendlyName()
-	*/
 	function GetFriendlyName()
 	{
 		return $this->Lang('friendlyname');
 	}
 
-	/**
-	GetVersion()
-	*/
 	function GetVersion()
 	{
 		return '0.1';
 	}
 
-	/**
-	MinimumCMSVersion()
-	*/
 	function MinimumCMSVersion()
 	{
 		return '1.9'; //CHECKME
@@ -139,9 +125,6 @@ class Booker extends CMSModule
 		return '1.19.99';
 	}
 
-	/**
-	GetHelp()
-	*/
 	function GetHelp()
 	{
 		$fn = cms_join_path(dirname(__FILE__),'css','public.css');
@@ -156,48 +139,33 @@ class Booker extends CMSModule
 		return $this->Lang('help',$example);
 	}
 
-	/**
-	GetAuthor()
-	*/
 	function GetAuthor()
 	{
 		return 'tomphantoo';
 	}
 
-	/**
-	GetAuthorEmail()
-	*/
 	function GetAuthorEmail()
 	{
 		return 'tpgww@onepost.net';
 	}
 
-	/**
-	GetChangeLog()
-	*/
 	function GetChangeLog()
 	{
 		$fn = cms_join_path(dirname(__FILE__),'include','changelog.inc');
 		return @file_get_contents($fn);
 	}
 
-	/**
-	IsPluginModule()
-	*/
 	function IsPluginModule()
 	{
 		return true;
 	}
 
-	/**
-	HasAdmin()
-	*/
 	function HasAdmin()
 	{
 		return true;
 	}
 
-	/**
+	/*
 	LazyLoadAdmin() for 1.10 and later
 	*/
 	function LazyLoadAdmin()
@@ -205,25 +173,16 @@ class Booker extends CMSModule
 		return false;
 	}
 
-	/**
-	GetAdminSection()
-	*/
 	function GetAdminSection()
 	{
 		return 'content';
 	}
 
-	/**
-	GetAdminDescription()
-	*/
 	function GetAdminDescription()
 	{
 		return $this->Lang('moddescription');
 	}
 
-	/**
-	AdminStyle()
-	*/
 	function AdminStyle()
 	{
 		$fn = cms_join_path(dirname(__FILE__),'css','admin.css');
@@ -231,25 +190,18 @@ class Booker extends CMSModule
 		return $output;
 	}
 
-	/**
-	VisibleToAdminUser()
-	*/
 	function VisibleToAdminUser()
 	{
 		return $this->_CheckAccess();
 	}
 
-	/**
-	GetHeaderHTML()
-	*/
+/*
 	function GetHeaderHTML()
 	{
 		return '<link rel="stylesheet" type="text/css" href="'.$this->GetModuleURLPath().'/css/admin.css" />';
 	}
+*/
 
-	/**
-	SuppressAdminOutput(&$request)
-	*/
 	function SuppressAdminOutput(&$request)
 	{
 		//prevent output of general admin content when doing an export,
@@ -264,15 +216,12 @@ class Booker extends CMSModule
 		return false;
 	}
 
-	/**
-	GetDependencies()
-	*/
 	function GetDependencies()
 	{
 		return array();
 	}
 
-	/**
+	/*
 	LazyLoadFrontend() for 1.10 and later
 	*/
 	function LazyLoadFrontend()
@@ -280,31 +229,22 @@ class Booker extends CMSModule
 		return true;
 	}
 
-	/**
-	InstallPostMessage()
-	*/
 	function InstallPostMessage()
 	{
 		return $this->Lang('postinstall');
 	}
 
-	/**
-	UninstallPreMessage()
-	*/
 	function UninstallPreMessage()
 	{
 		return $this->Lang('really_uninstall');
 	}
 
-	/**
-	UninstallPostMessage()
-	*/
 	function UninstallPostMessage()
 	{
 		return $this->Lang('postuninstall');
 	}
 
-	/**
+	/*
 	SetParameters() for pre-1.10
 	*/
 	function SetParameters()
@@ -313,7 +253,7 @@ class Booker extends CMSModule
 		$this->InitializeFrontend();
 	}
 
-	/**
+	/*
 	InitializeFrontend() partial setup for 1.10
 	*/
 	function InitializeFrontend()
@@ -367,7 +307,7 @@ class Booker extends CMSModule
 		$this->RegisterRoute('/[Bb]ookings?\/(?P<returnid>[0-9]+)$/',array('action'=>'default'));
 	}
 
-	/**
+	/*
 	InitializeAdmin() partial setup for 1.10
 	*/
 	function InitializeAdmin()
@@ -376,6 +316,19 @@ class Booker extends CMSModule
 		$this->CreateParameter('startat','',$this->Lang('help_startat'));
 		$this->CreateParameter('range',$this->Lang('week'),$this->Lang('help_range'));
 		$this->CreateParameter('view','table',$this->Lang('help_view'));
+	}
+
+	/*
+	get_tasks:
+	Specify the tasks that this module uses
+	Returns: CmsRegularTask-compliant object, or array of them
+	*/
+	function get_tasks()
+	{
+		return array(
+			new bkrcleanold_task(),
+			new bkrclearcache_task()
+		);
 	}
 
 	/**
