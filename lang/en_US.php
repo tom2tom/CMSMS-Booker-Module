@@ -369,6 +369,8 @@ $lang['sunrise'] = 'sunrise';
 $lang['sunset'] = 'sunset';
 
 $lang['table'] = 'Table';
+$lang['task_cleanold'] = 'Delete historical data which is older than the relevant retention period';
+$lang['task_clearcache'] = 'Delete redundant cached bookings data';
 $lang['time'] = 'time';
 $lang['tip_admintype'] = 'administer %s bookings';
 $lang['tip_approve'] = 'approve request';
