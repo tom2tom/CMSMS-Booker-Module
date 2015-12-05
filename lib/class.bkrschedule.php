@@ -8,7 +8,6 @@
 
 class bkrschedule
 {
-	private $cache = NULL; //reference to cache-object, populated on-demand
 	private $slotsdone = array(); //which slots we've filled
 
 	//Compare arrays of request-data
@@ -36,14 +35,13 @@ class bkrschedule
 	*/
 	private function GetSlotStatus(&$mod,&$shares,$session_id,$item_id,$dtstart,$dtend)
 	{
-/*		if($this->cache == NULL)
-			$this->cache = $shares->GetCache();
-		$cache = $this->cache;
+/*		$funcs = new bkrcache();
+		$cache = $funcs->GetCache();
 		if($cache && )	//$cache->
 */
 		if(0) //slot-status is cached
 		{
-			//TODO get cached data 
+			//TODO get cached data
 			$slotstatus = $X;
 		}
 		else
@@ -76,20 +74,109 @@ class bkrschedule
 	}
 
 	/*
-	Get latest-end in $reqdata, update repeat-bookings to then
+	GetRepeats:
+	Interpret any relevant repeat-booking for one specified resource into
+	 specific bookings in bookings table
+	This is low-level method, normally UpdateRepeats() would be more appropriate
+	@mod: reference to current Booker module
+	@shares: reference to bkrshared object
+	@reps: reference to bkrrepeats object
+	@idata: reference to array of item parameters, including at least
+		'item_id','timezone','latitude','longitude'
+	@dtstart: resource-local datetime object for beginning of 1st day of period to be processed
+	@dtend: resource-local datetime object for beginning of DAY AFTER last day of period
+	Returns: boolean indicating complete success
 	*/
-	private function UpdateRequestedRepeats(&$mod,$item_id,&$reqdata)
+	private function GetRepeats(&$mod,&$shares,&$reps,&$idata,$dtstart,$dtend)
+	{
+		$ret = TRUE;
+		$item_id = (int)$idata['item_id'];
+		$sql = 'SELECT bkg_id,formula,user,contact,userclass,paid FROM '.$mod->RepeatTable.' WHERE item_id=? AND active=1';
+		$rows = $shares->SafeGet($sql,array($item_id));
+		if($rows)
+		{
+			$times = array();
+			$parms = array();
+			$sunparms = $reps->SunParms($idata); //TODO extra arg current date/time
+			foreach($rows as &$one)
+			{
+				$utimes = $reps->AllIntervals($one['formula'],$dtstart,$dtend,$sunparms);
+				if($utimes)
+				{
+					$user = $one['user'];
+					if(!array_key_exists($user,$times))
+						$times[$user] = $utimes;
+					else
+						$times[$user] = $times[$user] + $utimes;
+					if(!array_key_exists($user,$parms))
+						$parms[$user] = array(
+							(int)$one['userclass'], //0
+							$one['contact'], //1
+							(int)$one['paid'] //2
+						);
+					elseif(!$one['paid'])
+						$parms[$user][2] = 0; //part-paid reported as unpaid
+				}
+			}
+			unset($one);
+			if($times)
+			{
+				$foreach($times as $user=>$utimes)
+				{
+					$data = array(
+					 'slotstart'=>0,
+					 'slotlen'=>0,
+					 'sender'=>$user,
+					 'userclass'=>$parms[$user][0],
+					 'contact'=>$parms[$user][1],
+					 'paid'=>$parms[$user][2]
+					);
+					//rationalise $times into valid pairs of times
+					$c = count($utimes);
+					$starts = array();
+					$ends = array();
+					for($i=0; $i<$c; $i+=2)
+					{
+						$starts = $utimes[$i];
+						$ends = $utimes[$i+1];
+					}
+					$reps->MergeBlocks($starts,$ends);
+					$c = count($starts);
+
+					$session_id = 0; //TODO $mod->dbHandle->GenID($some.'_seq'); //uid for cached slotstatus data
+					for($i=0; $i<$c; $i++)
+					{
+						$sb = $starts[$i];
+						$data['slotstart'] = $sb;
+						$data['slotlen'] = $ends[$i] - $sb + 1;
+						if(!self::Schedule1($mod,$shares,$session_id,$item_id,$data))
+							$ret = FALSE;
+					}
+				}
+			}
+		}
+		return $ret;
+	}
+
+	/*
+	Get latest-end in $reqdata, update repeat-bookings to that day
+	*/
+	private function UpdateRequestedRepeats(&$mod,$item_id,$slotlen,&$reqdata)
 	{
 		$max = -99;
 		foreach($reqdata as $one)
 		{
-//TODO handle no-end ie 1-slot max booking
-			if(0)
-			{
-				$max = $TODO;
-			}
+			if(empty($reqdata['slotlen']))
+				$reqdata['slotlen'] = $slotlen;
+			$se = $reqdata['slotstart'] + $reqdata['slotlen'] - 1; //last second of the booking
+			if($se > $max)
+				$max = $se;
 		}
-		//TODO process all group-resources if $item_id >= Booker::MINGRPID
+		$ndt = new DateTime('1900-1-1',new DateTimeZone('UTC'));
+		$ndt->setTimestamp($max);
+		$ndt->setTime(0,0,0);
+		$ndt->modify('+1 day');
+		self::UpdateRepeats($mod,$item_id,$ndt);
 	}
 
 	/*
@@ -121,7 +208,7 @@ class bkrschedule
 		$limit = $shares->GetZoneTime($idata['timezone']) + $shares->GetInterval($mod,$item_id,'lead');
 		if($sb > $limit) //too far ahead
 		{
-			$reqdata['status'] = Booker::STATDEFER;
+			$['status'] = Booker::STATDEFER;
 			return FALSE;
 		}
 		$se = $dte->getTimestamp();
@@ -131,6 +218,7 @@ class bkrschedule
 			return FALSE;
 		}
 
+		//TODO use cache that's public
 		$slotstatus = self::GetSlotStatus($mod,$shares,$session_id,$item_id,$dts,$dte);
 		$cando = (($slotstatus & 7) == 0); //slot not busy, and available, and not booked
 		if($cando)
@@ -231,7 +319,7 @@ class bkrschedule
 
 		if($down == 0)
 		{
-			if(isset($ids[1])) //aka count($ids) > 1
+			if(count($ids) > 1)
 				$ids = array_unique($ids);
 		}
 		return $ids;
@@ -243,6 +331,9 @@ class bkrschedule
 	*/
 	private function FindCluster($likes,$lcount,$num,$first,$dts,$dte,$session_id,$roll=FALSE)
 	{
+/*		$funcs = new bkrcache();
+		$cache = $funcs->GetCache();
+*/
 		$c = $num;
 		$i = $first;
 		$ret = array();
@@ -251,17 +342,14 @@ class bkrschedule
 			$id = $likes[$i];
 			if((self::GetSlotStatus($mod,$shares,$session_id,$id,$dts,$dte) & 7) == 0) //item can be booked
 			{
-/*				if($this->cache == NULL)
-					$this->cache = $shares->GetCache();
-				$cache = $this->cache;
-				$cache->
+/*				$cache->
 				TODO set cache-flag busy and/or booked?
 */
 				$ret[] = $id;
 				if(--$c == 0)
 					return $ret;
 			}
-			elseif(isset($ret[0]))
+			elseif(isset($ret[0])) //>0 array-members
 			{
 				 //fresh start
 				$c = $num;
@@ -285,7 +373,7 @@ class bkrschedule
 	@mod: reference to current Booker module object
 	@shares: reference to bkrshared object
 	@session_id: identifier for cache-interrogation
-	@likes: likeness-sorted array of resource identifiers, from which specific 
+	@likes: likeness-sorted array of resource identifiers, from which specific
 		resources are to be selected
 	@dts: DateTime object populated for booking start
 	@dte: ditto for booking end (NOT 1-past)
@@ -380,12 +468,14 @@ class bkrschedule
 	{
 		if(is_array($reqdata))
 		{
-			if(isset($reqdata[1])) //>1 member
+			if(count($reqdata) > 1)
 				usort($reqdata,array($this,'cmp_reqs')); //sort by lodge-time
 		}
 		else
 			$reqdata = array($reqdata);
-		self::UpdateRequestedRepeats($mod,$item_id,$reqdata);
+
+		$sl = $shares->GetInterval($mod,$item_id,'slot');
+		self::UpdateRequestedRepeats($mod,$item_id,$sl,$reqdata);
 
 		$ret = TRUE;
 		$session_id = 0; //TODO $mod->dbHandle->GenID($some.'_seq'); //uid for cached slotstatus data
@@ -395,9 +485,8 @@ class bkrschedule
 				$ret = FALSE;
 		}
 		unset($one);
-/*		if($this->cache !== NULL)
-			$cache = $this->cache;
-		$cache->
+/*		$funcs = new bkrcache();
+		$cache = $funcs->GetCache();
 		TODO clear any cached PUBLIC slotstatus data for this session
 */
 		return $ret;
@@ -427,13 +516,14 @@ class bkrschedule
 		if(is_array($reqdata))
 		{
 			//sort reqdata on resources-count DESC, lodge-time ASC (favours bigger bookings)
-			if(isset($reqdata[1])) //>1 member
+			if(count($reqdata) > 1)
 				usort($reqdata,array($this,'cmp_reqscount'));
 		}
 		else
 			$reqdata = array($reqdata);
 
-		self::UpdateRequestedRepeats($mod,$item_id,$reqdata);
+		$sl = $shares->GetInterval($mod,$item_id,'slot'); //assumes no need for resource-specific slotlength
+		self::UpdateRequestedRepeats($mod,$item_id,sl,$reqdata);
 
 		$idata = $shares->GetItemProperty($mod,array('bookcount','timezone','subgrpalloc','subgrpdata')); //get only what's needed
 		$allocdata = $idata['subgrpdata']; //for local use
@@ -441,6 +531,9 @@ class bkrschedule
 		//assume no need for resource-specific leadtimes
 		$limit = $shares->GetZoneTime($idata['timezone']) + $shares->GetInterval($mod,$item_id,'lead');
 		$session_id = 0; //TODO $mod->dbHandle->GenID(cms_db_prefix().'module_bkrcache_seq'); //uid for cached slotstatus data
+/*		$funcs = new bkrcache();
+		$cache = $funcs->GetCache();
+*/
 		$sql = 'INSERT INTO '.$mod->DataTable.
 ' (bkg_id,item_id,slotstart,slotlen,user,contact,userclass,status,paid) VALUES (?,?,?,?,?,?,?,?,?)';
 		$ret = TRUE;
@@ -479,7 +572,6 @@ class bkrschedule
 			$sb = $one['slotstart'];
 			$dts = new DateTime('1900-1-1',new DateTimeZone('UTC'));
 			$dts->setTimestamp($sb);
-			$sl = $shares->GetInterval($mod,$item_id,'slot'); //assumes no need for resource-specific slotlength
 			if(empty($reqdata['slotlen']))
 				$reqdata['slotlen'] = $sl;
 			$se = $sb + $reqdata['slotlen'] - 1; //last second of the booking
@@ -540,10 +632,7 @@ class bkrschedule
 					$one['status'] = Booker::STATERR; //system error? RETRY?
 					$ret = FALSE;
 				}
-/*				if($this->cache == NULL)
-					$this->cache = $shares->GetCache();
-				$cache = $this->cache;
-				$cache->
+/*				if($cache && $cache->
 				//TODO update cached slot(s) status
 */
 			}
@@ -558,52 +647,10 @@ class bkrschedule
 		{
 		//TODO update underlying source
 		}
-/*		if($this->cache !== NULL)
-			$cache = $this->cache;
-		$cache->
+/*		if($cache && $cache->
 		TODO clear any cached slotstatus data for this session
 */
 		return $ret;
-	}
-
-	/**
-	GetRepeats:
-	Interpret any relevant repeat-booking for the specified resource into
-	 specific bookings in bookings table
-	This is low-level method, normally UpdateRepeats() would be more appropriate
-	@mod: reference to current Booker module
-	@idata: reference to array of item parameters
-	@dtstart: resource-local datetime object for beginning of 1st day of period to be processed
-	@dtend: resource-local datetime object for beginning of DAY AFTER last day of period
-	@reps: optional reference to bkrrepeats object, default NULL
-	Returns: nothing
-	*/
-	public function GetRepeats(&$mod,&$idata,$dtstart,$dtend,&$reps=NULL)
-	{
-		$shares = new bkrshared();
-		$sql = 'SELECT bkg_id,formula,user,contact,userclass,paid FROM '.$mod->RepeatTable.' WHERE item_id=? AND active=1';
-		$rows = $shares->SafeGet($sql,array($idata['item_id']));
-		if($rows)
-		{
-			$extras = array();
-			if($reps == NULL)
-				$reps = new bkrrepeats();
-			$sunparms = $reps->SunParms($idata); //TODO extra arg current date/time
-			foreach($rows as &$one)
-			{
-				$usetimes = $reps->AllIntervals($one['formula'],$dtstart,$dtend,$sunparms);
-				if($usetimes)
-					$extras = $extras + $usetimes;
-			}
-			unset($one);
-			if($extras)
-			{
-				$c = count($extras);
-				//TODO rationalise $extras[] into valid GMT-based pairs of times c.f. AllIntervals()
-				sort($extras,SORT_NUMERIC);
-				//TODO schedule group-repeats per ScheduleGroup() etc
-			}
-		}
 	}
 
 	/**
@@ -618,37 +665,44 @@ class bkrschedule
 	*/
 	public function UpdateRepeats(&$mod,$item_id,$dtend)
 	{
-		$dt = new DateTime('1900-1-1',new DateTimeZone('UTC'));
+		$dt = clone $dtend;
+		$ndt = clone $dtend; //preserve upstream
+		$ndt->modify('-1 day'); //beginning of last day of update-period
+		$se = $ndt->getTimestamp();
+
 		$db = $mod->dbHandle;
-		$sql = 'SELECT repeatsuntil FROM '.$mod->ItemTable.' WHERE item_id=?';
+		$sql1 = 'SELECT repeatsuntil FROM '.$mod->ItemTable.' WHERE item_id=?';
+		$sql2 = 'UPDATE '.$mod->ItemTable.' SET repeatsuntil=? WHERE item_id=?';
+
+		$shares = new bkrshared();
+		$reps = new bkrrepeats();
+
 		if($item_id >= Booker::MINGRPID)
-		{
-		//TODO foreach member if $is_group
-		}
-		$se = $db->GetOne($sql,array($item_id));
-		//one day after last-processed = possible start of further interpretation
-		if(!is_null($se))
-		{
-			$dt->setTimestamp($se);
-			$dt->setTime(0,0,0);
-			$dt->modify('+1 day');
-		}
+			$all = self::MembersLike($mod,$item_id);
 		else
+			$all = array($item_id);
+		foreach($all as $one)
 		{
-			$dt->modify('midnight');
-		}
-		if($dt < $dtend)
-		{
-			$funcs = new bkrshared();
-			$idata = $funcs->GetItemProperty($mod,$item_id,'*');
-			$funcs = new bkrrepeats();
-			self::GetRepeats($mod,$idata,$dt,$dtend,$funcs);
-			//log last-interpreted date
-			$dtend->modify('-1 day');
-			$se = $dtend->getTimestamp();
-			$sql = 'UPDATE '.$mod->ItemTable.' SET repeatsuntil=? WHERE item_id=?';
-			$db->Execute($sql,array($se,$item_id));
-			$dtend->modify('+1 day'); //keep upstream same
+			$stamp = $db->GetOne($sql1,array($one));
+			//one day after last-processed = possible start of further interpretation
+			if(!is_null($stamp))
+			{
+				$dt->setTimestamp($stamp);
+				$dt->setTime(0,0,0);
+				$dt->modify('+1 day');
+			}
+			else
+			{
+				$dt->modify('midnight');
+			}
+			if($dt < $ndt)
+			{
+				$idata = $shares->GetItemProperty($mod,$one,array('timezone','latitude','longitude'));
+				$idata['item_id'] = $one;
+				self::GetRepeats($mod,$shares,$reps,$idata,$dt,$ndt); //TODO don't ignore failure
+				//log last-interpreted date
+				$db->Execute($sql2,array($se,$one));
+			}
 		}
 	}
 
@@ -667,7 +721,7 @@ class bkrschedule
 	{
 		if($item_id >= Booker::MINGRPID);
 		{
-			//TODO decide how to handle variances amoung group members
+			//TODO decide how to interrogate & report on group-members
 		}
 		$idata = $shares->GetItemProperty($mod,$item_id,'*');
 		if(empty($idata['available']))
@@ -679,11 +733,12 @@ class bkrschedule
 		$avail = $funcs->AllIntervals($idata['available'],$dtstart,$dtw,$sunparms);
 		if($avail)
 		{
-			//any intra-range block start/end implies some part of the range isn't available
-			foreach($avail as $offs)
+			$sb = $dtstart->getTimestamp();
+			$se = $dtend->getTimestamp();
+			$c = count($avail);
+			for($i=0; $i<$c; $i+=2)
 			{
-				$dtw->setTimestamp($offs);
-				if($dtw > $dtstart && $dtw < $dtend)
+				if($avail[$i] < $se && $avail[$i+1] > $sb) //ignore possible 1-sec overlaps
 					return FALSE;
 			}
 		}
@@ -707,7 +762,7 @@ class bkrschedule
 		$funcs = new bkrshared();
 		if($item_id >= Booker::MINGRPID);
 		{
-			//TODO decide how to interrogate group-members
+			//TODO decide how to interrogate & report on group-members
 		}
 		$args = array($item_id);
 		$sql = 'SELECT bkg_id FROM '.$mod->DataTable.' WHERE item_id=?';
@@ -718,7 +773,8 @@ class bkrschedule
 		}
 		$args[] = $dtend->getTimestamp();
 		$args[] = $dtstart->getTimestamp();
-		$sql .= ' AND slotstart <= ? AND (slotstart + slotlen) >= ?';
+		 //ignore possible 1-sec overlaps
+		$sql .= ' AND slotstart < ? AND (slotstart + slotlen) > ?';
 		$used = $funcs->SafeGet($sql,$args,'one');
 		return ($used != FALSE);
 	}
