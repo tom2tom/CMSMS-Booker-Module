@@ -619,7 +619,7 @@ class bkrschedule
 	public function UpdateRepeats(&$mod,$item_id,$dtend)
 	{
 		$dt = new DateTime('1900-1-1',new DateTimeZone('UTC'));
-		$db = $TODO;
+		$db = $mod->dbHandle;
 		$sql = 'SELECT repeatsuntil FROM '.$mod->ItemTable.' WHERE item_id=?';
 		if($item_id >= Booker::MINGRPID)
 		{
@@ -639,7 +639,8 @@ class bkrschedule
 		}
 		if($dt < $dtend)
 		{
-			$idata = $TODO;
+			$funcs = new bkrshared();
+			$idata = $funcs->GetItemProperty($mod,$item_id,'*');
 			$funcs = new bkrrepeats();
 			self::GetRepeats($mod,$idata,$dt,$dtend,$funcs);
 			//log last-interpreted date
