@@ -328,7 +328,7 @@ class bkrdisplay
 
 	/*
 	_Coalesce:
-	Merge overlapping slots in @slots c.f. bkrrepeats::_MergeBlocks($starts,$ends)
+	Merge overlapping slots in @slots c.f. bkrrepeats::MergeBlocks($starts,$ends)
 	@slots: array with members each an array($bs,$be) for slot start,end
 	Returns: array with mergers done
 	*/
