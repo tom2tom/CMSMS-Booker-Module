@@ -604,7 +604,7 @@ EOS;
 			}
 		}
 	}
-	if(isset($rows[1]))
+	if(isset($rows[1])) //>1 array-member
 	{
 		//assume small no. of bookings, so no pagination
 		$jsfuncs[] = <<<EOS
