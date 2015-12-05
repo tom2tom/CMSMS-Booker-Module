@@ -2,7 +2,7 @@
 /*
 This file is part of CMS Made Simple module: Booker.
 Copyright(C) 2014-2015 Tom Phane <tpgww@onepost.net>
-Refer to licence and other details at the top of file Tourney.module.php
+Refer to licence and other details at the top of file Booker.module.php
 More info at http://dev.cmsmadesimple.org/projects/booker
 
 Class: bkrrepeats
