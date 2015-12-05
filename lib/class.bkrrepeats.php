@@ -272,14 +272,14 @@ no FALSE in $ends[]
 	}
 
 	/*
-	_MergeBlocks:
+	MergeBlocks:
 	Coalesce and sort-ascending the timestamp-blocks represented in @starts and @ends.
 	The arrays must be equal-sized, have numeric keys. Returned array keys may be
 	non-contiguous.
 	@starts: reference to array of block-start stamps, any order
 	@ends: reference to array of corresponding block-end stamps, no FALSE value(s)
 	*/
-	private function _MergeBlocks(&$starts,&$ends)
+	public function MergeBlocks(&$starts,&$ends)
 	{
 		$c = count($starts);
 		if($c > 1)
@@ -516,7 +516,7 @@ Astronomical twilight $zenith=108.0;
 				//get block-ends timestamps for $descriptor and over time-interval
 				list($starts,$ends) = self::_GetBlocks($dtstart,$dtend,$sunparms); //TODO sunparms offset may change during interval
 				//sort block-pairs, merge when needed
-				self::_MergeBlocks($starts,$ends);
+				self::MergeBlocks($starts,$ends);
 				//migrate
 				$stamps = array();
 				foreach($starts as $i=>$one)
