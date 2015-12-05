@@ -479,7 +479,7 @@ class bkrdisplay
 		$one = new stdClass();
 		if($bslots) //found booking(s)
 		{
-			if(!isset($users[1])) //aka count($users) == 1
+			if(count($users) == 1)
 			{
 				$one->data = reset($users);
 				$multi = FALSE;
@@ -541,7 +541,7 @@ class bkrdisplay
 				else
 					$one->style = 'class="'.$type.'"';
 
-//ALWAYS discoverable		if(!isset($bslots[1])) //aka count($bslots) == 1 1-user, 1-booking : make it discoverable
+//ALWAYS discoverable		if(count($bslots) == 1) //1-user, 1-booking : make it discoverable
 					$one->bid = (int)$row['bkg_id'];
 			}
 			//next-time start
