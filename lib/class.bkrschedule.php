@@ -111,11 +111,17 @@ class bkrschedule
 					if(!array_key_exists($user,$parms))
 						$parms[$user] = array(
 							(int)$one['userclass'], //0
-							$one['contact'], //1
-							(int)$one['paid'] //2
-						);
-					elseif(!$one['paid'])
-						$parms[$user][2] = 0; //part-paid reported as unpaid
+							trim($one['contact']), //1
+							(int)$one['paid']); //2
+					else
+					{
+						if($parms[$user][0] == 0); //keep first non-0 class
+							$parms[$user][0] = (int)$one['userclass'];
+						if($parms[$user][1] == FALSE); //keep first non-empty contact
+							$parms[$user][1] = trim($one['contact']);
+						if(!$one['paid'])
+							$parms[$user][2] = 0; //part-paid reported as unpaid
+					}
 				}
 			}
 			unset($one);
@@ -187,7 +193,7 @@ class bkrschedule
 	@shares: reference to bkrshared object
 	@session_id: identifier for cache-interrogation
 	@item_id: resource-identifier
-	@reqdata: reference to one row of data from RequestTable
+	@reqdata: reference to one row of data from RequestTable, or equivalent constructed array
 	Returns: boolean indicating success
 	*/
 	private function Schedule1(&$mod,&$shares,$session_id,$item_id,&$reqdata)
@@ -230,8 +236,9 @@ class bkrschedule
 				$this->slotsdone[] = $sig;
 				//record booking
 				$bid = $mod->dbHandle->GenID($mod->DataTable.'_seq');
-				$class = self::MatchUserClass($mod,$shares,$item_id,$reqdata['sender']);
-				$status = Booker::STATNONE; //or STATNOPAY etc
+				$class = (!empty($reqdata['userclass'])) ? $reqdata['userclass'] :
+					self::MatchUserClass($mod,$shares,$item_id,$reqdata['sender']);
+				$status = Booker::STATNONE; //TODO or STATNOPAY etc
 				$args = array(
 					$bid,
 					$item_id,
@@ -600,8 +607,9 @@ class bkrschedule
 				$allsql = array();
 				$allargs = array();
 				$bid = $mod->dbHandle->GenID($mod->DataTable.'_seq');
-				$class = self::MatchUserClass($mod,$shares,reset($items),$one['sender']);
-				$status = Booker::STATNONE; //or STATNOPAY etc
+				$class = (!empty($one['userclass'])) ? $one['userclass'] :
+					self::MatchUserClass($mod,$shares,reset($items),$one['sender']);
+				$status = Booker::STATNONE; //TODO or STATNOPAY etc
 				foreach($items as $memberid)
 				{
 					//TODO signature(s) for actual slot(s), not booking interval
