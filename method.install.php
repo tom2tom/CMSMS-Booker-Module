@@ -144,8 +144,8 @@ non-repeated bookings-data table schema:
  slotstart: UTC timestamp
  slotlen: seconds booked, NOT seconds-per-slot
  user: identifier
- contact:
- userclass: 0 - 5
+ contact: phone, email etc
+ userclass: enum 0..5
  status: one of the Booker::STAT* values
  paid: boolean
 bkrcsv::ImportBookings must conform to this
@@ -179,8 +179,8 @@ repeated bookings-data table schema:
  item_id: resource or group id
  formula: interval-descriptor string
  user: identifier
- contact:
- userclass: 0 - 5
+ contact: phone, email etc
+ userclass: enum 0..5
  subgrpcount: no. of in-group resources to be processed per subgrpalloc
  paid: boolean
  active: boolean TRUE unless booking has been deleted but historic data remain
@@ -221,14 +221,15 @@ submitted booking requests table schema
  slotstart: UTC timestamp
  slotlen: seconds booked, NOT seconds-per-slot
  sender: identifier, assumed to be the booker i.e. not a 3rd-party
- contact:
+ contact: phone, email etc
  comment:
+ userclass: enum 0..5
  subgrpcount: no. of requested items in a group, irrelevant for non-groups
  status: one of the Booker::STAT* values
  paid: boolean
  lodged: UTC timestamp
  approved: UTC timestamp
- */
+*/
 $fields = "
 	req_id I(4) KEY,
 	item_id I(4),
@@ -237,6 +238,7 @@ $fields = "
 	sender C(64),
 	contact C(128),
 	comment C(256),
+	userclass I(1) DEFAULT 0,
 	subgrpcount I(1) DEFAULT 1,
 	status I(1) NOTNULL DEFAULT ".Booker::STATNONE.",
 	paid I(1) DEFAULT 0,
