@@ -442,11 +442,13 @@ if($pmod)
 }
 
 //========== REPEAT BOOKINGS ===========
-$sql = 'SELECT bkg_id,item_id,formula,user,paid FROM '.$this->RepeatTable.' WHERE item_id=? AND active=1';
+$sql = 'SELECT bkg_id,item_id,formula,user,subgrpcount,paid FROM '.$this->RepeatTable.
+	' WHERE item_id=? AND active=1';
 $data = $db->GetAll($sql,array($item_id));
 if($groups)
 {
-	$sql = 'SELECT bkg_id,item_id,formula,user,paid FROM '.$this->RepeatTable.' WHERE item_id IN('.$fillers.') AND active=1';
+	$sql = 'SELECT bkg_id,item_id,formula,user,subgrpcount,paid FROM '.$this->RepeatTable.
+	' WHERE item_id IN('.$fillers.') AND active=1';
 	$data2 = $db->GetAll($sql,$groups);
 	if($data2)
 		$data = array_merge($data,$data2);
@@ -469,6 +471,7 @@ if($data)
 	$titles = array(
 	 $this->Lang('description'),
 	 $this->Lang('title_user'),
+	 $this->Lang('title_count'),
 	 $this->Lang('title_paid')
 	);
 	$smarty->assign('colnames2',$titles);
@@ -490,6 +493,7 @@ if($data)
 			$oneset->dec .= ' &Dagger;';
 		}
 		$oneset->user = $one['user'];
+		$oneset->count = $one['subgrpcount'];
 		if($payable)
 			$oneset->paid = ($one['paid']) ? $yes:$no;
 		else
