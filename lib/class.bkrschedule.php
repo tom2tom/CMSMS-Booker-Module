@@ -91,7 +91,8 @@ class bkrschedule
 	{
 		$ret = TRUE;
 		$item_id = (int)$idata['item_id'];
-		$sql = 'SELECT bkg_id,formula,user,contact,userclass,paid FROM '.$mod->RepeatTable.' WHERE item_id=? AND active=1';
+		$sql = 'SELECT bkg_id,formula,user,contact,userclass,subgrpcount,paid FROM '.
+			$mod->RepeatTable.' WHERE item_id=? AND active=1';
 		$rows = $shares->SafeGet($sql,array($item_id));
 		if($rows)
 		{
@@ -155,8 +156,16 @@ class bkrschedule
 						$sb = $starts[$i];
 						$data['slotstart'] = $sb;
 						$data['slotlen'] = $ends[$i] - $sb + 1;
-						if(!self::Schedule1($mod,$shares,$session_id,$item_id,$data))
-							$ret = FALSE;
+						if($one['subgrpcount'] < 2)
+						{
+							if(!self::Schedule1($mod,$shares,$session_id,$item_id,$data))
+								$ret = FALSE;
+						}
+						else
+						{
+							if(!self::ScheduleGroup($mod,$shares,$item_id,$data))
+								$ret = FALSE;
+						}
 					}
 				}
 			}
