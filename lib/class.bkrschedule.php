@@ -660,9 +660,11 @@ class bkrschedule
 			}
 		}
 		unset($one);
-		if($allocdata != $idata['subgrpalloc'])
+		if($allocdata != $idata['subgrpdata'])
 		{
-		//TODO update underlying source
+			$mod->dbHandle->Execute(
+				'UPDATE '.$mod->ItemTable.' SET subgrpdata=? WHERE item_id=? AND subgrpdata=?'
+				array($allocdata,$item_id,$idata['subgrpdata']));
 		}
 /*		if($cache && $cache->
 		TODO clear any cached slotstatus data for this session
