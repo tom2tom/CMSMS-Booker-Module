@@ -66,6 +66,7 @@
 				<tr class="{$rowclass}">
 				 <td>{$bkg->desc}</td>
 				 <td>{$bkg->user}</td>
+				 <td>{$bkg->count}</td>
 				 <td>{$bkg->paid}</td>
 				 <td>{$bkg->open}</td>
 {if $tell}		<td class="bkrtell">{$bkg->tell}</td>{/if}
