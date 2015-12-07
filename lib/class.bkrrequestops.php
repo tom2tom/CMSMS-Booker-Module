@@ -203,7 +203,7 @@ class bkrrequestops
 	/**
 	ApproveReq:
 	If possible, record request as approved and do consequent stuff like notify the user.
-	TODO Can also process intermingled deletion(s) and/or change(s)
+	Can process intermingled deletion(s) and/or change(s)
 	@mod: reference to current Booker module
 	@req_id: request identifier, or array of them
 	@custommsg: text entered by user, to replace square-bracketed content of the approval-message 'template'
@@ -214,33 +214,48 @@ class bkrrequestops
 		$rows = self::GetReqData($mod,$req_id);
 		if($rows)
 		{
+			$db = $mod->dbHandle;
 			$shares = new bkrshared();
 			$sched = new bkrschedule();
 			//cluster the requests by id, for specific processing
 			krsort($rows,SORT_NUMERIC); //reverse, so groups-first
-			$m = -999; //unmatchable
+			$m = -900; //unmatchable
 			$collect = array();
 			foreach($rows as $id=>&$one)
 			{
-/*				if($one['status'] == $TODO)
+				switch($one['status'])
 				{
-					//TODO process DELETE, CHANGE requests separately
-					continue;
-				}
-*/
-				if($id != $m)
-				{
-					if($collect)
+				 case Booker::STATDEL:
+				 case Booker::STATCHG: //TODO setup replacement
+					 $sql = 'DELETE FROM '.$mod->RequestTable.' WHERE req_id=?';
+					 $db->Execute($sql,array($id));
+					 break;
+				 case Booker::STATCANCEL:
+				 case Booker::STATTELL:
+				 case Booker::STATASK: 
+				 case Booker::STATBIG: 
+				 case Booker::STATNA:
+				 case Booker::STATDUP:
+				 case Booker::STATOK:
+				 case Booker::STATGONE:
+//				 case Booker::STATERR: retry this
+					break;
+				 default:
+					if($id != $m)
 					{
-						if($m < Booker::MINGRPID)
-							$sched->ScheduleResource($mod,$shares,$m,$collect);
-						else
-							$sched->ScheduleGroup($mod,$shares,$m,$collect);
-						$collect = array();
+						if($collect)
+						{
+							if($m < Booker::MINGRPID)
+								$sched->ScheduleResource($mod,$shares,$m,$collect);
+							else
+								$sched->ScheduleGroup($mod,$shares,$m,$collect);
+							$collect = array();
+						}
+						$m = $id;
 					}
-					$m = $id;
+					$collect[] = $one;
+					break;
 				}
-				$collect[] = $one;
 			}
 			unset($one);
 			if($collect)
@@ -250,32 +265,55 @@ class bkrrequestops
 				else
 					$sched->ScheduleGroup($mod,$shares,$m,$collect);
 			}
+			//record updated status
+			$sql = 'UPDATE '.$mod->RequestTable.' SET status=? WHERE req_id=?';
+			$db->StartTrans();
+			foreach($rows as $id=>&$one)
+				$db->Execute($sql,array($one['status'],$id));
+			$db->CompleteTrans(); //ignore any problem e.g. deleted
+			unset($one);
 
 			$ob = cms_utils::get_module('Notifier');
 			if($ob)
 			{
 				unset($ob);
+				//notify lodger
 				$funcs = new MessageSender();
 				$fails = array();
 
-				foreach($rows as $id=>$data)
+				foreach($rows as $id=>&$one)
 				{
-					switch($data['status'])
+					switch($one['status'])
 					{
-					 case $TODO:
-						//TODO record updated status
-						//notify lodger
+					 case Booker::STATNONE:
 						$idata = $shares->GetItemProperty($mod,$one['item_id'],'*');
 						list($from,$to,$textparms,$mailparms,$tweetparms) = self::MsgParms($mod,$shares,$one,$idata,self::MSGAPPROVE,$custommsg);
 						list($res,$msg) = $funcs->Send($from,$to,$textparms,$mailparms,$tweetparms);
 						if(!$res)
 							$fails[] = $msg;
 						break;
-					 case $TODO2:
 					 default:
+/* TODO relevant advice
+					 case Booker::STATASK:
+					 case Booker::STATBIG:
+					 case Booker::STATCANCEL:
+					 case Booker::STATCHG:
+					 case Booker::STATDEFER:
+					 case Booker::STATDEL:
+					 case Booker::STATDUP:
+					 case Booker::STATERR:
+					 case Booker::STATGONE:
+					 case Booker::STATNA:
+					 case Booker::STATNEW:
+					 case Booker::STATNOPAY:
+					 case Booker::STATOK:
+					 case Booker::STATTELL:
+					 case Booker::STATTEMP:
+*/
 					 	break;
 					}
 				}
+				unset($one);
 				if($fails)
 					return array(FALSE,implode('<br />',$fails));
 				return aray(TRUE,'');
