@@ -8,7 +8,7 @@
 
 class bkrcache
 {
-	private $cache = NULL; //cache object
+	private static $cache = NULL; //cache object
 	/**
 	GetCache:
 	@storage: optional cache-type name, one (or more, ','-separated) of
@@ -21,8 +21,8 @@ class bkrcache
 	*/
 	public function GetCache($storage='auto',$settings=array())
 	{
-		if($this->cache == NULL && isset($_SESSION['bkrcache']))
-			$this->cache = $_SESSION['bkrcache'];
+//		if($this->cache == NULL && isset($_SESSION['bkrcache']))
+//			$this->cache = $_SESSION['bkrcache'];
 		if($this->cache)
 			return $this->cache;
 
@@ -70,7 +70,7 @@ class bkrcache
 			{
 				continue;
 			}
-			$_SESSION['bkrcache'] = $cache;
+//			$_SESSION['bkrcache'] = $cache;
 			$this->cache = $cache;
 			return $this->cache;
 		}
@@ -79,7 +79,7 @@ class bkrcache
 
 	public function ClearCache()
 	{
-		unset($_SESSION['bkrcache']);
+//		unset($_SESSION['bkrcache']);
 		unset($this->cache);
 		$this->cache = NULL;
 	}
