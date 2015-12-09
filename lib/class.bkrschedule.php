@@ -128,7 +128,7 @@ class bkrschedule
 			unset($one);
 			if($times)
 			{
-				$foreach($times as $user=>$utimes)
+				foreach($times as $user=>$utimes)
 				{
 					$data = array(
 					 'slotstart'=>0,
@@ -223,7 +223,7 @@ class bkrschedule
 		$limit = $shares->GetZoneTime($idata['timezone']) + $shares->GetInterval($mod,$item_id,'lead');
 		if($sb > $limit) //too far ahead
 		{
-			$['status'] = Booker::STATDEFER;
+			$reqdata['status'] = Booker::STATDEFER;
 			return FALSE;
 		}
 		$se = $dte->getTimestamp();
@@ -663,7 +663,7 @@ class bkrschedule
 		if($allocdata != $idata['subgrpdata'])
 		{
 			$mod->dbHandle->Execute(
-				'UPDATE '.$mod->ItemTable.' SET subgrpdata=? WHERE item_id=? AND subgrpdata=?'
+				'UPDATE '.$mod->ItemTable.' SET subgrpdata=? WHERE item_id=? AND subgrpdata=?',
 				array($allocdata,$item_id,$idata['subgrpdata']));
 		}
 /*		if($cache && $cache->
@@ -694,7 +694,7 @@ class bkrschedule
 		$sql2 = 'UPDATE '.$mod->ItemTable.' SET repeatsuntil=? WHERE item_id=?';
 
 		$shares = new bkrshared();
-		$reps = new bkrrepeats();
+		$reps = new bkrrepeats($mod);
 
 		if($item_id >= Booker::MINGRPID)
 			$all = self::MembersLike($mod,$item_id);
