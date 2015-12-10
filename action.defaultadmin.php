@@ -50,7 +50,8 @@ $smarty->assign('tell',$tell);
 
 $si = $this->Lang('item');
 $sg = $this->Lang('group');
-$theme = cmsms()->variables['admintheme'];
+$theme = ($this->before20) ? cmsms()->get_variable('admintheme'):
+	cms_utils::get_theme_object();
 $iconyes = $theme->DisplayImage('icons/system/true.gif',$this->Lang('true'),'','','systemicon');
 $iconno = $theme->DisplayImage('icons/system/false.gif',$this->Lang('false'),'','','systemicon');
 

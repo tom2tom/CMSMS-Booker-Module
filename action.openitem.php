@@ -498,7 +498,8 @@ EOS;
 	$item->active = 1;
 }
 
-$theme = cmsms()->variables['admintheme'];
+$theme = ($this->before20) ? cmsms()->get_variable('admintheme'):
+	cms_utils::get_theme_object();
 $iconup = $theme->DisplayImage('icons/system/arrow-u.gif',$this->Lang('tip_up'),'','','systemicon');
 $icondn = $theme->DisplayImage('icons/system/arrow-d.gif',$this->Lang('tip_down'),'','','systemicon');
 $iconinfo = $theme->DisplayImage('icons/system/info.gif',$this->Lang('showhelp'),'','','systemicon tipper');

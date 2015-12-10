@@ -95,7 +95,8 @@ $smarty->assign('no',$no);
 
 $modurl = $this->GetModuleURLPath();
 $smarty->assign('modurl',$modurl);
-$theme = cmsms()->variables['admintheme'];
+$theme = ($this->before20) ? cmsms()->get_variable('admintheme'):
+	cms_utils::get_theme_object();
 
 if($pmod)
 {
