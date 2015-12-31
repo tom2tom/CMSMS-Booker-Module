@@ -911,7 +911,7 @@ EOS;
 	private function PathURL(&$mod,$file)
 	{
 		$config = cmsms()->GetConfig();
-		$base = (!empty($_SERVER['HTTPS'])) ? $config['ssl_uploads_url']:$config['uploads_url'];
+		$base = (!isset($_SERVER['HTTPS']) || $_SERVER['HTTPS'] != 'on') ? $config['uploads_url']:$config['ssl_uploads_url'];
 		$ud = $mod->GetPreference('pref_uploadsdir','');
 		$lp = ($ud) ? '/'.str_replace('\\','/',$ud) : '';
 		$url = $base.$lp.'/'.str_replace('\\','/',$file);
