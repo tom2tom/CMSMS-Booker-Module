@@ -158,7 +158,10 @@ if(!function_exists('groupsupdate'))
 		if($db->CompleteTrans())
 			break;
 		else
+		{
 			$nt--;
+			usleep(50000);
+		}
 	}
 
 	if($current || $new)
