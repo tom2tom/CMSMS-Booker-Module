@@ -1,5 +1,8 @@
-<link rel="stylesheet" type="text/css" href="{$modurl}/css/public.css" />
-<link rel="stylesheet" type="text/css" href="{$modurl}/css/pikaday.css" />
+{if $jsstyler}<script type="text/javascript">
+//<![CDATA[
+{$jsstyler}
+//]]>
+</script>{/if}
 <div class="bkr_browsenav">{$back_nav}</div><br />
 {if !empty($message)}<p class="pagetext pagemessage">{$message}</p><br />{/if}
 <h3 class="pagetext">{$title}</h3>

@@ -1,6 +1,8 @@
-<link rel="stylesheet" type="text/css" href="{$modurl}/css/public.css" />
-{if isset($customstyle)}<link rel="stylesheet" type="text/css" href="{$customstyle}" />{/if}
-<link rel="stylesheet" type="text/css" href="{$modurl}/css/pikaday.css" />
+{if $jsstyler}<script type="text/javascript">
+//<![CDATA[
+{$jsstyler}
+//]]>
+</script>{/if}
 {if !empty($message)}<p class="pagemessage">{$message}</p>{/if}
 <h4 class="bkgtitle">{$title}<br />{$textwhat}</h4>
 {if isset($desc)}<p class="bkgdesc">{$desc}</p><br /><br />{/if}
