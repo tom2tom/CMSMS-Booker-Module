@@ -476,8 +476,9 @@ class Booker extends CMSModule
 	@id:
 	@$params:
 	@returnid:
+	@tplvars: reference to array of template variables
 	*/
-	function _BuildNav($id,&$params,$returnid)
+	function _BuildNav($id,&$params,$returnid,$&tplvars)
 	{
 		$navstr = $this->CreateLink($id,'defaultadmin',$returnid,
 			'&#171; '.$this->Lang('back_module'));
@@ -487,8 +488,7 @@ class Booker extends CMSModule
 				'&#171; '.$this->Lang('title_bookings'),array(
 				'item_id'=>$params['item_id']));
 		}
-		$smarty = cmsms()->GetSmarty();
-		$smarty->assign('back_nav',$navstr);
+		$tplvars['back_nav'] = $navstr;
 	}
 
 	/* *

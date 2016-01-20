@@ -29,14 +29,16 @@ else
 $mod = $padm || $pmod;
 $bmod = $padm || $pbkg;
 
-//$smarty->assign('see',$psee);
-$smarty->assign('add',$padd);
-$smarty->assign('adm',$padm);
-$smarty->assign('bmod',$bmod);
-$smarty->assign('del',$pdel);
-$smarty->assign('dev',$pdev);
-$smarty->assign('mod',$mod); //not $pmod
-$smarty->assign('set',$pset);
+$tplvars = array(
+//	'see' => $psee,
+	'add' => $padd,
+	'adm' => $padm,
+	'bmod' => $bmod,
+	'del' => $pdel,
+	'dev' => $pdev,
+	'mod' => $mod, //not $pmod
+	'set' => $pset
+);
 
 $ob = cms_utils::get_module('Notifier');
 if($ob)
@@ -46,7 +48,7 @@ if($ob)
 }
 else
 	$tell = FALSE;
-$smarty->assign('tell',$tell);
+$tplvars['tell'] = $tell;
 
 $si = $this->Lang('item');
 $sg = $this->Lang('group');
@@ -86,7 +88,7 @@ if($pdel)
 $seltip = $this->Lang('tip_selecttype','%s');
 
 if(isset($params['message']))
-	$smarty->assign('message',$params['message']);
+	$tplvars['message'] = $params['message'];
 
 if(isset($params['active_tab']))
 	$showtab = $params['active_tab'];
@@ -96,27 +98,27 @@ $seetab1 = ($showtab=='items');
 $seetab2 = ($showtab=='groups');
 $seetab3 = ($showtab=='settings');
 
-$smarty->assign('hidden',$this->CreateInputHidden($id,'active_tab',$showtab));
+$tplvars['hidden'] = $this->CreateInputHidden($id,'active_tab',$showtab);
 
-$smarty->assign('tab_headers',$this->StartTabHeaders().
+$tplvars['tab_headers'] = $this->StartTabHeaders().
 	$this->SetTabHeader('data',$this->Lang('title_bookings')).
 	$this->SetTabHeader('items',$this->Lang('title_items'),$seetab1).
 	$this->SetTabHeader('groups',$this->Lang('title_groups'),$seetab2).
 	$this->SetTabHeader('settings',$this->Lang('settings'),$seetab3).
 	$this->EndTabHeaders().
-	$this->StartTabContent());
-$smarty->assign('tab_footers',$this->EndTabContent());
-$smarty->assign('end_tab',$this->EndTab());
+	$this->StartTabContent();
+$tplvars['tab_footers'] = $this->EndTabContent();
+$tplvars['end_tab'] = $this->EndTab();
 
 $funcs = new bkrshared();
 $jsfuncs = array(); //script accumulators
 $jsloads = array();
 $jsincs = array();
 //modal overlay
-$smarty->assign('yes',$this->Lang('yes'));
-$smarty->assign('no',$this->Lang('no'));
-$smarty->assign('proceed',$this->Lang('proceed'));
-$smarty->assign('abort',$this->Lang('cancel'));
+$tplvars['yes'] = $this->Lang('yes');
+$tplvars['no'] = $this->Lang('no');
+$tplvars['proceed'] = $this->Lang('proceed');
+$tplvars['abort'] = $this->Lang('cancel');
 
 $jsincs[] =<<<EOS
 <script type="text/javascript" src="{$baseurl}/include/jquery.modalconfirm.min.js"></script>
@@ -124,9 +126,9 @@ $jsincs[] =<<<EOS
 EOS;
 
 //BOOKINGS TAB
-$smarty->assign('startform1',$this->CreateFormStart($id,'adminbooking',$returnid,
-	'POST','','','',array('custmsg'=>'')));
-$smarty->assign('start_data_tab',$this->StartTab('data'));
+$tplvars['startform1'] = $this->CreateFormStart($id,'adminbooking',$returnid,
+	'POST','','','',array('custmsg'=>''));
+$tplvars['start_data_tab'] = $this->StartTab('data');
 
 $sql = 'SELECT * FROM '.$this->RequestTable.' ORDER BY lodged';
 $data = $db->GetAll($sql);
@@ -256,12 +258,12 @@ if($data)
 	}
 	unset($row);
 
-	$smarty->assign('title_pending',$this->Lang('pending'));
+	$tplvars['title_pending'] = $this->Lang('pending');
 	$dcount = count($data);
-	$smarty->assign('dcount',$dcount);
+	$tplvars['dcount'] = $dcount;
 	if($dcount > 1)
 	{
-		$smarty->assign('selectall_req',$this->CreateInputCheckbox($id,'req',true,false,'title="'.$this->Lang('selectall').'" onclick="select_all_req(this)"'));
+		$tplvars['selectall_req'] = $this->CreateInputCheckbox($id,'req',true,false,'title="'.$this->Lang('selectall').'" onclick="select_all_req(this)"');
 		$jsfuncs[] = <<<EOS
 function select_all_req(b)
 {
@@ -283,9 +285,9 @@ EOS;
 
 	if($tell)
 	{
-		$smarty->assign('modaltitle',$this->Lang('title_feedback2'));
-		$smarty->assign('customentry',$this->CreateInputText($id,'customentry','',20,30));
-		$smarty->assign('prompttitle',$this->Lang('title_prompt'));
+		$tplvars['modaltitle'] = $this->Lang('title_feedback2');
+		$tplvars['customentry'] = $this->CreateInputText($id,'customentry','',20,30);
+		$tplvars['prompttitle'] = $this->Lang('title_prompt');
 
 		$what = '{'.$this->Lang('item').'}';
 		$on = '{'.$this->Lang('date').'}';
@@ -447,17 +449,17 @@ EOS;
 
 	if($tell)
 	{
-		$smarty->assign('notifybtn',$this->CreateInputSubmit($id,'notify',
-			$this->Lang('notify'),'title="'.$this->Lang('tip_notify_selected_requests').'"'));
+		$tplvars['notifybtn'] = $this->CreateInputSubmit($id,'notify',
+			$this->Lang('notify'),'title="'.$this->Lang('tip_notify_selected_requests').'"');
 	}
 	if($bmod)
 	{
-		$smarty->assign('approvbtn',$this->CreateInputSubmit($id,'approve',
-			$this->Lang('approve'),'title="'.$this->Lang('tip_approve_sel').'"'));
-		$smarty->assign('rejectbtn',$this->CreateInputSubmit($id,'reject',
-			$this->Lang('reject'),'title="'.$this->Lang('tip_reject_sel').'"'));
-		$smarty->assign('deletebtn0',$this->CreateInputSubmit($id,'delete',
-			$this->Lang('delete'),'title="'.$this->Lang('tip_delseltype',$this->Lang('request_multi')).'"'));
+		$tplvars['approvbtn'] = $this->CreateInputSubmit($id,'approve',
+			$this->Lang('approve'),'title="'.$this->Lang('tip_approve_sel').'"');
+		$tplvars['rejectbtn'] = $this->CreateInputSubmit($id,'reject',
+			$this->Lang('reject'),'title="'.$this->Lang('tip_reject_sel').'"');
+		$tplvars['deletebtn0'] = $this->CreateInputSubmit($id,'delete',
+			$this->Lang('delete'),'title="'.$this->Lang('tip_delseltype',$this->Lang('request_multi')).'"');
 
 		$t = $this->Lang('confirm_delete_type',$this->Lang('request'),'%s');
 		$jsloads[] =<<<EOS
@@ -485,26 +487,28 @@ EOS;
 EOS;
 	}
 	//titles
-	$smarty->assign('pending',$pending);
-	$smarty->assign('title_lodger',$this->Lang('title_lodger'));
-	$smarty->assign('title_contact',$this->Lang('title_contact'));
-	$smarty->assign('title_lodged',$this->Lang('lodged'));
-	$smarty->assign('title_status',$this->Lang('status'));
-	$smarty->assign('title_paid',$this->Lang('title_paid'));
-	$smarty->assign('title_name',$this->Lang('title_name'));
-	$smarty->assign('title_start',$this->Lang('start'));
-	$smarty->assign('title_comment',$this->Lang('title_comment'));
+	$tplvars += array(
+		'pending' => $pending,
+		'title_lodger' => $this->Lang('title_lodger'),
+		'title_contact' => $this->Lang('title_contact'),
+		'title_lodged' => $this->Lang('lodged'),
+		'title_status' => $this->Lang('status'),
+		'title_paid' => $this->Lang('title_paid'),
+		'title_name' => $this->Lang('title_name'),
+		'title_start' => $this->Lang('start'),
+		'title_comment' => $this->Lang('title_comment')
+	);
 }
 else
 {
-	$smarty->assign('dcount',0);
-	$smarty->assign('nodata',$this->Lang('nonew'));
+	$tplvars['dcount'] = 0;
+	$tplvars['nodata'] = $this->Lang('nonew');
 }
 if($bmod)
-	$smarty->assign('importbbtn',$this->CreateInputSubmit($id,'importbkg',$this->Lang('import'),
-		'title="'.$this->Lang('tip_importbkg').'"'));
-$smarty->assign('findbtn',$this->CreateInputSubmit($id,'find',$this->Lang('find'),
-		'title="'.$this->Lang('tip_findbkg').'"'));
+	$tplvars['importbbtn'] = $this->CreateInputSubmit($id,'importbkg',$this->Lang('import'),
+		'title="'.$this->Lang('tip_importbkg').'"');
+$tplvars['findbtn'] = $this->CreateInputSubmit($id,'find',$this->Lang('find'),
+		'title="'.$this->Lang('tip_findbkg').'"');
 
 $items = array();
 $icount = 0;
@@ -680,49 +684,49 @@ if ($rs)
 
 if ($icount > 0 || $gcount > 0)
 {
-	$smarty->assign('own',$owned);
+	$tplvars['own'] = $owned;
 	if ($pdev)
-		$smarty->assign('title_tag',$this->Lang('title_pagetag'));
-	$smarty->assign('title_grp',$this->Lang('title_groups'));
-	$smarty->assign('title_owner',$this->Lang('title_owner'));
-	$smarty->assign('title_active',$this->Lang('title_active'));
+		$tplvars['title_tag'] = $this->Lang('title_pagetag');
+	$tplvars['title_grp'] = $this->Lang('title_groups');
+	$tplvars['title_owner'] = $this->Lang('title_owner');
+	$tplvars['title_active'] = $this->Lang('title_active');
 }
 
 //RESOURCES TAB
-$smarty->assign('startform2',$this->CreateFormStart($id,'process',$returnid));
-$smarty->assign('endform',$this->CreateFormEnd()); //used for all forms
-$smarty->assign('start_items_tab',$this->StartTab('items'));
+$tplvars['startform2'] = $this->CreateFormStart($id,'process',$returnid);
+$tplvars['endform'] = $this->CreateFormEnd(); //used for all forms
+$tplvars['start_items_tab'] = $this->StartTab('items');
 
-$smarty->assign('icount',$icount);
+$tplvars['icount'] = $icount;
 if ($icount > 0)
 {
-	$smarty->assign('items',$items);
-	$smarty->assign('inametext',$this->Lang('title_name'));
+	$tplvars['items'] = $items;
+	$tplvars['inametext'] = $this->Lang('title_name');
 	if ($icount > 1)
-		$smarty->assign('selectall_items',
-			$this->CreateInputCheckbox($id,'item',true,false,'title="'.$this->Lang('selectall').'" onclick="select_all_items(this)"'));
-	$smarty->assign('exportbtn1',
+		$tplvars['selectall_items'] =
+			$this->CreateInputCheckbox($id,'item',true,false,'title="'.$this->Lang('selectall').'" onclick="select_all_items(this)"');
+	$tplvars['exportbtn1'] =
 		$this->CreateInputSubmit($id,'export',$this->Lang('export'),
-		'title="'.$this->Lang('exportsel',$this->Lang('item_multi')).'" onclick="return confirm_itmcount();"'));
+		'title="'.$this->Lang('exportsel',$this->Lang('item_multi')).'" onclick="return confirm_itmcount();"');
 	$t = ($mod) ? 'update':'inspect';
 	$t = strtolower($this->Lang($t));
-	$smarty->assign('pricebtn1',
+	$tplvars['pricebtn1'] =
 		$this->CreateInputSubmit($id,'price',$this->Lang('price'),
-		'title="'.$this->Lang('pricesel',$t,$this->Lang('item_multi')).'" onclick="return confirm_itmcount();"'));
+		'title="'.$this->Lang('pricesel',$t,$this->Lang('item_multi')).'" onclick="return confirm_itmcount();"');
 	if ($mod)
 	{
 		if ($icount > 1)
-			$smarty->assign('sortbtn1',
+			$tplvars['sortbtn1'] =
 				$this->CreateInputSubmit($id,'sort',$this->Lang('sort'),
-				'title="'.$this->Lang('tip_sorttype',$this->Lang('item_multi')).'" onclick="return confirm_itmcount();"'));
-		$smarty->assign('ablebtn1',
+				'title="'.$this->Lang('tip_sorttype',$this->Lang('item_multi')).'" onclick="return confirm_itmcount();"');
+		$tplvars['ablebtn1'] =
 			$this->CreateInputSubmit($id,'activate',$this->Lang('activate'),
-			'title="'.$this->Lang('activatesel',$this->Lang('item_multi')).'" onclick="return confirm_itmcount();"'));
+			'title="'.$this->Lang('activatesel',$this->Lang('item_multi')).'" onclick="return confirm_itmcount();"');
 	}
 	if ($pdel)
-		$smarty->assign('deletebtn1',
+		$tplvars['deletebtn1'] =
 			$this->CreateInputSubmit($id,'delete',$this->Lang('delete'),
-			'title="'.$this->Lang('tip_delseltype',$this->Lang('item_multi')).'"'));
+			'title="'.$this->Lang('tip_delseltype',$this->Lang('item_multi')).'"');
 	//related js
 	$jsfuncs[] = <<<EOS
 function select_all_items(b)
@@ -767,58 +771,58 @@ EOS;
 	}
 }
 else
-	$smarty->assign('noitems',$this->Lang('noitems'));
+	$tplvars['noitems'] = $this->Lang('noitems');
 
 if ($padd)
 {
-	$smarty->assign('additem',
+	$tplvars['additem'] =
 	 $this->CreateLink($id,'add',$returnid,
 		 $theme->DisplayImage('icons/system/newobject.gif',$this->Lang('additem'),'','','systemicon'),
 		 array('item_id'=>-1),'',false,false,'')
 	 .' '.
 	 $this->CreateLink($id,'add',$returnid,
 		 $this->Lang('additem'),
-		 array('item_id'=>-1),'',false,false,'class="pageoptions"'));
+		 array('item_id'=>-1),'',false,false,'class="pageoptions"');
 
-	$smarty->assign('importibtn',$this->CreateInputSubmit($id,'importitm',$this->Lang('fetch'),
-		'title="'.$this->Lang('tip_importitm').'"'));
+	$tplvars['importibtn'] = $this->CreateInputSubmit($id,'importitm',$this->Lang('fetch'),
+		'title="'.$this->Lang('tip_importitm').'"');
 }
 
 //GROUPS TAB
-$smarty->assign('start_grps_tab',$this->StartTab('groups'));
-$smarty->assign('startform3',$this->CreateFormStart($id,'process',$returnid));
+$tplvars['start_grps_tab'] = $this->StartTab('groups');
+$tplvars['startform3'] = $this->CreateFormStart($id,'process',$returnid);
 
-$smarty->assign('gcount',$gcount);
+$tplvars['gcount'] = $gcount;
 if($gcount > 0)
 {
-	$smarty->assign('groups',$groups);
-	$smarty->assign('title_gname',$this->Lang('title_name'));
-	$smarty->assign('title_gcount',$this->Lang('title_gcount'));
+	$tplvars['groups'] = $groups;
+	$tplvars['title_gname'] = $this->Lang('title_name');
+	$tplvars['title_gcount'] = $this->Lang('title_gcount');
 	if ($gcount > 1)
-		$smarty->assign('selectall_grps',
-			$this->CreateInputCheckbox($id,'group',true,false,'title="'.$this->Lang('selectall').'" onclick="select_all_groups(this)"'));
-	$smarty->assign('exportbtn2',
+		$tplvars['selectall_grps'] =
+			$this->CreateInputCheckbox($id,'group',true,false,'title="'.$this->Lang('selectall').'" onclick="select_all_groups(this)"');
+	$tplvars['exportbtn2'] =
 		$this->CreateInputSubmit($id,'export',$this->Lang('export'),
-		'title="'.$this->Lang('exportsel',$this->Lang('group_multi')).'" onclick="return confirm_grpcount();"'));
+		'title="'.$this->Lang('exportsel',$this->Lang('group_multi')).'" onclick="return confirm_grpcount();"');
 	$t = ($mod) ? 'update':'inspect';
 	$t = strtolower($this->Lang($t));
-	$smarty->assign('pricebtn2',
+	$tplvars['pricebtn2'] =
 		$this->CreateInputSubmit($id,'price',$this->Lang('price'),
-		'title="'.$this->Lang('pricesel',$t,$this->Lang('group_multi')).'" onclick="return confirm_grpcount();"'));
+		'title="'.$this->Lang('pricesel',$t,$this->Lang('group_multi')).'" onclick="return confirm_grpcount();"');
 	if ($mod)
 	{
 		if ($gcount > 1)
-			$smarty->assign('sortbtn2',
+			$tplvars['sortbtn2'] =
 				$this->CreateInputSubmit($id,'sort',$this->Lang('sort'),
-				'title="'.$this->Lang('tip_sorttype',$this->Lang('group_multi')).'" onclick="return confirm_grpcount();"'));
-		$smarty->assign('ablebtn2',
+				'title="'.$this->Lang('tip_sorttype',$this->Lang('group_multi')).'" onclick="return confirm_grpcount();"');
+		$tplvars['ablebtn2'] =
 			$this->CreateInputSubmit($id,'activate',$this->Lang('activate'),
-			'title="'.$this->Lang('activatesel',$this->Lang('group_multi')).'" onclick="return confirm_grpcount();"'));
+			'title="'.$this->Lang('activatesel',$this->Lang('group_multi')).'" onclick="return confirm_grpcount();"');
 	}
 	if ($pdel)
-		$smarty->assign('deletebtn2',
+		$tplvars['deletebtn2'] =
 			$this->CreateInputSubmit($id,'delete',$this->Lang('delete'),
-			'title="'.$this->Lang('tip_delseltype',$this->Lang('group_multi')).'"'));
+			'title="'.$this->Lang('tip_delseltype',$this->Lang('group_multi')).'"');
 	//related js
 	$t = $this->Lang('confirm_delete_type',$this->Lang('group'),'%s');
 	$jsfuncs[] = <<<EOS
@@ -863,23 +867,23 @@ EOS;
 	}
 }
 else
-	$smarty->assign('nogroups',$this->Lang('nogroups'));
+	$tplvars['nogroups'] = $this->Lang('nogroups');
 
 if ($mod)
 {
-	$smarty->assign('addgrp',
+	$tplvars['addgrp'] =
 	 $this->CreateLink($id,'add',$returnid,
 		 $theme->DisplayImage('icons/system/newobject.gif',$this->Lang('addgroup'),'','','systemicon'),
 		 array('item_id'=>-Booker::MINGRPID),'',false,false,'')
 	 .' '.
 	 $this->CreateLink($id,'add',$returnid,
 		 $this->Lang('addgroup'),
-		 array('item_id'=>-Booker::MINGRPID),'',false,false,'class="pageoptions"'));
+		 array('item_id'=>-Booker::MINGRPID),'',false,false,'class="pageoptions"');
 }
 
 //SETTINGS TAB
-$smarty->assign('startform4',$this->CreateFormStart($id,'setprefs',$returnid));
-$smarty->assign('start_settings_tab',$this->StartTab('settings'));
+$tplvars['startform4'] = $this->CreateFormStart($id,'setprefs',$returnid);
+$tplvars['start_settings_tab'] = $this->StartTab('settings');
 if($pset)
 {
 	$settings = array();
@@ -1184,15 +1188,15 @@ EOS;
 	$one->help = $this->Lang('help_cssfile');
 	$settings[] = $one;
 
-	$smarty->assign('compulsory',$this->Lang('help_compulsory'));
-	$smarty->assign('settings',$settings);
+	$tplvars['compulsory'] = $this->Lang('help_compulsory');
+	$tplvars['settings'] = $settings;
 	//buttons
-	$smarty->assign('submitbtn4',$this->CreateInputSubmit($id,'submit',$this->Lang('apply')));
-	$smarty->assign('cancel',$this->CreateInputSubmit($id,'cancel',$this->Lang('cancel')));
+	$tplvars['submitbtn4'] = $this->CreateInputSubmit($id,'submit',$this->Lang('apply'));
+	$tplvars['cancel'] = $this->CreateInputSubmit($id,'cancel',$this->Lang('cancel'));
 }
 else
 {
-	$smarty->assign('nopermission',$this->Lang('accessdenied3'));
+	$tplvars['nopermission'] = $this->Lang('accessdenied3');
 }
 
 //js
@@ -1226,19 +1230,15 @@ $jsloads[] = <<<EOS
 
 EOS;
 
-$jsfuncs[] = <<<EOS
-$(document).ready(function() {
-
-EOS;
+$jsfuncs[] = '$(document).ready(function() {
+'
 $jsfuncs = array_merge($jsfuncs,$jsloads);
-$jsfuncs[] = <<<EOS
-});
+$jsfuncs[] = '});
+';
 
-EOS;
+$tplvars['jsincs'] = $jsincs;
+$tplvars['jsfuncs'] = $jsfuncs;
 
-$smarty->assign('jsincs',$jsincs);
-$smarty->assign('jsfuncs',$jsfuncs);
-
-echo $this->ProcessTemplate('adminpanel.tpl');
+echo bkrshared::ProcessTemplate($this,'adminpanel.tpl',$tplvars);
 
 ?>

@@ -57,6 +57,7 @@ $localnow = $funcs->GetZoneTime($idata['timezone']);
 $past = ($nd <= $localnow);
 $is_new = !($past || isset($params['requesttype']));
 $tzone = new DateTimeZone('UTC');
+$tplvars = array();
 
 if(!empty($params['send']))
 {
@@ -197,7 +198,7 @@ $this->Crash();
 	}
 	else //data error
 	{
-		$smarty->assign('errmessage',implode('<br >',$errmsg));
+		$tplvars['errmessage'] = implode('<br >',$errmsg);
 		//fall into repeat presentation
 	}
 }
@@ -212,7 +213,7 @@ elseif(isset($params['find']))
 
 $css = $funcs->GetStylesURL($this,$item_id);
 if($css)
-	$smarty->assign('customstyle',$css);
+	$tplvars['customstyle'] = $css;
 
 $hidden = array(
 	'item_id'=>$item_id,
@@ -222,9 +223,9 @@ $hidden = array(
 if(isset($params['slotid']))
 	$hidden['slotid'] = $params['slotid'];
 
-$smarty->assign('startform',$this->CreateFormStart($id,'requestbooking',$returnid,
-	'POST','','','',$hidden));
-$smarty->assign('endform',$this->CreateFormEnd());
+$tplvars['startform'] = $this->CreateFormStart($id,'requestbooking',$returnid,
+	'POST','','','',$hidden);
+$tplvars['endform'] = $this->CreateFormEnd();
 
 $baseurl = $this->GetModuleURLPath();
 //script accumulators
@@ -232,15 +233,14 @@ $jsfuncs = array();
 $jsloads = array();
 $jsincs = array();
 
-$smarty->assign('title',$funcs->GetItemName($this,$idata));
+$tplvars['title'] = $funcs->GetItemName($this,$idata);
 if(!empty($idata['description']))
 {
-	$desc = $this->ProcessTemplateFromData($idata['description']);
-	$smarty->assign('desc',$desc);
+	$tplvars['desc'] = bkrshared::ProcessTemplateFromData($this,$idata['description'],$tplvars);
 }
 $urls = $funcs->GetImageURLs($this,$idata['image'],$idata['name']);
 if($urls)
-	$smarty->assign('pictures',$urls);
+	$tplvars['pictures'] = $urls;
 
 $mcount = 0;
 $groupextra = FALSE;
@@ -257,7 +257,7 @@ if(!$past)
 				$mname = $idata['membersname'];
 				if(!$mname)
 					$mname = $this->Lang('itemv_multi');
-				$smarty->assign('membermsg',$this->Lang('help_memcount',$mcount,$mname));
+				$tplvars['membermsg'] = $this->Lang('help_memcount',$mcount,$mname);
 			}
 
 			$nowbooked = array();
@@ -273,32 +273,31 @@ if(!$past)
 	}
 }
 
-$smarty->assign('mustmsg',
-	'<img src="'.$baseurl.'/images/information.png" alt="icon" border="0" /> '.
-	$this->Lang('title_must'));
-$smarty->assign('title',$this->Lang('title_request'));
-$smarty->assign('title_what',$this->Lang('title_request1'));
+$tplvars['mustmsg'] = '<img src="'.$baseurl.'/images/information.png" alt="icon" border="0" /> '.
+	$this->Lang('title_must');
+$tplvars['title'] = $this->Lang('title_request');
+$tplvars['title_what'] = $this->Lang('title_request1');
 if($past)
 {
-	$smarty->assign('past',1);
-	$smarty->assign('title_count','');
-	$smarty->assign('title_when',$this->Lang('title_whenpast'));
-	$smarty->assign('title_until',$this->Lang('title_untilpast'));
+	$tplvars['past'] = 1;
+	$tplvars['title_count'] = '';
+	$tplvars['title_when'] = $this->Lang('title_whenpast');
+	$tplvars['title_until'] = $this->Lang('title_untilpast');
 }
 else
 {
 	if($mcount > 1)
-		$smarty->assign('title_count',$this->Lang('title_howmany',$mname));
-	$smarty->assign('title_when',$this->Lang('title_when'));
-	$smarty->assign('title_until',$this->Lang('title_until'));
+		$tplvars['title_count'] = $this->Lang('title_howmany',$mname);
+	$tplvars['title_when'] = $this->Lang('title_when');
+	$tplvars['title_until'] = $this->Lang('title_until');
 }
-$smarty->assign('title_sender',$this->Lang('title_sender'));
-$smarty->assign('title_contact',$this->Lang('title_contactyou'));
-$smarty->assign('title_comment',$this->Lang('title_comment'));
+$tplvars['title_sender'] = $this->Lang('title_sender');
+$tplvars['title_contact'] = $this->Lang('title_contactyou');
+$tplvars['title_comment'] = $this->Lang('title_comment');
 
 if($past)
 {
-	$smarty->assign('inputwhat',$this->Lang('reqnotice'));
+	$tplvars['inputwhat'] = $this->Lang('reqnotice');
 }
 elseif(isset($params['slotid']))
 {
@@ -317,13 +316,13 @@ elseif(isset($params['slotid']))
 		$this->Lang('reqdelete')=>Booker::STATDEL,
 		$this->Lang('reqnotice')=>Booker::STATTELL
 	);
-	$smarty->assign('inputwhat',$this->CreateInputRadioGroup($id,'requesttype',$choices,$sel,'','<br />'));
+	$tplvars['inputwhat'] = $this->CreateInputRadioGroup($id,'requesttype',$choices,$sel,'','<br />');
 }
 else
 {
-	$smarty->assign('inputwhat',$this->Lang('title_request2',$idata['name']));
+	$tplvars['inputwhat'] = $this->Lang('title_request2',$idata['name']);
 }
-$smarty->assign('textwhat',$idata['name']);
+$tplvars['textwhat'] = $idata['name'];
 
 $choosend = ($idata['bookcount'] != 1);
 
@@ -337,36 +336,36 @@ if($choosend)
 }
 if($past)
 {
-	$smarty->assign('currentmsg',$this->Lang('nopastdesc'));
-	$smarty->assign('inputwhen',$t); //TODO
+	$tplvars['currentmsg'] = $this->Lang('nopastdesc');
+	$tplvars['inputwhen'] = $t; //TODO
 	if($choosend)
-		$smarty->assign('inputuntil',$t2); //ditto
+		$tplvars['inputuntil'] = $t2; //ditto
 }
 else
 {
 	if($mcount > 1)
-		$smarty->assign('inputcount',$this->CreateInputText($id,'subgrpcount',1,3,5));
+		$tplvars['inputcount'] = $this->CreateInputText($id,'subgrpcount',1,3,5);
 	if(isset($params['slotid']))
 	{
 		if($is_group)
 		{
-			$smarty->assign('nowbooked',$nowbooked);
-			$d = $this->Lang('currentdesc3').$this->ProcessTemplate('currentbookings.tpl');
+			$tplvars['nowbooked'] = $nowbooked;
+			$d = $this->Lang('currentdesc3').bkrshared::ProcessTemplate($this,'currentbookings.tpl',$tplvars);
 		}
 		elseif($choosend)
 			$d = $this->Lang('currentdesc2',$bdata['user'],$t,$t2);
 		else
 			$d = $this->Lang('currentdesc',$bdata['user'],$t);
-		$smarty->assign('currentmsg',$d);
+		$tplvars['currentmsg'] = $d;
 	}
 	if(isset($params['when']))
 		$t = $params['when'];
-	$smarty->assign('inputwhen',$this->CreateInputText($id,'when',$t,20,30));
+	$tplvars['inputwhen'] = $this->CreateInputText($id,'when',$t,20,30);
 	if($choosend)
 	{
 		if(isset($params['until']))
 			$t2 = $params['until'];
-		$smarty->assign('inputuntil',$this->CreateInputText($id,'until',$t2,20,30));
+		$tplvars['inputuntil'] = $this->CreateInputText($id,'until',$t2,20,30);
 	}
 
 	$jsincs[] = <<<EOS
@@ -413,19 +412,19 @@ EOS;
 EOS;
 }
 $t = (!empty($params['user'])) ? $params['user']:'';
-$smarty->assign('inputsender',$this->CreateInputText($id,'user',$t,20,30)); //name must conform to verifier js
+$tplvars['inputsender'] = $this->CreateInputText($id,'user',$t,20,30); //name must conform to verifier js
 $t = (!empty($params['contact'])) ? $params['contact']:'';
-$smarty->assign('inputcontact',$this->CreateInputText($id,'contact',$t,30,50));
+$tplvars['inputcontact'] = $this->CreateInputText($id,'contact',$t,30,50);
 $t = (!empty($params['comment'])) ? $params['comment']:'';
-$smarty->assign('inputcomment',$this->CreateTextArea(FALSE,$id,$t,'comment','','','','',55,5,'','','style="height:5em;"'));
+$tplvars['inputcomment'] = $this->CreateTextArea(FALSE,$id,$t,'comment','','','','',55,5,'','','style="height:5em;"');
 $ob = cms_utils::get_module('Captcha');
 if($ob)
 {
-	$smarty->assign('title_captcha',$this->Lang('title_captcha'));
+	$tplvars['title_captcha'] = $this->Lang('title_captcha');
 	$t = $this->CreateInputText($id,'captcha','',7,8);
 	$t = preg_replace('~class="(.*)"~U','class="\\1 captcha"',$t);
-	$smarty->assign('inputcaptcha',$t);
-	$smarty->assign('captcha',$ob->getCaptcha());
+	$tplvars['inputcaptcha'] = $t;
+	$tplvars['captcha'] = $ob->getCaptcha();
 }
 
 $funcs2 = new bkrverify();
@@ -438,18 +437,18 @@ $jsincs[] = <<<EOS
 
 EOS;
 
-$smarty->assign('send', $this->CreateInputSubmit($id,'send',$this->Lang('submit')));
+$tplvars['send'] =  $this->CreateInputSubmit($id,'send',$this->Lang('submit'));
 $jsloads[] = <<<EOS
  $('#{$id}send').bind('click',validate);
 
 EOS;
 
-$smarty->assign('cancel', $this->CreateInputSubmit($id,'nosend',$this->Lang('cancel')));
+$tplvars['cancel'] =  $this->CreateInputSubmit($id,'nosend',$this->Lang('cancel'));
 $choices = $funcs->GetItemFamily($this,$db,$item_id);
 if($choices && count($choices) > 1)
 {
-	$smarty->assign('choose',
-		$this->CreateInputDropdown($id,'chooser',array_flip($choices),-1,$item_id,'id="'.$id.'chooser"'));
+	$tplvars['choose'] =
+		$this->CreateInputDropdown($id,'chooser',array_flip($choices),-1,$item_id,'id="'.$id.'chooser"');
 
 	$jsloads[] = <<<EOS
  $('#{$id}chooser').change(function(){
@@ -461,20 +460,21 @@ EOS;
 
 if($jsloads)
 {
-	$jsfuncs[] =<<<EOS
-$(document).ready(function() {
-
-EOS;
+	$jsfuncs[] = '$(document).ready(function() {
+';
 	$jsfuncs = array_merge($jsfuncs,$jsloads);
-	$jsfuncs[] =<<<EOS
-});
-
-EOS;
+	$jsfuncs[] = '});
+';
 }
-$smarty->assign('jsfuncs',$jsfuncs);
+$tplvars['jsfuncs'] = $jsfuncs;
+$tplvars['jsincs'] = $jsincs;
 
-$smarty->assign('modurl',$baseurl);
-$smarty->assign('jsincs',$jsincs);
+$tplvars['jsstyler'] = ;
 
-echo $this->ProcessTemplate('requestbooking.tpl');
+//TODO stylesheets into header
+<link rel="stylesheet" type="text/css" href="{$baseurl}/css/public.css" />
+{if isset($customstyle)}<link rel="stylesheet" type="text/css" href="{$customstyle}" />{/if}
+<link rel="stylesheet" type="text/css" href="{$baseurl}/css/pikaday.css" />
+
+echo bkrshared::ProcessTemplate($this,'requestbooking.tpl',$tplvars);
 ?>

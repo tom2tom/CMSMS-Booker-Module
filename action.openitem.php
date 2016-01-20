@@ -10,7 +10,7 @@
 if(!function_exists('groupstable'))
 {
  //construct table of group-data (members, parents) for display on advanced-tab
- function groupstable(&$mod,&$smarty,$id,$obname,$returnid,$icondn,$iconup,
+ function groupstable(&$mod,&$tplvars,$id,$obname,$returnid,$icondn,$iconup,
 	&$items,$relations=FALSE,$dodrag=FALSE,$dosort=FALSE,$tableid=FALSE)
  {
 	$r = 0;
@@ -47,17 +47,17 @@ if(!function_exists('groupstable'))
 	}
 	unset($name);
 	$c = count($rows);
-	$smarty->assign('rc',$c);
+	$tplvars['rc'] = $c;
 	if($c > 1)
-		$smarty->assign('selectall',$mod->CreateInputCheckbox($id,'selectall',1,-1));
+		$tplvars['selectall'] = $mod->CreateInputCheckbox($id,'selectall',1,-1);
 	else
-		$smarty->assign('selectall','');
-	$smarty->assign('identifier',$tableid);
-	$smarty->assign('drag',$dodrag && ($c > 1));
-	$smarty->assign('sort',$dosort && ($c > 1));
-	$smarty->assign('entries',$rows);
+		$tplvars['selectall'] = '';
+	$tplvars['identifier'] = $tableid;
+	$tplvars['drag'] = $dodrag && ($c > 1);
+	$tplvars['sort'] = $dosort && ($c > 1);
+	$tplvars['entries'] = $rows;
 
-	return $mod->ProcessTemplate('groupsinput.tpl');
+	return bkrshared::ProcessTemplate($mod,'groupsinput.tpl',$tplvars);
  }
 }
 
@@ -528,37 +528,40 @@ if(!$pmod)
 }
 
 // setup variables for the view-template
-$smarty->assign('mod', $pmod);
+$tplvars = array('mod' =>  $pmod);
 
 $t = array();
-$this->_BuildNav($id,$t,$returnid);
+$this->_BuildNav($id,$t,$returnid,$tplvars);
 
-$smarty->assign('tab_headers', $this->StartTabHeaders().
+//multipart form needed for file uploads
+$tplvars['startform'] = $this->CreateFormStart($id,'update',$returnid,'POST',
+	'multipart/form-data','','',array('item_id'=>$item_id));
+$tplvars['endform'] = $this->CreateFormEnd();
+$tplvars['tab_headers'] =  $this->StartTabHeaders().
 	$this->SetTabHeader('basic',$this->Lang('basic'),($seetab=='basic')).
 	$this->SetTabHeader('advanced',$this->Lang('advanced'),($seetab=='advanced')).
 	$this->SetTabHeader('formats',$this->Lang('formats'),($seetab=='formats')).
 	$this->EndTabHeaders().
-	$this->StartTabContent());
-$smarty->assign('tab_footers',$this->EndTabContent());
-$smarty->assign('end_tab',$this->EndTab());
-$smarty->assign('start_basic_tab',$this->StartTab('basic'));
-$smarty->assign('start_adv_tab',$this->StartTab('advanced'));
-$smarty->assign('start_fmt_tab',$this->StartTab('formats'));
-//multipart form needed for file uploads
-$smarty->assign('startform',$this->CreateFormStart($id,'update',$returnid,'POST',
-	'multipart/form-data','','',array('item_id'=>$item_id)));
-$smarty->assign('endform',$this->CreateFormEnd());
+	$this->StartTabContent();
+
+$tplvars += array(
+	'tab_footers' => $this->EndTabContent(),
+	'end_tab' => $this->EndTab(),
+	'start_basic_tab' => $this->StartTab('basic'),
+	'start_adv_tab' => $this->StartTab('advanced'),
+	'start_fmt_tab' => $this->StartTab('formats')
+);
+
 $hidden = $this->CreateInputHidden($id,'current_tab',0);
 
-$s = ($is_group) ? $this->Lang('group_page_title'):$this->Lang('item_page_title');
-$smarty->assign('title', $s);
+$tplvars['title'] = ($is_group) ? $this->Lang('group_page_title'):$this->Lang('item_page_title');
 $s = ($is_group) ? $this->Lang('group'):$this->Lang('item');
 
 $baseurl = $this->GetModuleURLPath();
 
 $intro = ($pmod) ? $this->Lang('help_compulsory').'<br />' : '';
 $intro .= $this->Lang('help_cascade');
-$smarty->assign('intro',$intro);
+$tplvars['intro'] = $intro;
 
 $inherit = $this->Lang('inherit');
 $yes = $this->Lang('yes');
@@ -803,7 +806,7 @@ if($is_group)
 					unset($allgrps[$k]);
 				//rest are still alphabetic by name
 				$allgrps = $sel + $allgrps;
-				$i = groupstable($this,$smarty,$id,'members',$returnid,$icondn,$iconup,
+				$i = groupstable($this,$tplvars,$id,'members',$returnid,$icondn,$iconup,
 					$allgrps,$relations,TRUE,TRUE,'members');
 				$i .= '  '.$this->CreateInputSubmit($id,'sortlike',$this->Lang('sort'),
 					'title="'.$this->Lang('tip_sortmems').'" style="display:none;"');
@@ -815,14 +818,14 @@ if($is_group)
 		}
 		elseif($pmod && $padm) //editing old item
 			//create table, alphabetic by groupname, each row has name, unchecked checkbox
-			$i = groupstable($this,$smarty,$id,'members',$returnid,$icondn,$iconup,
+			$i = groupstable($this,$tplvars,$id,'members',$returnid,$icondn,$iconup,
 				$allgrps,FALSE,TRUE,TRUE,'members');
 		else //viewing old item
 			$i = $none;
 	}
 	elseif($pmod && $padm) //editing new item
 		//create table, alphabetic by groupname, each row has name, unchecked checkbox
-		$i = groupstable($this,$smarty,$id,'members',$returnid,$icondn,$iconup,
+		$i = groupstable($this,$tplvars,$id,'members',$returnid,$icondn,$iconup,
 			$allgrps,FALSE,TRUE,TRUE,'members');
 	else //viewing new item - should never happen
 		$i = $none;
@@ -837,7 +840,7 @@ if($is_group)
 	'inp'=>$i,
 	'hlp'=>$h
 	);
-	
+
 	$t = $this->Lang('err_server');
 	$jsfuncs[] = <<<EOS
 function sortresponse(data,status)
@@ -923,7 +926,7 @@ if($allgrps)
 			if($pmod && $padm)
 			{
 				$allgrps = $sel + $allgrps;
-				$i = groupstable($this,$smarty,$id,'ingroups',$returnid,$icondn,$iconup,
+				$i = groupstable($this,$tplvars,$id,'ingroups',$returnid,$icondn,$iconup,
 					$allgrps,$relations,TRUE,FALSE,'groups');
 			}
 			elseif($sel)
@@ -933,14 +936,14 @@ if($allgrps)
 		}
 		elseif($pmod && $padm) //editing old item
 			//create table, alphabetic by groupname, each row has name, unchecked checkbox
-			$i = groupstable($this,$smarty,$id,'ingroups',$returnid,$icondn,$iconup,
+			$i = groupstable($this,$tplvars,$id,'ingroups',$returnid,$icondn,$iconup,
 				$allgrps,FALSE,TRUE,FALSE,'groups');
 		else //viewing old item
 			$i = $none;
 	}
 	elseif($pmod && $padm) //editing new item
 		//create table, alphabetic by groupname, each row has name, unchecked checkbox
-		$i = groupstable($this,$smarty,$id,'ingroups',$returnid,$icondn,$iconup,
+		$i = groupstable($this,$tplvars,$id,'ingroups',$returnid,$icondn,$iconup,
 			$allgrps,FALSE,TRUE,FALSE,'groups');
 	else //viewing new item - should never happen
 		$i = $none;
@@ -1331,26 +1334,28 @@ $formats[] = array('ttl'=>$cascade.$this->Lang('title_styles',$s),
 );
 //-------
 
-$smarty->assign('basic',$basic);
-$smarty->assign('advanced',$advanced);
-$smarty->assign('formats',$formats);
-$smarty->assign('showtip',$iconinfo);
+$tplvars += array(
+	'basic' => $basic,
+	'advanced' => $advanced,
+	'formats' => $formats,
+	'showtip' => $iconinfo
+);
 
 if ($pmod)
 {
-	$smarty->assign('apply', $this->CreateInputSubmit($id, 'apply', $this->Lang('apply'),'onclick="current_tab()"'));
-	$smarty->assign('submit', $this->CreateInputSubmit($id, 'submit', $this->Lang('submit')));
-	$smarty->assign('cancel', $this->CreateInputSubmit($id, 'cancel', $this->Lang('cancel')));
+	$tplvars['apply'] = $this->CreateInputSubmit($id, 'apply', $this->Lang('apply'),'onclick="current_tab()"');
+	$tplvars['submit'] = $this->CreateInputSubmit($id, 'submit', $this->Lang('submit'));
+	$tplvars['cancel'] = $this->CreateInputSubmit($id, 'cancel', $this->Lang('cancel'));
 }
 else
 {
-	$smarty->assign('apply','');
-	$smarty->assign('submit','');
-	$smarty->assign('cancel', $this->CreateInputSubmit($id, 'cancel', $this->Lang('close')));
+	$tplvars['apply'] = '';
+	$tplvars['submit'] = '';
+	$tplvars['cancel'] = $this->CreateInputSubmit($id, 'cancel', $this->Lang('close'));
 }
 
-$smarty->assign('hidden',$hidden);
-$smarty->assign('message',$msg);
+$tplvars['hidden'] = $hidden;
+$tplvars['message'] = $msg;
 
 $jsfuncs[] = <<<EOS
 function current_tab() {
@@ -1384,21 +1389,16 @@ function stylefile_selected(el) {
 
 EOS;
 
-$smarty->assign('jsincs',$jsincs);
-
 if($jsloads)
 {
-	$jsfuncs[] =<<<EOS
-$(document).ready(function() {
-
-EOS;
+	$jsfuncs[] = '$(document).ready(function() {
+';
 	$jsfuncs = array_merge($jsfuncs,$jsloads);
-	$jsfuncs[] =<<<EOS
-});
-
-EOS;
+	$jsfuncs[] = '})
+';
 }
-$smarty->assign('jsfuncs',$jsfuncs);
+$tplvars['jsfuncs'] = $jsfuncs;
+$tplvars['jsincs'] = $jsincs;
 
-echo $this->ProcessTemplate('openitem.tpl');
+echo bkrshared::ProcessTemplate($this,'openitem.tpl',$tplvars);
 ?>

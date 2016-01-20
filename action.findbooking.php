@@ -50,6 +50,7 @@ else
 	$this->Crash();
 }
 
+$tplvars = array();
 $funcs = new bkrshared();
 $idata = $funcs->GetItemProperty($this,$item_id,'*');
 $tzone = new DateTimeZone('UTC');
@@ -85,28 +86,30 @@ if(isset($params['submit']))
 	else
 		$key = 'err_nosender';
 
-	$smarty->assign('message',$this->Lang($key));
+	$tplvars['message'] = $this->Lang($key);
 	//fall into repeat presentation
 }
 
 
 $css = $funcs->GetStylesURL($this,$item_id);
 if($css)
-	$smarty->assign('customstyle',$css);
+	$tplvars['customstyle'] = $css;
 
-$smarty->assign('startform',$this->CreateFormStart($id,'findbooking',$returnid,
+$tplvars['startform'] = $this->CreateFormStart($id,'findbooking',$returnid,
 	'POST','','','',array(
 	'item_id'=>$item_id,
 	'startat'=>$params['startat'],
 	'range'=>$params['range'],
 	'view'=>$params['view']
-	)));
-$smarty->assign('endform',$this->CreateFormEnd());
+	));
+$tplvars['endform'] = $this->CreateFormEnd();
 
-$smarty->assign('title',$this->Lang('title_find'));
+$tplvars['title'] = $this->Lang('title_find');
 //script accumulators
 $jsfuncs = array();
 $jsloads = array();
+$jsincs = array();
+$baseurl = $this->GetModuleURLPath();
 
 //TODO STUFF
 $bdata = array();
@@ -116,8 +119,8 @@ else
 	$bdata['slotstart'] = $params['startat'];
 $bdata['slotlen'] = $funcs->GetInterval($this,$item_id,'slot');
 
-$smarty->assign('submit', $this->CreateInputSubmit($id,'submit',$this->Lang('submit')));
-$smarty->assign('cancel', $this->CreateInputSubmit($id,'cancel',$this->Lang('cancel')));
+$tplvars['submit'] =  $this->CreateInputSubmit($id,'submit',$this->Lang('submit'));
+$tplvars['cancel'] =  $this->CreateInputSubmit($id,'cancel',$this->Lang('cancel'));
 
 $jsloads[] = <<<EOS
  $('#{$id}submit').bind('click',validate);
@@ -202,31 +205,29 @@ $jsloads[] = <<<EOS
 
 EOS;
 
-if($jsloads)
-{
-	$jsfuncs[] =<<<EOS
-$(document).ready(function() {
-
-EOS;
-	$jsfuncs = array_merge($jsfuncs,$jsloads);
-	$jsfuncs[] =<<<EOS
-});
-
-EOS;
-}
-$smarty->assign('jsfuncs',$jsfuncs);
-
-$baseurl = $this->GetModuleURLPath();
-$smarty->assign('modurl',$baseurl);
 //for picker
-$jsincs = <<<EOS
+$jsincs[] = <<<EOS
 <script type="text/javascript" src="{$baseurl}/include/moment.min.js"></script>
 <script type="text/javascript" src="{$baseurl}/include/pikaday.min.js"></script>
-
 EOS;
-$smarty->assign('jsincs',$jsincs);
 
-echo $this->ProcessTemplate('find.tpl');
+if($jsloads)
+{
+	$jsfuncs[] = '$(document).ready(function() {
+';
+	$jsfuncs = array_merge($jsfuncs,$jsloads);
+	$jsfuncs[] = '})
+';
+}
+$tplvars['jsfuncs'] = $jsfuncs;
+$tplvars['jsincs'] = $jsincs;
+
+ $tplvars['jsstyler'] = TODO
+<link rel="stylesheet" type="text/css" href="{$baseurl}/css/public.css" />
+{if isset($customstyle)}<link rel="stylesheet" type="text/css" href="{$customstyle}" />{/if}
+<link rel="stylesheet" type="text/css" href="{$baseurl}/css/pikaday.css" />
+
+echo bkrshared::ProcessTemplate($this,'find.tpl',$tplvars);
 
 ?>
 

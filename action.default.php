@@ -26,10 +26,12 @@ if(isset($params['chooser']))
 
 if($item_id == FALSE)
 {
-	$smarty->assign('admin_nav','');
-	$smarty->assign('title_error',$this->Lang('error'));
-	$smarty->assign('message',$this->Lang('err_parm'));
-	echo $this->ProcessTemplate('error.tpl');
+	$tplvars = array(
+		'admin_nav' => '',
+		'title_error' => $this->Lang('error'),
+		'message' => $this->Lang('err_parm')
+	);
+	echo bkrshared::ProcessTemplate($this,'error.tpl',$tplvars);
 	exit;
 }
 $is_group = ($item_id >= Booker::MINGRPID);
@@ -169,9 +171,11 @@ elseif(isset($params['find']))
 if(!empty($params['newlist']))
 	$idata['listformat'] = $params['listformat'];
 
-if(isset($params['message']))
-	$smarty->assign('message',$params['message']);
+$tplvars = array();
 
+if(isset($params['message']))
+	$tplvars['message'] = $params['message'];
+TODO array or string for hidden items?
 $hidden = array();
 $hidden[] = $this->CreateInputHidden($id,'view',($showtable)?'table':'list');
 $hidden[] = $this->CreateInputHidden($id,'startat',$params['startat']);
@@ -186,14 +190,14 @@ else
 {
 	$hidden[] = $this->CreateInputHidden($id,'newlist','');
 }
-$smarty->assign('hidden',$hidden);
+$tplvars['hidden'] = $hidden;
 
-$smarty->assign('startform',$this->CreateFormStart($id,'default',$returnid));
-$smarty->assign('endform',$this->CreateFormEnd());
+$tplvars['startform'] = $this->CreateFormStart($id,'default',$returnid);
+$tplvars['endform'] = $this->CreateFormEnd();
 
 $css = $funcs->GetStylesURL($this,$item_id);
 if($css)
-	$smarty->assign('customstyle',$css);
+	$tplvars['customstyle'] = $css;
 
 if(!empty($idata['name']))
 {
@@ -224,13 +228,13 @@ switch($range)
 		$t .= ' '.$this->Lang('showrange',$s,$e);
 		break;
 }
-$smarty->assign('title',$t);
+$tplvars['title'] = $t;
 if(!empty($idata['description']))
-	$smarty->assign('desc',$this->ProcessTemplateFromData($idata['description']));
+	$tplvars['desc'] = bkrshared::ProcessTemplateFromData($this,$idata['description'],$tplvars);
 
 $t = $funcs->GetImageURLs($this,$idata['image'],$idata['name']);
 if($t)
-	$smarty->assign('pictures',$t);
+	$tplvars['pictures'] = $t;
 
 $jsfuncs = array(); //script accumulator
 $jsloads = array(); //document-ready funcs
@@ -240,7 +244,7 @@ $baseurl = $this->GetModuleURLPath();
 //buttons
 
 //if-needed - pre-table buttons
-//$smarty->assign('actions', array('BTN1','BTN2','BTN3'));
+//$tplvars['actions'] =  array('BTN1','BTN2','BTN3');
 //2 post-table rows of action-buttons
 $intrvl = $publicperiods[$range];
 $mintrvl = $funcs->RangeNames($this,$range,TRUE); //plural variant
@@ -271,7 +275,7 @@ if($showtable)
 {
 	$t = '<img src="'.$baseurl.'/images/information.png" alt="icon" border="0" /> '.
 		$this->Lang('help_focus');
-	$smarty->assign('focushelp',$t);
+	$tplvars['focushelp'] = $t;
 	$t = $this->Lang('list');
 }
 else
@@ -297,7 +301,7 @@ $actions1[] = $this->CreateInputSubmit($id,'toggle',$t,
 	'title="'.$this->Lang('tip_otherview').'"');
 $actions1[] = $this->CreateInputSubmit($id,'find',$this->Lang('find'),
 	'title="'.$this->Lang('tip_find').'"');
-$smarty->assign('actions1', $actions1);
+$tplvars['actions1'] =  $actions1;
 
 $actions2 = array();
 $actions2[] = $this->CreateInputSubmit($id,'slide','-1',
@@ -349,13 +353,13 @@ if($chooser)
 $actions2[] = $this->CreateInputSubmit($id,'request',$this->Lang('book'),
 	'title="'.$this->Lang('tip_book').'"');
 
-$smarty->assign('actions2', $actions2);
+$tplvars['actions2'] =  $actions2;
 
 $funcs2 = new bkrdisplay($this);
 if($showtable)
 {
 	//bookings-data table
-	$funcs2->Tabulate($smarty,$idata,$params['startat'],$range);
+	$funcs2->Tabulate($tplvars,$idata,$params['startat'],$range);
 	$jsincs[] = <<<EOS
 <script type="text/javascript" src="{$baseurl}/include/jquery.StickyTable.min.js"></script>
 
@@ -364,7 +368,7 @@ EOS;
 else
 {
 	//bookings-data text
-	$funcs2->Listify($smarty,$idata,$params['startat'],$range);
+	$funcs2->Listify($tplvars,$idata,$params['startat'],$range);
 }
 
 $jsincs[] = <<<EOS
@@ -471,23 +475,34 @@ EOS;
 EOS;
 } //end showtable
 
-$jsfuncs[] = <<<EOS
-$(document).ready(function() {
-
-EOS;
+$jsfuncs[] = '$(document).ready(function() {
+';
 $jsfuncs = array_merge($jsfuncs,$jsloads);
-$jsfuncs[] = <<<EOS
-});
+$jsfuncs[] = '})
+;
 
-EOS;
-
-$smarty->assign('jsfuncs',$jsfuncs);
-$smarty->assign('jsincs',$jsincs);
-$smarty->assign('modurl',$baseurl);
+$tplvars['jsfuncs'] = $jsfuncs;
+$tplvars['jsincs'] = $jsincs;
+$tplvars['baseurl'] = $baseurl;
 
 if($showtable)
-	echo $this->ProcessTemplate('defaulttable.tpl');
+{
+$tplvars['jsstyler'] = TODO
+<link rel="stylesheet" type="text/css" href="{$baseurl}/css/public.css" />
+{if isset($customstyle)}<link rel="stylesheet" type="text/css" href="{$customstyle}" />{/if}
+<link rel="stylesheet" type="text/css" href="{$baseurl}/css/stickytable.css" />
+<link rel="stylesheet" type="text/css" href="{$baseurl}/css/pikaday.css" />
+
+	echo bkrshared::ProcessTemplate($this,'defaulttable.tpl',$tplvars);
+{
 else
-	echo $this->ProcessTemplate('defaultlist.tpl');
+{
+$tplvars['jsstyler'] = TODO
+<link rel="stylesheet" type="text/css" href="{$baseurl}/css/public.css" />
+{if isset($customstyle)}<link rel="stylesheet" type="text/css" href="{$customstyle}" />{/if}
+<link rel="stylesheet" type="text/css" href="{$baseurl}/css/pikaday.css" />
+
+	echo bkrshared::ProcessTemplate($this,'defaultlist.tpl',$tplvars);
+}
 
 ?>

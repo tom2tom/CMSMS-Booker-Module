@@ -64,7 +64,7 @@ elseif(isset($params['approve']))
 	//construct message params from
 	//['custom'] etc
 	//send
-	//  	
+	//
 }
 if(isset($params['reject']))
 {
@@ -85,39 +85,40 @@ elseif(isset($params['list']))
 {
 }
 
-$smarty->assign('startform',
+$tplvars = array();
+$tplvars['startform'] =
 	$this->CreateFormStart($id,'openrequest',$returnid,'POST','','','',array(
-		'req_id'=>$params['req_id'],'mode'=>$params['mode'],'custmsg'=>'')));
-$smarty->assign('endform',$this->CreateFormEnd());
+		'req_id'=>$params['req_id'],'mode'=>$params['mode'],'custmsg'=>''));
+$tplvars['endform'] = $this->CreateFormEnd();
 
-$this->_BuildNav($id,$params,$returnid);
+$this->_BuildNav($id,$params,$returnid,$tplvars);
 if(!empty($params['message']))
-	$smarty->assign('message',$params['message']);
+	$tplvars['message'] = $params['message'];
 
 if(!$viewmode)
-	$smarty->assign('compulsory',$this->Lang('help_compulsory'));
+	$tplvars['compulsory'] = $this->Lang('help_compulsory');
 
 $idata = $funcs->GetItemProperty($this,$rdata['item_id'],"*");
 
 $key = ($is_new) ? 'title_booknewfor':'title_bookfor';
 if(!empty($idata['name']))
 {
-	$smarty->assign('title',$this->Lang($key,$type,$idata['name']));
+	$tplvars['title'] = $this->Lang($key,$type,$idata['name']);
 }
 else
 {
 	$t = $this->Lang('title_noname',$type,$idata['item_id']);
-	$smarty->assign('title',$this->Lang($key,$t,''));
+	$tplvars['title'] = $this->Lang($key,$t,'');
 }
 
 $t = '';
 if(!empty($idata['description']))
-	$t .= $this->ProcessTemplateFromData($idata['description']);
-$smarty->assign('desc',$t);
+	$t .= bkrshared::ProcessTemplateFromData($this,$idata['description'],$tplvars);
+$tplvars['desc'] = $t;
 //in this context, ignore any image
 
 $baseurl = $this->GetModuleURLPath();
-$smarty->assign('modurl',$baseurl);
+$tplvars['baseurl'] = $baseurl;
 //script accumulators
 $jsincs = array();
 $jsfuncs = array();
@@ -397,22 +398,22 @@ if($rdata['approved'] > 0)
 	$vars[] = $one;
 }
 //==
-$smarty->assign('data',$vars);
+$tplvars['data'] = $vars;
 
 //buttons
 if($viewmode)
 {
-	$smarty->assign('cancel',$this->CreateInputSubmit($id,'cancel',$this->Lang('close')));
+	$tplvars['cancel'] = $this->CreateInputSubmit($id,'cancel',$this->Lang('close'));
 }
 else //edit mode
 {
-	$smarty->assign('submit',$this->CreateInputSubmit($id,'submit',$this->Lang('submit')));
-	$smarty->assign('apply',$this->CreateInputSubmit($id,'apply',$this->Lang('apply')));
-	$smarty->assign('cancel',$this->CreateInputSubmit($id,'cancel',$this->Lang('cancel')));
+	$tplvars['submit'] = $this->CreateInputSubmit($id,'submit',$this->Lang('submit'));
+	$tplvars['apply'] = $this->CreateInputSubmit($id,'apply',$this->Lang('apply'));
+	$tplvars['cancel'] = $this->CreateInputSubmit($id,'cancel',$this->Lang('cancel'));
 	if(1) //e.g. not an info-request
 	{
-		$smarty->assign('approve',$this->CreateInputSubmit($id,'approve',$this->Lang('approve')));
-		$smarty->assign('reject',$this->CreateInputSubmit($id,'reject',$this->Lang('reject')));
+		$tplvars['approve'] = $this->CreateInputSubmit($id,'approve',$this->Lang('approve'));
+		$tplvars['reject'] = $this->CreateInputSubmit($id,'reject',$this->Lang('reject'));
 	}
 	$funcs2 = new bkrverify();
 	$jsfuncs[] = $funcs2->VerifyScript($this,$id,TRUE,TRUE,TRUE,$idata['timezone']);
@@ -426,18 +427,18 @@ else //edit mode
 
 EOS;
 }
-$smarty->assign('find',$this->CreateInputSubmit($id,'find',$this->Lang('find'),
-	'title="'.$this->Lang('tip_finditm').'"'));
-$smarty->assign('table',$this->CreateInputSubmit($id,'tableview',$this->Lang('table')));
-$smarty->assign('list',$this->CreateInputSubmit($id,'listview',$this->Lang('list')));
+$tplvars['find'] = $this->CreateInputSubmit($id,'find',$this->Lang('find'),
+	'title="'.$this->Lang('tip_finditm').'"');
+$tplvars['table'] = $this->CreateInputSubmit($id,'tableview',$this->Lang('table'));
+$tplvars['list'] = $this->CreateInputSubmit($id,'listview',$this->Lang('list'));
 $ob = cms_utils::get_module('Notifier');
 if($ob)
 {
 	//can-send-messages
-	$smarty->assign('pmsg',1);
+	$tplvars['pmsg'] = 1;
 	//buttons
-	$smarty->assign('ask',$this->CreateInputSubmit($id,'ask',$this->Lang('ask')));
-	$smarty->assign('notify',$this->CreateInputSubmit($id,'notify',$this->Lang('notify')));
+	$tplvars['ask'] = $this->CreateInputSubmit($id,'ask',$this->Lang('ask'));
+	$tplvars['notify'] = $this->CreateInputSubmit($id,'notify',$this->Lang('notify'));
 
 	$what = (isset($params['subgrpcount'])) ?
 		sprintf('%d %s',$params['subgrpcount'],$idata['membersname']):
@@ -460,9 +461,9 @@ if($ob)
 		$ask = $this->Lang('email_askat',$what,$on,$at);
 	}
 	//modal overlay
-	$smarty->assign('modaltitle',$this->Lang('title_feedback'));
-	$smarty->assign('customentry',$this->CreateInputText($id,'customentry','',20,30));
-	$smarty->assign('prompttitle',$this->Lang('title_prompt'));
+	$tplvars['modaltitle'] = $this->Lang('title_feedback');
+	$tplvars['customentry'] = $this->CreateInputText($id,'customentry','',20,30);
+	$tplvars['prompttitle'] = $this->Lang('title_prompt');
 
 	$jsfuncs[] =<<<EOS
 function modalsetup(tg,\$d) {
@@ -513,15 +514,15 @@ EOS;
 }
 else //can't-send-messages
 {
-	$smarty->assign('pmsg',0);
+	$tplvars['pmsg'] = 0;
 }
 //modal dialog button names
-$smarty->assign('yes',$this->Lang('yes'));
-$smarty->assign('no',$this->Lang('no'));
-$smarty->assign('proceed',$this->Lang('proceed'));
-$smarty->assign('abort',$this->Lang('cancel'));
+$tplvars['yes'] = $this->Lang('yes');
+$tplvars['no'] = $this->Lang('no');
+$tplvars['proceed'] = $this->Lang('proceed');
+$tplvars['abort'] = $this->Lang('cancel');
 
-$smarty->assign('mod',!$viewmode);
+$tplvars['mod'] = !$viewmode;
 
 if(!$viewmode)
 {
@@ -538,21 +539,21 @@ $jsincs[] = <<<EOS
 <script type="text/javascript" src="{$baseurl}/include/jquery.modalconfirm.js"></script>
 
 EOS;
-$smarty->assign('jsincs',$jsincs);
+$tplvars['jsincs'] = $jsincs;
 
 if($jsloads)
 {
-	$jsfuncs[] =<<<EOS
-$(document).ready(function() {
-
-EOS;
+	$jsfuncs[] = '$(document).ready(function() {
+';
 	$jsfuncs = array_merge($jsfuncs,$jsloads);
-	$jsfuncs[] =<<<EOS
-});
-
-EOS;
+	$jsfuncs[] = '})
+';
 }
-$smarty->assign('jsfuncs',$jsfuncs);
+$tplvars['jsfuncs'] = $jsfuncs;
 
-echo $this->ProcessTemplate('openrequest.tpl');
+  $tplvars['jsstyler'] = TODO;
+<link rel="stylesheet" type="text/css" href="{$baseurl}/css/public.css" />
+<link rel="stylesheet" type="text/css" href="{$baseurl}/css/pikaday.css" />
+
+echo bkrshared::ProcessTemplate($this,'openrequest.tpl',$tplvars);
 ?>

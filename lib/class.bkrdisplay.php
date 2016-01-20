@@ -873,21 +873,21 @@ class bkrdisplay
 	/**
 	Tabulate:
 	Populate @smarty vars for display of tabulated bookings-data for relevant range
-	@smarty: reference to smarty object
+	@tplvars: reference to array of template variables
 	@idata: array of data for item as per table-record, with inherited data where available
 	@start: UTC timestamp for start of first day to be reported
 	@range: enum 0..3 indicating span of report day..year
 	*/
-	public function Tabulate(&$smarty,&$idata,$start,$range)
+	public function Tabulate(&$tplvars,&$idata,$start,$range)
 	{
 		$columns = self::_TableFill($idata,$start,$range);
-		$smarty->assign('columns',$columns);
+		$tplvars['columns'] = $columns;
 		if(!$columns)
-			$smarty->assign('nobookings',$this->mod->Lang('nodata')); //should never happen
+			$tplvars['nobookings'] = $this->mod->Lang('nodata'); //should never happen
 		else
 		{
 			$rc = count(reset($columns));
-			$smarty->assign('rowcount',$rc);
+			$tplvars['rowcount'] = $rc;
 			switch($range)
 			{
 			 case Booker::RANGEDAY:
@@ -903,24 +903,24 @@ class bkrdisplay
 				$tc = 'yearly';
 				break;
 			}
-			$smarty->assign('tableclass',$tc);
+			$tplvars['tableclass'] = $tc;
 		}
 	}
 
 	/**
 	Listify:
 	Populate @smarty vars for display of list-style bookings-data for relevant range
-	@smarty: reference to smarty object
+	@tplvars: reference to array of template variables
 	@idata: array of data for item as per table-record, with inherited data where available
 	@start: UTC timestamp for start of first day to be reported
 	@range: enum 0..3 indicating span of report day..year
 	*/
-	public function Listify(&$smarty,&$idata,$start,$range)
+	public function Listify(&$tplvars,&$idata,$start,$range)
 	{
 		$sections = self::_ListFill($idata,$start,$range);
-		$smarty->assign('sections',$sections); //maybe empty
+		$tplvars['sections'] = $sections; //maybe empty
 		if(!$sections)
-			$smarty->assign('nobookings',$this->mod->Lang('nodata'));
+			$tplvars['nobookings'] = $this->mod->Lang('nodata');
 	}
 
 }

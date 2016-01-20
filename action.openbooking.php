@@ -184,19 +184,20 @@ elseif(isset($params['find']))
 	$params['message'] = $this->Lang('notyet');
 }
 
-$smarty->assign('startform',
+$tplvars = array();
+$tplvars['startform'] =
 		$this->CreateFormStart($id,'openbooking',$returnid,'POST','','','',array(
 		 'item_id'=>$item_id,'bkg_id'=>$params['bkg_id'],
-		 'repeat'=>$params['repeat'],'resume'=>$resume)));
-$smarty->assign('endform',$this->CreateFormEnd());
+		 'repeat'=>$params['repeat'],'resume'=>$resume));
+$tplvars['endform'] = $this->CreateFormEnd();
 
-$this->_BuildNav($id,$params,$returnid);
+$this->_BuildNav($id,$params,$returnid,$tplvars);
 if(!empty($params['message']))
-	$smarty->assign('message',$params['message']);
+	$tplvars['message'] = $params['message'];
 
-$smarty->assign('mod',!$viewmode);
+$tplvars['mod'] = !$viewmode;
 if(!$viewmode)
-	$smarty->assign('compulsory',$this->Lang('help_compulsory'));
+	$tplvars['compulsory'] = $this->Lang('help_compulsory');
 
 $idata = $funcs->GetItemProperty($this,$item_id,"*");
 
@@ -209,26 +210,25 @@ $bdata = $funcs->SafeGet($sql,array($params['bkg_id']),'row');
 $key = ($is_new) ? 'title_booknewfor':'title_bookfor';
 if(!empty($idata['name']))
 {
-	$smarty->assign('title',$this->Lang($key,$type,$idata['name']));
+	$tplvars['title'] = $this->Lang($key,$type,$idata['name']);
 }
 else
 {
 	$t = $this->Lang('title_noname',$type,$idata['item_id']);
-	$smarty->assign('title',$this->Lang($key,$t,''));
+	$tplvars['title'] = $this->Lang($key,$t,'');
 }
 
 $t = '';
 if(!empty($idata['description']))
-	$t .= $this->ProcessTemplateFromData($idata['description']);
-$smarty->assign('desc',$t);
+	$t .= bkrshared::ProcessTemplateFromData($this,$idata['description'],$tplvars);
+$tplvars['desc'] = $t;
 //in this context, ignore any image
 
-$baseurl = $this->GetModuleURLPath();
-$smarty->assign('modurl',$baseurl);
 //script accumulators
 $jsincs = array();
 $jsfuncs = array();
 $jsloads = array();
+$baseurl = $this->GetModuleURLPath();
 
 $vars = array();
 
@@ -460,28 +460,28 @@ if($idata['fee1'] != 0 || ($idata['fee2'] != 0 && $idata['fee2condition']))
 	$vars[] = $one;
 }
 
-$smarty->assign('data',$vars);
+$tplvars['data'] = $vars;
 
 //buttons
 if($viewmode)
 {
-	$smarty->assign('cancel',$this->CreateInputSubmit($id,'cancel',$this->Lang('close')));
+	$tplvars['cancel'] = $this->CreateInputSubmit($id,'cancel',$this->Lang('close'));
 }
 else //add/edit mode
 {
-	$smarty->assign('submit',$this->CreateInputSubmit($id,'submit',$this->Lang('submit')));
-	$smarty->assign('apply',$this->CreateInputSubmit($id,'apply',$this->Lang('apply')));
-	$smarty->assign('cancel',$this->CreateInputSubmit($id,'cancel',$this->Lang('cancel')));
-	$smarty->assign('find',$this->CreateInputSubmit($id,'find',$this->Lang('find'),
-		'title="'.$this->Lang('tip_finditm').'"'));
+	$tplvars['submit'] = $this->CreateInputSubmit($id,'submit',$this->Lang('submit'));
+	$tplvars['apply'] = $this->CreateInputSubmit($id,'apply',$this->Lang('apply'));
+	$tplvars['cancel'] = $this->CreateInputSubmit($id,'cancel',$this->Lang('cancel'));
+	$tplvars['find'] = $this->CreateInputSubmit($id,'find',$this->Lang('find'),
+		'title="'.$this->Lang('tip_finditm').'"');
 	if(!$params['repeat'])
 	{
 		$jsincs[] = <<<EOS
 <script type="text/javascript" src="{$baseurl}/include/jquery.modalconfirm.min.js"></script>
 
 EOS;
-		$smarty->assign('yes',$this->Lang('yes'));
-		$smarty->assign('no',$this->Lang('no'));
+		$tplvars['yes'] = $this->Lang('yes');
+		$tplvars['no'] = $this->Lang('no');
 		$funcs2 = new bkrverify();
 		$jsfuncs[] = $funcs2->VerifyScript($this,$id,TRUE,TRUE,FALSE,$idata['timezone']);
 		$jsloads[] = <<<EOS
@@ -496,18 +496,17 @@ EOS;
 
 if($jsloads)
 {
-	$jsfuncs[] =<<<EOS
-$(document).ready(function() {
-
-EOS;
+	$jsfuncs[] = '$(document).ready(function() {
+';
 	$jsfuncs = array_merge($jsfuncs,$jsloads);
-	$jsfuncs[] =<<<EOS
-});
-
-EOS;
+	$jsfuncs[] = '})
+';
 }
-$smarty->assign('jsfuncs',$jsfuncs);
-$smarty->assign('jsincs',$jsincs);
+$tplvars['jsfuncs'] = $jsfuncs;
+$tplvars['jsincs'] = $jsincs;
 
-echo $this->ProcessTemplate('openbooking.tpl');
+ $tplvars['jsstyler'] = TODO
+<link rel="stylesheet" type="text/css" href="{$baseurl}/css/pikaday.css" />
+
+echo bkrshared::ProcessTemplate($this,'openbooking.tpl',$tplvars);
 ?>

@@ -59,7 +59,8 @@ if(isset($_FILES) && isset($_FILES[$id.'csvfile']))
 	$this->Redirect($id,$params['resume'],'',$parms);
 }
 
-$this->_BuildNav($id,$params,$returnid);
+$tplvars = array();
+$this->_BuildNav($id,$params,$returnid,$tplvars);
 
 $hidden = array();
 switch($params['action'])
@@ -82,16 +83,16 @@ if($imbkg)
 else //$imitm
 	$hidden['importitm'] = $params['importitm'];
 
-$smarty->assign('startform',$this->CreateFormStart($id,'import',$returnid,'POST',
-	'multipart/form-data','','',$hidden));
-$smarty->assign('endform',$this->CreateFormEnd());
+$tplvars['startform'] = $this->CreateFormStart($id,'import',$returnid,'POST',
+	'multipart/form-data','','',$hidden);
+$tplvars['endform'] = $this->CreateFormEnd();
 $k = ($imbkg) ? 'title_importbooks':'title_importitems';
-$smarty->assign('title',$this->Lang($k));
-$smarty->assign('chooser',$this->CreateInputFile($id,'csvfile','text/csv',25));
-$smarty->assign('apply',$this->CreateInputSubmit($id,'import',$this->Lang('upload')));
-$smarty->assign('cancel',$this->CreateInputSubmit($id,'cancel',$this->Lang('cancel')));
+$tplvars['title'] = $this->Lang($k);
+$tplvars['chooser'] = $this->CreateInputFile($id,'csvfile','text/csv',25);
+$tplvars['apply'] = $this->CreateInputSubmit($id,'import',$this->Lang('upload'));
+$tplvars['cancel'] = $this->CreateInputSubmit($id,'cancel',$this->Lang('cancel'));
 $k = ($imbkg) ? 'help_importbooking':'help_importitem';
-$smarty->assign('help',$this->Lang($k));
+$tplvars['help'] = $this->Lang($k);
 
-echo $this->ProcessTemplate('chooser.tpl');
+echo bkrshared::ProcessTemplate($this,'chooser.tpl',$tplvars);
 ?>

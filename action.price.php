@@ -31,21 +31,23 @@ if($pdata == FALSE)
 	$this->Redirect($id,'defaultadmin','',array('active_tab'=>$tab,'message'=>$this->_PrettyMessage('err_system',FALSE)));
 
 $pmod = $this->_CheckAccess('admin');
-$smarty->assign('mod',$pmod);
+$tplvars = array(
+	'mod' => $pmod,
 
-$smarty->assign('startform',$this->CreateFormStart($id, 'price', $returnid));
-$smarty->assign('endform',$this->CreateFormEnd());
-$smarty->assign('hidden',$this->CreateInputHidden($id,'item_id',$item_id));
+	'startform' => $this->CreateFormStart($id,'price',$returnid),
+	'endform' => $this->CreateFormEnd(),
+	'hidden' => $this->CreateInputHidden($id,'item_id',$item_id)
+);
 
 $key = ($pmod) ? 'feemodtitle' : 'feeseetitle';
 $t = ($is_group) ? $this->Lang('group') : $this->Lang('item');
-$smarty->assign('title',$this->Lang($key,strtoupper($t)));
-//$smarty->assign('intro',$this->Lang('feeintro'));
-$smarty->assign('intro',$this->Lang('help_fees').'<br />'.
-	$this->Lang('help_feeconditions'));
+$tplvars['title'] = $this->Lang($key,strtoupper($t));
+//$tplvars['intro'] = $this->Lang('feeintro');
+$tplvars['intro'] = $this->Lang('help_fees').'<br />'.
+	$this->Lang('help_feeconditions');
 
-$smarty->assign('pricetext1',$this->Lang('fee1'));
-$smarty->assign('pricetext2',$this->Lang('fee2'));
+$tplvars['pricetext1'] = $this->Lang('fee1');
+$tplvars['pricetext2'] = $this->Lang('fee2');
 
 $t = $this->Lang('application');
 $pdata = $pdata[0];
@@ -63,7 +65,7 @@ elseif($fixed)
 	$i = $this->Lang('feefixed').': '.$val.'<br />'.$t.': '.$pdata['fee1condition'];
 else
 	$i = $val.'<br />'.$t.': '.$pdata['fee1condition'];
-$smarty->assign('priceinput1',$i);
+$tplvars['priceinput1'] = $i;
 
 $val = $pdata['fee2'];
 $fixed = ($val < 0);
@@ -79,18 +81,18 @@ elseif($fixed)
 	$i = $this->Lang('feefixed').': '.$val.'<br />'.$t.': '.$pdata['fee2condition'];
 else
 	$i = $val.'<br />'.$t.': '.$pdata['fee2condition'];
-$smarty->assign('priceinput2',$i);
+$tplvars['priceinput2'] = $i;
 
 if($pmod)
 {
-	$smarty->assign('submit', $this->CreateInputSubmit($id,'submit',$this->Lang('submit')));
-	$smarty->assign('cancel', $this->CreateInputSubmit($id,'cancel',$this->Lang('cancel')));
+	$tplvars['submit'] =  $this->CreateInputSubmit($id,'submit',$this->Lang('submit'));
+	$tplvars['cancel'] =  $this->CreateInputSubmit($id,'cancel',$this->Lang('cancel'));
 }
 else
 {
-	$smarty->assign('submit','');
-	$smarty->assign('cancel', $this->CreateInputSubmit($id,'cancel',$this->Lang('close')));
+	$tplvars['submit'] = '';
+	$tplvars['cancel'] =  $this->CreateInputSubmit($id,'cancel',$this->Lang('close'));
 }
 
-echo $this->ProcessTemplate('price.tpl');
+echo bkrshared::ProcessTemplate($this,'price.tpl',$tplvars);
 ?>

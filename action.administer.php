@@ -34,8 +34,9 @@ elseif($params['action'] == 'administer')
 else
 	exit;
 
-$smarty->assign('pconfig',(($pconfig)?1:0));
-$smarty->assign('pmod',(($pmod)?1:0));
+$tplvars = array();
+$tplvars['pconfig'] = (($pconfig)?1:0);
+$tplvars['pmod'] = (($pmod)?1:0);
 
 $ob = cms_utils::get_module('Notifier');
 if($ob)
@@ -45,20 +46,20 @@ if($ob)
 }
 else
 	$tell = FALSE;
-$smarty->assign('tell',$tell);
+$tplvars['tell'] = $tell;
 
 $item_id = (int)$params['item_id'];
 $is_group = ($item_id >= Booker::MINGRPID);
 
-$smarty->assign('startform',
+$tplvars['startform'] =
 	$this->CreateFormStart($id,'multibooking',$returnid,'POST','','','',
-		array('item_id'=>$item_id,'resume'=>$params['action'],'repeat'=>0,'custmsg'=>'')));
-$smarty->assign('endform',$this->CreateFormEnd());
+		array('item_id'=>$item_id,'resume'=>$params['action'],'repeat'=>0,'custmsg'=>''));
+$tplvars['endform'] = $this->CreateFormEnd();
 
-$this->_BuildNav($id,$params,$returnid);
+$this->_BuildNav($id,$params,$returnid,$tplvars);
 
 if(!empty($params['message']))
-	$smarty->assign('message',$params['message']);
+	$tplvars['message'] = $params['message'];
 
 $funcs = new bkrshared();
 $idata = $funcs->GetItemProperty($this,$item_id,'*',FALSE);
@@ -67,17 +68,17 @@ $type = ($is_group) ? $this->Lang('group'):$this->Lang('item');
 if(!empty($idata['name']))
 {
 	if($is_group)
-		$smarty->assign('item_title',$this->Lang('title_booksfor',$type,$idata['name']));
+		$tplvars['item_title'] = $this->Lang('title_booksfor',$type,$idata['name']);
 	else
-		$smarty->assign('item_title',$this->Lang('title_booksfor',$idata['name'],''));
+		$tplvars['item_title'] = $this->Lang('title_booksfor',$idata['name'],'');
 }
 else
 {
 	$t = $this->Lang('title_noname',$type,$idata['item_id']);
-	$smarty->assign('item_title',$this->Lang('title_booksfor',$t,''));
+	$tplvars['item_title'] = $this->Lang('title_booksfor',$t,'');
 }
 if(!empty($idata['description']))
-	$smarty->assign('desc',$this->ProcessTemplateFromData($idata['description']));
+	$tplvars['desc'] = bkrshared::ProcessTemplateFromData($this,$idata['description'],$tplvars);
 //in this context, ignore $idata['image']
 
 $payable = $idata['fee1'] != 0 || ($idata['fee2'] != 0 && $idata['fee2condition']);
@@ -85,33 +86,34 @@ $yes = $this->Lang('yes');
 $no = $this->Lang('no');
 $from_group = FALSE;
 //modal overlay
-$smarty->assign('modaltitle',$this->Lang('title_feedback3'));
-$smarty->assign('customentry',$this->CreateInputText($id,'customentry','',20,30));
-$smarty->assign('prompttitle',$this->Lang('title_prompt'));
-$smarty->assign('proceed',$this->Lang('proceed'));
-$smarty->assign('abort',$this->Lang('cancel'));
-$smarty->assign('yes',$yes);
-$smarty->assign('no',$no);
+$tplvars += array(
+	'modaltitle' => $this->Lang('title_feedback3'),
+	'customentry' => $this->CreateInputText($id,'customentry','',20,30),
+	'prompttitle' => $this->Lang('title_prompt'),
+	'proceed' => $this->Lang('proceed'),
+	'abort' => $this->Lang('cancel'),
+	'yes' => $yes,
+	'no' => $no
+);
 
-$modurl = $this->GetModuleURLPath();
-$smarty->assign('modurl',$modurl);
+$baseurl = $this->GetModuleURLPath();
 $theme = ($this->before20) ? cmsms()->get_variable('admintheme'):
 	cms_utils::get_theme_object();
 
 if($pmod)
 {
 	$t = $this->Lang('edit');
-	$icon_open = '<img src="'.$modurl.'/images/calendar-edit.png" alt="'.$t.'" title="'.$t.'" border="0" />';
+	$icon_open = '<img src="'.$baseurl.'/images/calendar-edit.png" alt="'.$t.'" title="'.$t.'" border="0" />';
 	$icon_delete = $theme->DisplayImage('icons/system/delete.gif',$this->Lang('delete'),'','','systemicon');
 }
 else
 {
 	$t = $this->Lang('view');
-	$icon_open = '<img src="'.$modurl.'/images/calendar.png" alt="'.$t.'" title="'.$t.'" border="0" />';
+	$icon_open = '<img src="'.$baseurl.'/images/calendar.png" alt="'.$t.'" title="'.$t.'" border="0" />';
 }
 $icon_export = $theme->DisplayImage('icons/system/export.gif',$this->Lang('export'),'','','systemicon');
 $t = $this->Lang('tip_notifyuser');
-$icon_tell = '<img src="'.$modurl.'/images/notice.png" alt="'.$t.'" title="'.$t.'" border="0" />';
+$icon_tell = '<img src="'.$baseurl.'/images/notice.png" alt="'.$t.'" title="'.$t.'" border="0" />';
 
 $jsfuncs = array(); //script accumulators
 $jsloads = array();
@@ -184,12 +186,12 @@ $rows = array();
 if($data)
 {
 	$titles = array(
-	 $this->Lang('title_time'),
-	 $this->Lang('title_user'),
-	 $this->Lang('title_paid')
+		$this->Lang('title_time'),
+		$this->Lang('title_user'),
+		$this->Lang('title_paid')
 	);
-	$smarty->assign('colnames',$titles);
-	$smarty->assign('colsorts',$titles);
+	$tplvars['colnames'] = $titles;
+	$tplvars['colsorts'] = $titles;
 
 	$dfmt = $idata['dateformat']; //translation via bkrshared::IntervalFormat() not relevant here
 	$tfmt = $idata['timeformat'];
@@ -242,7 +244,7 @@ if($data)
 		$rows[] = $oneset;
 	}
 	unset($one);
-	$smarty->assign('oncerows',$rows);
+	$tplvars['oncerows'] = $rows;
 }
 
 $rc = count($rows);
@@ -251,7 +253,7 @@ if($rc)
 	$pagerows = $this->GetPreference('pref_pagerows');
 	if($pagerows && $rc > $pagerows)
 	{
-		$smarty->assign('hasnav',1);
+		$tplvars['hasnav'] = 1;
 		//setup for SSsort
 		$choices = array(strval($pagerows) => $pagerows);
 		$f = ($pagerows < 4) ? 5 : 2;
@@ -262,20 +264,18 @@ if($rc)
 		if($n < $rc)
 			$choices[strval($n)] = $n;
 		$choices[$this->Lang('all')] = 0;
-		$smarty->assign('rowchanger',
+		$tplvars['rowchanger'] =
 			$this->CreateInputDropdown($id,'pagerows',$choices,-1,$pagerows,
-			'onchange="pagerows(this);"').'&nbsp;&nbsp;'.$this->Lang('pagerows'));
+			'onchange="pagerows(this);"').'&nbsp;&nbsp;'.$this->Lang('pagerows');
 		$curpg='<span id="cpage">1</span>';
 		$totpg='<span id="tpage">'.ceil($rc/$pagerows).'</span>';
-		$smarty->assign('pageof',$this->Lang('pageof',$curpg,$totpg));
-		$smarty->assign('first',
-		'<a href="javascript:pagefirst()">'.$this->Lang('first').'</a>');
-		$smarty->assign('prev',
-		'<a href="javascript:pageback()">'.$this->Lang('previous').'</a>');
-		$smarty->assign('next',
-		'<a href="javascript:pageforw()">'.$this->Lang('next').'</a>');
-		$smarty->assign('last',
-		'<a href="javascript:pagelast()">'.$this->Lang('last').'</a>');
+		$tplvars += array(
+			'pageof' => $this->Lang('pageof',$curpg,$totpg),
+			'first' => '<a href="javascript:pagefirst()">'.$this->Lang('first').'</a>',
+			'prev' => '<a href="javascript:pageback()">'.$this->Lang('previous').'</a>',
+			'next' => '<a href="javascript:pageforw()">'.$this->Lang('next').'</a>',
+			'last' => '<a href="javascript:pagelast()">'.$this->Lang('last').'</a>'
+		);
 		$jsfuncs[] = <<<EOS
 function pagefirst() {
  $.SSsort.movePage($('#bookings')[0],false,true);
@@ -297,7 +297,7 @@ EOS;
 	}
 	else
 	{
-		$smarty->assign('hasnav',0);
+		$tplvars['hasnav'] = 0;
 	}
 
 	if($rc > 1)
@@ -324,11 +324,11 @@ function select_all(cb) {
 }
 
 EOS;
-		$smarty->assign('header_checkbox',
-			$this->CreateInputCheckbox($id,'selectall',true,false,'onclick="select_all(this);"'));
+		$tplvars['header_checkbox'] =
+			$this->CreateInputCheckbox($id,'selectall',true,false,'onclick="select_all(this);"');
 	}
 	else
-		$smarty->assign('header_checkbox','');
+		$tplvars['header_checkbox'] = '';
 
 	$jsfuncs[] = <<<EOS
 function any_selected() {
@@ -342,8 +342,8 @@ EOS;
 	{
 		if($tell)
 		{
-			$smarty->assign('notify',$this->CreateInputSubmit($id,'notify',$this->Lang('notify'),
-			'title="'.$this->Lang('tip_notify_selected_records').'"'));
+			$tplvars['notify'] = $this->CreateInputSubmit($id,'notify',$this->Lang('notify'),
+			'title="'.$this->Lang('tip_notify_selected_records').'"');
 			$jsloads[] = <<<EOS
  $('#{$id}moduleform_1 #{$id}notify').modalconfirm({
   overlayID: 'confirm',
@@ -365,13 +365,13 @@ EOS;
 
 EOS;
 		}
-		$smarty->assign('export',$this->CreateInputSubmit($id,'export',$this->Lang('export'),
-		'title="'.$this->Lang('tip_export_selected_records').'"'));
+		$tplvars['export'] = $this->CreateInputSubmit($id,'export',$this->Lang('export'),
+		'title="'.$this->Lang('tip_export_selected_records').'"');
 	}
 	if($pmod)
 	{
-		$smarty->assign('delete',$this->CreateInputSubmit($id,'delete',$this->Lang('delete'),
-		'title="'.$this->Lang('tip_delsel_items').'"'));
+		$tplvars['delete'] = $this->CreateInputSubmit($id,'delete',$this->Lang('delete'),
+		'title="'.$this->Lang('tip_delsel_items').'"');
 		$t = $this->Lang('confirm_delete_type',$this->Lang('booking'),'%s');
 		if($tell)
 		{
@@ -427,19 +427,19 @@ EOS;
 }
 else
 {
-	$smarty->assign('norecords',$this->Lang('nodata'));
+	$tplvars['norecords'] = $this->Lang('nodata');
 }
 
 if($pmod)
 {
 	$t = $this->Lang('addbooking');
 	$icon_add = $theme->DisplayImage('icons/system/newobject.gif',$t,'','','systemicon');
-	$smarty->assign('iconlinkadd',
-		$this->CreateLink($id,'openbooking','',$icon_add,array('item_id'=>$item_id,'bkg_id'=>-1,'repeat'=>0,'resume'=>$params['action'])));
-	$smarty->assign('textlinkadd',
-		$this->CreateLink($id,'openbooking','',$t,array('item_id'=>$item_id,'bkg_id'=>-1,'repeat'=>0,'resume'=>$params['action']))); //ditto
-	$smarty->assign('importbbtn',$this->CreateInputSubmit($id,'importbkg',$this->Lang('import'),
-		'title="'.$this->Lang('tip_importbkg').'"'));
+	$tplvars['iconlinkadd'] =
+		$this->CreateLink($id,'openbooking','',$icon_add,array('item_id'=>$item_id,'bkg_id'=>-1,'repeat'=>0,'resume'=>$params['action']));
+	$tplvars['textlinkadd'] =
+		$this->CreateLink($id,'openbooking','',$t,array('item_id'=>$item_id,'bkg_id'=>-1,'repeat'=>0,'resume'=>$params['action'])); //ditto
+	$tplvars['importbbtn'] = $this->CreateInputSubmit($id,'importbkg',$this->Lang('import'),
+		'title="'.$this->Lang('tip_importbkg').'"');
 }
 
 //========== REPEAT BOOKINGS ===========
@@ -456,17 +456,17 @@ if($groups)
 }
 if($data)
 {
-	$smarty->assign('startform2',
+	$tplvars['startform2'] =
 		$this->CreateFormStart($id,'multibooking',$returnid,'POST','','','',
-			array('item_id'=>$item_id,'resume'=>$params['action'],'repeat'=>1)));
+			array('item_id'=>$item_id,'resume'=>$params['action'],'repeat'=>1));
 	if(!empty($idata['name']))
 	{
-		$smarty->assign('item_title2',$this->Lang('title_repeatsfor',$type,$idata['name']));
+		$tplvars['item_title2'] = $this->Lang('title_repeatsfor',$type,$idata['name']);
 	}
 	else
 	{
 		$t = $this->Lang('title_noname',$type,$idata['item_id']);
-		$smarty->assign('item_title2',$this->Lang('title_repeatsfor',$t,''));
+		$tplvars['item_title2'] = $this->Lang('title_repeatsfor',$t,'');
 	}
 
 	$titles = array(
@@ -475,8 +475,8 @@ if($data)
 	 $this->Lang('title_count'),
 	 $this->Lang('title_paid')
 	);
-	$smarty->assign('colnames2',$titles);
-	$smarty->assign('colsorts2',$titles);
+	$tplvars['colnames2'] = $titles;
+	$tplvars['colsorts2'] = $titles;
 
 	$rows = array();
 	foreach($data as &$one)
@@ -513,7 +513,7 @@ if($data)
 	}
 	unset($one);
 
-	$smarty->assign('reptrows',$rows);
+	$tplvars['reptrows'] = $rows;
 	if($rows)
 	{
 		$jsfuncs[] = <<<EOS
@@ -527,8 +527,8 @@ EOS;
 		{
 			if($tell)
 			{
-				$smarty->assign('notify2',$this->CreateInputSubmit($id,'notify',$this->Lang('notify'),
-				'title="'.$this->Lang('tip_notify_selected_records').'"'));
+				$tplvars['notify2'] = $this->CreateInputSubmit($id,'notify',$this->Lang('notify'),
+				'title="'.$this->Lang('tip_notify_selected_records').'"');
 				$jsloads[] = <<<EOS
  $('#{$id}moduleform_2 #{$id}notify').modalconfirm({
   overlayID: 'confirm',
@@ -553,8 +553,8 @@ EOS;
 		}
 		if($pmod)
 		{
-			$smarty->assign('delete2',$this->CreateInputSubmit($id,'delete',$this->Lang('delete'),
-			'title="'.$this->Lang('tip_delsel_items').'"'));
+			$tplvars['delete2'] = $this->CreateInputSubmit($id,'delete',$this->Lang('delete'),
+			'title="'.$this->Lang('tip_delsel_items').'"');
 			$t = $this->Lang('confirm_delete_type',$this->Lang('booking'),'%s');
 			if($tell)
 			{
@@ -631,52 +631,48 @@ EOS;
 });
 
 EOS;
-		$smarty->assign('header_checkbox2',
-			$this->CreateInputCheckbox($id,'selectall',true,false,'onclick="select_all2(this);"'));
+		$tplvars['header_checkbox2'] =
+			$this->CreateInputCheckbox($id,'selectall',true,false,'onclick="select_all2(this);"');
 	}
 	else
-		$smarty->assign('header_checkbox2','');
+		$tplvars['header_checkbox2'] = '';
 }
 
 if($pmod)
 {
 	$t = $this->Lang('addbooking2');
 	$icon_add = $theme->DisplayImage('icons/system/newobject.gif',$t,'','','systemicon');
-	$smarty->assign('iconlinkadd2',
-		$this->CreateLink($id,'openbooking','',$icon_add,array('item_id'=>$item_id,'bkg_id'=>-1,'repeat'=>1,'resume'=>$params['action'])));
-	$smarty->assign('textlinkadd2',
-		$this->CreateLink($id,'openbooking','',$t,array('item_id'=>$item_id,'bkg_id'=>-1,'repeat'=>1,'resume'=>$params['action']))); //ditto
+	$tplvars['iconlinkadd2'] =
+		$this->CreateLink($id,'openbooking','',$icon_add,array('item_id'=>$item_id,'bkg_id'=>-1,'repeat'=>1,'resume'=>$params['action']));
+	$tplvars['textlinkadd2'] =
+		$this->CreateLink($id,'openbooking','',$t,array('item_id'=>$item_id,'bkg_id'=>-1,'repeat'=>1,'resume'=>$params['action'])); //ditto
 }
 
 if($from_group)
-	$smarty->assign('help_group',$this->Lang('help_groupbooking'));
+	$tplvars['help_group'] = $this->Lang('help_groupbooking');
 
 if($jsloads)
 {
-	$jsfuncs[] =<<<EOS
-$(document).ready(function() {
-
-EOS;
+	$jsfuncs[] = '$(document).ready(function() {
+';
 	$jsfuncs = array_merge($jsfuncs,$jsloads);
-	$jsfuncs[] =<<<EOS
-});
-
-EOS;
+	$jsfuncs[] = '});
+';
 }
-$smarty->assign('jsfuncs',$jsfuncs);
+$tplvars['jsfuncs'] = $jsfuncs;
 
 $jsincs[] = <<<EOS
-<script type="text/javascript" src="{$modurl}/include/jquery.metadata.min.js"></script>
-<script type="text/javascript" src="{$modurl}/include/jquery.SSsort.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/include/jquery.metadata.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/include/jquery.SSsort.min.js"></script>
 
 EOS;
 if($pmod)
 	$jsincs[] = <<<EOS
-<script type="text/javascript" src="{$modurl}/include/jquery.modalconfirm.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/include/jquery.modalconfirm.min.js"></script>
 
 EOS;
-$smarty->assign('jsincs',$jsincs);
+$tplvars['jsincs'] = $jsincs;
 
-echo $this->ProcessTemplate('administer.tpl');
+echo bkrshared::ProcessTemplate($this,'administer.tpl',$tplvars);
 
 ?>

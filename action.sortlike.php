@@ -193,9 +193,11 @@ if($members)
 		$oneset->check = $this->CreateInputCheckbox($id,'members[]',$i,-1);
 		$sorted[] = $oneset;
 	}
-	$smarty->assign('entries',$sorted);
-	$smarty->assign('identifier','members');
-	echo $this->ProcessTemplate('membersbody.tpl');
+	$tplvars = array(
+		'entries' => $sorted,
+		'identifier' => 'members'
+	);
+	echo bkrshared::ProcessTemplate($this,'membersbody.tpl',$tplvars);
 }
 else
 	echo 0;
