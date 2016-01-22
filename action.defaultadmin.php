@@ -1231,7 +1231,7 @@ $jsloads[] = <<<EOS
 EOS;
 
 $jsfuncs[] = '$(document).ready(function() {
-'
+';
 $jsfuncs = array_merge($jsfuncs,$jsloads);
 $jsfuncs[] = '});
 ';

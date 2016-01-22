@@ -478,7 +478,7 @@ class Booker extends CMSModule
 	@returnid:
 	@tplvars: reference to array of template variables
 	*/
-	function _BuildNav($id,&$params,$returnid,$&tplvars)
+	function _BuildNav($id,&$params,$returnid,&$tplvars)
 	{
 		$navstr = $this->CreateLink($id,'defaultadmin',$returnid,
 			'&#171; '.$this->Lang('back_module'));
