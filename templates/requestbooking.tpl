@@ -34,7 +34,8 @@
 {$send}&nbsp;{$cancel}{if isset($choose)}&nbsp;{$choose}{/if}
 {$endform}
 <div id="calendar"></div>
-{foreach from=$jsincs item=inc}{$inc}{/foreach}
+{foreach from=$jsincs item=inc}{$inc}
+{/foreach}
 <script type="text/javascript">
 //<![CDATA[
 {foreach from=$jsfuncs item=func}{$func}{/foreach}

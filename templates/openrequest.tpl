@@ -36,7 +36,8 @@
 &nbsp;&nbsp;<input id="mc_deny2" class="cms_submit btn_deny" type="submit" value="{$abort}" /></p>
 </div>
 <div id="display"></div>
-{if !empty($jsincs)}{foreach from=$jsincs item=inc}{$inc}{/foreach}{/if}
+{if !empty($jsincs)}{foreach from=$jsincs item=inc}{$inc}
+{/foreach}{/if}
 {if !empty($jsfuncs)}
 <script type="text/javascript">
 //<![CDATA[

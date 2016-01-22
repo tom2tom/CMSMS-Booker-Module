@@ -12,7 +12,8 @@
 {/foreach}
 </div><br />{/if}
 {$startform}
-{foreach from=$hidden item=itm}{$itm}{/foreach}
+{foreach from=$hidden item=inc}{$inc}
+{/foreach}
 {if isset($actions)}{foreach from=$actions key=k item=btn}{if $k>0}&nbsp;&nbsp;{/if}{$btn}{/foreach}<br /><br />{/if}
 {if $sections}
 <div class="bkglist" style="oveflow:auto;">
@@ -43,7 +44,8 @@
 <div id="calendar"></div>
 {$endform}
 
-{if !empty($jsincs)}{foreach from=$jsincs item=inc}{$inc}{/foreach}{/if}
+{if !empty($jsincs)}{foreach from=$jsincs item=inc}{$inc}
+{/foreach}{/if}
 {if !empty($jsfuncs)}
 <script type="text/javascript">
 //<![CDATA[
