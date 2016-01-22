@@ -175,7 +175,7 @@ $tplvars = array();
 
 if(isset($params['message']))
 	$tplvars['message'] = $params['message'];
-TODO array or string for hidden items?
+
 $hidden = array();
 $hidden[] = $this->CreateInputHidden($id,'view',($showtable)?'table':'list');
 $hidden[] = $this->CreateInputHidden($id,'startat',$params['startat']);
@@ -492,26 +492,21 @@ if($customcss)
 EOS;
 
 $tplvars['jsstyler'] = <<<EOS
-<script type="text/javascript">
-//<![CDATA[
 var \$head = $('head'),
-  \$linklast = \$head.find("link[rel='stylesheet']:last"),
-  linkAdd = '{$stylers}';
-if (\$linklast.length){
-   \$linklast.after(linkAdd);
+ \$linklast = \$head.find("link[rel='stylesheet']:last"),
+ linkadd = '{$stylers}';
+if (\$linklast.length) {
+ \$linklast.after(linkadd);
+} else {
+ \$head.append(linkadd);
 }
-else {
-   \$head.append(linkAdd);
-}
-//]]>
-</script>
 EOS;
 
 $jsfuncs[] = '$(document).ready(function() {
 ';
 $jsfuncs = array_merge($jsfuncs,$jsloads);
 $jsfuncs[] = '})
-;
+';
 
 $tplvars['jsfuncs'] = $jsfuncs;
 $tplvars['jsincs'] = $jsincs;

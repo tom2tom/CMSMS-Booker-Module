@@ -465,19 +465,14 @@ if($customcss)
 EOS;
 
 $tplvars['jsstyler'] = <<<EOS
-<script type="text/javascript">
-//<![CDATA[
 var \$head = $('head'),
-  \$linklast = \$head.find("link[rel='stylesheet']:last"),
-  linkAdd = '{$stylers}';
-if (\$linklast.length){
-   \$linklast.after(linkAdd);
+ \$linklast = \$head.find("link[rel='stylesheet']:last"),
+ linkadd = '{$stylers}';
+if (\$linklast.length) {
+ \$linklast.after(linkadd);
+} else {
+ \$head.append(linkadd);
 }
-else {
-   \$head.append(linkAdd);
-}
-//]]>
-</script>
 EOS;
 
 if($jsloads)
@@ -490,8 +485,6 @@ if($jsloads)
 }
 $tplvars['jsfuncs'] = $jsfuncs;
 $tplvars['jsincs'] = $jsincs;
-
-$tplvars['jsstyler'] = ;
 
 echo bkrshared::ProcessTemplate($this,'requestbooking.tpl',$tplvars);
 ?>
