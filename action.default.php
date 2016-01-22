@@ -195,8 +195,6 @@ $tplvars['hidden'] = $hidden;
 $tplvars['startform'] = $this->CreateFormStart($id,'default',$returnid);
 $tplvars['endform'] = $this->CreateFormEnd();
 
-$customcss = $funcs->GetStylesURL($this,$item_id);
-
 if(!empty($idata['name']))
 {
 	if($is_group)
@@ -487,7 +485,7 @@ else //list view
 <link rel="stylesheet" type="text/css" href="{$baseurl}/css/pikaday.css" />
 EOS;
 }
-
+$customcss = $funcs->GetStylesURL($this,$item_id);
 if($customcss)
 	$stylers .= <<<EOS
 <link rel="stylesheet" type="text/css" href="{$customcss}" />

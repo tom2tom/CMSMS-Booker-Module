@@ -494,6 +494,26 @@ EOS;
 	}
 }
 
+$stylers = <<<EOS
+<link rel="stylesheet" type="text/css" href="{$baseurl}/css/pikaday.css" />
+EOS;
+
+$tplvars['jsstyler'] = <<<EOS
+<script type="text/javascript">
+//<![CDATA[
+var \$head = $('head'),
+  \$linklast = \$head.find("link[rel='stylesheet']:last"),
+  linkAdd = '{$stylers}';
+if (\$linklast.length){
+   \$linklast.after(linkAdd);
+}
+else {
+   \$head.append(linkAdd);
+}
+//]]>
+</script>
+EOS;
+
 if($jsloads)
 {
 	$jsfuncs[] = '$(document).ready(function() {
@@ -504,9 +524,6 @@ if($jsloads)
 }
 $tplvars['jsfuncs'] = $jsfuncs;
 $tplvars['jsincs'] = $jsincs;
-
- $tplvars['jsstyler'] = TODO
-<link rel="stylesheet" type="text/css" href="{$baseurl}/css/pikaday.css" />
 
 echo bkrshared::ProcessTemplate($this,'openbooking.tpl',$tplvars);
 ?>

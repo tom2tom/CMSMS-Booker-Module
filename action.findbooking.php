@@ -90,11 +90,6 @@ if(isset($params['submit']))
 	//fall into repeat presentation
 }
 
-
-$css = $funcs->GetStylesURL($this,$item_id);
-if($css)
-	$tplvars['customstyle'] = $css;
-
 $tplvars['startform'] = $this->CreateFormStart($id,'findbooking',$returnid,
 	'POST','','','',array(
 	'item_id'=>$item_id,
@@ -205,6 +200,32 @@ $jsloads[] = <<<EOS
 
 EOS;
 
+$stylers = <<<EOS
+<link rel="stylesheet" type="text/css" href="{$baseurl}/css/public.css" />
+<link rel="stylesheet" type="text/css" href="{$baseurl}/css/pikaday.css" />
+EOS;
+$customcss = $funcs->GetStylesURL($this,$item_id);
+if($customcss)
+	$stylers .= <<<EOS
+<link rel="stylesheet" type="text/css" href="{$customcss}" />
+EOS;
+
+$tplvars['jsstyler'] = <<<EOS
+<script type="text/javascript">
+//<![CDATA[
+var \$head = $('head'),
+  \$linklast = \$head.find("link[rel='stylesheet']:last"),
+  linkAdd = '{$stylers}';
+if (\$linklast.length){
+   \$linklast.after(linkAdd);
+}
+else {
+   \$head.append(linkAdd);
+}
+//]]>
+</script>
+EOS;
+
 //for picker
 $jsincs[] = <<<EOS
 <script type="text/javascript" src="{$baseurl}/include/moment.min.js"></script>
@@ -222,12 +243,6 @@ if($jsloads)
 $tplvars['jsfuncs'] = $jsfuncs;
 $tplvars['jsincs'] = $jsincs;
 
- $tplvars['jsstyler'] = TODO
-<link rel="stylesheet" type="text/css" href="{$baseurl}/css/public.css" />
-{if isset($customstyle)}<link rel="stylesheet" type="text/css" href="{$customstyle}" />{/if}
-<link rel="stylesheet" type="text/css" href="{$baseurl}/css/pikaday.css" />
-
 echo bkrshared::ProcessTemplate($this,'find.tpl',$tplvars);
-
 ?>
 

@@ -211,10 +211,6 @@ elseif(isset($params['find']))
 	 'view'=>$params['view']));
 }
 
-$css = $funcs->GetStylesURL($this,$item_id);
-if($css)
-	$tplvars['customstyle'] = $css;
-
 $hidden = array(
 	'item_id'=>$item_id,
 	'startat'=>$params['startat'],
@@ -458,6 +454,32 @@ if($choices && count($choices) > 1)
 EOS;
 }
 
+$stylers = <<<EOS
+<link rel="stylesheet" type="text/css" href="{$baseurl}/css/public.css" />
+<link rel="stylesheet" type="text/css" href="{$baseurl}/css/pikaday.css" />
+EOS;
+$customcss = $funcs->GetStylesURL($this,$item_id);
+if($customcss)
+	$stylers .= <<<EOS
+<link rel="stylesheet" type="text/css" href="{$customcss}" />{/if}
+EOS;
+
+$tplvars['jsstyler'] = <<<EOS
+<script type="text/javascript">
+//<![CDATA[
+var \$head = $('head'),
+  \$linklast = \$head.find("link[rel='stylesheet']:last"),
+  linkAdd = '{$stylers}';
+if (\$linklast.length){
+   \$linklast.after(linkAdd);
+}
+else {
+   \$head.append(linkAdd);
+}
+//]]>
+</script>
+EOS;
+
 if($jsloads)
 {
 	$jsfuncs[] = '$(document).ready(function() {
@@ -470,11 +492,6 @@ $tplvars['jsfuncs'] = $jsfuncs;
 $tplvars['jsincs'] = $jsincs;
 
 $tplvars['jsstyler'] = ;
-
-//TODO stylesheets into header
-<link rel="stylesheet" type="text/css" href="{$baseurl}/css/public.css" />
-{if isset($customstyle)}<link rel="stylesheet" type="text/css" href="{$customstyle}" />{/if}
-<link rel="stylesheet" type="text/css" href="{$baseurl}/css/pikaday.css" />
 
 echo bkrshared::ProcessTemplate($this,'requestbooking.tpl',$tplvars);
 ?>
