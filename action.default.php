@@ -195,9 +195,7 @@ $tplvars['hidden'] = $hidden;
 $tplvars['startform'] = $this->CreateFormStart($id,'default',$returnid);
 $tplvars['endform'] = $this->CreateFormEnd();
 
-$css = $funcs->GetStylesURL($this,$item_id);
-if($css)
-	$tplvars['customstyle'] = $css;
+$customcss = $funcs->GetStylesURL($this,$item_id);
 
 if(!empty($idata['name']))
 {
@@ -422,6 +420,13 @@ EOS;
 
 if($showtable)
 {
+	$tplname = 'defaulttable.tpl';
+
+	$stylers = <<<EOS
+<link rel="stylesheet" type="text/css" href="{$baseurl}/css/public.css" />
+<link rel="stylesheet" type="text/css" href="{$baseurl}/css/pikaday.css" />
+<link rel="stylesheet" type="text/css" href="{$baseurl}/css/stickytable.css" />
+EOS;
 	//CHECKME PURPOSE booking-table th click() handler
 	$jsfuncs[] = <<<EOS
 function slot_record(el) {
@@ -473,7 +478,36 @@ EOS;
  });
 
 EOS;
-} //end showtable
+}
+else //list view
+{
+	$tplname = 'defaultlist.tpl';
+	$stylers = <<<EOS
+<link rel="stylesheet" type="text/css" href="{$baseurl}/css/public.css" />
+<link rel="stylesheet" type="text/css" href="{$baseurl}/css/pikaday.css" />
+EOS;
+}
+
+if($customcss)
+	$stylers .= <<<EOS
+<link rel="stylesheet" type="text/css" href="{$customcss}" />
+EOS;
+
+$tplvars['jsstyler'] = <<<EOS
+<script type="text/javascript">
+//<![CDATA[
+var \$head = $('head'),
+  \$linklast = \$head.find("link[rel='stylesheet']:last"),
+  linkAdd = '{$stylers}';
+if (\$linklast.length){
+   \$linklast.after(linkAdd);
+}
+else {
+   \$head.append(linkAdd);
+}
+//]]>
+</script>
+EOS;
 
 $jsfuncs[] = '$(document).ready(function() {
 ';
@@ -483,26 +517,7 @@ $jsfuncs[] = '})
 
 $tplvars['jsfuncs'] = $jsfuncs;
 $tplvars['jsincs'] = $jsincs;
-$tplvars['baseurl'] = $baseurl;
 
-if($showtable)
-{
-$tplvars['jsstyler'] = TODO
-<link rel="stylesheet" type="text/css" href="{$baseurl}/css/public.css" />
-{if isset($customstyle)}<link rel="stylesheet" type="text/css" href="{$customstyle}" />{/if}
-<link rel="stylesheet" type="text/css" href="{$baseurl}/css/stickytable.css" />
-<link rel="stylesheet" type="text/css" href="{$baseurl}/css/pikaday.css" />
-
-	echo bkrshared::ProcessTemplate($this,'defaulttable.tpl',$tplvars);
-{
-else
-{
-$tplvars['jsstyler'] = TODO
-<link rel="stylesheet" type="text/css" href="{$baseurl}/css/public.css" />
-{if isset($customstyle)}<link rel="stylesheet" type="text/css" href="{$customstyle}" />{/if}
-<link rel="stylesheet" type="text/css" href="{$baseurl}/css/pikaday.css" />
-
-	echo bkrshared::ProcessTemplate($this,'defaultlist.tpl',$tplvars);
-}
+echo bkrshared::ProcessTemplate($this,$tplname,$tplvars);
 
 ?>
