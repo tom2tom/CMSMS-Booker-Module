@@ -22,6 +22,64 @@ class bkritem_namecmp
 class bkrshared
 {
 	/**
+	ProcessTemplate:
+	@mod: reference to current SEOTools module object
+	@tplname: template identifier
+	@tplvars: associative array of template variables
+	@cache: optional boolean, default TRUE
+	Returns: string, processed template
+	*/
+	public static function ProcessTemplate(&$mod,$tplname,$tplvars,$cache=TRUE)
+	{
+		global $smarty;
+		if($mod->before20)
+		{
+			$smarty->assign($tplvars);
+			echo $mod->ProcessTemplate($tplname);
+		}
+		else
+		{
+			if($cache)
+			{
+				$cache_id = md5('seo'.$tplname.serialize(array_keys($tplvars)));
+				$lang = CmsNlsOperations::get_current_language();
+				$compile_id = md5('seo'.$tplname.$lang);
+				$tpl = $smarty->CreateTemplate($mod->GetFileResource($tplname),$cache_id,$compile_id,$smarty);
+				if(!$tpl->isCached())
+					$tpl->assign($tplvars);
+			}
+			else
+			{
+				$tpl = $smarty->CreateTemplate($mod->GetFileResource($tplname),NULL,NULL,$smarty,$tplvars);
+			}
+			$tpl->display();
+		}
+	}
+
+	/**
+	ProcessTemplateFromData:
+	@mod: reference to current SEOTools module object
+	@data: string
+	@tplvars: associative array of template variables
+	No cacheing.
+	Returns: string, processed template
+	*/
+	public static function ProcessTemplateFromData(&$mod,$data,$tplvars)
+	{
+		global $smarty;
+		if($mod->before20)
+		{
+			$smarty->assign($tplvars);
+			return $mod->ProcessTemplateFromData($data);
+		}
+		else
+		{
+			$tpl = $smarty->CreateTemplate('eval:'.$data,NULL,NULL,$smarty,$tplvars);
+			return $tpl->fetch();
+		}
+	}
+
+	/**
 	SafeGet:
 	Execute SQL command(s) with minimal chance of data-race
 	@sql: SQL command
@@ -1333,7 +1391,6 @@ EOS;
 	{
 		$k = ($short) ? 'shortmonths' : 'longmonths';
 		$all = explode(',',$mod->Lang($k));
-
 		if (!is_array($which))
 		{
 			if ($which > 0 && $which < 13)
