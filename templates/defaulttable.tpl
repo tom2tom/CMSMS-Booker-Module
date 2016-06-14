@@ -16,7 +16,7 @@
 {/foreach}
 {if isset($actions)}{foreach from=$actions key=k item=btn}{if $k>0}&nbsp;&nbsp;{/if}{$btn}{/foreach}<br /><br />{/if}
 {if $columns}
-<div style="padding-left:2px;height:30em;width:100%;overflow:auto;">
+<div style="padding-left:2px;padding-bottom:12px;height:30em;width:100%;">
 <table id="scroller" class="booker {$tableclass}">
  <thead><tr>
 {section name=c loop=$columns}
