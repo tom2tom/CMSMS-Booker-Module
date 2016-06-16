@@ -20,11 +20,20 @@ $params array
 */
 if(!empty($params['nosend']))	//user cancelled
 {
+	if(!(is_numeric($params['startat']) || strtotime($params['startat'])))
+	{
+		$params['message'] = $this->Lang('err_system').' '.$params['startat'];
+		$params['startat'] = (int)(time()/86400);
+	}
+	elseif(!isset($params['message']))
+		$params['message'] = '';
+
 	$parms = array(
 	'startat'=>$params['startat'],
 	'range'=>$params['range'],
 	'view'=>$params['view'],
-	'item_id'=>$params['item_id']
+	'item_id'=>$params['item_id'],
+	'message'=>$params['message']
 	);
 	$this->Redirect($id,'default',$returnid,$parms);
 }
@@ -378,13 +387,13 @@ EOS;
 	$dnames = "'".str_replace(",","','",$t)."'";
 	$t = $this->Lang('shortdays');
 	$sdnames = "'".str_replace(",","','",$t)."'";
-	$momentfmt = ($overday) ? 'YYYY-M-D':'YYYY-M-D h:mm';
+	$momentfmt = ($overday) ? 'YYYY-MM-DD':'YYYY-MM-DD h:mm';
 
 	$jsloads[] = <<<EOS
  new Pikaday({
   field: document.getElementById('calendar'),
   trigger: document.getElementById('{$id}when'),
-  format: 'YYYY-M-D',
+  format: 'YYYY-MM-DD',
   i18n: {
    previousMonth: '{$prevm}',
    nextMonth: '{$nextm}',

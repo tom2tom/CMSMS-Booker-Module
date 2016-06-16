@@ -172,7 +172,7 @@ EOS;
 	{
 		$t2 = '';
 	}
-	$momentfmt = ($overday) ? 'YYYY-M-D':'YYYY-M-D h:mm';
+	$momentfmt = ($overday) ? 'YYYY-MM-DD':'YYYY-MM-DD h:mm';
 
 	$jsloads[] = <<<EOS
  new Pikaday({

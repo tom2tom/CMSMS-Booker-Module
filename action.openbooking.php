@@ -65,7 +65,7 @@ if(isset($params['submit']) || isset($params['apply']))
 		$t = trim($params['formula']);
 		if($t)
 		{
-			$funcs2 = new IntervalParser($this);
+			$funcs2 = new RepeatParser($this);
 			$t = $funcs2->CheckCondition($t);
 		}
 		if($t)
@@ -301,7 +301,7 @@ EOS;
 			$t2 = '';
 		}
 		$overday = ($funcs->GetInterval($this,$item_id,'slot') >= 84600);
-		$momentfmt = ($overday) ? 'YYYY-M-D':'YYYY-M-D h:mm';
+		$momentfmt = ($overday) ? 'YYYY-MM-DD':'YYYY-MM-DD h:mm';
 
 		$jsloads[] = <<<EOS
  new Pikaday({
