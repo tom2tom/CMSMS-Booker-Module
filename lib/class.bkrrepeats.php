@@ -8,7 +8,7 @@ More info at http://dev.cmsmadesimple.org/projects/booker
 Class: bkrrepeats
 */
 
-class bkrrepeats extends IntervalParser
+class bkrrepeats extends RepeatParser
 {
 	function __construct(&$mod)
 	{
@@ -271,6 +271,8 @@ no FALSE in $ends[]
 		return array($starts,$ends);
 	}
 
+//~~~~~~~~~~~~~~~~ PUBLIC INTERFACE ~~~~~~~~~~~~~~~~~~
+
 	/*
 	MergeBlocks:
 	Coalesce and sort-ascending the timestamp-blocks represented in @starts and @ends.
@@ -339,8 +341,6 @@ no FALSE in $ends[]
 			}
 		}
 	}
-
-	//~~~~~~~~~~~~~~~~ PUBLIC INTERFACE ~~~~~~~~~~~~~~~~~~
 
 	/*
 	SunParms:
@@ -533,6 +533,57 @@ Astronomical twilight $zenith=108.0;
 		return array();
 	}
 
+	/**
+	NextInterval:
+	Get pair of timestamps representing the earliest conforming time-block in the
+	 interval starting at @dtstart and ending 1-second before @dtend
+	@descriptor: interval-language string to be interpreted, or some variety of FALSE
+	@slotlen: length (seconds) of wanted block
+	@dtstart: datetime object for UTC start (midnight) of 1st day of period being processed
+	@dtend: datetime object representing 1-second after the end of the period of interest
+	@sunparms: reference to array of parameters from self::SunParms, used in sun-related time calcs
+	Returns: array with 2 timestamps, or FALSE
+	*/
+	public function NextInterval($descriptor,$slotlen,$dtstart,$dtend,&$sunparms)
+	{
+		//limiting timestamps
+		$st = $dtstart->getTimestamp();
+		$nd = $dtend->getTimestamp();
+		if($descriptor)
+		{
+			if(parent::ParseCondition($descriptor/*,$locale*/))
+			{
+			//TODO
+			}
+			return FALSE;
+		}
+		if($st+$slotlen <= $nd)
+			return array($st,$st+$slotlen);
+		return FALSE;
+	}
+
+	/**
+	IntervalComplies:
+	Determine whether the time-block starting at @dtstart and ending 1-second
+	 before @dtend is consistent with @descriptor
+	@descriptor: interval-language string to be interpreted, or some variety of FALSE
+	@dtstart: datetime object for UTC start (midnight) of 1st day of period being processed
+	@dtend: datetime object representing 1-second after the end of the period of interest
+	@sunparms: reference to array of parameters from self::SunParms, used in sun-related time calcs
+	Returns: boolean
+	*/
+	public function IntervalComplies($descriptor,$dtstart,$dtend,&$sunparms)
+	{
+		if($descriptor)
+		{
+			if(parent::ParseCondition($descriptor/*,$locale*/))
+			{
+			//TODO
+			}
+			return FALSE;
+		}
+		return TRUE;
+	}
 }
 
 ?>
