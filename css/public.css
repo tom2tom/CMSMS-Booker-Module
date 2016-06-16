@@ -68,7 +68,7 @@ table.booker td.vacant {
 
 /*slot requested*/
 table.booker td.request {
- color:#F2F2F2; //light grey
+ color:#F2F2F2; /* light grey */
  background-color:#6B246B; /*dark purple*/
 }
 
@@ -128,6 +128,22 @@ table.booker td.full5 {
 }
 table.booker td.part5 {
  background-color:#FFD699;
+}
+/* for table-scroll plugin */
+table.booker .sg\-v\-scroll\-cell, table.booker .sg\-h\-scroll\-cell {
+ padding:0;
+ border:0;
+ margin:0;
+}
+table.booker .sg\-v\-scroll\-container {
+ padding:0;
+ border:0;
+ margin:0 2px;
+}
+table.booker .sg\-h\-scroll\-container {
+ padding:0;
+ border:0;
+ margin:2px 0;
 }
 
 /*action-buttons table */
