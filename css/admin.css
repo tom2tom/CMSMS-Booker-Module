@@ -90,7 +90,7 @@ div.modal\-overlay
 	height:100%;
 	width:100%;
 	z-index:1001;
-	background-color:rgba(0,0,0,.3); //can be safely ignored
+	background-color:rgba(0,0,0,.3); /* can be safely ignored */
 }
 div.confirm\-container
 {
