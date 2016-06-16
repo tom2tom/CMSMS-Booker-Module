@@ -168,7 +168,7 @@ class bkrdisplay
 				$one->data = $daynames[$t];
 				break;
 			 case Booker::SEGMTH:
-				$t = $dtw->format('j'); //day of month 1..31
+				$t = count($cells) + 1; //next integer = day of (longest) month 1..31
 				$one->data = sprintf('%2d',$t);
 				break;
 			}
