@@ -104,7 +104,7 @@ Time descriptors
  9 or 2:30 or (9,12,15:15) or 12..23 or 6..15:30 or sunrise..16 or 9..sunset-3:30
 */
 
-class RepeatParser
+class RepeatLexer
 {
 	protected $mod; //reference to current module-object
 	protected $pi = NULL;	//PeriodInterpreter class object, populated on demand
@@ -1395,10 +1395,10 @@ OR 6 IF
 	}
 
 	/*
-	_CreateConditions:
+	_Lex:
 
-	Process condition(s) from @descriptor into $this->conds, and if @report is TRUE,
-	construct a 'sanitised' variant of @descriptor.
+	Parse condition(s) from @descriptor into $this->conds, and if @report is TRUE,
+	construct and return a 'sanitised' variant of @descriptor.
 	Depending on @report, returns TRUE or the cleaned variant, or in either case
 	FALSE upon error.
 	@descriptor is split on outside-bracket commas. In resultant PERIOD and/or TIME
@@ -1407,9 +1407,10 @@ OR 6 IF
 	 whitespace & newlines excised
 	 all day-names (translated) tokenised to D1..D7
 	 all month-names (translated) to M1..M12
-	'sunrise' (translated) to R
-	'sunset' (translated) to S
-	'week' (translated) to W
+	'sunrise' (as translated) to R
+	'sunset' (as translated) to S
+	'week' (as translated) to W
+	'not' and 'except' (as translated) to !
 	@descriptor: availability-condition string
 	@locale: UNUSED locale identifier string, for correct capitalising of interval-names
 	  possibly present in @descriptor
@@ -1417,7 +1418,7 @@ OR 6 IF
 		default FALSE
 	*/
 //	private
-	function _CreateConditions($descriptor,/*$locale,*/$report=FALSE)
+	function _Lex($descriptor,/*$locale,*/$report=FALSE)
 	{
 		$this->conds = FALSE;
 
@@ -1453,22 +1454,59 @@ OR 6 IF
 		$rise = $this->mod->Lang('sunrise');
 		$set = $this->mod->Lang('sunset');
 		$week = $this->mod->Lang('week'); //OR bkrshared::RangeNames($this->mod,1);
-		//NB long-forms before short-
+		//NB long-forms before short-, for effective str_replace()
 		$finds = array_merge($longdays,$shortdays,$longmonths,$shortmonths,
 			array($not,$excpt,$rise,$set,$week,' ',PHP_EOL));
 		$repls = array_merge($daycodes,$daycodes,$monthcodes,$monthcodes,
 			array('!','!','R','S','W','',''));
-		$clean = str_replace($finds,$repls,$descriptor);
-
-		if(preg_match('/[^\dDMRSW@:+-.,()!]/',$clean))
+		$descriptor = str_replace($finds,$repls,$descriptor);
+		if(preg_match('/[^\dDMRSW@:+-.,()!]/',$descriptor))
 			return FALSE;
 		$l = strlen($clean);
 		$parts = array();
 		$d = 0; //brackets depth
-		$s = 0; //,-separated-condition (aka 'part') start-index in $clean
+		$s = 0; //comma-separated-condition (aka 'part') start-index in $clean
 		$b = -1; //left-bracket index
+		$r = -1; //right-bracket index
 //		$xclean = FALSE;
-
+/* PSEUDO CODE
+  iterate over each char in $clean
+	 found '(' ?
+	   if (anything unprocessed before ()
+       substr from 'start' to before (
+       wrap in ()
+		   clean that
+		   substitute for substr
+	   find matching ')'
+		   if without nested ()
+		     substr from ( to )
+		     clean that
+		     substitute for substr
+			 else
+			   ignore (= next pos)
+	 found ')'
+     if nested @ end of $clean
+		   ignore
+		 else
+		   error
+	 found ',' ?
+	   if (depth == 0)
+		    separate part
+				process that
+	 found '.' ?
+	   if ('..)
+		   substr sequence
+       clean sequence		 
+		   substitute for substr
+	 found '@' ?
+	     find time(s) bounds
+	     substr that
+       clean substr
+		   substitute for substr
+	 reached end
+	  if not nested
+		  process last/whole substr
+*/
 		for($p=0; $p<$l; $p++)
 		{
 			switch ($clean[$p])
@@ -1548,8 +1586,8 @@ OR 6 IF
 */
             $parts[] = substr($clean,$s,$p-$s); //last (or entire) part
 		}
-		$repeat = FALSE;
 
+		$repeat = FALSE;
 		foreach($parts as &$one)
 		{
 			$parsed = array();
@@ -1822,7 +1860,7 @@ OR 6 IF
 	function ParseCondition($descriptor/*,$locale=''*/)
 	{
 		if($descriptor)
-			return self::_CreateConditions($descriptor/*,$locale*/);
+			return self::_Lex($descriptor/*,$locale*/);
 		$this->conds = FALSE;
 		return TRUE;
 	}
@@ -1844,7 +1882,7 @@ OR 6 IF
 	function CheckCondition($descriptor/*,$locale=''*/)
 	{
 		if($descriptor)
-			return self::_CreateConditions($descriptor,/*$locale,*/TRUE);
+			return self::_Lex($descriptor,/*$locale,*/TRUE);
 		$this->conds = FALSE;
 		return '';
 	}
