@@ -1,6 +1,7 @@
 <?php
 /*
 This file is a class for CMS Made Simple (TM).
+This file uses anonymous function, needs PHP 5.3+
 Copyright (C) 2014-2016 Tom Phane <tpgww@onepost.net>
 
 This file is free software; you can redistribute it and/or modify it under
@@ -88,13 +89,13 @@ Date descriptors
 Week descriptors
  week(s)-of-any-month (some of which may not be 7-days): 2(week) or -1(week)
    or 2..3(week)
- week(s)-of-named-month: 2(week(March)) or or 1..3(week(July,August))
+ week(s)-of-named-month: 2(week(March)) or 1..3(week(July,August))
    or (-2,-1)(week(April..July))
 Day descriptors
  day(s)-of-specific-month(s): 1(June) or -2(June..August) or (6..9,15,18,-1)(January,July)
-	 or 2(Wednesday(June)) OR (1,-1)(Saturday(June..August))
+	 or 2(Wednesday(June)) or (1,-1)(Saturday(June..August))
  day(s)-of-any-month: 1 or -2 or (15,18,-1) or 1..10 or 2..-1 or -3..-1 or
-    1(Sunday) or -1(Wednesday..Friday) or 1..3(Friday,Saturday)
+1(Sunday) or -1(Wednesday..Friday) or 1..3(Friday,Saturday)
  day(s)-of-specific-week(s): Sunday(2(week)) or
    (Saturday,Wednesday)(-3..-1(week(July))) or
    Monday..Friday((-2,-1)(week(April..July))) or
@@ -120,7 +121,7 @@ class RepeatLexer
 		 2 month(s) of any year June,July
 		 3 week(s) of any month (1,-1)week
 		 4 day(s) of any week Sun..Wed
- OR  4 day(s) of any month 1,10,-2
+ OR  4 day(s) of any month 1,10,-2 OR 1(Sunday)
 		 5 specific year(s) 2020,2015
 		 6 month(s) of specific year(s) Jan(2010..2020) OR 2015-1 OR each 3 month(2000-1..2002-12)
 		 7 week(s) of specific year(s) 1(week(Aug..Dec(2020))) OR each 4 week(2000..2001)
@@ -157,8 +158,8 @@ class RepeatLexer
 	*/
 //	protected
 	public $conds = FALSE;
-//private $ob; //'(' for ltr languages, ')' for rtl
-//private $cb; //')' for ltr languages, '(' for rtl
+//	private $ob; //'(' for ltr languages, ')' for rtl
+//	private $cb; //')' for ltr languages, '(' for rtl
 	function __construct(&$mod)
 	{
 		$this->mod = $mod;
@@ -174,20 +175,21 @@ class RepeatLexer
 	*/
 	private function _MatchBracket($str,$offset)
 	{
-		$p = $offset;
 		$d = 0;
 		$l = strlen($str);
-		While ($p < $l)
+		for($p=$offset; $p<$l; $p++)
 		{
-			$c = $str[$p++];
-			if($c == '(')
-				$d++; //should go to 1 immediately
-			elseif($c == ')')
+			switch($str[$p])
 			{
+			 case '(':
+				$d++; //should go to 1 immediately
+				break;
+			 case ')':
 				if(--$d == 0)
-					return $p-1;
+					return $p;
 				elseif($d < 0)
 					return -1;
+				break;
 			}
 		}
 		return -1;
@@ -202,12 +204,10 @@ class RepeatLexer
 	*/
 	private function _StartSequence($str,$offset)
 	{
-		$p = $offset;
 		$d = 0;
-		while ($p >= 0)
+		for($p=$offset; $p>=0; $p--)
 		{
-			$c = $str[$p--];
-			switch($c)
+			switch($str[$p])
 			{
 			 case '.':
 				if(++$d > 1)
@@ -217,8 +217,8 @@ class RepeatLexer
 			 case '(':
 			 case ',':
 			 case '!':
-				if($p+2 < $offset)
-					return $p+2;
+				if($p+1 < $offset)
+					return $p+1;
 				return -1;
 			}
 		}
@@ -237,23 +237,21 @@ class RepeatLexer
 	private function _EndSequence($str,$offset)
 	{
 		$d = 0;
-		$p = $offset;
 		$l = strlen($str);
-		While ($p < $l)
+		for($p=$offset; $p<$l; $p++)
 		{
-			$c = $str[$p++];
-			switch($c)
+			switch($str[$p])
 			{
 			 case '.':
 				if(++$d > 2)
 					return -1;
 				break;
-			 case ')';
-			 case '(';
-			 case ',';
-			 case '@';
-				if($p-2 > $offset)
-					return $p-2;
+			 case ')':
+			 case '(':
+			 case ',':
+			 case '@':
+				if($p-1 > $offset)
+					return $p-1;
 				return -1;
 			}
 		}
@@ -264,28 +262,29 @@ class RepeatLexer
 
 	/*
 	_StartSeries:
-	Scan @str from offset @offset towards start, until start or any char in [!()]
+	Scan @str from offset @offset towards start, until start or any char in [!()].
+	')' is a special-case, cuz' searching e.g. '())' from the last ')' is not valid
 	@str: string
 	@offset points to initial ',' in @str
-	Returns: offset in @str = 0, or after matched char, or -1 if error
+	Returns: offset in @str of 1st char in series i.e. after matched char,or -1 if not found, or -2 if nested ')' found
 	*/
 	private function _StartSeries($str,$offset)
 	{
-		$p = $offset;
-		while ($p >= 0)
+		for($p=$offset; $p>=0; $p--)
 		{
-			$c = $str[$p--];
-			switch($c)
+			switch($str[$p])
 			{
-//			 case '.':
-//TODO go forward c.f. _EndSequence($str,$offset)
-//				 break;
-			 case ')':
 			 case '(':
 			 case '!':
-				if($p+2 < $offset)
-					return $p+2;
+				if($p+1 < $offset)
+					return $p+1;
 				return -1;
+			 case ')': //if processing a non-bracketed series, this might be the terminator
+				if($p == $offset)
+					break; //ignore series-terminator at scan-start
+				elseif($p+1 < $offset)
+					return $p+1;
+				return -2;
 			}
 		}
 		if($offset > 0);
@@ -296,28 +295,30 @@ class RepeatLexer
 	/*
 	_EndSeries:
 	Scan @str from offset @offset towards end until end, or any char in [()@]
+	'(' is a special-case, cuz' searching e.g. '(()' from the first '(' is not valid
 	@str: string
 	@offset points to initial ',' in @str
-	Returns: offset in @str = last char, or before matched char, or -1 if error
+	Returns: offset in @str of last char in series i.e. before matched char, or last char
+	 or -1 if end not found, or -2 if nested '(' found
 	*/
 	private function _EndSeries($str,$offset)
 	{
-		$p = $offset;
 		$l = strlen($str);
-		While ($p < $l)
+		for($p=$offset; $p<$l; $p++)
 		{
-			$c = $str[$p++];
-			switch($c)
+			switch($str[$p])
 			{
-//			 case '.':
-//TODO go back c.f. _StartSequence($str,$offset)
-//				break;
-			 case ')';
-			 case '(';
-			 case '@';
-				if($p-2 > $offset)
-					return $p-2;
+			 case ')':
+			 case '@':
+				if($p > $offset)
+					return $p-1;
 				return -1;
+			 case '(': //if processing a non-bracketed series, this might be the terminator
+				if($p == $offset)
+					break; //ignore series-terminator at scan-start
+				elseif($p-1 > $offset)
+					return $p-1;
+				return -2;
 			}
 		}
 		if($l-1 > $offset)
@@ -373,82 +374,23 @@ class RepeatLexer
 	}
 
 	/*
-	PeriodSegment:
-	@str: tokenised PERIOD-component of an interval descriptor
-	Split @str into segments which can be independently analysed. @str may be
-	with or without '()' nested segments, and if with, then any depth e.g. S(R(Q(P)))
-	Any segment (as represented by any of the letters in the example) may include
-	one or more series which are '()' enclosed
-	Returns: array with members which are the segment(s), or FALSE upon error
-	*/
-/*	private	function _PeriodSegment($str)
-	{
-		if(!$str)
-			return FALSE;
-		if(strpos($str,'(') === FALSE)
-			return array($str);
-		$ret = array();
-		$r = 0;
-		$parts = explode('(',$str);
-		$l = count($parts) - 1;
-		foreach($parts as $p=>$seg)
-		{
-			$o = strpos($seg,')');
-			if($o === FALSE && $seg)
-			{
-				$ret[$r++] = $seg;
-			}
-			elseif($p < $l) //found ) somewhere in not the last segment
-			{
-				if($r > 0)
-					$ret[$r-1] .= '('.$seg; //use it as-is
-				else
-					$ret[$r++] = '('.$seg;
-			}
-			else //last
-			{
-				$so = $o;
-				$sl = strlen($seg);
-				$c = 0; $x = 0;
-				while($so < $sl)
-				{
-					if($seg[$so++] == ')')
-						$c++; //count of ) chars
-					else
-						$x++; //something other than ) found
-				}
-				if($x > 0) //some other text - assume not nested
-				{
-					$ret[$r] = '('.$seg;
-				}
-				else
-				{
-					$ret[$r] = substr($seg,0,$o);
-					//validate rest of segment
-					if($c != count($ret) - 1)
-						return FALSE;
-				}
-			}
-		}
-		if($ret[0] === '')
-			array_shift($ret);
-		return $ret;
-	}
-*/
-	/*
 	_ParsePeriodSequence:
 
+	Ensure @str is ordered according to increasing number or date/time order
+	but with -ve numbers (i.e. countbacks) ordered after +ve's
 	This is for period-identifiers, no times are handled.
 	(TODO v.2 support e.g. Sunday@10..Monday@15:30 ?)
-	Depending on @getstr, this may return a 3-member array(L,'.',H) or a string
+
+	@str: string to be parsed, like 'A..B' (and no surrounding brackets)
+	 where A,B are both if the same type (as represented by A) -
+	 numbers, or day/month tokens, or dates
+	@getstr: optional, whether to return re-constituted string, default TRUE
+	Returns: depending on @getstr, either a 3-member array(L,'.',H) or a string
 	represenation of that array 'L..H'. In either case, the return may be a
 	single value L(==H) or FALSE upon error.
 	The second/middle array value '.' is a flag, for further processors, that the
 	array represents a range. L and/or H are not interpreted in any way, except
-    that incomplete date-values will be populated.
-
-	@str: string to be parsed, containing '..' (and no surrounding brackets, of course)
-	@getstr: optional, whether to return re-constituted string, default TRUE
+that incomplete date-values will be populated.
 	*/
 	private function _ParsePeriodSequence($str,$getstr=TRUE)
 	{
@@ -564,7 +506,7 @@ class RepeatLexer
 		}
 		else
 		{
-			//both should be D* or M*
+			//both should be tokenised days D[1-7] or months M[1-12]
 			if($parts[0][0] != $parts[1][0])
 				return FALSE;
 			$s = (int)substr($parts[0],1);
@@ -588,26 +530,33 @@ class RepeatLexer
 
 	/*
 	_ParsePeriodSeries:
-
+	
+	Ensure @str is ordered according to increasing number or date/time order
+	-ve numbers (i.e. countbacks) are ordered after +ve's
 	This is for period-identifiers, no times are handled.
-	Expects all values are the same type as the 1st in @str, otherwise error.
-	Depending on @getstr, this may return a N-member, ascending-sorted, no-duplicates,
-	contiguous-keyed array(L,...,H), or a bracket-enclosed, comma-separated string
-	represenation of that array. In either case, this may also return a single value
-	L(==all others) or FALSE upon error.
 
-	@str: string to be parsed, containing one or more (and if so, comma-separated)
-      singleton and/or sequence date-descriptors, and surrounding brackets
+	@str: string '(A[,B...])' to be parsed, containing one or more (and if so,
+	  comma-separated) singleton and/or sequence values, and surrounding brackets
+	  Elements A,B etc are all of the same type (as represented by A)
+	  - numbers, or day/month tokens, or dates
 	@getstr: optional, whether to return re-constituted string, default TRUE
+	Returns: depending on @getstr, either a N-member, ascending-sorted, no-duplicates,
+	contiguous-keyed array(L,...,H), or comma-separated string represenation of
+	that array. A single-member series will return either that single value
+	L(==all others) or its string-equivalent '(L'.
+	Returns FALSE upon error e.g. different element types.
 	*/
 	private function _ParsePeriodSeries($str,$getstr=TRUE)
 	{
-		$parts = explode(',',$str);
-		if(!isset($parts[1])) //aka count($parts) == 1
+		$work = trim($str,' ()'); //strip surrounding brackets
+		$parts = explode(',',$work);
+		if(!isset($parts[1])) //aka count($parts) == 1 i.e.singleton
 		{
-			if(strpos($str,'..') === FALSE)
-				return $str;
-			return self::_ParsePeriodSequence($str,$getstr);
+			if(strpos($work,'..') !== FALSE)
+				$work = self::_ParsePeriodSequence($work,$getstr); //reorder if appropriate
+			if($getstr)
+				return $work;
+			return array($work);
 		}
 		$dateptn = '/^([12]\d{3})(-(1[0-2]|0?[1-9])(-(3[01]|0?[1-9]|[12]\d))?)?$/';
 		$val = $parts[0];
@@ -623,25 +572,25 @@ class RepeatLexer
 		}
 		else
 		{
-            if (($p = strpos($val,'..')) !== FALSE)
-            {
-                $n = substr($val,0,$p);
-                if(is_numeric($n))
-                {
-                    $type = 1;
-                    $cmp = '_cmp_numbers';
-                }
-                else
-                {
-        			$type = 2;
-            	 	$cmp = '_cmp_named';
-                }
-            }
-            else
-            {
-    			$type = 2;
-        	 	$cmp = '_cmp_named';
-            }
+			if (($p = strpos($val,'..')) !== FALSE)
+			{
+				$n = substr($val,0,$p);
+				if(is_numeric($n))
+				{
+					$type = 1;
+					$cmp = '_cmp_numbers';
+				}
+				else
+				{
+					$type = 2;
+					$cmp = '_cmp_named';
+				}
+			}
+			else
+			{
+				$type = 2;
+				$cmp = '_cmp_named';
+			}
 		}
 
 		foreach($parts as &$val)
@@ -655,7 +604,7 @@ class RepeatLexer
 				}
 				elseif(strpos($val,'..') !== FALSE)
 				{
-					$r = self::_ParsePeriodSequence($val,FALSE);
+					$r = self::_ParsePeriodSequence($val,FALSE); //reorder if appropriate
 					if(is_array($r) && is_numeric($r[0]))
 						$val = $r[0].'..'.$r[2]; //no sub-array here, prior to flip/de-dup
 					elseif($r && is_numeric($r))
@@ -675,7 +624,7 @@ class RepeatLexer
 			 case 2:
 				if(strpos($val,'..') !== FALSE)
 				{
-					$r = self::_ParsePeriodSequence($val,FALSE);
+					$r = self::_ParsePeriodSequence($val,FALSE); //reorder if appropriate
 					if(is_array($r)) //TODO && same type of non-numeric
 						$val = $r[0].'..'.$r[2]; //no sub-array here
 					elseif($r) //TODO && same type of non-numeric
@@ -699,7 +648,7 @@ class RepeatLexer
 			 case 3:
 				if(strpos($val,'..') !== FALSE)
 				{
-					$r = self::_ParsePeriodSequence($val,FALSE);
+					$r = self::_ParsePeriodSequence($val,FALSE); //reorder if appropriate
 					if(is_array($r) && preg_match($dateptn,$r[0]))
 						$val = $r[0].'..'.$r[2]; //no sub-array here
 					elseif($r && preg_match($dateptn,$r))
@@ -727,119 +676,31 @@ class RepeatLexer
 			return '';
 		//remove dup's without sorting
 		$parts = array_flip($parts);
+		$parts = array_flip($parts);
 		if(count($parts) > 1)
-		{
-			$parts = array_flip($parts);
 			usort($parts,array($this,$cmp)); //keys now contiguous
-			if($getstr)
-				return '('.implode(',',$parts).')';
-			else
-				return $parts;
-		}
+		if($getstr)
+			return implode(',',$parts);
 		else
-			return key($parts);
+			return $parts;
 	}
 
 	/*
-	@str: tokenised PERIOD-component of an interval descriptor, like S(R(Q(P)))
-	@report: whether to construct a cleaned variant of @descriptor after parsing
-	Returns: according to @report, either a sanitised variant of @str, or an array,
-	or in either case FALSE upon error
-	The array will have one member, or more if @str has ','-separated sub-strings.
-	Each member is a sanitised substr of @str, representing a singleton value or a series of them.
-	No 'focus-level' interpretation here.
-	*/
-	private	function _PeriodClean($str,$report)
-	{
-/*		$parts = self::_PeriodSegment($str);
-		if($parts == FALSE)
-			return '';
-*/
-		//sanitize
-/*		foreach($parts as &$one)
-		{
-*/
-        $one = $str; //DEBUG
+	_PeriodSplit:
 
-			$l = strlen($one);
-			$clean = '';
-			for($p = 0; $p < $l; $p++)
-			{
-				$c = $one[$p];
-				switch($c)
-				{
-				 case '(':
-					$e = self::_MatchBracket($one,$p); //matching brace
-					if($e != -1)
-					{
-						$s = $p+1;
-						$t = self::_ParsePeriodSeries(substr($one,$s,$e-$s));
-						if($t !== FALSE)
-						{
-							$clean .= $t;
-							$p = $e; //resume after closing bracket
-							break;
-						}
-					}
-					return FALSE;
-				 case ')': //nested ) should never happen in this context
-					return FALSE;
-				 case ',':
-					 $s = self::_StartSeries($one,$p);
-					 $e = self::_EndSeries($one,$p);
-					 if($s != -1 && $e != -1)
-					 {
-						$t = self::_ParsePeriodSeries(substr($one,$s,$e-$s+1));
-						if($t !== FALSE)
-						{
-							$clean = substr($clean,0,$s) . $t;
-							$p = $e+1; //resume after closing bracket
-							break;
-						}
-					 }
-					 return FALSE;
-				 case '.': //TODO sequence = special-case of series-member
-					$s = self::_StartSequence($one,$p);
-					$e = self::_EndSequence($one,$p);
-					if($s != -1 && $e != -1)
-					{
-						//can't safely create range sub-array before $parts[] sort and de-dup
-						$t = self::_ParsePeriodSequence(substr($one,$s,$e-$s+1),TRUE);
-						if($t !== FALSE)
-						{
-							$clean = substr($clean,0,$s) . $t;
-							$p = $e+1;
-							break;
-						}
-					}
-					return FALSE;
-				 default:
-					$clean .= $c;
-					break;
-				}
-			}
-			$one = $clean;
-/*		}
+	@str: tokenised PERIOD-component of an interval descriptor, like S(R(Q(P)))
+	Returns: array, with one member, or more if @str has ','-separated sub-strings.
+	*/
+	private	function _PeriodSplit($str)
+	{
+		$arr = explode('(',$str);
+		foreach($arr as &$one)
+		{
+			if($one)
+				$one = str_replace(')','',$one);
+		}
 		unset($one);
-*/
-		if($report)
-		{
-			$ret = $parts[0];
-			$pc = count($parts);
-			if($pc > 1)
-			{
-				for($i=1; $i<$pc; $i++)
-					$ret .= '('.$parts[$i];
-				for($i=1; $i<$pc; $i++)
-					$ret .= ')';
-			}
-			return $ret;
-		}
-		else
-		{
-			//CHECKME convert ranges to arrays (L,.,H)
-			return $parts;
-		}
+		return array_filter($arr);
 	}
 
 	//upstream callers all use the returned value for relative checks,
@@ -859,6 +720,36 @@ class RepeatLexer
 		return strtotime($str,0);
 	}
 
+	/*
+	_EndTime:
+	Scan @str from offset @offset towards end until end, or any char in [()@]
+	@str: string
+	@offset points to initial ',' in @str
+	Returns: offset in @str = last char, or before matched char, or -1 if error
+	*/
+	private function _EndTime($str,$offset)
+	{
+		$l = strlen($str);
+		for($p = $offset; $p < $l; $p++)
+		{
+			switch($str[$p])
+			{
+			 case '(':
+				$p = self::_EndSeries($str,$p+1);
+				if($p < 0)
+					return -1;
+				return p;
+			 case ',':
+				if($p-1 > $offset)
+					return $p-1;
+				return -1;
+			}
+		}
+		if($l-1 > $offset)
+			return $l-1; //offset of end
+		return -1;
+	}
+
 	/**
 	_ParseTimeSequence:
 
@@ -868,7 +759,7 @@ class RepeatLexer
 	single value L(==H) or FALSE upon error.
 	The second/middle array value '.' is a flag, for further processors, that the
 	array represents a range. L and/or H are not interpreted in any way, except
-    that incomplete time-values will be populated.
+that incomplete time-values will be populated.
 
 	@str: string to be parsed, containing '..' and no surrounding brackets
 	@getstr: optional, whether to return re-constituted string, default TRUE
@@ -968,14 +859,14 @@ e.g. 'S+[H]H:[M]M' >> array
 	_ParseTimeSeries:
 
 	@str: string to be parsed, containing one or more (and if so, comma-separated)
-      singleton and/or sequence/range time-descriptors, and surrounding brackets
+	  singleton and/or sequence/range time-descriptors, and surrounding brackets
 	@getstr: optional, whether to return re-constituted string, default TRUE
-    */
+	*/
 	private	function _ParseTimeSeries($str,$getstr=TRUE)
 	{
 		//TODO
 	}
-    
+
 	private function _cmp_plaintimes($a,$b)
 	{
 		$sa = strpos($a,':');
@@ -1010,7 +901,7 @@ e.g. 'S+[H]H:[M]M' >> array
 
 	//Compare time-strings like [sun*[+-]][h]h[:[m]m]] without expensive
 	//time-conversions and with all sun* before all others
-    //Either or both times may be a sequence
+//Either or both times may be a sequence
 	private function _cmp_times($a,$b)
 	{
 		if(($p = strpos($a,'..')) !== FALSE)
@@ -1174,13 +1065,13 @@ e.g. 'S+[H]H:[M]M' >> array
 				}
 				return FALSE;
 			 case ':':
- 			  if($p > $e)
+ 				if($p > $e)
 				{
 					$c = $str[$p-1];
 					if($c<'0' || $c>'9')
 						$one .= '0';
 				}
-			  if($p < $l-1)
+				if($p < $l-1)
 				{
 					$c = $str[$p+1];
 					if($c<'0' || $c>'9')
@@ -1191,7 +1082,7 @@ e.g. 'S+[H]H:[M]M' >> array
 				else
 					$one .= ':0';
 				break;
-		  default:
+			 default:
 				if ($c != ',')
 					$one .= $c;
 				elseif($one)
@@ -1228,29 +1119,32 @@ e.g. 'S+[H]H:[M]M' >> array
 	_GetFocus:
 	Interpret @parts to determine the corresponding 'F' parameter
 	@parts: any-size, any-order array of parsed segments from a period-descriptor e.g.
-    0 => 'D4'
-    1 => '(1,2,-1)'
-    2 => 'W'
-    3 => 'M6'
-    4 => '2015..2018'
+0 => 'D4'
+1 => '(1,2,-1)'
+2 => 'W'
+3 => 'M6'
+4 => '2015..2018'
+	OR
+	a whole-descriptor, like P(Q(R(S)))
 	Returns: enum 1..11 reflecting @parts:
 		 0 can't figure out anything better
 		 1 no period i.e. any (time-only)
 		 2 month(s) of any year June,July
 		 3 week(s) of any month (1,-1)week
 		 4 day(s) of any week Sun..Wed
-	 OR  4 day(s) of any month 1,10,-2
+	 OR  4 day(s) of any month 1,10,-2 OR 1(Sunday)
 		 5 specific year(s) 2020,2015
 		 6 month(s) of specific year(s) Jan(2010..2020) OR 2015-1
-		 7 week(s) of specific year(s) 1(week(Aug..Dec(2020)))
+		 7 week(s) of specific [month(s) and] year(s) 1(week(Aug..Dec(2020)))
 		 8 week(s) of specific month(s) 1(week(August,September))
-		 9 day(s) of specific year(s) Wed((1,-1)(week(June(2015..2018))))
+		 9 day(s) of specific [[weeks(s) and] month(s) and] year(s) Wed((1,-1)(week(June(2015..2018))))
 		10 day(s) of specific week(s)  Wed(2(week))
-	 OR 10 day(s) of specific month(s) 1(Aug) OR Wed((1,2)(week(June)))
+	 OR 10 day(s) of specific [week(s) and] month(s) 1(Aug) OR Wed((1,2)(week(June)))
 		11 specfic day/date(s) 2010-6-6 OR 1(Aug(2015..2020))
 	*/
 	private function _GetFocus($parts)
 	{
+		$longdate = FALSE;
 		$hasday = FALSE;
 		$hasweek = FALSE;
 		$hasmonth = FALSE;
@@ -1261,79 +1155,64 @@ e.g. 'S+[H]H:[M]M' >> array
 		{
 			if(!$hasyear && preg_match('/[12][0-9]{3}(?!(-|[0-9]))/',$one)) //includes YYYY-only
 				$hasyear = TRUE;
-			if(!$hasmonth && strpos($one,'M') !== FALSE) $hasmonth = TRUE;
-			if(!$hasmonth && preg_match('/[12][0-9]{3}-(1[0-2]|0?[1-9])(?!(-|[0-9]))/',$one)) //includes YYYY-[M]M-only
+			if(!$hasmonth && strpos($one,'M') !== FALSE)
 				$hasmonth = TRUE;
-			if(!$hasweek && strpos($one,'W') !== FALSE) $hasweek = TRUE;
-			if(!$hasday && strpos($one,'D') !== FALSE) $hasday = TRUE;
-			if(!$hasday && preg_match('/(?<!(-|[0-9]))(3[01]|0?[1-9]|[12][0-9])(?!(-|[0-9]))/',$one)) //includes 1-31
+			if(!$hasmonth && preg_match('/[12][0-9]{3}-(1[0-2]|0?[1-9])(?!(-|[0-9]))/',$one)) //includes YYYY-[M]M-only
+			{
+				$hasyear = TRUE;
+				$hasmonth = TRUE;
+			}
+			if(!$hasweek && strpos($one,'W') !== FALSE)
+				$hasweek = TRUE;
+			if(!$hasday && strpos($one,'D') !== FALSE)
 				$hasday = TRUE;
-			if(!$hasday && preg_match('/(?<!(-|[0-9]))[12][0-9]{3}-(1[0-2]|0?[1-9])-(3[01]|0?[1-9]|[12][0-9])(?!(-|[0-9]))/',$one)) //includes YYYY-M[M]-[D]D
+			if(!$hasday && !$hasweek && preg_match('/(?<![-+:0-9DWME])(0?[1-9]|[12][0-9]|3[01])(?!(-|[0-9]))(?![-:0-9])/',$one)) //includes 1-31
+			{
 				$hasday = TRUE;
+			}
+			$longdate = preg_match('/(?<!(-|[0-9]))[12][0-9]{3}-(1[0-2]|0?[1-9])-(3[01]|0?[1-9]|[12][0-9])(?!(-|[0-9]))/',$one);
+			if(!$hasday && $longdate) //includes YYYY-M[M]-[D]D
+			{
+				$hasday = TRUE;
+			}
 		}
 		unset($one);
+
 		if($hasyear)
 		{
+			if($hasday)
+			{
+				return 9;
+			}
 			if($hasmonth)
 			{
 				if($hasweek)
 				{
-/*
-7 IF
-1 hasday
-W hasweek
-M8..M12 hasmonth
-2020 hasyear
-OR 9 IF
-D4 hasday
-(1,-1) hasday
-W hasweek
-M6 hasmonth
-2015..2018 hasyear
-*/
-					return (count($parts) == 4) ? 7:9;
+					return 7;
 				}
-				if($hasday)
-					return 11;
-				return 6;
+				//check for e.g. 1(M11(2013)
+				if(array_filter($parts, function($var) { return (strpos($var,'M') !== FALSE); })) //PHP 5.3+
+					return 6;
+				else
+					return 9;
 			}
-			return 5;
+			return ($hasweek) ? 7:5;
 		}
 		elseif($hasmonth)
 		{
-			if($hasweek)
+			if($hasday)
 			{
-				if($hasday)
-				{
-/*
-8 IF
-1
-W
-(August,September)
-OR 10 IF
-D3
-2
-W
-M4
-*/
-					return (count($parts) == 3) ? 8:10;
-				}
+				return 10;
 			}
-/*
-2 IF
-M2 hasmonth
-OR 6 IF
-2015-6 hasmonth
-*/
-			return (strpos($parts[0],'-') === FALSE) ? 2:6;
+			return ($hasweek) ? 8:2;
 		}
 		elseif($hasweek)
 		{
-			return 3;
+			return ($hasday) ? 10:3;
 		}
 		elseif($hasday)
 		{
-			return 4;
+			return ($longdate) ? 11:4;
 		}
 		return 0;
 	}
@@ -1396,11 +1275,8 @@ OR 6 IF
 
 	/*
 	_Lex:
+	Parse repeition-descriptor @descriptor into $this->conds.
 
-	Parse condition(s) from @descriptor into $this->conds, and if @report is TRUE,
-	construct and return a 'sanitised' variant of @descriptor.
-	Depending on @report, returns TRUE or the cleaned variant, or in either case
-	FALSE upon error.
 	@descriptor is split on outside-bracket commas. In resultant PERIOD and/or TIME
 	descriptors:
 	 un-necessary brackets are excised
@@ -1412,18 +1288,21 @@ OR 6 IF
 	'week' (as translated) to W
 	'not' and 'except' (as translated) to !
 	@descriptor: availability-condition string
-	@locale: UNUSED locale identifier string, for correct capitalising of interval-names
-	  possibly present in @descriptor
+	@locale: UNUSED locale identifier string, for correct capitalising of
+	  interval-names possibly present in @descriptor
 	@report: optional, whether to construct a cleaned variant of @descriptor after parsing,
-		default FALSE
+	  default FALSE
+	@slothours: optional, minimum accepted hour-length for repeated items,
+	  for decoding small anonymous numbers, default 1.0
+	Returns: if @report is TRUE, a 'sanitised' variant of @descriptor, otherwise just TRUE.
+	  FALSE upon error.
 	*/
-//	private
-	function _Lex($descriptor,/*$locale,*/$report=FALSE)
+	private	function _Lex($descriptor,/*$locale,*/$report=FALSE,$slothours=1.0)
 	{
 		$this->conds = FALSE;
 
 		$gets = range(1,7);
-/*	$oldloc = FALSE;
+/*		$oldloc = FALSE;
 		if($locale)
 		{
 			$oldloc = setlocale(LC_TIME,"0");
@@ -1437,156 +1316,146 @@ OR 6 IF
 		$gets = range(1,12);
 		$longmonths = self::AdminMonthNames($gets);
 		$shortmonths = self::AdminMonthNames($gets,FALSE);
-/*	if($oldloc)
+		unset($gets);
+		//TODO caseless match for these, based on locale from somewhere
+		$specials = array(
+			$this->mod->Lang('not'),
+			$this->mod->Lang('except'),
+			$this->mod->Lang('each'),
+			$this->mod->Lang('sunrise'),
+			$this->mod->Lang('sunset'),
+			$this->mod->Lang('month'), //for use with 'each' OR bkrshared::RangeNames($this->mod,2)
+			$this->mod->Lang('week'), //OR bkrshared::RangeNames($this->mod,1)
+			$this->mod->Lang('day'), //for use with 'each' OR bkrshared::RangeNames($this->mod,0)
+		);
+/*		if($oldloc)
 			setlocale(LC_TIME,$oldloc);
 */
-		unset($gets);
-
-		$daycodes = array();
+		//replacement tokens
+		$daytokes = array();
 		for($i = 1; $i < 8; $i++)
-			$daycodes[] = 'D'.$i;
-		$monthcodes = array();
+			$daytokes[] = 'D'.$i;
+		$monthtokes = array();
 		for($i = 1; $i < 13; $i++)
-			$monthcodes[] = 'M'.$i;
-		//TODO caseless match for these, based on locale from bkrshared::GetLocale()
-		$not = $this->mod->Lang('not');
-		$excpt = $this->mod->Lang('except');
-		$rise = $this->mod->Lang('sunrise');
-		$set = $this->mod->Lang('sunset');
-		$week = $this->mod->Lang('week'); //OR bkrshared::RangeNames($this->mod,1);
-		//NB long-forms before short-, for effective str_replace()
+			$monthtokes[] = 'M'.$i;
+		//2-char tokens to avoid name-conflicts e.g. sunrise-Sun TODO CHECK ok
+		$spectokes = array('!',	'!','ES','SS','RS','MS','WS','DS');
+		//long-forms before short- & specials last, for effective str_replace()
 		$finds = array_merge($longdays,$shortdays,$longmonths,$shortmonths,
-			array($not,$excpt,$rise,$set,$week,' ',PHP_EOL));
-		$repls = array_merge($daycodes,$daycodes,$monthcodes,$monthcodes,
-			array('!','!','R','S','W','',''));
+			$specials,array(' ',PHP_EOL));
+		$repls = array_merge($daytokes,$daytokes,$monthtokes,$monthtokes,
+			$spectokes,array('',''));
 		$descriptor = str_replace($finds,$repls,$descriptor);
-		if(preg_match('/[^\dDMRSW@:+-.,()!]/',$descriptor))
+
+		//allowed content check
+		if(preg_match('/[^\dDMRSWE@:+-.,()!]/',$descriptor))
 			return FALSE;
-		$l = strlen($clean);
+		//check overall consistency (i.e. no unrecognised content, all brackets are valid)
+		//and separate into distinct comma-separated 'parts'
 		$parts = array();
-		$d = 0; //brackets depth
-		$s = 0; //comma-separated-condition (aka 'part') start-index in $clean
-		$b = -1; //left-bracket index
-		$r = -1; //right-bracket index
-//		$xclean = FALSE;
-/* PSEUDO CODE
-  iterate over each char in $clean
-	 found '(' ?
-	   if (anything unprocessed before ()
-       substr from 'start' to before (
-       wrap in ()
-		   clean that
-		   substitute for substr
-	   find matching ')'
-		   if without nested ()
-		     substr from ( to )
-		     clean that
-		     substitute for substr
-			 else
-			   ignore (= next pos)
-	 found ')'
-     if nested @ end of $clean
-		   ignore
-		 else
-		   error
-	 found ',' ?
-	   if (depth == 0)
-		    separate part
-				process that
-	 found '.' ?
-	   if ('..)
-		   substr sequence
-       clean sequence		 
-		   substitute for substr
-	 found '@' ?
-	     find time(s) bounds
-	     substr that
-       clean substr
-		   substitute for substr
-	 reached end
-	  if not nested
-		  process last/whole substr
-*/
-		for($p=0; $p<$l; $p++)
+        $storeseg = 0; //array index of 1st element to store
+		$clean = '';
+		$depth = 0;
+
+		$segs = explode('(',$descriptor);
+		$cs = count($segs);
+		foreach($segs as $i=>&$one)
 		{
-			switch ($clean[$p])
+			$depth++;
+			if($one)
 			{
-			 case '(':
-//				if(++$d == 1)
-//					$b = $p;
-                 $d++;
-				break;
-			 case ')':
-				if(--$d < 0)
-					return FALSE;
-/*				//strip inappropriate brackets
-				if($d == 0)
+				$e = self::_EndSeries($one,0); //no need for success-check
+$edbg = substr($one,$e);
+				$t = substr($one,0,$e+1);
+				if(strpos($t,',') !== FALSE || strpos($t,'..') !== FALSE)
+					$t = self::_ParsePeriodSeries($t);
+				//process in-seg bracket(s)
+				$segl = strlen($one);
+				$segat = strrpos($one,'@',-1);
+				$f = ($segat === FALSE) ? $segl:$segat;
+$fdbg = substr($one,$f);
+				$cb = substr_count($one,')',$e+1,$f-$e-1);
+				if($cb > 0)
 				{
-					if($p < $l-1) //before end, this should be the end of a pre- or post-qualifier
+					$depth -= $cb;
+					if($depth < 0) //CHECKME or 1?
+					   return FALSE;
+					if($cs == 2 &&  $i > 0 && $segs[$i-1] == '') //special case (stuff)
 					{
-						//check post-
-						$n = $clean[$p+1];
-						if($n == '@' || $n == ')')
-						{
-							$b = -1;
-							break;
-						}
-					}
-					//at end, or no post-qualifier, want pre-qualifier
-					if($b > $s)
-					{
-						$n = $clean[$b-1];
-						if($n == ')' || ($n >='0' && $n <= '9')) // '(' N/A for d = 0 ?
-						{
-							$b = -1;
-							break;
-						}
-					}
-					if($b >= $s)
-					{
-						$clean[$p] = ' ';
-						$clean[$b] = ' ';
-						$b = -1;
-						$xclean = TRUE;
+						unset($segs[$i-1]);
 					}
 					else
-						return FALSE;
-				}
-*/
-                break;
-			 case ',':
-				if($d == 0)
-				{
-					if($p > $s && $clean[$p-1] != ',')
 					{
-/*						$tmp = substr($clean,$s,$p-$s);
-						if ($xclean)
-						{
-							$parts[] = str_replace(' ','',$tmp);
-							$xclean = FALSE;
-						}
-						else
-							$parts[] = $tmp;
-*/
-                        $parts[] = substr($clean,$s,$p-$s);
+						$t .= str_repeat(')',$cb);
 					}
-					$s = $p+1;
 				}
-			 default:
-				break;
+				else //no bracket
+				{
+					if($t && strpos($t,',') !== FALSE)
+					{
+						if($i > 0)
+						{
+							$t .= ')'; //correction
+						}
+					}
+					elseif($i > 0 && $segs[$i-1] == '')
+					{
+						unset($segs[$i-1]);
+					}
+					elseif($t)
+					{
+						if($i > 0)
+						{
+							$t .= ')'; //CHECKME
+						}
+					}
+				}
+				//skip ')' in source-string
+				while(++$e < $segl && $one[$e] == ')');
+$edbg = substr($one,$e);
+				if($one[$e] == ',') //part-separator detected
+				{
+                    $rest = substr($one,$e+1);
+        			$one = $t; //we're done with the current part
+ 					$clean .= implode('(',array_slice($segs,$storeseg,$i-$storeseg+1));
+					$l = substr_count($clean,'(');
+					if(substr_count($clean,')') != $l)
+					{
+						return FALSE;
+					}
+					$parts[] = $clean;
+					$storeseg = $i+1;
+                    //TODO process $clean (extra stuff from , to end of segment e.g. 'M1') into $parts
+                    //NOT OK to insert array-member inside foreach!!
+                    $clean = $rest.'(';
+                    $depth = 0;
+				}
+                else
+                {
+    				$t .= substr($one,$e);
+        			$one = $t;
+                }
 			}
-		}
-		if($p > $s)
-		{
-/*			$tmp = substr($clean,$s,$p-$s); //last (or entire) part
-			if ($xclean)
-				$parts[] = str_replace(' ','',$tmp);
-			else
-				$parts[] = $tmp;
+/*			else //empty i.e. nothing before '(' in $descriptor
+			{
+				$depth++;
+			}
 */
-            $parts[] = substr($clean,$s,$p-$s); //last (or entire) part
+		}
+		unset($one);
+
+		$clean .= implode('(',array_slice($segs,$storeseg,$i-$storeseg+1));
+		if($clean)
+		{
+			$l = substr_count($clean,'(');
+			if(substr_count($clean,')') != $l)
+			{
+				return FALSE;
+			}
+			$parts[] = $clean; //last (or entire) part
 		}
 
+		//interpretation
 		$repeat = FALSE;
 		foreach($parts as &$one)
 		{
@@ -1599,20 +1468,22 @@ OR 6 IF
 				{
 					$parsed['P'] = FALSE;
 					$parsed['F'] = 1; //enum for only-time-specified
-					$parsed['T'] = self::_TimeClean($one,$report);
+					$parsed['T'] = $report ? $one : self::_TimeClean($one,FALSE);
 				}
 				else //$p > 0 || $e
 					if($p > 0 && $e)
 				{
-					$parsed['P'] = self::_PeriodClean($one,$report);
-					$parsed['F'] = self::_GetFocus($parsed['P']);
+					$parsed['P'] = $report ? $one : self::_PeriodSplit($one);
+					$parsed['F'] = self::_GetFocus($one);
 					$parsed['T'] = FALSE;
 				}
 				elseif($p > 0)
 				{
-					$parsed['P'] = self::_PeriodClean(substr($one,0,$p),$report);
-					$parsed['F'] = self::_GetFocus($parsed['P']);
-					$parsed['T'] = self::_TimeClean(substr($one,$p+1),$report);
+					$t = substr($one,0,$p);
+					$parsed['P'] = $report ? $t : self::_PeriodSplit($t);
+					$parsed['F'] = self::_GetFocus($t);
+					$t = substr($one,$p+1);
+					$parsed['T'] = $report ? $t : self::_TimeClean($t,FALSE);
 				}
 			}
 			else //PERIOD OR TIME
@@ -1642,25 +1513,33 @@ OR 6 IF
 								break;
 							}
 						}
+/*						if($condtype == 0)
+						{
+							$s = $matches[0][0];
+							$e = $matches[0]....;
+							if($s <= 5 && $e <= 31)
+							   $condtype = 2; //guess period
+						}
+*/
 					}
-				}
+			}
 				//end of analysis, for now
 				if ($condtype == 1) //time
 				{
-					$parsed['F'] = 1;
 					$parsed['P'] = FALSE;
-					$parsed['T'] = self::_TimeClean($one,$report);
+					$parsed['F'] = 1;
+					$parsed['T'] = $report ? $one : self::_TimeClean($one,FALSE);
 				}
 				elseif($condtype == 2) //period
 				{
-					$parsed['P'] = self::_PeriodClean($one,$report);
-					$parsed['F'] = self::_GetFocus($parsed['P']);
+					$parsed['P'] = $report ? $one : self::_PeriodSplit($one);
+					$parsed['F'] = self::_GetFocus($one);
 					$parsed['T'] = FALSE;
 				}
 				else //could be either - re-consider, after all are known
 				{
 					$repeat = TRUE;
-					//park as a time-value, unset parsed[0] signals reconsideration needed
+					//park as a time-value, lack of parsed[F] signals reconsideration needed
 					$parsed['P'] = FALSE;
 					$parsed['T'] = $one;
 				}
@@ -1687,7 +1566,7 @@ OR 6 IF
 			if(!$useday)
 			{
 				//calc min. non-zero difference between small numeric values
-				$one = implode(' ',$parts); //'higher-quality' than $clean
+				$one = implode(' ',$parts); //'higher-quality' than $descriptor
 				$n = preg_match_all('~(?<![-:(\d])[0-2]?\d(?![\d()])~',$one,$matches);
 				if($n > 1)
 				{
@@ -1708,7 +1587,7 @@ OR 6 IF
 								$mindiff = $diff;
 						}
 					}
-					if (!$useday && $mindiff < $slothours)
+					if (!$useday && $mindiff < $slothours) 
 						$useday = TRUE;
 				}
 				elseif($n)
@@ -1767,8 +1646,10 @@ OR 6 IF
 					$s .= $one['T'];
 			}
 			unset($one);
-			$finds = array_merge($daycodes,$monthcodes,array('R','S','W'));
-			$repls = array_merge($shortdays,$shortmonths,array($rise,$set,$week));
+			//$specials last, to prevent dayname conflicts e.g. month(M) vs M1(Jan) BUT then sunset(S) vs Sun conflict!
+			//reverse month-arrays to match M10-M12 before M1
+			$finds = array_merge($daytokes,array_reverse($monthtokes),$spectokes);
+			$repls = array_merge($shortdays,array_reverse($shortmonths),$specials);
 			return str_replace($finds,$repls,$s);
 		}
 		else
