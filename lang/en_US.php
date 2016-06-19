@@ -55,8 +55,10 @@ $lang['delete_upload'] = 'Delete uploaded file(s) <strong>%s</strong>';
 $lang['delsel_confirm'] = 'Are you sure you want to delete selected %s?';
 $lang['description'] = 'Description';
 //$lang['editbooking'] = 'change bookings';
+$lang['each'] = 'each';
 $lang['edit'] = 'Edit';
 $lang['end'] = 'End';
+
 $lang['err_badend'] = 'Cannot use the end-time';
 $lang['err_badstart'] = 'Missing or unusable start-time';
 $lang['err_badtime'] = 'Something is wrong with booking time(s)';
