@@ -65,7 +65,7 @@ if(isset($params['submit']) || isset($params['apply']))
 		$t = trim($params['formula']);
 		if($t)
 		{
-			$funcs2 = new RepeatParser($this);
+			$funcs2 = new RepeatLexer($this);
 			$t = $funcs2->CheckCondition($t);
 		}
 		if($t)

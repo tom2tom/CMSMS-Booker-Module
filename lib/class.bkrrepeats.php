@@ -8,7 +8,7 @@ More info at http://dev.cmsmadesimple.org/projects/booker
 Class: bkrrepeats
 */
 
-class bkrrepeats extends RepeatParser
+class bkrrepeats extends RepeatLexer
 {
 	function __construct(&$mod)
 	{
