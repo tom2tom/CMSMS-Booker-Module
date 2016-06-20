@@ -1117,103 +1117,77 @@ e.g. 'S+[H]H:[M]M' >> array
 
 	/*
 	_GetFocus:
-	Interpret @parts to determine the corresponding 'F' parameter
-	@parts: any-size, any-order array of parsed segments from a period-descriptor e.g.
-0 => 'D4'
-1 => '(1,2,-1)'
-2 => 'W'
-3 => 'M6'
-4 => '2015..2018'
-	OR
-	a whole-descriptor, like P(Q(R(S)))
-	Returns: enum 1..11 reflecting @parts:
+	Determine the 'F' parameter for @str
+	@str: period-descriptor like P(Q(R(S)))
+	Returns: enum 1..11:
 		 0 can't figure out anything better
 		 1 no period i.e. any (time-only)
 		 2 month(s) of any year June,July
 		 3 week(s) of any month (1,-1)week
 		 4 day(s) of any week Sun..Wed
-	 OR  4 day(s) of any month 1,10,-2 OR 1(Sunday)
+ 	 OR  4 day(s) of any month 1,10,-2 OR 1(Sunday)
 		 5 specific year(s) 2020,2015
 		 6 month(s) of specific year(s) Jan(2010..2020) OR 2015-1
 		 7 week(s) of specific [month(s) and] year(s) 1(week(Aug..Dec(2020)))
 		 8 week(s) of specific month(s) 1(week(August,September))
 		 9 day(s) of specific [[weeks(s) and] month(s) and] year(s) Wed((1,-1)(week(June(2015..2018))))
 		10 day(s) of specific week(s)  Wed(2(week))
-	 OR 10 day(s) of specific [week(s) and] month(s) 1(Aug) OR Wed((1,2)(week(June)))
+ 	 OR 10 day(s) of specific [week(s) and] month(s) 1(Aug) OR Wed((1,2)(week(June)))
 		11 specfic day/date(s) 2010-6-6 OR 1(Aug(2015..2020))
 	*/
-	private function _GetFocus($parts)
+	private function _GetFocus($str)
 	{
 		$longdate = FALSE;
 		$hasday = FALSE;
 		$hasweek = FALSE;
 		$hasmonth = FALSE;
 		$hasyear = FALSE;
-		if(!is_array($parts))
-			$parts = array($parts);
-		foreach($parts as &$one)
+
+		if(!$hasyear && preg_match('/[12][0-9]{3}(?!(-|[0-9]))/',$str)) { //includes YYYY-only
+			$hasyear = TRUE; }
+		if(!$hasmonth && strpos($str,'M') !== FALSE) {
+			$hasmonth = TRUE; }
+		if(!$hasmonth && preg_match('/[12][0-9]{3}-(1[0-2]|0?[1-9])(?!(-|[0-9]))/',$str)) //includes YYYY-[M]M-only
 		{
-			if(!$hasyear && preg_match('/[12][0-9]{3}(?!(-|[0-9]))/',$one)) //includes YYYY-only
-				$hasyear = TRUE;
-			if(!$hasmonth && strpos($one,'M') !== FALSE)
-				$hasmonth = TRUE;
-			if(!$hasmonth && preg_match('/[12][0-9]{3}-(1[0-2]|0?[1-9])(?!(-|[0-9]))/',$one)) //includes YYYY-[M]M-only
-			{
-				$hasyear = TRUE;
-				$hasmonth = TRUE;
-			}
-			if(!$hasweek && strpos($one,'W') !== FALSE)
-				$hasweek = TRUE;
-			if(!$hasday && strpos($one,'D') !== FALSE)
-				$hasday = TRUE;
-			if(!$hasday && !$hasweek && preg_match('/(?<![-+:0-9DWME])(0?[1-9]|[12][0-9]|3[01])(?!(-|[0-9]))(?![-:0-9])/',$one)) //includes 1-31
-			{
-				$hasday = TRUE;
-			}
-			$longdate = preg_match('/(?<!(-|[0-9]))[12][0-9]{3}-(1[0-2]|0?[1-9])-(3[01]|0?[1-9]|[12][0-9])(?!(-|[0-9]))/',$one);
-			if(!$hasday && $longdate) //includes YYYY-M[M]-[D]D
-			{
-				$hasday = TRUE;
-			}
+			$hasyear = TRUE;
+			$hasmonth = TRUE;
 		}
-		unset($one);
+		if(!$hasweek && strpos($str,'W') !== FALSE) {
+			$hasweek = TRUE; }
+		if(!$hasday && strpos($str,'D') !== FALSE) {
+			$hasday = TRUE; }
+		if(!$hasday && !$hasweek && preg_match('/(?<![-+:0-9DWME])(0?[1-9]|[12][0-9]|3[01])(?!(-|[0-9]))(?![-:0-9])/',$str)) { //includes 1-31
+			$hasday = TRUE; }
+		$longdate = preg_match('/(?<!(-|[0-9]))[12][0-9]{3}-(1[0-2]|0?[1-9])-(3[01]|0?[1-9]|[12][0-9])(?!(-|[0-9]))/',$str);
+		if(!$hasday && $longdate) { //includes YYYY-M[M]-[D]D
+			$hasday = TRUE; }
 
 		if($hasyear)
 		{
-			if($hasday)
-			{
-				return 9;
-			}
+			if($hasday) {
+				return 9; }
 			if($hasmonth)
 			{
-				if($hasweek)
-				{
-					return 7;
-				}
-				//check for e.g. 1(M11(2013)
-				if(array_filter($parts, function($var) { return (strpos($var,'M') !== FALSE); })) //PHP 5.3+
-					return 6;
-				else
-					return 9;
+				if($hasweek) {
+					return 7; }
+				//check for e.g. M11(2013) BUT NOT 1(M11(2013))
+				if(strpos($str,'M') !== FALSE) {
+					return 6; } //TODO
+				else {
+					return 9; }
 			}
 			return ($hasweek) ? 7:5;
 		}
 		elseif($hasmonth)
 		{
-			if($hasday)
-			{
-				return 10;
-			}
+			if($hasday) {
+				return 10; }
 			return ($hasweek) ? 8:2;
 		}
-		elseif($hasweek)
-		{
-			return ($hasday) ? 10:3;
-		}
-		elseif($hasday)
-		{
-			return ($longdate) ? 11:4;
-		}
+		elseif($hasweek) {
+			return ($hasday) ? 10:3; }
+		elseif($hasday) {
+			return ($longdate) ? 11:4; }
 		return 0;
 	}
 
@@ -1353,7 +1327,7 @@ e.g. 'S+[H]H:[M]M' >> array
 		//check overall consistency (i.e. no unrecognised content, all brackets are valid)
 		//and separate into distinct comma-separated 'parts'
 		$parts = array();
-        $storeseg = 0; //array index of 1st element to store
+        $storeseg = 0; //index of 1st array-element to merge & store
 		$clean = '';
 		$depth = 0;
 
@@ -1372,15 +1346,15 @@ $edbg = substr($one,$e);
 				//process in-seg bracket(s)
 				$segl = strlen($one);
 				$segat = strrpos($one,'@',-1);
-				$f = ($segat === FALSE) ? $segl:$segat;
-$fdbg = substr($one,$f);
-				$cb = substr_count($one,')',$e+1,$f-$e-1);
+				$p = ($segat === FALSE) ? $segl:$segat;
+$fdbg = substr($one,$p);
+				$cb = substr_count($one,')',$e+1,$p-$e-1); //right-bracket(s) following the processed sub-string
 				if($cb > 0)
 				{
 					$depth -= $cb;
 					if($depth < 0) //CHECKME or 1?
 					   return FALSE;
-					if($cs == 2 &&  $i > 0 && $segs[$i-1] == '') //special case (stuff)
+					if($cs == 2 && $i > 0 && $segs[$i-1] == '') //special case (stuff)
 					{
 						unset($segs[$i-1]);
 					}
@@ -1413,46 +1387,44 @@ $fdbg = substr($one,$f);
 				//skip ')' in source-string
 				while(++$e < $segl && $one[$e] == ')');
 $edbg = substr($one,$e);
-				if($one[$e] == ',') //part-separator detected
+				if($one[$e] != ',')
 				{
-                    $rest = substr($one,$e+1);
-        			$one = $t; //we're done with the current part
- 					$clean .= implode('(',array_slice($segs,$storeseg,$i-$storeseg+1));
-					$l = substr_count($clean,'(');
-					if(substr_count($clean,')') != $l)
+					$t .= substr($one,$e);
+					$one = $t;
+				}
+				else //part-separator detected
+				{
+					$rest = substr($one,$e+1); //extra stuff from ',' to end of segment e.g. 'M1'
+					$one = $t; //we're done with the current part
+					$clean .= implode('(',array_slice($segs,$storeseg,$i-$storeseg+1));
+					$p = substr_count($clean,'(');
+					if(substr_count($clean,')') != $p)
 					{
 						return FALSE;
 					}
 					$parts[] = $clean;
-					$storeseg = $i+1;
-                    //TODO process $clean (extra stuff from , to end of segment e.g. 'M1') into $parts
-                    //NOT OK to insert array-member inside foreach!!
-                    $clean = $rest.'(';
-                    $depth = 0;
+					$storeseg = $i+1; //next merge begins after this segment
+					if(strpos($rest,',') !== FALSE || strpos($rest,'..') !== FALSE)
+						$rest = self::_ParsePeriodSeries($rest);
+					//if more seg(s), next implode() won't know about this bit
+					if($i < $cs-1)
+						$rest .= '(';
+					$clean = $rest;
+					$depth = 0;
 				}
-                else
-                {
-    				$t .= substr($one,$e);
-        			$one = $t;
-                }
 			}
-/*			else //empty i.e. nothing before '(' in $descriptor
-			{
-				$depth++;
-			}
-*/
 		}
 		unset($one);
-
+		//last (or entire) part
 		$clean .= implode('(',array_slice($segs,$storeseg,$i-$storeseg+1));
 		if($clean)
 		{
-			$l = substr_count($clean,'(');
-			if(substr_count($clean,')') != $l)
+			$p = substr_count($clean,'(');
+			if(substr_count($clean,')') != $p)
 			{
 				return FALSE;
 			}
-			$parts[] = $clean; //last (or entire) part
+			$parts[] = $clean;
 		}
 
 		//interpretation
