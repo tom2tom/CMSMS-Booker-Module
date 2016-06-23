@@ -79,6 +79,7 @@ $lang['err_system'] = 'System error';
 $lang['err_upload'] = 'Failed to upload styling file: %s';
 $lang['error'] = 'Error!';
 
+$lang['every'] = 'every';
 $lang['except'] = 'except';
 $lang['export'] = 'Export';
 $lang['export_filename'] = '%s-Export-%s.csv';
@@ -525,6 +526,7 @@ $lang['title_whenpast'] = 'Booking started';
 $lang['title_year'] = 'Year';
 $lang['title_zone'] = 'Timezone';
 
+$lang['to'] = 'to';
 $lang['true'] = 'yes';
 $lang['update'] = 'Update';
 $lang['upload'] = 'Upload';
