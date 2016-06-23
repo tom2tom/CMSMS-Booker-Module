@@ -1,7 +1,7 @@
 <?php
 /*
 This file is a class for CMS Made Simple (TM).
-This file uses anonymous function, needs PHP 5.3+
+(Uses CMSMS-specific string-translation method.)
 Copyright (C) 2014-2016 Tom Phane <tpgww@onepost.net>
 
 This file is free software; you can redistribute it and/or modify it under
@@ -108,8 +108,6 @@ Time descriptors
 class RepeatLexer
 {
 	protected $mod; //reference to current module-object
-	protected $pi = NULL;	//PeriodInterpreter class object, populated on demand
-	protected $ti = NULL;	//TimeInterpreter class object, populated on demand
 	/*
 	$conds will be array of parsed descriptors, or FALSE
 
@@ -121,14 +119,14 @@ class RepeatLexer
 		 2 month(s) of any year June,July
 		 3 week(s) of any month (1,-1)week
 		 4 day(s) of any week Sun..Wed
- OR  4 day(s) of any month 1,10,-2 OR 1(Sunday)
+	 OR  4 day(s) of any month 1,10,-2 OR 1(Sunday)
 		 5 specific year(s) 2020,2015
 		 6 month(s) of specific year(s) Jan(2010..2020) OR 2015-1 OR each 3 month(2000-1..2002-12)
 		 7 week(s) of specific year(s) 1(week(Aug..Dec(2020))) OR each 4 week(2000..2001)
 		 8 week(s) of specific month(s) 1(week(August,September)) OR each 2 week(2000-1..2000-12)
 		 9 day(s) of specific year(s) Wed((1,-1)(week(June(2015..2018))))
 		10 day(s) of specific week(s)  Wed(2(week)) OR (Wed..Fri)(each 2(week))
- OR 10 day(s) of specific month(s) 1(Aug) OR Wed((1,2)(week(June))) OR each 2 day(2000-1..2000-2)
+	 OR 10 day(s) of specific month(s) 1(Aug) OR Wed((1,2)(week(June))) OR each 2 day(2000-1..2000-2)
  			OR 2(Wed(June)) OR (1,-1)(Sat(June..August))
 		11 specfic day/date(s) 2010-6-6 OR 1(Aug(2015..2020))
 	'P' => FALSE or PERIOD = structure of arrays and strings representing
@@ -160,140 +158,18 @@ class RepeatLexer
 	public $conds = FALSE;
 //	private $ob; //'(' for ltr languages, ')' for rtl
 //	private $cb; //')' for ltr languages, '(' for rtl
+	//regex for ISO dates like YYYY[-[M]M[-[D]D]] see https://regex101.com/r/xL4oY5/1
+	private $dateptn = '/!?([12]\d{3}(?!\d))(-(1[0-2]|0?[1-9])(?!\d)(-(3[01]|0?[1-9]|[12]\d)(?!\d))?)?/';
+	//regex for trailing [+-][H]H[:[M]M] see https://regex101.com/r/vU2bR5/2
+	private $timeptn = '/([+-])?\b([01]?\d|2[0-3])(:[0-5]?\d)?$/';
+
 	function __construct(&$mod)
 	{
 		$this->mod = $mod;
 	}
 
 	/*
-	_MatchBracket:
-	Scan @str from offset @offset towards end, to find matching ')'. Nesting is
-	supported
-	@str: string
-	@offset points to opening '(' in @str
-	Returns: offset of matched ')' in @str, or -1 if incorrect nesting found
-	*/
-	private function _MatchBracket($str,$offset)
-	{
-		$d = 0;
-		$l = strlen($str);
-		for($p=$offset; $p<$l; $p++)
-		{
-			switch($str[$p])
-			{
-			 case '(':
-				$d++; //should go to 1 immediately
-				break;
-			 case ')':
-				if(--$d == 0)
-					return $p;
-				elseif($d < 0)
-					return -1;
-				break;
-			}
-		}
-		return -1;
-	}
-
-	/*
-	_StartSequence:
-	Scan @str from offset @offset towards start, until start or any char in [!(),]
-	@str: string
-	@offset points to initial '.' in @str
-	Returns: offset in @str = 0, or after matched char, or -1 if '.' found
-	*/
-	private function _StartSequence($str,$offset)
-	{
-		$d = 0;
-		for($p=$offset; $p>=0; $p--)
-		{
-			switch($str[$p])
-			{
-			 case '.':
-				if(++$d > 1)
-					return -1;
-				break;
-			 case ')':
-			 case '(':
-			 case ',':
-			 case '!':
-				if($p+1 < $offset)
-					return $p+1;
-				return -1;
-			}
-		}
-		if($offset > 0);
-			return 0;
-		return -1;
-	}
-
-	/*
-	_EndSequence:
-	Scan @str from offset @offset towards end until end, or any char in [(),@]
-	@str: string
-	@offset points to initial '.' in @str
-	Returns: offset in @str = last char, or before matched char, or -1 if another '..' found
-	*/
-	private function _EndSequence($str,$offset)
-	{
-		$d = 0;
-		$l = strlen($str);
-		for($p=$offset; $p<$l; $p++)
-		{
-			switch($str[$p])
-			{
-			 case '.':
-				if(++$d > 2)
-					return -1;
-				break;
-			 case ')':
-			 case '(':
-			 case ',':
-			 case '@':
-				if($p-1 > $offset)
-					return $p-1;
-				return -1;
-			}
-		}
-		if($l-1 > $offset)
-			return $l-1; //offset of end
-		return -1;
-	}
-
-	/*
-	_StartSeries:
-	Scan @str from offset @offset towards start, until start or any char in [!()].
-	')' is a special-case, cuz' searching e.g. '())' from the last ')' is not valid
-	@str: string
-	@offset points to initial ',' in @str
-	Returns: offset in @str of 1st char in series i.e. after matched char,or -1 if not found, or -2 if nested ')' found
-	*/
-	private function _StartSeries($str,$offset)
-	{
-		for($p=$offset; $p>=0; $p--)
-		{
-			switch($str[$p])
-			{
-			 case '(':
-			 case '!':
-				if($p+1 < $offset)
-					return $p+1;
-				return -1;
-			 case ')': //if processing a non-bracketed series, this might be the terminator
-				if($p == $offset)
-					break; //ignore series-terminator at scan-start
-				elseif($p+1 < $offset)
-					return $p+1;
-				return -2;
-			}
-		}
-		if($offset > 0);
-			return 0;
-		return -1;
-	}
-
-	/*
-	_EndSeries:
+	_EndScan:
 	Scan @str from offset @offset towards end until end, or any char in [()@]
 	'(' is a special-case, cuz' searching e.g. '(()' from the first '(' is not valid
 	@str: string
@@ -301,7 +177,7 @@ class RepeatLexer
 	Returns: offset in @str of last char in series i.e. before matched char, or last char
 	 or -1 if end not found, or -2 if nested '(' found
 	*/
-	private function _EndSeries($str,$offset)
+	private function _EndScan($str,$offset)
 	{
 		$l = strlen($str);
 		for($p=$offset; $p<$l; $p++)
@@ -364,11 +240,23 @@ class RepeatLexer
 			$a = substr($a,0,$p);
 		if(($p = strpos($b,'..')) !== FALSE)
 			$b = substr($b,0,$p);
+		if($a[0] == '!') //except-dates sorted last
+		{
+			if($b[0] == '!')
+			{
+				$a = substr($a,1);
+				$b = substr($b,1);
+			}
+			else {
+				return 1; }
+		}
+		elseif($b[0] == '!') {
+			return -1; }
 		//bare years don't work correctly
 		$s = (strpos($a,'-') !== FALSE) ? $a:$a.'-1-1';
 		//for relative times, don't need localised DateTime object
 		$stA = strtotime($s);
-		$s = (strpos($b,'-') !=FALSE ) ? $b:$b.'-1-1';
+		$s = (strpos($b,'-') !== FALSE) ? $b:$b.'-1-1';
 		$stB = strtotime($s);
 		return ($stA-$stB);
 	}
@@ -403,7 +291,6 @@ that incomplete date-values will be populated.
 			return $parts[0];
 		//order the pair
 		$swap = FALSE;
-		$dateptn = '/^([12][0-9]{3})(-(1[0-2]|0?[1-9])(-(3[01]|0?[1-9]|[12][0-9]))?)?$/';
 /* $pattern matches
 '2001-10-12' >> array
   0 => string '2001-10-12'
@@ -421,7 +308,8 @@ that incomplete date-values will be populated.
 	0 => string '2001'
 	1 => string '2001'
 */
-		if(preg_match($dateptn,$parts[0],$loparts) && preg_match($dateptn,$parts[1],$hiparts))
+		if(preg_match($this->dateptn,$parts[0],$loparts)
+		&& preg_match($this->dateptn,$parts[1],$hiparts))
 		{
 			$swap = ($hiparts[1] < $loparts[1]);
 			if($swap)
@@ -529,38 +417,38 @@ that incomplete date-values will be populated.
 	}
 
 	/*
-	_ParsePeriodSeries:
-	
+	_CleanPeriod:
+
 	Ensure @str is ordered according to increasing number or date/time order
 	-ve numbers (i.e. countbacks) are ordered after +ve's
 	This is for period-identifiers, no times are handled.
 
-	@str: string '(A[,B...])' to be parsed, containing one or more (and if so,
-	  comma-separated) singleton and/or sequence values, and surrounding brackets
-	  Elements A,B etc are all of the same type (as represented by A)
-	  - numbers, or day/month tokens, or dates
+	@str: string '(A[,B...])' to be parsed, possibly containing one or more
+	  (and if so, comma-separated) singleton and/or sequence values, and
+	  optionally, surrounding brackets. Elements A,B etc are all of the same type
+	  (as represented by A) - numbers, or day/month tokens, or dates.
+	  May be empty.
 	@getstr: optional, whether to return re-constituted string, default TRUE
 	Returns: depending on @getstr, either a N-member, ascending-sorted, no-duplicates,
-	contiguous-keyed array(L,...,H), or comma-separated string represenation of
+	contiguous-keyed array (L,...,H), or comma-separated string represenation of
 	that array. A single-member series will return either that single value
-	L(==all others) or its string-equivalent '(L'.
+	L(==all others) or its string-equivalent 'L'.
 	Returns FALSE upon error e.g. different element types.
 	*/
-	private function _ParsePeriodSeries($str,$getstr=TRUE)
+	private function _CleanPeriod($str,$getstr=TRUE)
 	{
 		$work = trim($str,' ()'); //strip surrounding brackets
+		if(!$work)
+			return ($getstr) ? '':array('');
 		$parts = explode(',',$work);
 		if(!isset($parts[1])) //aka count($parts) == 1 i.e.singleton
 		{
 			if(strpos($work,'..') !== FALSE)
 				$work = self::_ParsePeriodSequence($work,$getstr); //reorder if appropriate
-			if($getstr)
-				return $work;
-			return array($work);
+			return ($getstr) ? $work:array($work);
 		}
-		$dateptn = '/^([12]\d{3})(-(1[0-2]|0?[1-9])(-(3[01]|0?[1-9]|[12]\d))?)?$/';
 		$val = $parts[0];
-		if(preg_match($dateptn,$val))
+		if(preg_match($this->dateptn,$val))
 		{
 			$type = 3;
 			$cmp = '_cmp_dates';
@@ -649,9 +537,9 @@ that incomplete date-values will be populated.
 				if(strpos($val,'..') !== FALSE)
 				{
 					$r = self::_ParsePeriodSequence($val,FALSE); //reorder if appropriate
-					if(is_array($r) && preg_match($dateptn,$r[0]))
+					if(is_array($r) && preg_match($this->dateptn,$r[0]))
 						$val = $r[0].'..'.$r[2]; //no sub-array here
-					elseif($r && preg_match($dateptn,$r))
+					elseif($r && preg_match($this->dateptn,$r))
 						$val = $r;
 					else
 					{
@@ -660,7 +548,11 @@ that incomplete date-values will be populated.
 					}
 					break;
 				}
-				elseif(preg_match($dateptn,$val))
+				elseif(preg_match($this->dateptn,$val))
+				{
+					break;
+				}
+				elseif($val[0] == '!')
 				{
 					break;
 				}
@@ -686,12 +578,12 @@ that incomplete date-values will be populated.
 	}
 
 	/*
-	_PeriodSplit:
+	_SplitPeriod:
 
 	@str: tokenised PERIOD-component of an interval descriptor, like S(R(Q(P)))
 	Returns: array, with one member, or more if @str has ','-separated sub-strings.
 	*/
-	private	function _PeriodSplit($str)
+	private	function _SplitPeriod($str)
 	{
 		$arr = explode('(',$str);
 		foreach($arr as &$one)
@@ -718,153 +610,6 @@ that incomplete date-values will be populated.
 		if(empty($str))
 			$str = '+ 0 seconds';
 		return strtotime($str,0);
-	}
-
-	/*
-	_EndTime:
-	Scan @str from offset @offset towards end until end, or any char in [()@]
-	@str: string
-	@offset points to initial ',' in @str
-	Returns: offset in @str = last char, or before matched char, or -1 if error
-	*/
-	private function _EndTime($str,$offset)
-	{
-		$l = strlen($str);
-		for($p = $offset; $p < $l; $p++)
-		{
-			switch($str[$p])
-			{
-			 case '(':
-				$p = self::_EndSeries($str,$p+1);
-				if($p < 0)
-					return -1;
-				return p;
-			 case ',':
-				if($p-1 > $offset)
-					return $p-1;
-				return -1;
-			}
-		}
-		if($l-1 > $offset)
-			return $l-1; //offset of end
-		return -1;
-	}
-
-	/**
-	_ParseTimeSequence:
-
-	This is for period-identifiers, no times are handled.
-	Depending on @getstr, this may return a 3-member array(L,'.',H) or a string
-	represenation of that array 'L..H'. In either case, the return may be a
-	single value L(==H) or FALSE upon error.
-	The second/middle array value '.' is a flag, for further processors, that the
-	array represents a range. L and/or H are not interpreted in any way, except
-that incomplete time-values will be populated.
-
-	@str: string to be parsed, containing '..' and no surrounding brackets
-	@getstr: optional, whether to return re-constituted string, default TRUE
-	*/
-	private	function _ParseTimeSequence($str,$getstr=TRUE)
-	{
-		$parts = explode('..',$str,2);
-		while($parts[1][0] == '.')
-			$parts[1] = substr($parts[1],1);
-		if($parts[0] === '' || $parts[1] === '')
-			return FALSE;
-		if($parts[0] == $parts[1])
-			return $parts[0];
-
-		$timeptn = '/^([RS]([+-](1[0-2]|[0]?[0-9]):[0-5]?[0-9])?|(2[0-3]|[01]?[0-9]):[0-5]?[0-9])$/';
-/* $pattern matches
-e.g 'S' >> array
-  0 => string 'S'
-  1 => string 'S'
-e.g. 'S+[H]H:[M]M' >> array
-  0 => string 'S+[H]H:[M]M'
-  1 => string 'S+[H]H:[M]M'
-  2 => string '+[H]H:[M]M'
-  3 => string '[H]H'
-'[H]H:[M]M' >> array
-  0 => string '[H]H:[M]M'
-  1 => string '[H]H:[M]M'
-  2 => string ''
-  3 => string ''
-  4 => string '[H]H'
-*/
-		if(preg_match($timeptn,$parts[0],$loparts) && preg_match($timeptn,$parts[1],$hiparts))
-		{
-			//order the pair
-			if(strpos($parts[0],'S') !== FALSE)
-			{
-				if(strpos($parts[1],'S') !== FALSE)
-				{
-					$kl = array_key_exists(2,$loparts);
-					$kh = array_key_exists(2,$hiparts);
-					if($kl && $kh)
-						$swap = (self::_RelTime($hiparts[2]) < self::_RelTime($loparts[2]));
-					elseif($kl) //hi has no time-offset
-						$swap = (self::_RelTime($loparts[2]) < 0);
-					elseif($kh) //lo has no time-offset
-						$swap = (self::_RelTime($hiparts[2]) > 0);
-					else
-						$swap = FALSE;
-				}
-				elseif(strpos($parts[1],'R') !== FALSE)
-					$swap = TRUE; //rise before set
-				else
-					$swap = FALSE;
-			}
-			elseif(strpos($parts[0],'R') !== FALSE)
-			{
-				if(strpos($parts[1],'S') !== FALSE)
-					$swap = FALSE;
-				elseif(strpos($parts[1],'R') !== FALSE)
-				{
-					$kl = array_key_exists(2,$loparts);
-					$kh = array_key_exists(2,$hiparts);
-					if($kl && $kh)
-							$swap = (self::_RelTime($hiparts[2]) < self::_RelTime($loparts[2]));
-					elseif($kl) //hi has no time-offset
-						$swap = (self::_RelTime($loparts[2]) < 0);
-					elseif($kh) //lo has no time-offset
-						$swap = (self::_RelTime($hiparts[2]) > 0);
-					else
-						$swap = FALSE;
-				}
-				else
-					$swap = FALSE;
-			}
-			elseif(strpos($parts[1],'S') !== FALSE)
-				$swap = TRUE; //sun* first
-			elseif(strpos($parts[1],'R') !== FALSE)
-				$swap = TRUE; //sun* first
-			else
-				$swap = (self::_RelTime($hiparts[1]) < self::_RelTime($loparts[1]));
-
-			if($swap)
-			{
-				$t = $parts[0];
-				$parts[0] = $parts[1];
-				$parts[1] = $t;
-			}
-			if($getstr)
-				return $parts[0].'..'.$parts[1];
-			else
-				return array($parts[0],'.',$parts[1]);
-		}
-		return FALSE;
-	}
-
-	/**
-	_ParseTimeSeries:
-
-	@str: string to be parsed, containing one or more (and if so, comma-separated)
-	  singleton and/or sequence/range time-descriptors, and surrounding brackets
-	@getstr: optional, whether to return re-constituted string, default TRUE
-	*/
-	private	function _ParseTimeSeries($str,$getstr=TRUE)
-	{
-		//TODO
 	}
 
 	private function _cmp_plaintimes($a,$b)
@@ -899,29 +644,38 @@ e.g. 'S+[H]H:[M]M' >> array
 		}
 	}
 
-	//Compare time-strings like [sun*[+-]][h]h[:[m]m]] without expensive
-	//time-conversions and with all sun* before all others
-//Either or both times may be a sequence
+	/*Compare time-strings like [sun*[+-]][h]h[:[m]m]] without expensive
+	time-conversions and putting all sun* before all others.
+	Either or both time args may be a sequence
+	*/
 	private function _cmp_times($a,$b)
 	{
+		$ra = strpos($a,'RS');
+		$rb = strpos($b,'RS');
+		$sa = strpos($a,'SS');
+		$sb = strpos($b,'SS');
 		if(($p = strpos($a,'..')) !== FALSE)
+		{
 			$a = substr($a,0,$p);
+			$ae = substr($a,$p+2); //sequence-end-descriptor
+		}
 		if(($p = strpos($b,'..')) !== FALSE)
+		{
 			$b = substr($b,0,$p);
-		$ra = strpos($a,'R');
-		$rb = strpos($b,'R');
+			$be = substr($b,$p+2);
+		}
 		if($ra !== FALSE)
 		{
-			if($rb === FALSE)
-			{
-				return -1;
-			}
+			if($rb === FALSE) {
+				return -1; }
 			else
 			{
-				$ma = (strlen($a) > $ra+1);
-				if($ma) $na = $a[$ra+1];
-				$mb = (strlen($b) > $rb+1);
-				if($mb) $nb = $b[$rb+1];
+				$ma = (strlen($a) > $ra+2);
+				if($ma) {
+					$na = $a[$ra+2]; }
+				$mb = (strlen($b) > $rb+2);
+				if($mb) {
+					$nb = $b[$rb+2]; }
 				if($ma && $mb)
 				{
 					if($na != $nb)
@@ -938,8 +692,8 @@ e.g. 'S+[H]H:[M]M' >> array
 						$b = substr($b,$rb+2);
 						return self::_cmp_plaintimes($b,$a); //swapped
 					}
-					else
-						return FALSE;
+					else {
+						return FALSE; }
 				}
 				elseif($ma && !$mb)
 				{
@@ -952,8 +706,6 @@ e.g. 'S+[H]H:[M]M' >> array
 				return 0;
 			}
 		}
-		$sa = strpos($a,'S');
-		$sb = strpos($b,'S');
 		if($sa !== FALSE)
 		{
 			if($sb === FALSE)
@@ -997,122 +749,222 @@ e.g. 'S+[H]H:[M]M' >> array
 				return 0;
 			}
 		}
-		elseif($rb !== FALSE)
-			return ($sa !== FALSE) ? -1 : 1; //sunset after sunrise, before others
-		elseif($sb !== FALSE)
-			return ($ra !== FALSE) ? -1 : 1; //ditto
+		elseif($rb !== FALSE) {
+			return ($sa !== FALSE) ? -1 : 1; } //sunset after sunrise, before others
+		elseif($sb !== FALSE) {
+			return ($ra !== FALSE) ? -1 : 1; }//ditto
 		//now just time-values
 		return self::_cmp_plaintimes($a,$b);
 	}
 
-	/*
-	@str is TIME component of a condition
-	Depending on @report, returns sanitised variant of @str or array of timevalues,
-	with sun-related values first, rest sorted ascending by value or start of range
-	where relevant, or in either case FALSE upon error
-	*/
-	private function _TimeClean($str,$report)
+	//for use in _ParseTimeSequence()
+	private function _MergeTime($parts)
 	{
-		//TODO handle (T1,...TN) when applying all to specified P[s]
-		$parts = array();
-		$one = '';
-		$s = 0; $e = 0; $d = 0; $l = strlen($str);
-		for($p = 0; $p < $l; $p++)
+		if($parts)
 		{
-			$c = $str[$p];
-			switch ($c)
+			$t = ($parts[2]) ? $parts[2]:'0';
+			$t .= (isset($parts[3])) ? $parts[3]:':0';
+			return $t;
+		}
+		else
+			return FALSE;
+	}
+	
+	/**
+	_ParseTimeSequence:
+
+	@str: string to be parsed, containing '..' and no surrounding brackets
+	@getstr: optional, whether to return re-constituted string, default TRUE
+	Returns: depending on @getstr, either a 3-member array(L,'.',H) or a string
+	represenation of that array 'L..H'. In either case, the return may be a
+	single value L(==H) or FALSE upon error.
+	The second/middle array value '.' is a flag, for further processors, that the
+	array represents a range. L and/or H are not interpreted in any way, except
+	that incomplete time-values will be populated.
+	*/
+	private	function _ParseTimeSequence($str,$getstr=TRUE)
+	{
+		$parts = explode('..',$str,2);
+		while($parts[1][0] == '.')
+			$parts[1] = substr($parts[1],1);
+		if($parts[0] === '' || $parts[1] === '') {
+			return FALSE; }
+		if($parts[0] == $parts[1]) {
+			return ($getstr) ? $parts[0]:array($parts[0]); }
+
+		$lorise = (strpos($parts[0],'RS') !== FALSE);
+		$loset = (strpos($parts[0],'SS') !== FALSE);
+		$hirise = (strpos($parts[1],'RS') !== FALSE);
+		$hiset = (strpos($parts[1],'SS') !== FALSE);
+		preg_match($this->timeptn,$parts[0],$loparts);
+		preg_match($this->timeptn,$parts[1],$hiparts);
+/*
+match-array(s) have
+[0] whole i.e. +/-hours[:minutes]
+[1] +/- if string is valid
+[2] hours
+[3] :minutes (if provided)
+*/
+		if(($lorise || $loset || isset($loparts[2])) && ($hirise || $hiset || isset($hiparts[2])))
+		{
+			if(($lorise || $loset) && $loparts && !$loparts[1])
 			{
-			 case '(':
-			 	if(++$d == 1)
+				$loparts[1] = '+';
+				$parts[0] = preg_replace('/([SR]S)/','$1+',$parts[0]);
+			}
+			if(($hirise || $hiset) && $hiparts && !$hiparts[1])
+			{
+				$hiparts[1] = '+';
+				$parts[1] = preg_replace('/([SR]S)/','$1+',$parts[1]);
+			}
+			//order the pair
+			if($loset)
+			{
+				if($hiset)
 				{
-					$e = self::_MatchBracket($str,$p); //matching brace (in case nested)
-					if($e != -1)
-					{
-						$s = $p+1;
-						$t = self::_TimeClean(substr($str,$s,$e-$s),FALSE); //recurse
-						if(is_array($t))
-							$parts = array_merge($parts,$t);
-						elseif($t !== FALSE)
-							$parts[] = $t;
-						else
-							return FALSE;
-						$d = 0;
-						$one = '';
-						$p = $e; //resume after closing bracket
-						break;
-					}
-					return FALSE;
-				}
-				break;
- 			 case ')': //nested ) should never happen in this context
-			 	if(--$d < 0)
-					return FALSE;
-				break;
-			 case '.': //TODO sequence = special-case of series-member
-				$s = self::_StartSequence($str,$p);
-				$e = self::_EndSequence($str,$p);
-				if($s != -1 && $e != -1)
-				{
-					//cannot safely create range-array before $parts[] sort and de-dup
-					$t = self::_ParseTimeSequence(substr($str,$s,$e-$s+1),TRUE);
-					if($t !== FALSE)
-					{
-						$parts[] = $t;
-						$one = '';
-						$p = $e;
-						break;
-					}
-				}
-				return FALSE;
-			 case ':':
- 				if($p > $e)
-				{
-					$c = $str[$p-1];
-					if($c<'0' || $c>'9')
-						$one .= '0';
-				}
-				if($p < $l-1)
-				{
-					$c = $str[$p+1];
-					if($c<'0' || $c>'9')
-						$one .= ':0';
+					//order by +- offset
+					if($loparts[1] == '+' && $hiparts[1] == '-') {
+						$swap = TRUE; }
+					elseif($loparts[1] == '-' && $hiparts[1] == '+') {
+						$swap = FALSE; }
 					else
-						$one .= ':';
+					{
+						$kl = self::_MergeTime($loparts);
+						$kh = self::_MergeTime($hiparts);
+						if($kl && $kh)
+						{
+							$swap = (self::_RelTime($kh) < self::_RelTime($kl));
+							if($loparts[1] == '-' && $hiparts[1] == '-')
+								$swap = !$swap;
+						}
+						elseif($kl) { //hi has no time-offset
+							$swap = ($loparts[1] == '+'); }
+						elseif($kh) { //lo has no time-offset
+							$swap = ($hiparts[1] == '-'); }
+						else {
+							$swap = FALSE; }
+						}
 				}
-				else
-					$one .= ':0';
-				break;
-			 default:
-				if ($c != ',')
-					$one .= $c;
-				elseif($one)
+				elseif($hirise) {
+					$swap = TRUE; } //rise before set
+				else {
+					$swap = FALSE; }
+			}
+			elseif($lorise)
+			{
+				if($hiset) {
+					$swap = FALSE; }
+				elseif($hirise)
 				{
-					$parts[] = $one;
-					$one = '';
+					//order by +- offset
+					$kl = self::_MergeTime($loparts);
+					$kh = self::_MergeTime($hiparts);
+					if($kl && $kh)
+					{
+						$swap = (self::_RelTime($kh) < self::_RelTime($kl));
+						if($loparts[1] == '-' && $hiparts[1] == '-')
+							$swap = !$swap;
+					}
+					elseif($kl) { //hi has no time-offset
+						$swap = ($loparts[1] == '+'); }
+					elseif($kh) { //lo has no time-offset
+						$swap = ($hiparts[1] == '-'); }
+					else {
+						$swap = FALSE; }
 				}
-				break;
+				else {
+					$swap = FALSE;}
+			}
+			elseif($hiset) {
+				$swap = FALSE;  } //stet if only one has sun*
+			elseif($hirise) {
+				$swap = FALSE; } //ditto
+			else {
+				//TODO
+				$swap = (self::_RelTime($hiparts[1]) < self::_RelTime($loparts[1])); }
+
+			if($swap)
+			{
+				$t = $parts[0];
+				$parts[0] = $parts[1];
+				$parts[1] = $t;
+			}
+			if($getstr)
+				return $parts[0].'..'.$parts[1];
+			else
+				return array($parts[0],'.',$parts[1]);
+		}
+		return FALSE;
+	}
+
+	/**
+	_CleanTime:
+
+	Ensure @str is ordered according to increasing time-order
+
+	@str: TIME component of a repetition descriptor '(A[,B...])', containing
+	one or more (and if so, comma-separated) singleton and/or sequence values,
+	and optionally, surrounding brackets and/or preceeding '@'.
+	May be empty.
+	@getstr: optional, whether to return re-constituted string, default TRUE
+	Returns: depending on @getstr, either a N-member, ascending-sorted, no-duplicates,
+	contiguous-keyed array(L,...,H), or comma-separated string represenation of
+	that array. A single-member series will return either that single value
+	L(==all others) or its string-equivalent 'L'.
+	Sun-related values are sorted first, other values sorted ascending by
+	value or start of sequence where relevant.
+	FALSE upon error.
+	*/
+	private	function _CleanTime($str,$getstr=TRUE)
+	{
+		$work = trim($str,' @()'); //strip surrounding brackets etc
+		if(!$work)
+			return ($getstr) ? '':array('');
+		$parts = explode(',',$work);
+		if(!isset($parts[1])) //aka count($parts) == 1 i.e.singleton
+		{
+			if(strpos($work,'..') !== FALSE)
+				$work = self::_ParseTimeSequence($work,$getstr); //reorder if appropriate
+			if($getstr)
+				return $work;
+			return array($work);
+		}
+
+		foreach($parts as &$val)
+		{
+			if(strpos($val,'..') === FALSE)
+			{
+				//check for valid time or rise/set-relation
+				$r = preg_match($this->timeptn,$val,$matches);
+				$p = preg_match('/^[SR]S/',$val);
+				if($p && $matches && !$matches['1']) {
+					$val = preg_replace('/([SR]S)/','$1+',$val); }
+				$r = $r || $p;
+			}
+			else
+			{
+				$r = self::_ParseTimeSequence($val); //reorder if appropriate
+				if($r !== FALSE) {
+					$val = $r; }
+			}
+			if(!$r)
+			{
+				unset($val);
+				return FALSE;
 			}
 		}
-		if($one)
-			$parts[] = $one; //last one
-		elseif($parts == FALSE)
+		unset($val);
+		if($parts == FALSE)
 			return '';
 		//remove dup's without sorting
 		$parts = array_flip($parts);
+		$parts = array_flip($parts); //keys now contiguous
 		if(count($parts) > 1)
-		{
-			$parts = array_flip($parts);
 			usort($parts,array($this,'_cmp_times'));
-			if($report)
-				return '('.implode(',',$parts).')';
-			else
-			{
-				//CHECKME convert ranges to arrays (L,.,H)
-				return $parts;
-			}
-		}
+		if($getstr)
+			return implode(',',$parts);
 		else
-			return key($parts);
+			return $parts;
 	}
 
 	/*
@@ -1143,40 +995,37 @@ e.g. 'S+[H]H:[M]M' >> array
 		$hasmonth = FALSE;
 		$hasyear = FALSE;
 
-		if(!$hasyear && preg_match('/[12][0-9]{3}(?!(-|[0-9]))/',$str)) { //includes YYYY-only
+		if(preg_match('/[12]\d{3}(?![-\d])/',$str)) { //includes YYYY-only
 			$hasyear = TRUE; }
-		if(!$hasmonth && strpos($str,'M') !== FALSE) {
+		if(strpos($str,'M') !== FALSE) {
 			$hasmonth = TRUE; }
-		if(!$hasmonth && preg_match('/[12][0-9]{3}-(1[0-2]|0?[1-9])(?!(-|[0-9]))/',$str)) //includes YYYY-[M]M-only
+		if(!$hasmonth && preg_match('/[12]\d{3}-(1[0-2]|0?[1-9])(?![-\d])/',$str)) //includes YYYY-[M]M-only
 		{
 			$hasyear = TRUE;
 			$hasmonth = TRUE;
 		}
-		if(!$hasweek && strpos($str,'W') !== FALSE) {
+		if(strpos($str,'W') !== FALSE) {
 			$hasweek = TRUE; }
-		if(!$hasday && strpos($str,'D') !== FALSE) {
+		if(strpos($str,'D') !== FALSE) {
 			$hasday = TRUE; }
-		if(!$hasday && !$hasweek && preg_match('/(?<![-+:0-9DWME])(0?[1-9]|[12][0-9]|3[01])(?!(-|[0-9]))(?![-:0-9])/',$str)) { //includes 1-31
-			$hasday = TRUE; }
-		$longdate = preg_match('/(?<!(-|[0-9]))[12][0-9]{3}-(1[0-2]|0?[1-9])-(3[01]|0?[1-9]|[12][0-9])(?!(-|[0-9]))/',$str);
-		if(!$hasday && $longdate) { //includes YYYY-M[M]-[D]D
+		if(!($hasday || $hasweek))
+		{
+			if(preg_match('/^-(0?[1-9]|[12]\d|3[01])(?![-\d])(?![-:\d])/',$str)) { //begins with -[1-31]
+				$hasday = TRUE; }
+			elseif(preg_match('/(?<![-+:\dDWME])(0?[1-9]|[12]\d|3[01])(?![-\d])(?![-:\d])/',$str)) { //includes 1-31
+				$hasday = TRUE; }
+		}
+		$longdate = preg_match('/(?<!(-|\d))[12]\d{3}-(1[0-2]|0?[1-9])-(3[01]|0?[1-9]|[12]\d)(?![-\d])/',$str);
+		if($longdate && !$hasday) { //includes YYYY-M[M]-[D]D
 			$hasday = TRUE; }
 
 		if($hasyear)
 		{
 			if($hasday) {
-				return 9; }
-			if($hasmonth)
-			{
-				if($hasweek) {
-					return 7; }
-				//check for e.g. M11(2013) BUT NOT 1(M11(2013))
-				if(strpos($str,'M') !== FALSE) {
-					return 6; } //TODO
-				else {
-					return 9; }
-			}
-			return ($hasweek) ? 7:5;
+				return ($hasmonth) ? 11:9; }
+			if($hasweek) {
+				return 7; }
+			return ($hasmonth) ? 6:5;
 		}
 		elseif($hasmonth)
 		{
@@ -1276,14 +1125,14 @@ e.g. 'S+[H]H:[M]M' >> array
 		$this->conds = FALSE;
 
 		$gets = range(1,7);
-/*		$oldloc = FALSE;
+	/*		$oldloc = FALSE;
 		if($locale)
 		{
 			$oldloc = setlocale(LC_TIME,"0");
 			if(!setlocale(LC_TIME,$locale))
 				$oldloc = FALSE;
 		}
-*/
+	*/
 		//NB some of these may be wrong, due to locale race on threaded web-server
 		$longdays = self::AdminDayNames($gets);
 		$shortdays = self::AdminDayNames($gets,FALSE);
@@ -1293,18 +1142,20 @@ e.g. 'S+[H]H:[M]M' >> array
 		unset($gets);
 		//TODO caseless match for these, based on locale from somewhere
 		$specials = array(
+			$this->mod->Lang('to'),
 			$this->mod->Lang('not'),
 			$this->mod->Lang('except'),
 			$this->mod->Lang('each'),
+			$this->mod->Lang('every'),
 			$this->mod->Lang('sunrise'),
 			$this->mod->Lang('sunset'),
-			$this->mod->Lang('month'), //for use with 'each' OR bkrshared::RangeNames($this->mod,2)
-			$this->mod->Lang('week'), //OR bkrshared::RangeNames($this->mod,1)
 			$this->mod->Lang('day'), //for use with 'each' OR bkrshared::RangeNames($this->mod,0)
+			$this->mod->Lang('week'), //OR bkrshared::RangeNames($this->mod,1)
+			$this->mod->Lang('month'), //for use with 'each' OR bkrshared::RangeNames($this->mod,2)
 		);
-/*		if($oldloc)
+	/*		if($oldloc)
 			setlocale(LC_TIME,$oldloc);
-*/
+	*/
 		//replacement tokens
 		$daytokes = array();
 		for($i = 1; $i < 8; $i++)
@@ -1313,7 +1164,7 @@ e.g. 'S+[H]H:[M]M' >> array
 		for($i = 1; $i < 13; $i++)
 			$monthtokes[] = 'M'.$i;
 		//2-char tokens to avoid name-conflicts e.g. sunrise-Sun TODO CHECK ok
-		$spectokes = array('!',	'!','ES','SS','RS','MS','WS','DS');
+		$spectokes = array('..','!','!','ES','ES','RS','SS','DS','WS','MS');
 		//long-forms before short- & specials last, for effective str_replace()
 		$finds = array_merge($longdays,$shortdays,$longmonths,$shortmonths,
 			$specials,array(' ',PHP_EOL));
@@ -1327,7 +1178,7 @@ e.g. 'S+[H]H:[M]M' >> array
 		//check overall consistency (i.e. no unrecognised content, all brackets are valid)
 		//and separate into distinct comma-separated 'parts'
 		$parts = array();
-        $storeseg = 0; //index of 1st array-element to merge & store
+		$storeseg = 0; //index of 1st array-element to merge & store
 		$clean = '';
 		$depth = 0;
 
@@ -1338,79 +1189,101 @@ e.g. 'S+[H]H:[M]M' >> array
 			$depth++;
 			if($one)
 			{
-				$e = self::_EndSeries($one,0); //no need for success-check
-$edbg = substr($one,$e);
-				$t = substr($one,0,$e+1);
-				if(strpos($t,',') !== FALSE || strpos($t,'..') !== FALSE)
-					$t = self::_ParsePeriodSeries($t);
-				//process in-seg bracket(s)
 				$segl = strlen($one);
 				$segat = strrpos($one,'@',-1);
+				$e = self::_EndScan($one,0); //no need for success-check
+				$t = substr($one,0,$e+1);
+				//process as period[@time] or time alone
+				if($segat === FALSE && (strpos($t,':') !== FALSE || strpos($t,'S') !== FALSE)) {
+					$t = self::_CleanTime($t); }
+				elseif(strpos($t,',') !== FALSE || strpos($t,'..') !== FALSE) {
+					$t = self::_CleanPeriod($t); }
+				//process in-seg bracket(s)
 				$p = ($segat === FALSE) ? $segl:$segat;
-$fdbg = substr($one,$p);
-				$cb = substr_count($one,')',$e+1,$p-$e-1); //right-bracket(s) following the processed sub-string
+				if($p > $e+1) {
+					$cb = substr_count($one,')',$e+1,$p-$e-1); } //right-bracket(s) following the processed sub-string
+				else {
+					$cb = 0; }
 				if($cb > 0)
 				{
 					$depth -= $cb;
-					if($depth < 0) //CHECKME or 1?
-					   return FALSE;
+					if($depth < 0) {//CHECKME or 1?
+						return FALSE; }
 					if($cs == 2 && $i > 0 && $segs[$i-1] == '') //special case (stuff)
 					{
-						unset($segs[$i-1]);
+						if($p >= $segl) {
+							unset($segs[$i-1]); }
+						else {
+							$t .= str_repeat(')',$cb); }
 					}
-					else
-					{
-						$t .= str_repeat(')',$cb);
-					}
+					else {
+						$t .= str_repeat(')',$cb); }
 				}
 				else //no bracket
 				{
 					if($t && strpos($t,',') !== FALSE)
 					{
-						if($i > 0)
-						{
-							$t .= ')'; //correction
-						}
+						if($i > 0) {
+						$t .= ')'; } //correction
 					}
 					elseif($i > 0 && $segs[$i-1] == '')
 					{
 						unset($segs[$i-1]);
 					}
-					elseif($t)
-					{
-						if($i > 0)
-						{
-							$t .= ')'; //CHECKME
-						}
-					}
 				}
 				//skip ')' in source-string
 				while(++$e < $segl && $one[$e] == ')');
-$edbg = substr($one,$e);
-				if($one[$e] != ',')
+				if($e >= $segl)
 				{
-					$t .= substr($one,$e);
 					$one = $t;
 				}
-				else //part-separator detected
+				else
 				{
-					$rest = substr($one,$e+1); //extra stuff from ',' to end of segment e.g. 'M1'
-					$one = $t; //we're done with the current part
-					$clean .= implode('(',array_slice($segs,$storeseg,$i-$storeseg+1));
-					$p = substr_count($clean,'(');
-					if(substr_count($clean,')') != $p)
+					$rest = substr($one,$e); //more stuff to end of segment
+					//may be singleton e.g. @14:00 or include part-separator e.g. ,M1 or @9:00,1
+					$p = strpos($rest,',');
+					if($p === FALSE) //no part-separator in $rest
 					{
-						return FALSE;
+						if($rest[0] == '@')
+						{
+							$t .= '@';
+							if($e+1 < $segl) {
+								$t .= self::_CleanTime($rest); } //after @ might have '..' sequence or time
+							$one = $t;
+						}
+						else
+						{
+							$one = $t.self::_CleanPeriod($rest); //$rest might contain '..' sequence only?
+						}
 					}
-					$parts[] = $clean;
-					$storeseg = $i+1; //next merge begins after this segment
-					if(strpos($rest,',') !== FALSE || strpos($rest,'..') !== FALSE)
-						$rest = self::_ParsePeriodSeries($rest);
-					//if more seg(s), next implode() won't know about this bit
-					if($i < $cs-1)
-						$rest .= '(';
-					$clean = $rest;
-					$depth = 0;
+					else
+					{
+						//we're done with the current part
+						$s = substr($rest,0,$p);
+						if($s[0] == '@')
+						{
+							$t .= '@';
+							if($e+1 < $segl) {
+								$t .= self::_CleanTime($s); } //after @ might have '..' sequence or time
+							$one = $t;
+						}
+						else
+							$one = $t.self::_CleanPeriod($s); //TODO or _CleanTime() ?
+						$clean .= implode('(',array_slice($segs,$storeseg,$i-$storeseg+1));
+						$c = substr_count($clean,'(');
+						if(substr_count($clean,')') != $c) {
+							return FALSE; }
+						$parts[] = $clean;
+						$storeseg = $i+1; //next merge begins after this segment
+						$t = substr($rest,$p+1);
+						if(strpos($t,',') !== FALSE || strpos($t,'..') !== FALSE)
+							$t = self::_CleanPeriod($t);
+						//if more seg(s), next implode() won't know about this bit
+						if($i < $cs-1) {
+							$t .= '('; }
+						$clean = $t;
+						$depth = 0;
+					}
 				}
 			}
 		}
@@ -1440,22 +1313,22 @@ $edbg = substr($one,$e);
 				{
 					$parsed['P'] = FALSE;
 					$parsed['F'] = 1; //enum for only-time-specified
-					$parsed['T'] = $report ? $one : self::_TimeClean($one,FALSE);
+					$parsed['T'] = $report ? $one : self::_CleanTime($one,FALSE);
 				}
 				else //$p > 0 || $e
 					if($p > 0 && $e)
 				{
-					$parsed['P'] = $report ? $one : self::_PeriodSplit($one);
+					$parsed['P'] = $report ? $one : self::_SplitPeriod($one);
 					$parsed['F'] = self::_GetFocus($one);
 					$parsed['T'] = FALSE;
 				}
 				elseif($p > 0)
 				{
 					$t = substr($one,0,$p);
-					$parsed['P'] = $report ? $t : self::_PeriodSplit($t);
+					$parsed['P'] = $report ? $t : self::_SplitPeriod($t);
 					$parsed['F'] = self::_GetFocus($t);
 					$t = substr($one,$p+1);
-					$parsed['T'] = $report ? $t : self::_TimeClean($t,FALSE);
+					$parsed['T'] = $report ? $t : self::_CleanTime($t,FALSE);
 				}
 			}
 			else //PERIOD OR TIME
@@ -1485,14 +1358,14 @@ $edbg = substr($one,$e);
 								break;
 							}
 						}
-/*						if($condtype == 0)
+	/*						if($condtype == 0)
 						{
 							$s = $matches[0][0];
 							$e = $matches[0]....;
 							if($s <= 5 && $e <= 31)
 							   $condtype = 2; //guess period
 						}
-*/
+	*/
 					}
 			}
 				//end of analysis, for now
@@ -1500,11 +1373,11 @@ $edbg = substr($one,$e);
 				{
 					$parsed['P'] = FALSE;
 					$parsed['F'] = 1;
-					$parsed['T'] = $report ? $one : self::_TimeClean($one,FALSE);
+					$parsed['T'] = $report ? $one : self::_CleanTime($one,FALSE);
 				}
 				elseif($condtype == 2) //period
 				{
-					$parsed['P'] = $report ? $one : self::_PeriodSplit($one);
+					$parsed['P'] = $report ? $one : self::_SplitPeriod($one);
 					$parsed['F'] = self::_GetFocus($one);
 					$parsed['T'] = FALSE;
 				}
@@ -1559,7 +1432,7 @@ $edbg = substr($one,$e);
 								$mindiff = $diff;
 						}
 					}
-					if (!$useday && $mindiff < $slothours) 
+					if (!$useday && $mindiff < $slothours)
 						$useday = TRUE;
 				}
 				elseif($n)
@@ -1618,7 +1491,10 @@ $edbg = substr($one,$e);
 					$s .= $one['T'];
 			}
 			unset($one);
-			//$specials last, to prevent dayname conflicts e.g. month(M) vs M1(Jan) BUT then sunset(S) vs Sun conflict!
+			//keep any replaced 'to'
+			array_shift($spectokes);
+			array_shift($specials);
+			//$specials last, to prevent dayname conflicts e.g. month(M) vs M1(Jan)
 			//reverse month-arrays to match M10-M12 before M1
 			$finds = array_merge($daytokes,array_reverse($monthtokes),$spectokes);
 			$repls = array_merge($shortdays,array_reverse($shortmonths),$specials);
