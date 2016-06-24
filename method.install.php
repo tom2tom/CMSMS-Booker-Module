@@ -244,6 +244,7 @@ $db->CreateSequence($this->RequestTable.'_seq');
  fee: rate or amount which applies when feecondition is satisfied
  feecondition: interval-descriptor or user-decriptor
  condtype: enum 0 = interval or 1 = user
+ condorder: enum for display-order and fee-application-order
 */
 $fields = "
  condition_id I(4) KEY,
@@ -253,7 +254,8 @@ $fields = "
  slotcount I(1),
  fee N(7.2),
  feecondition C(128),
- condtype I(1) DEFAULT 0
+ condtype I(1) DEFAULT 0,
+ condorder I(1) DEFAULT -1
 ";
 $sqlarray = $dict->CreateTableSQL($this->PayTable,$fields,$taboptarray);
 if ($sqlarray == FALSE)
