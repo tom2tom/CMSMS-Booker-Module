@@ -1578,18 +1578,18 @@ match-array(s) have
 	ParseCondition:
 
 	Parse @descriptor and store result in $this->conds.
-	Returns TRUE upon success, or if no constraint applies, otherwise FALSE.
 	This (or CheckCondition()) must be called before any poll for a suitable period,
 	or check for a matching period.
 
 	@descriptor: interval-descriptor string
 	@locale: UNUSED optional, locale identifier string for correct capitalising of day/month names
 	  possibly present in @descriptor, default ''
+	Returns TRUE upon success, or if no constraint applies, otherwise FALSE.
 	*/
 	function ParseCondition($descriptor/*,$locale=''*/)
 	{
-		if($descriptor)
-			return self::_Lex($descriptor/*,$locale*/);
+		if($descriptor) {
+			return self::_Lex($descriptor/*,$locale*/); }
 		$this->conds = FALSE;
 		return TRUE;
 	}
@@ -1598,8 +1598,6 @@ match-array(s) have
 	CheckCondition:
 
 	Determine whether interval @descriptor has correct syntax.
-	Returns '' if @descriptor is FALSE (no constraint applies), or a cleaned-up
-	variant of @descriptor, or FALSE if @descriptor is bad.
 	Also stores parsed form of @descriptor in array $this->conds. This (or ParseCondition())
 	must be called before any poll for a suitable period, or check for a matching
 	period.
@@ -1607,11 +1605,13 @@ match-array(s) have
 	@descriptor: availability-condition string
 	@locale: UNUSED optional, locale identifier string for correct capitalising of day/month names
 	  possibly present in @descriptor, default ''
+	Returns '' if @descriptor is FALSE (no constraint applies), or a cleaned-up
+	variant of @descriptor, or FALSE if @descriptor is bad.
 	*/
 	function CheckCondition($descriptor/*,$locale=''*/)
 	{
-		if($descriptor)
-			return self::_Lex($descriptor,/*$locale,*/TRUE);
+		if($descriptor) {
+			return self::_Lex($descriptor,/*$locale,*/TRUE); }
 		$this->conds = FALSE;
 		return '';
 	}
