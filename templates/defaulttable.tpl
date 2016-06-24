@@ -42,7 +42,7 @@
 <p>{$nobookings}</p>
 {/if}
 <div>
-<table id="bookactions" style="display:inline-block;border:0;">
+<table id="bookactions" style="display:inline-block;border:0;overflow:auto;">
 <tr>{section name=c loop=$actions1}<td>{$actions1[c]}</td>{/section}</tr>
 <tr>{section name=c loop=$actions2}<td>{$actions2[c]}</td>{/section}</tr>
 </table>
