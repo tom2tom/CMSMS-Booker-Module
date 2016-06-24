@@ -72,6 +72,7 @@ class Booker extends CMSModule
 	public $ItemTable; //resources and resource-groups
 	public $RepeatTable; //repeated bookings-data
 	public $RequestTable; //submitted booking requests
+	public $PayTable; //payment rates and associated conditions
 //	public $CacheTable; //cached bookings-data
 	public $UserTable; //admin users (who may 'own' resource/group)
 	public $before20;
@@ -97,6 +98,7 @@ class Booker extends CMSModule
 		$this->ItemTable = $pre.'module_bkr_item';
 		$this->RepeatTable = $pre.'module_bkr_repeats';
 		$this->RequestTable = $pre.'module_bkr_requests';
+		$this->PayTable = $pre.'module_bkr_pay';
 //		$this->CacheTable = $pre.'module_bkr_cache';
 		$this->UserTable = $pre.'users';
 		global $CMS_VERSION;

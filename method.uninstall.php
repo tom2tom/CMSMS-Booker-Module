@@ -46,6 +46,8 @@ $sql = $dict->DropTableSQL($this->RepeatTable);
 $dict->ExecuteSQLArray($sql);
 $sql = $dict->DropTableSQL($this->RequestTable);
 $dict->ExecuteSQLArray($sql);
+$sql = $dict->DropTableSQL($this->PayTable);
+$dict->ExecuteSQLArray($sql);
 $sql = $dict->DropTableSQL($pre.'module_bkr_cache');
 $dict->ExecuteSQLArray($sql);
 // remove sequences
@@ -55,7 +57,8 @@ $db->DropSequence($this->ItemTable.'_seq');
 $db->DropSequence($this->ItemTable.'_gseq');
 //RepeatTable sequence same as for DataTable
 $db->DropSequence($this->RequestTable.'_seq');
-$db->DropSequence($pre.'module_bkrcache_seq');
+$db->DropSequence($this->PayTable.'_seq');
+$db->DropSequence($pre.'module_bkr_cache_seq');
 // remove permissions
 $this->RemovePermission($this->PermStructName);
 $this->RemovePermission($this->PermAdminName);

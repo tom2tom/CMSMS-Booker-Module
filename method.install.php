@@ -29,11 +29,6 @@ $dict = NewDataDictionary($db);
 	rationcount: max. pending bookings for any specific booker
 	keeptype: enumerator for interval used for max. retention-time for past bookings
 	keepcount: count of keeptype intervals which, together with keeptype, defines max. retention-time for bookings history
-	fee1: rate or amount which applies to periods satisfying fee1condition
-	fee1condition: interval-descriptor string
-	fee2: rate or amount which applies to periods satisfying fee2condition
-	fee2condition: interval-descriptor string
-	paymentiface: for future use e.g. module name, gateway name, properties to use
 	latitude: for sun-related calcs, accurate to ~1km
 	longitude: ditto
 	timezone: for date/time offsets & calcs
@@ -46,6 +41,7 @@ $dict = NewDataDictionary($db);
 	smsprefix: country-code to be prepended to sms messages when needed
 	smspattern: regex for determining whether approvercontact is a phone suitable for sms messages (no whitespace, before country-prefix)
 	formiface: for future use e.g. module name, properties to use, for custom booking-request form
+	paymentiface: for future use e.g. module name, gateway name, properties to use
 	feugroup: id of group of whose members are authorised to make 'direct' (un-mediated) bookings
 	owner: uid of the contact-person for the item, or 0 if there's no such person
 	cleargroup: boolean whether to clear data for item when (sole) parent-group data are cleared
@@ -71,11 +67,6 @@ $fields = "
 	rationcount I(1),
 	keeptype I(1),
 	keepcount I(1),
-	fee1 N(7.2),
-	fee1condition C(128),
-	fee2 N(7.2),
-	fee2condition C(128),
-	paymentiface C(48),
 	latitude N(8.3),
 	longitude N(8.3),
 	timezone C(48),
@@ -88,6 +79,7 @@ $fields = "
 	smsprefix C(8),
 	smspattern C(32),
 	formiface C(48),
+	paymentiface C(48),
 	feugroup I4,
 	owner I4,
 	cleargroup I(1),
@@ -203,16 +195,6 @@ $res = $dict->ExecuteSQLArray($sqlarray, FALSE);
 if ($res != 2)
 	return FALSE;
 
-if(DBGBKG)
-{
-// same sequence used for repeats and non-repeats
-	$bid = $db->GenID($this->DataTable.'_seq');
-	$item = 8;
-	$sql = 'INSERT INTO '.$this->RepeatTable.' (bkg_id,item_id,formula,user,userclass) VALUES (?,?,?,?,?)';
-	$dummy = array($bid,$item,'Mon..Fri@20:00..21:00','Repeater',5);
-	$db->Execute($sql,$dummy);
-}
-
 /*
 NOTE action.requestbooking.php must be conformed to any change here
 submitted booking requests table schema
@@ -252,6 +234,35 @@ $res = $dict->ExecuteSQLArray($sqlarray,FALSE);
 if ($res != 2)
 	return FALSE;
 $db->CreateSequence($this->RequestTable.'_seq');
+
+/* Fees & related conditions
+ condition_id:
+ item_id: group/item to which the condition applies
+ description: public info/help about the condition
+ slottype: enumerator for interval covered by the payment, 0..5 per TimeIntervals() or -1 for fixed amount
+ slotcount: count of slottype intervals which, together with slottype, defines length to which fee applies
+ fee: rate or amount which applies when feecondition is satisfied
+ feecondition: interval-descriptor or user-decriptor
+ condtype: enum 0 = interval or 1 = user
+*/
+$fields = "
+ condition_id I(4) KEY,
+ item_id I(4),
+ description C(128),
+ slottype I(1),
+ slotcount I(1),
+ fee N(7.2),
+ feecondition C(128),
+ condtype I(1) DEFAULT 0
+";
+$sqlarray = $dict->CreateTableSQL($this->PayTable,$fields,$taboptarray);
+if ($sqlarray == FALSE)
+	return FALSE;
+$res = $dict->ExecuteSQLArray($sqlarray,FALSE);
+if ($res != 2)
+	return FALSE;
+$db->CreateSequence($this->PayTable.'_seq');
+
 /*
 Data cache
 */
@@ -264,7 +275,146 @@ $pre = cms_db_prefix();
 $sqlarray = $dict->CreateTableSQL($pre.'module_bkr_cache',$fields,$taboptarray);
 $dict->ExecuteSQLArray($sqlarray);
 //this is not for table-data content
-$db->CreateSequence($pre.'module_bkrcache_seq');
+$db->CreateSequence($pre.'module_bkr_cache_seq');
+
+if(DBGBKG)
+{
+	$data = array(
+array(10001,'allcourts','All courts',NULL,NULL,'courts','6:00..21:00',1,1,3,1,5,1,'-37.814','144.963','Australia/Melbourne','j M Y','G:i',2,'P Cook','tpgww@onepost.net','61','^04\\d{8}$',NULL),
+array(10002,'ontocar','Entoutcas courts',NULL,'front','courts',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,2,NULL,NULL,NULL,NULL,3),
+array(10003,'carpet','Synthetic courts','Tigerturf court','back,carpet,tigerturf','modclay courts',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,2,NULL,NULL,NULL,NULL,1),
+array(10004,'lit','Lit courts','Suitable for playing at night.<br />Fee: $10 per hour per court when lights are used.','light,lights','night courts',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,2,NULL,NULL,NULL,NULL,1),
+array(1,'court1','Court 1',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,1,'P Cook','tpgww@onepost.net',NULL,NULL,NULL),
+array(2,'court2','Court 2',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,1,'P Cook','tpgww@onepost.net',NULL,NULL,NULL),
+array(3,'court3','Court 3',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,1,NULL,NULL,NULL,NULL,NULL),
+array(4,'court4','Court 4',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,1,NULL,NULL,NULL,NULL,NULL),
+array(5,'court5','Court 5',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,1,NULL,NULL,NULL,NULL,NULL),
+array(6,'court6','Court 6',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,1,NULL,NULL,NULL,NULL,NULL),
+array(7,'court7','Court 7',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,1,NULL,NULL,NULL,NULL,NULL),
+array(8,'court8','Court 8',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,1,NULL,NULL,NULL,NULL,NULL),
+array(9,'court9','Court 9',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,1,NULL,NULL,NULL,NULL,NULL),
+array(10,'court10','Court 10',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,1,NULL,NULL,NULL,NULL,NULL)
+);
+		$sql = 'INSERT INTO '.$this->ItemTable.
+' (item_id,alias,name,description,keywords,membersname,available,slottype,slotcount,leadtype,leadcount,keeptype,keepcount,latitude,longitude,timezone,dateformat,timeformat,listformat,approver,approvercontact,smsprefix,smspattern,subgrpalloc)
+VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)';
+	foreach($data as $dummy)
+	{
+		$db->Execute($sql,$dummy);
+	}
+
+	$sql = 'UPDATE '.$this->ItemTable.'_seq SET id=10';
+	$db->Execute($sql);
+	$sql = 'UPDATE '.$this->ItemTable.'_gseq SET id=10004';
+	$db->Execute($sql);
+
+	$data = array(
+array(10002,10001,-1,1),
+array(10003,10001,-1,1),
+array(10004,10002,-1,1),
+array(10004,10001,-1,2),
+array(1,10002,-1,1),
+array(1,10004,-1,2),
+array(1,10001,-1,3),
+array(2,10002,-1,1),
+array(2,10004,-1,2),
+array(2,10001,-1,3),
+array(3,10002,-1,1),
+array(3,10004,-1,2),
+array(3,10001,-1,3),
+array(4,10002,-1,1),
+array(4,10004,-1,2),
+array(4,10001,-1,3),
+array(5,10003,-1,1),
+array(5,10001,-1,2),
+array(5,10004,-1,3),
+array(6,10003,-1,1),
+array(6,10001,-1,2),
+array(6,10004,-1,3),
+array(7,10003,-1,1),
+array(7,10001,-1,2),
+array(7,10004,-1,3),
+array(8,10003,-1,1),
+array(8,10001,-1,2),
+array(8,10004,-1,3),
+array(9,10002,-1,1),
+array(9,10001,-1,2),
+array(10,10002,-1,1),
+array(10,10001,-1,2)
+);
+	$sql = 'INSERT INTO '.$this->GroupTable.
+' (child,parent,likeorder,proximity) VALUES (?,?,?,?)';
+	foreach($data as $dummy)
+	{
+		$db->Execute($sql,$dummy);
+	}
+
+	$dt = new DateTime('now',new DateTimeZone('UTC'));
+	$i = $dt->format('w');
+	if($i > 0)
+		$dt->modify('-'.$i.' days'); //to current-week Sunday
+	$daygroup = 5;
+
+	$data = array(
+array(2,11,1,'Coaching','0444 555 666',5,0,1),
+array(2,12,1,'Mary','@myfirm',1,0,0),
+array(2,13,2,'Comp1',NULL,2,0,1),
+array(2,15,1,'User2',NULL,0,0,0),
+array(2,9,1,'Fred','me@here.com',1,0,0),
+
+array(2,11,1,'Coaching','0444 555 666',5,0,1),
+array(2,12,1,'Mary','@myfirm',1,0,0),
+array(2,13,2,'Comp1',NULL,2,0,1),
+array(2,15,1,'User2',NULL,0,0,0),
+array(2,9,1,'Fred','me@here.com',1,0,0),
+
+array(2,11,1,'Coaching','0444 555 666',5,0,1),
+array(2,12,1,'Mary','@myfirm',1,0,0),
+array(2,13,2,'Comp2',NULL,2,0,1),
+array(2,15,1,'User2',NULL,1,0,0),
+array(2,9,1,'Fred','me@here.com',1,0,0),
+
+array(2,11,1,'Coaching','0444 555 666',5,0,1),
+array(2,12,1,'Jane','@myfirm',1,0,0),
+array(2,13,2,'Comp2',NULL,2,0,1),
+array(2,15,1,'User2',NULL,0,0,0),
+array(2,9,1,'Fred','me@here.com',1,0,0),
+
+array(2,11,1,'Coaching','0444 555 666',5,0,1),
+array(2,12,1,'Jane','@myfirm',1,0,0),
+array(2,13,2,'Comp1',NULL,2,0,1),
+array(2,15,1,'User2',NULL,1,0,0),
+array(2,9,1,'Fred','me@here.com',1,0,0)
+);
+	$sql = 'INSERT INTO '.$this->DataTable.
+' (bkg_id,item_id,slotstart,slotlen,user,contact,userclass,status,paid) VALUES (?,?,?,?,?,?,?,?,?)';
+	$i = $daygroup;
+	foreach($data as $dummy)
+	{
+		if($i == $daygroup)
+		{
+			$dt->modify('+1 day');
+			$i = 0;
+		}
+		$bid = $db->GenID($this->DataTable.'_seq');
+		$dt->setTime(0,0,0);
+		$dt->modify('+'.(int)$dummy[1].' hours');
+		$dummy[1] = $dt->getTimestamp();
+        $dummy[2] = $dummy[2]*3600 - 1;
+		array_unshift($dummy,$bid);
+		$db->Execute($sql,$dummy);
+		$i++;
+	}
+	$sql = 'UPDATE '.$this->DataTable.'_seq SET id='.(count($data)-1);
+	$db->Execute($sql);
+
+// same sequence used for repeats and non-repeats
+	$bid = $db->GenID($this->DataTable.'_seq');
+	$item = 8;
+	$sql = 'INSERT INTO '.$this->RepeatTable.' (bkg_id,item_id,formula,user,userclass) VALUES (?,?,?,?,?)';
+	$dummy = array($bid,$item,'Mon..Fri@20:00..21:00','Repeater',5);
+	$db->Execute($sql,$dummy);
+}
 
 // permissions
 $this->CreatePermission($this->PermStructName, $this->Lang('perm_module')); //Booker Module Admin
@@ -285,10 +435,12 @@ $this->SetPreference('pref_bookcount',0); //book any no. of slots
 $this->SetPreference('pref_cleargroup',0);	//delete items in group when group is deleted (admin)
 $this->SetPreference('pref_exportencoding','UTF-8'); //preference-only, not an items-table field
 $this->SetPreference('pref_exportfile',0); //preference-only, not an items-table field
+/* TODO $this->Paytable stuff
 $this->SetPreference('pref_fee1',0.0);
 $this->SetPreference('pref_fee1condition',''); //empty = always used
 $this->SetPreference('pref_fee2',0.0);
 $this->SetPreference('pref_fee2condition',''); //empty = never used
+*/
 $this->SetPreference('pref_feugroup',0);
 $this->SetPreference('pref_formiface',''); //data for custom request-form
 $this->SetPreference('pref_keepcount',0);
