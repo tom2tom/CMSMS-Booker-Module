@@ -245,6 +245,8 @@ $db->CreateSequence($this->RequestTable.'_seq');
  feecondition: interval-descriptor or user-decriptor
  condtype: enum 0 = interval or 1 = user
  condorder: enum for display-order and fee-application-order
+ NOTE changes to this field-structure must be replicated in the add-fee mechanism
+ in action.fees.php
 */
 $fields = "
  condition_id I(4) KEY,
@@ -422,8 +424,8 @@ array(2,9,1,'Fred','me@here.com',1,0,0)
 	$data = array(
 array(1,'Fixed test',-1,NULL,'28.00','sunrise..sunset'),
 array(2,'Variable test',1,1,'15.00',NULL),
-array(2,'Test2',1,1,'25.00',12:00),
-array(2,'Test3',1,1,'5.00',13:00..15:30),
+array(2,'Test2',1,1,'25.00','12:00'),
+array(2,'Test3',1,1,'5.00','13:00..15:30'),
 array(10003,'	Non-members hire',1,1,'28.00',NULL),
 array(10004,'Nightplay fee',1,1,'10.00','0..sunrise,sunset..23:59'),
 	);
