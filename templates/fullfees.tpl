@@ -8,7 +8,7 @@
 <div style="margin-left:2em">
 {if $count > 0}
 <div style="overflow:auto;display:inline-block;">
- <table id="fees" class="pagetable{if $mod} table_drag{/if}" style="border-collapse:collapse">
+ <table id="fees" class="pagetable{if $mod} table_drag{/if}" style="overflow:auto;border-collapse:collapse;">
   <thead><tr>
    <th>{$desctext}</th>
    <th colspan="2" style="text-align:center";>{$periodtext}</th>
@@ -29,7 +29,7 @@
    <td>{$entry->fee}</td>
    <td>{$entry->cond}</td>
    <td>{$entry->active}</td>
-{if $mod}   <td class="updown">{$entry->downlink}{$entry->uplink}</td>
+{if $mod}   <td class="updown">{$entry->dnlink}{$entry->uplink}</td>
    <td>{$entry->deletelink}</td>
    <td class="checkbox">{$entry->selected}</td>
 {/if}
