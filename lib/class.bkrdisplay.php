@@ -411,7 +411,7 @@ class bkrdisplay
 			$iter->seek($position);
 		} catch (Exception $e) {
 			$one = new stdClass();
-			$one->data = null; //$e->getMessage();
+			$one->data = NULL; //$e->getMessage();
 			$one->style = 'class="vacant"';
 			return array($one,$position);
 		}
@@ -553,7 +553,7 @@ class bkrdisplay
 		}
 		else //all vacant
 		{
-			$one->data = null;
+			$one->data = NULL;
 			$one->style = 'class="vacant"';
 		  //$position unchanged
 		}
@@ -637,7 +637,7 @@ class bkrdisplay
 
 		//prepend top-left cell
 		$one = new stdClass();
-		$one->data = null;
+		$one->data = NULL;
 		$one->style = 'class="topleft"';
 		array_unshift($cells,$one);
 		$rc = count($cells); //includes header/titles row
@@ -690,7 +690,7 @@ class bkrdisplay
 				else
 				{
 					$one = new stdClass();
-					$one->data = null;
+					$one->data = NULL;
 					$one->style = 'class="vacant"';
 				}
 				$cells[] = $one;
@@ -770,9 +770,9 @@ class bkrdisplay
 		foreach($allresource as $one)
 			$funcs->UpdateRepeats($this->mod,$one,$ndt);
 		$funcs = new bkrbookingops();
+		$lfmt = (int)$idata['listformat'];
 		$booked = $funcs->GetListBooked($this->mod,$is_group,$allresource,
-			(int)$idata['listformat'],$dt->getTimestamp(),$ndt->getTimestamp()- 1);
-
+			$lfmt,$dt->getTimestamp(),$ndt->getTimestamp()- 1);
 		if($booked)
 		{
 			$majr_fmt = $idata['dateformat']; //part of report  //c.f. bkrshared::IntervalFormat($mod,$format,$dt)

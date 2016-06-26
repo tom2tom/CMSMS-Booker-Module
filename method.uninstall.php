@@ -18,7 +18,7 @@ function delTree($dir)
 			if(is_dir($fp))
 			{
 			 	if(!delTree($fp))
-					return false;
+					return FALSE;
 			}
 			else
 				unlink($fp);

@@ -23,7 +23,7 @@ class bkrshared
 {
 	/**
 	ProcessTemplate:
-	@mod: reference to current SEOTools module object
+	@mod: reference to current Booker module object
 	@tplname: template identifier
 	@tplvars: associative array of template variables
 	@cache: optional boolean, default TRUE
@@ -35,15 +35,15 @@ class bkrshared
 		if($mod->before20)
 		{
 			$smarty->assign($tplvars);
-			echo $mod->ProcessTemplate($tplname);
+			return $mod->ProcessTemplate($tplname);
 		}
 		else
 		{
 			if($cache)
 			{
-				$cache_id = md5('seo'.$tplname.serialize(array_keys($tplvars)));
+				$cache_id = md5('bkr'.$tplname.serialize(array_keys($tplvars)));
 				$lang = CmsNlsOperations::get_current_language();
-				$compile_id = md5('seo'.$tplname.$lang);
+				$compile_id = md5('bkr'.$tplname.$lang);
 				$tpl = $smarty->CreateTemplate($mod->GetFileResource($tplname),$cache_id,$compile_id,$smarty);
 				if(!$tpl->isCached())
 					$tpl->assign($tplvars);
@@ -52,13 +52,13 @@ class bkrshared
 			{
 				$tpl = $smarty->CreateTemplate($mod->GetFileResource($tplname),NULL,NULL,$smarty,$tplvars);
 			}
-			$tpl->display();
+			return $tpl->fetch();
 		}
 	}
 
 	/**
 	ProcessTemplateFromData:
-	@mod: reference to current SEOTools module object
+	@mod: reference to current Booker module object
 	@data: string
 	@tplvars: associative array of template variables
 	No cacheing.
@@ -196,19 +196,19 @@ class bkrshared
 	}
 
 	/* *
-	GetGroups(&$mod, $id=0, $returnid=0, $full=false, $anyowner=true)
+	GetGroups(&$mod, $id=0, $returnid=0, $full=FALSE, $anyowner=TRUE)
 
 	Create associative array of group-data, sorted by field 'likeorder',
 	each array member's key is the group id, value is an object
 
-	@id used in link, when $full is true
+	@id used in link, when $full is TRUE
 	@returnid ditto
-	@full false	return group_id and name only
-	@full true return all table 'raw' data for the group, plus a link TODO describe
-	@anyowner true return all groups
-	@anyowner false return groups whose owner is 0 or matches the current user
+	@full FALSE	return group_id and name only
+	@full TRUE return all table 'raw' data for the group, plus a link TODO describe
+	@anyowner TRUE return all groups
+	@anyowner FALSE return groups whose owner is 0 or matches the current user
 	*/
-/*	function GetGroups(&$mod,$id=0,$returnid=0,$full=false,$anyowner=true)
+/*	function GetGroups(&$mod,$id=0,$returnid=0,$full=FALSE,$anyowner=TRUE)
 	{
 		$grparray = array();
 
@@ -221,7 +221,7 @@ class bkrshared
 		else
 		{
 			$sql = "SELECT group_id,name,likeorder FROM $mod->GroupTable WHERE owner IN (0,?) ORDER BY likeorder ASC";
-			$uid = get_userid(false);
+			$uid = get_userid(FALSE);
 			$rows = $db->GetAssoc($sql,array($uid));
 		}
 
@@ -1169,7 +1169,7 @@ EOS;
 	 [Pacific/Honolulu] => (UTC-10:00) Pacific/Honolulu
 	 [Pacific/Fakaofo] => (UTC-10:00) Pacific/Fakaofo
 	*/
-	public function GetTimeZones(&$mod,$withtime=false)
+	public function GetTimeZones(&$mod,$withtime=FALSE)
 	{
 		static $regions = array(
 			DateTimeZone::AFRICA,

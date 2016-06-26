@@ -81,7 +81,8 @@ if(!empty($idata['description']))
 	$tplvars['desc'] = bkrshared::ProcessTemplateFromData($this,$idata['description'],$tplvars);
 //in this context, ignore $idata['image']
 
-$payable = $idata['fee1'] != 0 || ($idata['fee2'] != 0 && $idata['fee2condition']);
+//TODO $this->PayTable stuff
+//$payable = $idata['fee1'] != 0 || ($idata['fee2'] != 0 && $idata['fee2condition']);
 $yes = $this->Lang('yes');
 $no = $this->Lang('no');
 $from_group = FALSE;
@@ -227,6 +228,7 @@ if($data)
 			$oneset->time .= ' &Dagger;';
 		}
 		$oneset->user = $one['user'];
+//TODO $this->PayTable stuff
 		if($payable)
 			$oneset->paid = ($one['paid']) ? $yes:$no;
 		else
@@ -325,7 +327,7 @@ function select_all(cb) {
 
 EOS;
 		$tplvars['header_checkbox'] =
-			$this->CreateInputCheckbox($id,'selectall',true,false,'onclick="select_all(this);"');
+			$this->CreateInputCheckbox($id,'selectall',TRUE,FALSE,'onclick="select_all(this);"');
 	}
 	else
 		$tplvars['header_checkbox'] = '';
@@ -495,6 +497,7 @@ if($data)
 		}
 		$oneset->user = $one['user'];
 		$oneset->count = $one['subgrpcount'];
+//TODO $this->PayTable stuff
 		if($payable)
 			$oneset->paid = ($one['paid']) ? $yes:$no;
 		else
@@ -632,7 +635,7 @@ EOS;
 
 EOS;
 		$tplvars['header_checkbox2'] =
-			$this->CreateInputCheckbox($id,'selectall',true,false,'onclick="select_all2(this);"');
+			$this->CreateInputCheckbox($id,'selectall',TRUE,FALSE,'onclick="select_all2(this);"');
 	}
 	else
 		$tplvars['header_checkbox2'] = '';

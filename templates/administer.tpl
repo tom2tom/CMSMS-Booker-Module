@@ -12,13 +12,13 @@
 			 <table id="bookings" class="pagetable leftwards">
 			  <thead><tr>
 {foreach from=$colnames key=fcol item=fname}
-				<th class="{ldelim}sss:{if $colsorts[$fcol]}'text'{else}false{/if}{rdelim}">{$fname}</th>
+				<th class="{ldelim}sss:{if $colsorts[$fcol]}'text'{else}FALSE{/if}{rdelim}">{$fname}</th>
 			{/foreach}
-				<th class="pageicon {ldelim}sss:false{rdelim}"></th>
-				<th class="pageicon {ldelim}sss:false{rdelim}"></th>
-{if $tell}	<th class="pageicon {ldelim}sss:false{rdelim}"></th>{/if}
-{if $pmod}	<th class="pageicon {ldelim}sss:false{rdelim}"></th>{/if}
-				<th class="checkbox {ldelim}sss:false{rdelim}" style="width:20px;">{$header_checkbox}</th>
+				<th class="pageicon {ldelim}sss:FALSE{rdelim}"></th>
+				<th class="pageicon {ldelim}sss:FALSE{rdelim}"></th>
+{if $tell}	<th class="pageicon {ldelim}sss:FALSE{rdelim}"></th>{/if}
+{if $pmod}	<th class="pageicon {ldelim}sss:FALSE{rdelim}"></th>{/if}
+				<th class="checkbox {ldelim}sss:FALSE{rdelim}" style="width:20px;">{$header_checkbox}</th>
 			  </tr></thead>
 			  <tbody>
 {foreach from=$oncerows item=bkg}{cycle values='row1,row2' assign='rowclass'}
@@ -54,12 +54,12 @@
 			 <table id="repeats" class="pagetable leftwards">
 			  <thead><tr>
 {foreach from=$colnames2 key=fcol item=fname}
-				<th class="{ldelim}sss:{if $colsorts2[$fcol]}'text'{else}false{/if}{rdelim}">{$fname}</th>
+				<th class="{ldelim}sss:{if $colsorts2[$fcol]}'text'{else}FALSE{/if}{rdelim}">{$fname}</th>
 			{/foreach}
-				<th class="pageicon {ldelim}sss:false{rdelim}"></th>
-{if $tell}		<th class="pageicon {ldelim}sss:false{rdelim}"></th>{/if}
-{if $pmod}		<th class="pageicon {ldelim}sss:false{rdelim}"></th>{/if}
-				<th class="checkbox {ldelim}sss:false{rdelim}" style="width:20px;">{$header_checkbox2}</th>
+				<th class="pageicon {ldelim}sss:FALSE{rdelim}"></th>
+{if $tell}		<th class="pageicon {ldelim}sss:FALSE{rdelim}"></th>{/if}
+{if $pmod}		<th class="pageicon {ldelim}sss:FALSE{rdelim}"></th>{/if}
+				<th class="checkbox {ldelim}sss:FALSE{rdelim}" style="width:20px;">{$header_checkbox2}</th>
 			  </tr></thead>
 			  <tbody>
 {foreach from=$reptrows item=bkg}{cycle values='row1,row2' assign='rowclass'}
@@ -101,7 +101,8 @@
 </div>
 {/if}
 
-{foreach from=$jsincs item=inc}{$inc}{/foreach}
+{if !empty($jsincs)}{foreach from=$jsincs item=inc}{$inc}
+{/foreach}{/if}
 <script type="text/javascript">
 //<![CDATA[
 {foreach from=$jsfuncs item=func}{$func}{/foreach}

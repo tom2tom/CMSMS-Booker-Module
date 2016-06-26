@@ -162,12 +162,12 @@ class Booker extends CMSModule
 
 	function IsPluginModule()
 	{
-		return true;
+		return TRUE;
 	}
 
 	function HasAdmin()
 	{
-		return true;
+		return TRUE;
 	}
 
 	/*
@@ -175,7 +175,7 @@ class Booker extends CMSModule
 	*/
 	function LazyLoadAdmin()
 	{
-		return false;
+		return FALSE;
 	}
 
 	function GetAdminSection()
@@ -208,12 +208,12 @@ class Booker extends CMSModule
 		//and when processing an ajax call
 		if (isset($request['mact']))
 		{
-			if(strpos($request['mact'],'exportbooking',6)) return true;
+			if(strpos($request['mact'],'exportbooking',6)) return TRUE;
 			if(strpos($request['mact'],'multibooking',6)
-				&& isset($request['m1_export'])) return true;
-			if(strpos($request['mact'],'sortlike',6)) return true;
+				&& isset($request['m1_export'])) return TRUE;
+			if(strpos($request['mact'],'sortlike',6)) return TRUE;
 		}
-		return false;
+		return FALSE;
 	}
 
 	function GetDependencies()
@@ -226,7 +226,7 @@ class Booker extends CMSModule
 	*/
 	function LazyLoadFrontend()
 	{
-		return true;
+		return TRUE;
 	}
 
 	function InstallPostMessage()
@@ -350,7 +350,10 @@ class Booker extends CMSModule
 		 case 'edit':
 		 case 'see':
 		 case 'update': //apply/submit item/group changes
-			$action = 'openitem';
+ 			if(isset($params['modfee'])) //in-page edit-fees button clicked
+				$action = 'fees';
+			else
+				$action = 'openitem';
 			break;
 		 case 'inspect':
 			$action = 'administer';
@@ -373,6 +376,8 @@ class Booker extends CMSModule
 		 case 'requestbooking':
 		 case 'setprefs':
 		 case 'sortlike':
+		 case 'fees':
+		 case 'swapfees':
 			break;
 		 case 'adminbooking':
 			if(isset($params['importbkg']))
@@ -383,8 +388,8 @@ class Booker extends CMSModule
 				$action = 'processrequest';
 			break;
 		 case 'process': //multiple/selected/?export?/delete etc
-			if(isset($params['price']))
-				$action = 'price';
+			if(isset($params['fees']))
+				$action = 'fees';
 			elseif(isset($params['importitm']))
 				$action = 'import';
 			break;
@@ -403,6 +408,11 @@ class Booker extends CMSModule
 		 case 'rsee':
 			$action = 'processrequest';
 			break;
+		 case 'addfee':
+		 case 'delfee':
+		 case 'modfee':
+			$action = 'fees';
+			break;
 		 default:
 			if(isset($params['active_tab'])) //TODO if backend
 				$action = 'defaultadmin';
@@ -413,10 +423,10 @@ class Booker extends CMSModule
 	}
 
 	/**
-	_CheckAccess($permission='',$warn=false)
+	_CheckAccess($permission='',$warn=FALSE)
 		NOT PART OF THE MODULE API
 	*/
-	function _CheckAccess($permission='',$warn=false)
+	function _CheckAccess($permission='',$warn=FALSE)
 	{
 		switch ($permission)
 		{
@@ -463,7 +473,7 @@ class Booker extends CMSModule
 			break;
 		default:
 			$name = '';
-			$ok = false;
+			$ok = FALSE;
 		}
 		if (!$ok && $warn)
 		{
