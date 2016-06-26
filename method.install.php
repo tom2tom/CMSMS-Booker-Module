@@ -249,13 +249,14 @@ $db->CreateSequence($this->RequestTable.'_seq');
 $fields = "
  condition_id I(4) KEY,
  item_id I(4),
- description C(128),
+ description C(64),
  slottype I(1),
  slotcount I(1),
  fee N(7.2),
  feecondition C(128),
  condtype I(1) DEFAULT 0,
- condorder I(1) DEFAULT -1
+ condorder I(1) DEFAULT -1,
+ active I(1) DEFAULT 1
 ";
 $sqlarray = $dict->CreateTableSQL($this->PayTable,$fields,$taboptarray);
 if ($sqlarray == FALSE)
@@ -416,6 +417,26 @@ array(2,9,1,'Fred','me@here.com',1,0,0)
 	$sql = 'INSERT INTO '.$this->RepeatTable.' (bkg_id,item_id,formula,user,userclass) VALUES (?,?,?,?,?)';
 	$dummy = array($bid,$item,'Mon..Fri@20:00..21:00','Repeater',5);
 	$db->Execute($sql,$dummy);
+
+// 1 description 2 slottype 3 slotcount 4 fee 5 feecondition
+	$data = array(
+array(1,'Fixed test',-1,NULL,'28.00','sunrise..sunset'),
+array(2,'Variable test',1,1,'15.00',NULL),
+array(2,'Test2',1,1,'25.00',12:00),
+array(2,'Test3',1,1,'5.00',13:00..15:30),
+array(10003,'	Non-members hire',1,1,'28.00',NULL),
+array(10004,'Nightplay fee',1,1,'10.00','0..sunrise,sunset..23:59'),
+	);
+	$sql = 'INSERT INTO '.$this->PayTable.
+' (condition_id,item_id,description,slottype,slotcount,fee,feecondition,condorder) VALUES (?,?,?,?,?,?,?,?)';
+	$i = 0;
+	foreach($data as $dummy)
+	{
+		$bid = $db->GenID($this->PayTable.'_seq');
+		$args = array($bid,$dummy[0],$dummy[1],$dummy[2],$dummy[3],$dummy[4],$dummy[5],$i);
+		$db->Execute($sql,$args);
+		$i++;
+	}
 }
 
 // permissions
@@ -437,12 +458,8 @@ $this->SetPreference('pref_bookcount',0); //book any no. of slots
 $this->SetPreference('pref_cleargroup',0);	//delete items in group when group is deleted (admin)
 $this->SetPreference('pref_exportencoding','UTF-8'); //preference-only, not an items-table field
 $this->SetPreference('pref_exportfile',0); //preference-only, not an items-table field
-/* TODO $this->Paytable stuff
-$this->SetPreference('pref_fee1',0.0);
-$this->SetPreference('pref_fee1condition',''); //empty = always used
-$this->SetPreference('pref_fee2',0.0);
-$this->SetPreference('pref_fee2condition',''); //empty = never used
-*/
+$this->SetPreference('pref_fee',0.0);
+$this->SetPreference('pref_feecondition',''); //empty = always used
 $this->SetPreference('pref_feugroup',0);
 $this->SetPreference('pref_formiface',''); //data for custom request-form
 $this->SetPreference('pref_keepcount',0);
