@@ -81,8 +81,7 @@ if(!empty($idata['description']))
 	$tplvars['desc'] = bkrshared::ProcessTemplateFromData($this,$idata['description'],$tplvars);
 //in this context, ignore $idata['image']
 
-//TODO $this->PayTable stuff
-//$payable = $idata['fee1'] != 0 || ($idata['fee2'] != 0 && $idata['fee2condition']);
+$payable = $funcs->GetItemPayable($this,$item_id); //any payment condition
 $yes = $this->Lang('yes');
 $no = $this->Lang('no');
 $from_group = FALSE;
@@ -228,7 +227,6 @@ if($data)
 			$oneset->time .= ' &Dagger;';
 		}
 		$oneset->user = $one['user'];
-//TODO $this->PayTable stuff
 		if($payable)
 			$oneset->paid = ($one['paid']) ? $yes:$no;
 		else
@@ -497,7 +495,6 @@ if($data)
 		}
 		$oneset->user = $one['user'];
 		$oneset->count = $one['subgrpcount'];
-//TODO $this->PayTable stuff
 		if($payable)
 			$oneset->paid = ($one['paid']) ? $yes:$no;
 		else
