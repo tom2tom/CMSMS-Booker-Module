@@ -11,7 +11,7 @@
  <table id="fees" class="pagetable{if $mod} table_drag{/if}" style="overflow:auto;border-collapse:collapse;">
   <thead><tr>
    <th>{$desctext}</th>
-   <th colspan="2" style="text-align:center";>{$periodtext}</th>
+   <th colspan="2" style="text-align:center;">{$periodtext}</th>
    <th>{$feetext}</th>
    <th>{$condtext}</th>
    <th>{$activetext}</th>
