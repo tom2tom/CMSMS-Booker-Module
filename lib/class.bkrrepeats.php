@@ -43,7 +43,7 @@ class bkrrepeats extends RepeatLexer
 	'T' => string '20:00..21:00'
 OR e.g.
  array
-	'P' => boolean false
+	'P' => boolean FALSE
 	'F' => int 1
 	'T' => string '6:00-23:00'
 to blocks in $ss..$se
@@ -139,10 +139,10 @@ no FALSE in $ends[]
 	/*
 	_TimeBlocks:
 
-	Append to @starts[] and @ends[] pair(s) of timestamps consistent with @timestr
+	Append to @starts[] and @ends[] pair(s) of timestamps consistent with @timedata
 		and @ss and @se
 
-	@timestr: a time-descriptor string representing a single time (in which case
+	@timedata: a time-descriptor string representing a single time (in which case
 		end-time is assumed to be start + 1 hour), or a time-range including '..'
 	TODO support multiple values e.g. T1,T2... OR (T1,T2....)
 	TODO support roll-over to contiguous segment(s) & time(s)
@@ -154,18 +154,20 @@ no FALSE in $ends[]
 	@starts: reference to array of block-start timestamps to be updated
 	@ends: reference to array of block-end timestamps to be updated
 	*/
-	private function _TimeBlocks($timestr,$dtbase,$ss,$se,&$sunparms,&$starts,&$ends)
+	private function _TimeBlocks($timedata,$dtbase,$ss,$se,&$sunparms,&$starts,&$ends)
 	{
 		$dtw = clone $dtbase;
-		if(strpos($timestr,'..') !== FALSE)
-			$parts = explode('..',$timestr,2);
+		if(is_array($timedata))
+			$parts = array($timedata[0][0],$timedata[0][2]); //TODO CHECKME
+		elseif(strpos($timedata,'..') !== FALSE)
+			$parts = explode('..',$timedata,2);
 		else
 		{
 			$dtw->setTime(0,0,0);
-			$st = self::_RelTime($timestr,$dtw);
+			$st = self::_RelTime($timedata,$dtw);
 			$dtw->setTimestamp($st);
 			$dtw->modify('+1 hour');
-			$parts = array($timestr,$dtw->format('G:i'));
+			$parts = array($timedata,$dtw->format('G:i'));
 		}
 		$tbase = $dtbase->getTimestamp();
 		//block-start
@@ -259,11 +261,11 @@ no FALSE in $ends[]
 			$dtw->setTimestamp($dws->getTimestamp());
 			foreach($this->conds as &$one)
 			{
-				if($one['T'] && !$one['P'])
+				if($one['T'] && !$one['P']) {
 					//time only, any period (BUT maybe day-specific due to sun-related times)
-					self::_TimeBlocks($one['T'],$dtw,$ss,$se,$sunparms,$starts,$ends);
-				else
-					self::_AllBlocks($one,$dtw,$ss,$se,$sunparms,$starts,$ends);
+					self::_TimeBlocks($one['T'],$dtw,$ss,$se,$sunparms,$starts,$ends); }
+				else {
+					self::_AllBlocks($one,$dtw,$ss,$se,$sunparms,$starts,$ends); }
 			}
 			unset($one);
 			$dws->modify('+1 day'); //CHECKME longer interval in some cases?
@@ -344,6 +346,7 @@ no FALSE in $ends[]
 
 	/*
 	SunParms:
+	c.f. TimeInterpreter::GetSunData()
 	Get @itemdata-derived parameters for location-specific sunrise/set calcs
 	No checks here for valid parameters in @itemdata - assumed done before
 	@idata: reference to array of data (possibly inherited) for a resource or group
