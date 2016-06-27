@@ -107,7 +107,7 @@
 {if $add}{$additem}{/if}
 {if $icount > 0}
 <span style="margin-left:5em;">
-{if $add}{$importibtn} {/if}{$exportbtn1} {$pricebtn1}{if $mod}{if $icount > 1} {$sortbtn1}{/if} {$ablebtn1}{/if}{if $del} {$deletebtn1}{/if}
+{if $add}{$importibtn} {/if}{$exportbtn1} {$feebtn1}{if $mod}{if $icount > 1} {$sortbtn1}{/if} {$ablebtn1}{/if}{if $del} {$deletebtn1}{/if}
 </span>
 {else}
 {if $add}<span style="margin-left:3em">{$importibtn}</span>{/if}
@@ -166,7 +166,7 @@
 {if $add}{$addgrp}{/if}
 {if $gcount > 0}
 <span style="margin-left:5em;">
-{if $add}{$importibtn} {/if}{$exportbtn2} {$pricebtn2}{if $mod}{if $gcount > 1} {$sortbtn2}{/if} {$ablebtn2}{/if}{if $del} {$deletebtn2}{/if}
+{if $add}{$importibtn} {/if}{$exportbtn2} {$feebtn2}{if $mod}{if $gcount > 1} {$sortbtn2}{/if} {$ablebtn2}{/if}{if $del} {$deletebtn2}{/if}
 </span>
 {else}
 {if $add}
@@ -216,7 +216,8 @@
 &nbsp;&nbsp;<input id="mc_deny2" class="cms_submit btn_deny" type="submit" value="{$abort}" /></p>
 </div>
 {/if}
-{if !empty($jsincs)}{foreach from=$jsincs item=inc}{$inc}{/foreach}{/if}
+{if !empty($jsincs)}{foreach from=$jsincs item=inc}{$inc}
+{/foreach}{/if}
 {if !empty($jsfuncs)}
 <script type="text/javascript">
 //<![CDATA[
