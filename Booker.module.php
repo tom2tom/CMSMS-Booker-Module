@@ -377,7 +377,6 @@ class Booker extends CMSModule
 		 case 'setprefs':
 		 case 'sortlike':
 		 case 'fees':
-		 case 'swapfees':
 			break;
 		 case 'adminbooking':
 			if(isset($params['importbkg']))
@@ -540,6 +539,59 @@ class Booker extends CMSModule
 //			}
 			return $msg;
 		}
+	}
+
+	/**
+	_CreateInputLinks:
+	Generate xhtml for image and/or submit input(s) which can be styled like an icon
+	and/or link, using class "fakeicon" for an image, "fakelink" for a standard link.
+	Such object(s) is(are) needed where the handler/action requires all form data,
+	instead of just the data for the oject itself (which happens for a normal link)
+
+	@id: system-id to be passed to the module
+	@name: name of action to be performed when (either of) the object(s) is clicked
+	@iconfile: optional name of theme icon, or module-relative or absolute URL
+	  of some other icon for image input, default FALSE i.e. no image
+	@link: optional whether to (also) create a submit input, default FALSE
+	@text: optional title and tip for an image, or mandatory displayed text for a link, default ''
+	@extra: optional additional text that should be added into the object, default ''
+	*/
+	function _CreateInputLinks($id, $name, $iconfile=FALSE, $link=FALSE, $text='', $extra='')
+	{
+		if($iconfile)
+		{
+			$p = strpos($iconfile,'/'); 
+			if($p === FALSE)
+			{
+				$theme = ($this->before20) ? cmsms()->get_variable('admintheme'):
+					cms_utils::get_theme_object();
+				$imgstr = $theme->DisplayImage('icons/system/'.$iconfile,$text,'','','fakeicon systemicon');
+				//trim string like <img src="..." class="fakeicon systemicon" alt="$text" title="$text" />
+				$imgstr = str_replace(array('<img','/>'),array('',''),$imgstr);
+			}
+			elseif($p == 0)
+				$imgstr = $this->GetModuleURLPath().$iconfile;
+			elseif(strpos($iconfile,'://',$p-1) === $p-1)
+				$imgstr = $iconfile;
+			else
+				$imgstr = $this->GetModuleURLPath().'/'.$iconfile;
+			$ret = '<input type="image" '.$imgstr.' name="'.$id.$name.'"'; //conservative assumption about spaces
+			if($extra)
+				$ret .= ' '.$extra;
+			$ret .= ' />';
+		}
+		else
+			$ret = '';
+		if ($link && $text)
+		{
+			if($ret)
+				$ret .=' ';
+			$ret .='<input type="submit" value="'.$text.'" name="'.$id.$name.'" class="fakelink"';
+			if ($extra)
+				$ret .= ' '.$extra;
+			$ret .= ' />';
+		}
+		return $ret;
 	}
 
 	/**
