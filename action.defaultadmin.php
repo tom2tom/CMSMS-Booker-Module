@@ -268,7 +268,7 @@ if($data)
 function select_all_req(b)
 {
  var st = $(b).attr('checked');
- if(! st) st = FALSE;
+ if(! st) st = false;
  $('input[name="{$id}selreq[]"][type="checkbox"]').attr('checked',st);
 }
 
