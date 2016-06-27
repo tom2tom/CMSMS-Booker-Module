@@ -128,3 +128,29 @@ input.btn_deny:hover
 	color:#FFF;
 	background:#F00;
 }
+
+/* for making inputs look like links */
+input.fakeicon
+{
+	margin:0;
+	padding:0;
+	border:medium;
+	vertical-align:middle;
+}
+/* color and size will be conformed at runtime, if js is enabled */
+input.fakelink
+{
+	margin:0;
+	padding:0;
+	text-align:left;
+	text-decoration:underline;
+	font-size:1em;
+	color:#000;
+	background:url("");
+}
+
+input.fakelink:hover
+{
+	text-decoration:none;
+	background:url("");
+}
