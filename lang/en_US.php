@@ -7,6 +7,7 @@ $lang['activate'] = 'Activate';
 $lang['activatesel'] = 'toggle activation of selected %s';
 $lang['addbooking2'] = 'Add new repeat-booking';
 $lang['addbooking'] = 'Add new booking';
+$lang['addfee']	= 'Add new fee';
 $lang['addgroup'] = 'Add new group';
 $lang['additem'] = 'Add new resource';
 $lang['advanced'] = 'Advanced';
@@ -14,7 +15,7 @@ $lang['all'] = 'All';
 $lang['allgroups'] = 'All of these';
 $lang['allusers'] = 'Everyone Authorised';
 $lang['always'] = 'Always';
-$lang['anyhour'] = 'Anytime';
+$lang['anytime'] = 'anything';
 $lang['application'] = 'Applies when';
 $lang['apply'] = 'Apply';
 $lang['approve'] = 'Approve';
@@ -53,6 +54,7 @@ $lang['date'] = 'date';
 $lang['day'] = 'day';
 $lang['delete'] = 'Delete';
 $lang['delete_upload'] = 'Delete uploaded file(s) <strong>%s</strong>';
+$lang['del_confirm'] = 'Are you sure you want to delete %s?';
 $lang['delsel_confirm'] = 'Are you sure you want to delete selected %s?';
 $lang['description'] = 'Description';
 //$lang['editbooking'] = 'change bookings';
@@ -86,12 +88,13 @@ $lang['export_filename'] = '%s-Export-%s.csv';
 $lang['exportsel'] = 'export bookings data for selected %s';
 $lang['exporttype'] = 'export %s bookings data';
 $lang['false'] = 'no';
-$lang['fee1'] = 'Fee 1';
-$lang['fee2'] = 'Fee 2';
-$lang['feefixed'] = 'Fixed'; //'Fixed price';
-$lang['feeintro'] = 'Introduction';
-$lang['feemodtitle'] = 'UPDATE PRICES FOR USE OF %s';
-$lang['feeseetitle'] = 'PRICES FOR USE OF %s';
+$lang['fee_multi'] = 'fee(s)';
+$lang['feeintro'] = 'Introduction'; //TODO >> 'intro'
+$lang['feemodtitle'] = 'UPDATE FEES FOR USE OF RESOURCE';
+$lang['feemodtitle2'] = 'UPDATE FEES FOR USE OF RESOURCES IN GROUP';
+$lang['feeseetitle'] = 'FEES FOR USE OF RESOURCE';
+$lang['feeseetitle2'] = 'FEES FOR USE OF RESOURCES IN GROUP';
+$lang['feesel'] = '%s fees for use of selected %s';
 $lang['fetch'] = 'Fetch';
 $lang['file'] = 'file'; //for type-specific errors
 $lang['find'] = 'Find';
@@ -134,14 +137,12 @@ $lang['help_dnd'] = 'You can change the order by dragging any row, or double-cli
 $lang['help_email_domains'] = 'Comma-separated series of email domains, e.g. \'msn.com,gmail.com\' to use instead of the default values used by the mailcheck script for initial address-validation';
 $lang['help_email_subdomains'] = 'Comma-separated series of partial domains, e.g. \'yahoo,hotmail\' to use instead of the default values used by the mailcheck script for secondary address-validation';
 $lang['help_email_topdomains'] = 'Comma-separated series of top domains, e.g. \'com,com.tw,de,net,net.au\' to use instead of the default values used by the mailcheck script for final address-validation';
-$lang['help_fee1'] = 'Fixed cost, or cost per booking-interval, applied when specified condition(s) met.';
-$lang['help_fee2'] = 'Fixed cost, or cost per booking-interval, applied when specified condition(s) met.';
+$lang['help_fee'] = 'Fixed cost, or rate per defined-interval, applied when specified condition(s) met.';
 $lang['help_fees'] = <<<EOS
-Entered values may be absolute (like 1.23 or 4.5 or 6) or relative (indicated by leading +/-, maybe trailing %/percent, like -2.50 or +4% or -3.2% or +12.5percent).<br />
-Fixed prices are per booking, otherwise per booking-period.
+Entered fees may be absolute (like 1.23 or 4.5 or 6) or relative (indicated by leading +/-, maybe trailing %/percent, like -2.50 or +4% or -3.2% or +12.5percent).<br />
+Fees are per period as entered, or fixed if the corresponding period is 'anything'.
 EOS;
-$lang['help_fee1condition'] = 'See advice for available days and times. If blank, applies <strong>always</strong>';
-$lang['help_fee2condition'] = 'See advice for available days and times. If blank, <strong>never</strong> applies';
+$lang['help_feecondition'] = 'See advice for available days and times. If blank, applies <strong>always</strong>';
 $lang['help_feugroup'] = 'Front-end users group whose members may commit and change bookings directly, instead of via request.';
 $lang['help_focus'] = 'You can click/tap any table-cell to \'focus\' that time for the next operation, or double-click/tap to initiate a booking request/change';
 $lang['help_formiface'] = 'TODO';
@@ -266,6 +267,7 @@ If blank, fees apply always.
 EOS;
 
 $lang['inspect'] = 'Inspect';
+$lang['interval'] = 'Interval';
 $lang['imagetitle'] = 'Picture of %s';
 $lang['import'] = 'Import';
 $lang['import_result'] = '%d %s imported';
@@ -291,12 +293,14 @@ $lang['missing'] = 'missing';
 $lang['missing_type'] = 'Missing %s';
 $lang['moddescription'] = 'Create and manage bookings of resources';
 $lang['month'] = 'month';
+$lang['move'] = 'Move';
 $lang['never'] = 'Never';
 $lang['next'] = 'Next';
 //$lang['nocontact'] = 'missing contact-person name';
 $lang['nodata'] = 'No booking is registered.';
 $lang['nodata_one'] = 'No booking is registered for %s.';
 $lang['nodata_range'] = 'No booking is registered from %s to %s.';
+$lang['nofees'] = 'No fee is registered.';
 $lang['nogroups'] = 'No resource-group is registered.';
 $lang['noitems'] = 'No resource is registered.';
 $lang['nolimit'] = 'Unlimited';
@@ -317,6 +321,7 @@ $lang['pageof'] = 'Page %s of %s';
 $lang['pagerows'] = 'rows per page';
 $lang['partbooked'] = 'part';
 $lang['pending'] = 'Approval pending';
+$lang['percent'] = 'percent';
 //conform these to $Perm* in module file
 $lang['perm_add'] = 'Add Booking Resource';
 $lang['perm_admin'] = 'Change Booking Settings';
@@ -330,8 +335,6 @@ $lang['perm_view'] = 'Inspect Bookings';
 $lang['postinstall'] = 'Be sure to set "... bookings" permission(s) for users of this module!';
 $lang['postuninstall'] = 'Bookings Manager module uninstalled';
 $lang['previous'] = 'Previous';
-$lang['price'] = 'Price';
-$lang['pricesel'] = '%s prices for use of selected %s';
 $lang['proceed'] = 'Proceed';
 $lang['really_uninstall'] = 'You\'re sure you want to uninstall Bookings Manager?';
 $lang['reject'] = 'Reject';
@@ -386,6 +389,7 @@ $lang['tip_book'] = 'initiate booking';
 $lang['tip_calendar'] = 'select a date for display';
 $lang['tip_copytype'] = 'clone %s';
 $lang['tip_deletetype'] = 'delete %s';
+$lang['tip_delfeetype'] = 'delete %s fee';
 $lang['tip_delsel_items'] = 'delete selected items';
 $lang['tip_delseltype'] = 'delete selected %s';
 $lang['tip_down'] = 'move down';
@@ -426,6 +430,7 @@ $lang['tip_viewtype'] = 'view %s';
 
 $lang['title_active'] = 'Active';
 $lang['title_alias'] = 'Alias';
+$lang['title_anytime'] = 'Anytime'; 
 $lang['title_atimes'] = 'Available times';
 $lang['title_available'] = 'Available days and times';
 $lang['title_bookcount'] = 'Maximum slots in a single booking';
@@ -452,10 +457,10 @@ $lang['title_email_topdomains'] = 'Email-address-check top-level domains';
 $lang['title_email_subdomains'] = 'Email-address-check sub-domains';
 $lang['title_exportencoding']='Character-encoding of exported content';
 $lang['title_exportfile']='Export to host';
-$lang['title_fee1'] = 'Fee for usage';
-$lang['title_fee1condition'] = 'Condition(s) when fee applies';
-$lang['title_fee2'] = 'Alternate fee for usage';
-$lang['title_fee2condition'] = 'Condition(s) when alternate fee applies';
+$lang['title_feeusage'] = 'Fee for usage';
+$lang['title_feeinterval'] = 'Fee for interval';
+$lang['title_feecondition'] = 'Condition when/why fee applies';
+$lang['title_fees'] = 'Fees'; //button label
 $lang['title_feedback'] = 'Message to lodger';
 $lang['title_feedback2'] = 'Template for message to lodger';
 $lang['title_feedback3'] = 'Template for message to user';
@@ -625,6 +630,7 @@ Any group may be assigned to an authorized admin user.</p>
 <h3>Requirements</h3>
 <p><ul>
 <li>PHP 5.3+</li>
+<li>PHP MultiByte String extension</li>
 </ul></p>
 <h3>Works better if you have</h3>
 <p><ul>
