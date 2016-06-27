@@ -29,7 +29,7 @@ $type = ($is_group) ? $this->Lang('group'):$this->Lang('item');
 $is_new = ($params['bkg_id'] == -1);
 $viewmode = ($resume == 'inspect');
 $funcs = new bkrshared();
-$funcs3 = new bkrbookingops();
+$funcs2 = new bkrbookingops();
 
 if(isset($params['submit']) || isset($params['apply']))
 {
@@ -65,8 +65,8 @@ if(isset($params['submit']) || isset($params['apply']))
 		$t = trim($params['formula']);
 		if($t)
 		{
-			$funcs2 = new RepeatLexer($this);
-			$t = $funcs2->CheckCondition($t);
+			$funcs3 = new RepeatLexer($this);
+			$t = $funcs3->CheckCondition($t);
 		}
 		if($t)
 		{
@@ -97,7 +97,7 @@ if(isset($params['submit']) || isset($params['apply']))
 			}
 			else //update
 			{
-				$funcs3->ConformBookingData($this,$params); //general update where needed, before we change user
+				$funcs2->ConformBookingData($this,$params); //general update where needed, before we change user
 				$sql2 = 'formula=?,user=?,contact=?,userclass=?';
 				$args = array(
 					$t,
@@ -148,11 +148,11 @@ if(isset($params['submit']) || isset($params['apply']))
 	}
 	else //onetime booking
 	{
-		$funcs2 = new bkrverify();
-		list($res,$xmsg) = $funcs2->VerifyAdmin($mod,$funcs,$params,$item_id,$is_new);
+		$funcs3 = new bkrverify();
+		list($res,$xmsg) = $funcs3->VerifyAdmin($mod,$funcs,$params,$item_id,$is_new);
 		if($res)
 		{
-			$funcs3->SaveBkg($this,$params,$is_new);
+			$funcs2->SaveBkg($this,$params,$is_new);
 /*
 			if($is_new)
 			{
@@ -443,7 +443,9 @@ if(!($is_new || $viewmode))
 	$vars[] = $one;
 }
 //==
-if($idata['fee1'] != 0 || ($idata['fee2'] != 0 && $idata['fee2condition']))
+$condition = NULL; //TODO payable-condition time,requestor etc
+$payable = $funcs->GetItemPayable($this,$item_id,FALSE,$condition);
+if($payable)
 {
 	$one = new stdClass();
 	$one->title = $this->Lang('title_paid');
@@ -482,8 +484,8 @@ else //add/edit mode
 EOS;
 		$tplvars['yes'] = $this->Lang('yes');
 		$tplvars['no'] = $this->Lang('no');
-		$funcs2 = new bkrverify();
-		$jsfuncs[] = $funcs2->VerifyScript($this,$id,TRUE,TRUE,FALSE,$idata['timezone']);
+		$funcs3 = new bkrverify();
+		$jsfuncs[] = $funcs3->VerifyScript($this,$id,TRUE,TRUE,FALSE,$idata['timezone']);
 		$jsloads[] = <<<EOS
  var obs = [$('#{$id}submit'),$('#{$id}apply')];
  $.each(obs,function(indx,\$ob) {
