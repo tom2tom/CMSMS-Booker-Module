@@ -536,7 +536,7 @@ class bkrshared
 	/**
 	GetItemProperty:
 	@mod: reference to current Booker module object
-	@item_id: idenfier of item (resource or group) for which property is/are sought
+	@item_id: identifier of item (resource or group) for which property is/are sought
 	@propname: dbase table column-name for property sought (no checks here!)
 		or '*' or array of such names
 	@same: optional boolean, whether all requested properties must come from the same database record, default FALSE
@@ -691,6 +691,39 @@ class bkrshared
 		return $ret;
 	}
 
+	/**
+	GetItemPayable:
+	@mod: reference to current Booker module object
+	@item_id: identifier of item (resource or group) for which property is/are sought
+	@same: optional boolean, whether the test applies only to specific resource instead of inherited, default FALSE
+	@conditional: optional string, condition to check payability e.g. time, default FALSE means no check needed
+	Returns: boolean T/F
+	*/
+	public function GetItemPayable(&$mod,$item_id,$same=FALSE,$conditional=FALSE)
+	{
+//TODO $this->PayTable stuff
+		$db = $mod->dbHandle;
+		if($same)
+		{
+			$sql = "SELECT fee,feecondition FROM $mod->PayTable WHERE item_id=? AND active=TRUE ORDER BY condorder";
+			$fees = $db->GetAll($sql,array($item_id));
+		}
+		else
+		{
+			//TODO get all c.f. GetItemProperty
+			$sql = "SELECT fee,feecondition FROM $mod->PayTable WHERE item_id IN (...)
+AND active=TRUE ORDER BY X DESC,condorder";
+			$fees = $db->GetAll($sql,array($Y));
+		}
+		if($fees)
+		{
+			if(!$conditional)
+				return TRUE;
+			//TODO check for matching condition
+		}
+		return FALSE;
+	}
+	
 	/**
 	Get name for an item, with fallback
 	*/
@@ -1074,7 +1107,7 @@ EOS;
 	*/
 /*	function AllHours(&$mod)
 	{
-		$hours = array($mod->Lang('anyhour')=>24,$mod->Lang('midnight')=>0);
+		$hours = array($mod->Lang('title_anytime')=>24,$mod->Lang('midnight')=>0);
 		//don't need times relative to localised DateTime object
 		$tStart = strtotime('01:00');
 		$tEnd = strtotime('23:00');
