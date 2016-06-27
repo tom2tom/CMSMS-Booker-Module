@@ -326,7 +326,9 @@ if($is_group)
 	}
 }
 //==
-if($idata['fee1'] != 0 || ($idata['fee2'] != 0 && $idata['fee2condition']))
+$condition = NULL; //TODO payable-condition time,requestor etc
+$payable = $funcs->GetItemPayable($this,$item_id,FALSE,$condition);
+if($payable)
 {
 	$one = new stdClass();
 	$one->title = $this->Lang('title_paid');
