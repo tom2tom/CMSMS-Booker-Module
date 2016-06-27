@@ -11,11 +11,11 @@ $pset = $this->_CheckAccess('module');
 $padm = $pset || $this->_CheckAccess('admin');
 if ($padm)
 {
-//	$psee = true;
-	$padd = true;
-	$pdel = true;
-	$pmod = true;
-	$pbkg = true;
+//	$psee = TRUE;
+	$padd = TRUE;
+	$pdel = TRUE;
+	$pmod = TRUE;
+	$pbkg = TRUE;
 }
 else
 {
@@ -263,12 +263,12 @@ if($data)
 	$tplvars['dcount'] = $dcount;
 	if($dcount > 1)
 	{
-		$tplvars['selectall_req'] = $this->CreateInputCheckbox($id,'req',true,false,'title="'.$this->Lang('selectall').'" onclick="select_all_req(this)"');
+		$tplvars['selectall_req'] = $this->CreateInputCheckbox($id,'req',TRUE,FALSE,'title="'.$this->Lang('selectall').'" onclick="select_all_req(this)"');
 		$jsfuncs[] = <<<EOS
 function select_all_req(b)
 {
  var st = $(b).attr('checked');
- if(! st) st = false;
+ if(! st) st = FALSE;
  $('input[name="{$id}selreq[]"][type="checkbox"]').attr('checked',st);
 }
 
@@ -531,7 +531,7 @@ EOS;
 $rs = $db->Execute($sql);
 if ($rs)
 {
-	$uid = ($owned) ? get_userid(false) : 0; //current user
+	$uid = ($owned) ? get_userid(FALSE) : 0; //current user
 	while ($row = $rs->FetchRow())
 	{
 		//omit some choices when editing,but current user hasn't admin permission and doesn't own the item
@@ -616,10 +616,10 @@ if ($rs)
 		{
 			if($row['active'] > 0) //it's active so create a deactivate-link
 				$one->active = $this->CreateLink($id,'toggle',$returnid,$iconyes,
-					array('item_id'=>$thisid,'active'=>true));
+					array('item_id'=>$thisid,'active'=>TRUE));
 			elseif($row['active'] == 0) //it's inactive so create an activate-link
 				$one->active = $this->CreateLink($id,'toggle',$returnid,$iconno,
-					array('item_id'=>$thisid,'active'=>false));
+					array('item_id'=>$thisid,'active'=>FALSE));
 			else
 				$one->active = ''; //fake-deleted
 
@@ -704,15 +704,16 @@ if ($icount > 0)
 	$tplvars['inametext'] = $this->Lang('title_name');
 	if ($icount > 1)
 		$tplvars['selectall_items'] =
-			$this->CreateInputCheckbox($id,'item',true,false,'title="'.$this->Lang('selectall').'" onclick="select_all_items(this)"');
+			$this->CreateInputCheckbox($id,'item',TRUE,FALSE,'title="'.$this->Lang('selectall').'" onclick="select_all_items(this)"');
 	$tplvars['exportbtn1'] =
 		$this->CreateInputSubmit($id,'export',$this->Lang('export'),
 		'title="'.$this->Lang('exportsel',$this->Lang('item_multi')).'" onclick="return confirm_itmcount();"');
 	$t = ($mod) ? 'update':'inspect';
-	$t = strtolower($this->Lang($t));
-	$tplvars['pricebtn1'] =
-		$this->CreateInputSubmit($id,'price',$this->Lang('price'),
-		'title="'.$this->Lang('pricesel',$t,$this->Lang('item_multi')).'" onclick="return confirm_itmcount();"');
+	$t = $this->Lang($t);
+	$t = mb_convert_case($t,MB_CASE_LOWER);
+	$tplvars['feebtn1'] =
+		$this->CreateInputSubmit($id,'fees',$this->Lang('title_fees'),
+		'title="'.$this->Lang('feesel',$t,$this->Lang('item_multi')).'" onclick="return confirm_itmcount();"');
 	if ($mod)
 	{
 		if ($icount > 1)
@@ -778,11 +779,11 @@ if ($padd)
 	$tplvars['additem'] =
 	 $this->CreateLink($id,'add',$returnid,
 		 $theme->DisplayImage('icons/system/newobject.gif',$this->Lang('additem'),'','','systemicon'),
-		 array('item_id'=>-1),'',false,false,'')
+		 array('item_id'=>-1),'',FALSE,FALSE,'')
 	 .' '.
 	 $this->CreateLink($id,'add',$returnid,
 		 $this->Lang('additem'),
-		 array('item_id'=>-1),'',false,false,'class="pageoptions"');
+		 array('item_id'=>-1),'',FALSE,FALSE,'class="pageoptions"');
 
 	$tplvars['importibtn'] = $this->CreateInputSubmit($id,'importitm',$this->Lang('fetch'),
 		'title="'.$this->Lang('tip_importitm').'"');
@@ -800,15 +801,16 @@ if($gcount > 0)
 	$tplvars['title_gcount'] = $this->Lang('title_gcount');
 	if ($gcount > 1)
 		$tplvars['selectall_grps'] =
-			$this->CreateInputCheckbox($id,'group',true,false,'title="'.$this->Lang('selectall').'" onclick="select_all_groups(this)"');
+			$this->CreateInputCheckbox($id,'group',TRUE,FALSE,'title="'.$this->Lang('selectall').'" onclick="select_all_groups(this)"');
 	$tplvars['exportbtn2'] =
 		$this->CreateInputSubmit($id,'export',$this->Lang('export'),
 		'title="'.$this->Lang('exportsel',$this->Lang('group_multi')).'" onclick="return confirm_grpcount();"');
 	$t = ($mod) ? 'update':'inspect';
-	$t = strtolower($this->Lang($t));
-	$tplvars['pricebtn2'] =
-		$this->CreateInputSubmit($id,'price',$this->Lang('price'),
-		'title="'.$this->Lang('pricesel',$t,$this->Lang('group_multi')).'" onclick="return confirm_grpcount();"');
+	$t = $this->Lang($t);
+	$t = mb_convert_case($t,MB_CASE_LOWER);
+	$tplvars['feebtn2'] =
+		$this->CreateInputSubmit($id,'fees',$this->Lang('title_fees'),
+		'title="'.$this->Lang('feesel',$t,$this->Lang('group_multi')).'" onclick="return confirm_grpcount();"');
 	if ($mod)
 	{
 		if ($gcount > 1)
@@ -874,11 +876,11 @@ if ($mod)
 	$tplvars['addgrp'] =
 	 $this->CreateLink($id,'add',$returnid,
 		 $theme->DisplayImage('icons/system/newobject.gif',$this->Lang('addgroup'),'','','systemicon'),
-		 array('item_id'=>-Booker::MINGRPID),'',false,false,'')
+		 array('item_id'=>-Booker::MINGRPID),'',FALSE,FALSE,'')
 	 .' '.
 	 $this->CreateLink($id,'add',$returnid,
 		 $this->Lang('addgroup'),
-		 array('item_id'=>-Booker::MINGRPID),'',false,false,'class="pageoptions"');
+		 array('item_id'=>-Booker::MINGRPID),'',FALSE,FALSE,'class="pageoptions"');
 }
 
 //SETTINGS TAB
@@ -890,8 +892,8 @@ if($pset)
 
 	$one = new stdClass();
 	$one->title = $this->Lang('title_cleargroup');
-	$one->input = $this->CreateInputCheckbox($id,'pref_cleargroup',true,
-		$this->GetPreference('pref_cleargroup',false),'');
+	$one->input = $this->CreateInputCheckbox($id,'pref_cleargroup',TRUE,
+		$this->GetPreference('pref_cleargroup',FALSE),'');
 	$one->must = 1;
 	$settings[] = $one;
 
@@ -1049,29 +1051,16 @@ EOS;
 	$settings[] = $one;
 
 	$one = new stdClass();
-	$one->title = $this->Lang('fee1');
-	$one->input = $this->CreateInputText($id,'pref_fee1',$this->GetPreference('pref_fee1'),6,8);
-	$one->help = $this->Lang('help_fee1');
+	$one->title = $this->Lang('title_feeusage');
+	$one->input = $this->CreateInputText($id,'pref_fee',$this->GetPreference('pref_fee'),6,8);
+	$one->help = $this->Lang('help_fee');
 	$settings[] = $one;
 
 	$one = new stdClass();
-	$one->title = $this->Lang('title_fee1condition');
-	$one->input = $this->CreateTextArea(FALSE,$id,$this->GetPreference('pref_fee1condition'),
-		'pref_fee1condition','','','','',40,3,'','','style="height:3em;"');
-	$one->help = $this->Lang('help_fee1condition');
-	$settings[] = $one;
-
-	$one = new stdClass();
-	$one->title = $this->Lang('fee2');
-	$one->input = $this->CreateInputText($id,'pref_fee2',$this->GetPreference('pref_fee2'),6,8);
-	$one->help = $this->Lang('help_fee2');
-	$settings[] = $one;
-
-	$one = new stdClass();
-	$one->title = $this->Lang('title_fee2condition');
-	$one->input = $this->CreateTextArea(FALSE,$id,$this->GetPreference('pref_fee2condition'),
-		'pref_fee2condition','','','','',40,3,'','','style="height:3em;"');
-	$one->help = $this->Lang('help_fee2condition');
+	$one->title = $this->Lang('title_feecondition');
+	$one->input = $this->CreateTextArea(FALSE,$id,$this->GetPreference('pref_feecondition'),
+		'pref_feecondition','','','','',40,3,'','','style="height:3em;"');
+	$one->help = $this->Lang('help_feecondition');
 	$settings[] = $one;
 
 	$one = new stdClass();
