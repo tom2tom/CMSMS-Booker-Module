@@ -175,7 +175,7 @@ repeated bookings-data table schema:
  userclass: enum 0..5
  subgrpcount: no. of in-group resources to be processed per subgrpalloc
  paid: boolean
- active: boolean TRUE unless booking has been deleted but historic data remain
+ active: enum/boolean 1, or 0 if booking has been deleted but historic data remain
 */
 $fields = "
 	bkg_id I(4) KEY,
@@ -245,6 +245,7 @@ $db->CreateSequence($this->RequestTable.'_seq');
  feecondition: interval-descriptor or user-decriptor
  condtype: enum 0 = interval or 1 = user
  condorder: enum for display-order and fee-application-order
+ active: boolean/enum whether to use this fee
  NOTE changes to this field-structure must be replicated in the add-fee mechanism
  in action.fees.php
 */
