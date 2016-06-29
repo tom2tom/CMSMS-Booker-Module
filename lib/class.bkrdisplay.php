@@ -511,7 +511,7 @@ class bkrdisplay
 			}
 
 			$names = $this->mod->dbHandle->GetCol('SELECT name FROM '.$this->mod->ItemTable.
-			' WHERE item_id IN('.implode(',',$resources).')');
+			' WHERE item_id IN('.implode(',',$resources).') AND active=1');
 			$one->tip = implode(',',$names); //assume all have a name!
 
 			if($multi)
