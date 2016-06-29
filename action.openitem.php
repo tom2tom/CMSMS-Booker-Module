@@ -206,10 +206,10 @@ if(!function_exists('groupsupdate'))
 $item_id = (int)$params['item_id'];
 $is_group = ($item_id >= Booker::MINGRPID || $item_id == -Booker::MINGRPID);
 $act = $params['action'];
-if (isset($params['current_tab']))
+if(isset($params['active_tab']))
 {
-	$seetab = $params['current_tab'];
-	unset($params['current_tab']);
+	$seetab = $params['active_tab'];
+	unset($params['active_tab']);
 }
 else
 	$seetab = 'basic'; //default to show this tab
@@ -233,16 +233,6 @@ if(isset($params['apply']) || isset($params['submit']))
 	{
 		unset($params['submit']);
 		$act = 'submit';
-	}
-	if(isset($params['fee1fixed']))
-	{
-		unset($params['fee1fixed']);
-		$params['fee1'] = -(int)$params['fee1']; //fixed fees stored as -ve
-	}
-	if(isset($params['fee2fixed']))
-	{
-		unset($params['fee2fixed']);
-		$params['fee2'] = -(int)$params['fee2'];
 	}
 	//============ DATA CLEANUPS =============
 	if($params['name'] == FALSE)
@@ -451,7 +441,7 @@ if(isset($params['apply']) || isset($params['submit']))
 		if(is_numeric($val))
 			$val = $val + 0; //cast to number
 		elseif($val == '')
-			$val = null;
+			$val = NULL;
 	}
 	unset($val);
 	$db->Execute($sql,$data);
@@ -494,7 +484,7 @@ ORDER BY ordinal_position
 EOS;
 	$rows = $db->GetAll($sql);
 	$item = new stdClass();
-	//object-members which represent inheritable values are null'd, if allowed
+	//object-members which represent inheritable values are NULL'd, if allowed
 	foreach($rows as $one)
 		$item->{$one['column_name']} = (stripos($one['is_nullable'],'Y') !== FALSE) ? NULL:'';
 	$item->item_id = $item_id; //-1 or -MINGRPID
@@ -552,7 +542,7 @@ $tplvars += array(
 	'start_fmt_tab' => $this->StartTab('formats')
 );
 
-$hidden = $this->CreateInputHidden($id,'current_tab',0);
+$hidden = $this->CreateInputHidden($id,'active_tab','');
 
 $tplvars['title'] = ($is_group) ? $this->Lang('group_page_title'):$this->Lang('item_page_title');
 $s = ($is_group) ? $this->Lang('group'):$this->Lang('item');
@@ -584,7 +574,7 @@ else
 $basic[] = array('ttl'=>$this->Lang('title_active'),
 'mst'=>1,
 'inp'=>$i,
-'hlp'=>null
+'hlp'=>NULL
 );
 //------- name
 $t = $this->Lang('title_name');
@@ -598,7 +588,7 @@ else
 	$i = $none;
 $h = ($pmod) ?
 	$this->Lang('help_use_smarty')/*.', '.$this->Lang('label_usage')*/:
-	null;
+	NULL;
 $basic[] = array('ttl'=>$t,
 'mst'=>1,
 'inp'=>$i,
@@ -611,9 +601,7 @@ elseif($item->description)
 	$i = $funcs->StripTags($item->description,$cleartypes);
 else
 	$i = $none;
-$h = ($pmod) ?
-  $this->Lang('help_use_smarty'):
-	null;
+$h = ($pmod) ? $this->Lang('help_use_smarty'):NULL;
 $basic[] = array('ttl'=>$this->Lang('title_long_desc'),
 'inp'=>$i,
 'hlp'=>$h
@@ -684,7 +672,7 @@ else
 $basic[] = array('ttl'=>$cascade.$this->Lang('title_slotlength'),
 'mst'=>1,
 'inp'=>$i,
-'hlp'=>null //$this->Lang('help_slotlength')
+'hlp'=>NULL //$this->Lang('help_slotlength')
 );
 //------- max slots per booking
 if($pmod)
@@ -697,53 +685,42 @@ $basic[] = array('ttl'=>$cascade.$this->Lang('title_bookcount'),
 'inp'=>$i,
 'hlp'=>$this->Lang('help_bookcount')
 );
-//------- fee1
-$t = $item->fee1;
-$fixed = ($t < 0);
-if($fixed)
-	$t = -$t;
-$i = ($pmod) ?
-	$this->CreateInputCheckbox($id,'fee1fixed',TRUE,$fixed).$this->Lang('feefixed').
-	'&nbsp;'.$this->CreateInputText($id,'fee1',$t,6,8):
-	$this->Lang('feefixed').': '.$t;
-$basic[] = array('ttl'=>$cascade.$this->Lang('title_fee1').$notyet,
-'inp'=>$i,
-'hlp'=>$this->Lang('help_fee1')
-);
-//------- fee1condition
-if($pmod)
-	$i = $this->CreateInputText($id, 'fee1condition', $item->fee1condition, 60, 128);
-elseif($item->fee1condition)
-	$i = $item->fee1condition;
+//------- fees
+$sql = 'SELECT description,fee,feecondition FROM '.$this->PayTable.' WHERE item_id=? AND active=1 ORDER BY condorder';
+$sel = $db->GetAll($sql,array($item_id));
+if($sel)
+{
+	$fees = array();
+	foreach($sel as &$one)
+	{
+		$oneset = new stdClass();
+		$oneset->desc = $one['description'];
+		$oneset->fee = $one['fee'];
+		$t = $one['feecondition'];
+		if(!$t)
+			$t = $this->Lang('always');
+		$oneset->cond = $t;
+		$fees[] = $oneset;
+	}
+	unset($one);
+	$tplvars['entries'] = $fees;
+	$i = bkrshared::ProcessTemplate($this,'brieffees.tpl',$tplvars);
+	$t = $this->Lang('edit');
+	$h = $this->Lang('help_fee');
+}
 else
-	$i = $none;
-$basic[] = array('ttl'=>$cascade.$this->Lang('title_fee1condition').$notyet,
-'inp'=>$i,
-'hlp'=>$this->Lang('help_fee1condition')
-);
-//------- fee2
-$t = $item->fee2;
-$fixed = ($t < 0);
-if($fixed)
-	$t = -$t;
-$i = ($pmod) ?
-	$this->CreateInputCheckbox($id,'fee2fixed',TRUE,$fixed).$this->Lang('feefixed').
-	'&nbsp;'.$this->CreateInputText($id,'fee2',$t,6,8):
-	$this->Lang('feefixed').': '.$t;
-$basic[] = array('ttl'=>$cascade.$this->Lang('title_fee2').$notyet,
-'inp'=>$i,
-'hlp'=>$this->Lang('help_fee2')
-);
-//------- fee2condition
+{
+	$i = $this->Lang('nofees');
+	$t = $this->Lang('addfee');
+	$h = NULL;
+}
 if($pmod)
-	$i = $this->CreateInputText($id, 'fee2condition', $item->fee2condition, 60, 128);
-elseif($item->fee2condition)
-	$i = $item->fee2condition;
-else
-	$i = $none;
-$basic[] = array('ttl'=>$cascade.$this->Lang('title_fee2condition').$notyet,
+	$i .= '<br />'.$this->CreateInputSubmit($id,'modfee',$t,'onclick="current_tab()"');
+	//TODO confirm message c.f. 'is everything saved?'
+
+$basic[] = array('ttl'=>$cascade.$this->Lang('title_feeusage'),
 'inp'=>$i,
-'hlp'=>$this->Lang('help_fee2condition')
+'hlp'=>$h
 );
 //============ ADVANCED TAB
 //------- alias
@@ -758,7 +735,7 @@ else
 		$i = $item->alias;
 	else
 		$i = $none;
-	$h = null;
+	$h = NULL;
 }
 $advanced[] = array('ttl'=>$this->Lang('title_alias',$s),
 'inp'=>$i,
@@ -769,7 +746,8 @@ if($pdev && $pmod)
 {
 	$i = $this->CreateTextArea(FALSE,$id,$item->keywords,'keywords','','','','',50,4,'','','style="height:4em;"');
 	$t = ($is_group) ? $this->Lang('title_groups'):$this->Lang('title_items');
-	$h = $this->Lang('help_keywords',strtolower($t));
+	$t = mb_convert_case($t,MB_CASE_LOWER);
+	$h = $this->Lang('help_keywords',$t);
 }
 else
 {
@@ -777,7 +755,7 @@ else
 		$i = $item->keywords;
 	else
 		$i = $none;
-	$h = null;
+	$h = NULL;
 }
 $advanced[] = array('ttl'=>$cascade.$this->Lang('title_keywords'),
 'inp'=>$i,
@@ -1099,7 +1077,7 @@ else
 	$i = $none;
 $advanced[] = array('ttl'=>$cascade.$this->Lang('approver'),
 'inp'=>$i,
-'hlp'=>null
+'hlp'=>NULL
 );
 //------- contact
 if($pmod)
@@ -1110,10 +1088,10 @@ else
 	$i = $none;
 $advanced[] = array('ttl'=>$cascade.$this->Lang('approvercontact'),
 'inp'=>$i,
-'hlp'=>null
+'hlp'=>NULL
 );
 //------- owner
-$sql = 'SELECT user_id,first_name,last_name FROM '.$this->UserTable.' WHERE active=TRUE ORDER BY last_name,first_name';
+$sql = 'SELECT user_id,first_name,last_name FROM '.$this->UserTable.' WHERE active=1 ORDER BY last_name,first_name';
 $allusers = $db->GetAssoc($sql);
 if($pmod)
 {
@@ -1137,7 +1115,7 @@ else
 	$i = $none;
 $advanced[] = array('ttl'=>$cascade.$this->Lang('title_owner2'),
 'inp'=>$i,
-'hlp'=>null
+'hlp'=>NULL
 );
 //------- feugroup (savers)
 $ob = ModuleOperations::get_instance()->get_module_instance('FrontEndUsers');
@@ -1330,7 +1308,7 @@ else
 //$h = $this->Lang('help_upload',$this->Lang('apply'),$this->Lang('submit'));
 $formats[] = array('ttl'=>$cascade.$this->Lang('title_styles',$s),
 'inp'=>$i,
-'hlp'=>null
+'hlp'=>NULL
 );
 //-------
 
@@ -1360,7 +1338,7 @@ $tplvars['message'] = $msg;
 $jsfuncs[] = <<<EOS
 function current_tab() {
  var active = $('#page_tabs > .active');
- $('#{$id}current_tab').val(active.attr('id'));
+ $('#{$id}active_tab').val(active.attr('id'));
 }
 function imgfile_selected(el) {
  var sel = el.value;
