@@ -2,18 +2,131 @@
 #----------------------------------------------------------------------
 # Module: Booker - a resource booking module
 # Action: fees
-# view or edit usage-fees for the specified item or group ($params['id']) or
+# view or edit usage-fees for the specified item or group ($params['item_id']) or
 # edit for all selected item(s) or group(s)
 #----------------------------------------------------------------------
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
+
+if(!function_exists('getfeedata'))
+{
+ function getfeedata(&$params,$item_id,&$mod)
+ {
+	if(!isset($params['condition_id']))
+	{
+		global $db;
+		$sql = 'SELECT * FROM '.$mod->PayTable.' WHERE item_id=? ORDER BY condorder';
+		return $db->GetAll($sql,array($item_id));
+	}
+	return mergefeedata($params,$item_id);
+  }
+
+ function mergefeedata(&$params,$item_id)
+ {
+	$fields = array('description','slottype','slotcount','fee','feecondition');
+	if(!isset($params['active']))
+		$params['active'] = array();
+	$o = 1;
+ 	$ret = array();
+	foreach($params['condition_id'] as $one)
+	{
+		$cid = (int)$one;
+		$row = array('condition_id'=>$cid, 'item_id' => $item_id);
+		foreach($fields as $key) {
+			$row[$key] = $params[$key][$cid]; }
+		$row['condorder'] = $o++;
+		$key = 'active';
+		if(!empty($params[$key][$cid]))
+			$row[$key] = 1;
+		else
+		{
+			$params[$key][$cid] = 0;
+			$row[$key] = 0;
+		}
+		$ret[] = $row;
+	}
+ 	return $ret;
+ }
+
+ function addfeedata(&$params,$item_id,&$pdata)
+ {
+	if(1) //$pdata || $params['action'] == 'update') //came direct from action.openitem button-click
+	{
+		$blank = array(
+		 'condition_id' => -1,	//signal for attention before saving
+		 'item_id' => $item_id,
+		 'description' => '',
+		 'slottype' => 0, //minutes
+		 'slotcount' => '',
+		 'fee' => '',
+		 'feecondition' => '',
+//		 'condtype I(1) DEFAULT 0,
+//		 'condorder I(1) DEFAULT -1,
+		 'active' => 1
+		);
+		$pdata[] = $blank; //append new one
+	}
+ }
+
+ function delfeedata(&$params,$ids)
+ {
+	$fields = array('condition_id','item_id','description','slottype','slotcount','fee','feecondition');
+	if(!isset($params['active']))
+		$params['active'] = array();
+	if(!is_array($ids))
+		$ids = array($ids);
+	foreach($ids as $one)
+	{
+		$i = array_search($one,$params['condition_id']);
+		if($i !== FALSE)
+		{
+			foreach($fields as $key)
+			{
+				if(is_array($params[$key])) {
+					unset($params[$key][$i]); }
+			}
+			$key = 'active';
+			if(isset($params[$key][$i]))
+				unset($params[$key][$i]);
+		}
+	}
+ }
+
+ //swap member of $pdata, which has member 'condition_id' == $cid, with next member, if possible
+ function swapfeedata(&$pdata,$cid)
+ {
+	$key = 'condition_id';
+	foreach ($pdata as $i=>$sub)
+	{ 
+		if(isset($sub[$key]) && $sub[$key] == $cid)
+		{
+			$tmp = current($pdata);
+			if($tmp !== FALSE)
+			{
+				$t = key($pdata);
+				$pdata[$t] = $pdata[$i];
+				$pdata[$i] = $tmp;
+			}
+			break;
+		}
+	}
+ }
+}
+
+if(isset($params['cancel']))
+{
+	if(isset($params['sel'])) {
+		$this->Redirect($id,'defaultadmin','',array('active_tab'=>$params['active_tab'])); }
+	else {
+		$this->Redirect($id,'openitem','',array('item_id'=>$params['item_id'],'active_tab'=>$params['active_tab'])); }
+}
 
 if(isset($params['selitems']))
 {
 /*came from defaultadmin action 'Fees' button-click, set fees for all
 $params = array
 'selitems' OR 'selgroups' => array
-    0 => string '1'
+	0 => string '1'
 'fees' => string 'Fees'
 'active_tab' => string 'items' OR 'groups'
 'action' => string 'process'
@@ -29,80 +142,177 @@ elseif(isset($params['selgroups']))
 else
 {
 /*came from openitem add/edit fees button-click
-$params = array
+$params = array of all item/group properties, including 'active_tab'
 */
-$this->Crash();
-	$sel = false;
-	$params['active_tab'] = false;
+	$sel = FALSE;
 	$item_id = $params['item_id'];
 }
 
-if(isset($params['cancel']))
+if(isset($params['submit']))
 {
-$this->Crash();
-	if(isset($params['sel']))
-		$this->Redirect($id,'defaultadmin','',array('active_tab'=>$params['active_tab']));
-	else
-		$this->Redirect($id,'openitem','',array('item_id'=>$item_id));
-}
-elseif(isset($params['submit']))
-{
-	//TODO save stuff
 /*$params = array
  'item_id' => string '2'
- 'condition_id' => array (string '1' ... )
- 'description' => array (string 'Fixed test' ... )
- 'slotcount' => array (string '' ... )
- 'slottype' => array (string '-1' ... )
- 'fee' => array (string '28.00' ... )
- 'feecondition' => array(string 'sunrise..sunset' ... )
- 'active' => array(string '1' ....) but missing if condition is inactive
+ 'active_tab' => string 'basic' OR 'groups' etc
+ 'condition_id' => array (string '1' ... ) with keys = respective condition_id's
+ 'description' => array (string 'Fixed test' ... ) ditto
+ 'slotcount' => array (string '' ... ) ditto
+ 'slottype' => array (string '-1' ... ) ditto
+ 'fee' => array (string '28.00' ... ) ditto
+ 'feecondition' => array(string 'sunrise..sunset' ... ) ditto
+ 'active' => array(string '1' ....) ditto BUT
+   missing member(s) whose condition is inactive AND missing whole $param if
+   none is active
 */
-$this->Crash();
-	$this->Redirect($id,'openitem','',array('item_id'=>$item_id));
-}
-elseif(isset($params['addfee']))
-{
-$this->Crash();
-	//TODO add data-row
+	$pdata = mergefeedata($params,$item_id);
+	if($pdata)
+	{
+		$sql1 = 'INSERT INTO '.$mod->PayTable.' (
+condition_id,
+item_id,
+description,
+slottype,
+slotcount,
+fee,
+feecondition,
+condorder,
+active
+) VALUES (?,?,?,?,?,?,?,?,?)';
+		$sql2 = 'UPDATE '.$mod->PayTable.' SET 
+description=?,
+slottype=?,
+slotcount=?,
+fee=?,
+feecondition=?,
+condorder=?,
+active=?
+WHERE condition_id=?';
+		$allsql = array();
+		$allargs = array();
+		foreach($pdata as $one)
+		{
+	$this->Crash();
+			if($one['slottype'] == -1)
+				$one['slotcount'] = NULL; //no count for fixed fee
+			$relfee = preg_match('/^ *[+-]/', $one['fee']);
+			if($relfee)
+				$lp = $this->Lang('percent');
+			$one['active'] = (bool)$one['active'];
+			if($one['condition_id'] < 0)
+			{
+				if($relfee)
+					$one['fee'] = NULL; //TODO [re-]get current fee, inherited if needed
+				$allsql[] = $sql1;
+				$cid = $db->GenID($this->PayTable.'_seq');
+				$allargs[] = array(
+				 $cid,
+				 $item_id,
+				 $one['description'],
+				 $one['slottype'],
+				 $one['slotcount'],
+				 $one['fee'],
+				 $one['feecondition'],
+				 $one['condorder'],
+				 $one['active'],
+				);
+			}
+			else
+			{
+				if($relfee)
+				{
+					$sql = 'SELECT fee FROM '.$mod->PayTable.' WHERE condition_id=?';
+					$now = $db->GetOne($sql,array($one['condition_id']));
+//					$lang = CmsNlsOperations::get_current_language(); //CMSMS 1.11+ CRAP if resource-locale doesn't match lang
+//					$fmt = numfmt_create($lang,NumberFormatter::DECIMAL); //PHP 5.3+
+					$t = trim($one['fee']);
+					$r = preg_replace('/(%|'.$lp.')$/','',$t);
+					if($t != $r)
+					{
+//						$p = $fmt->parse($r);
+//						$one['fee'] = $now + ($now*$p)/100;
+						$one['fee'] = $now + ($now*(float)$r)/100;
+					}
+					else
+					{
+//						$one['fee'] = $now + $fmt->parse($t);
+						$one['fee'] = $now + (float)$t;
+					}
+				}
+				$allsql[] = $sql2;
+				$allargs[] = array(
+				 $one['description'],
+				 $one['slottype'],
+				 $one['slotcount'],
+				 $one['fee'],
+				 $one['feecondition'],
+				 $one['condorder'],
+				 $one['active'],
+				 $one['condition_id']
+				);
+			}
+		}
+		bkrshared::SafeExec($allsql,$allargs);
+	}
+	else
+	{
+		$sql = 'DELETE FROM '.$this->PayTable.' WHERE item_id=?';
+		$db->Execute($sql,array($item_id));
+	}
+	//TODO if $params['sel'] == multi-resources upon submit
+	if(isset($params['sel'])) {
+		$this->Redirect($id,'defaultadmin','',array('active_tab'=>$params['active_tab'])); }
+	else {
+		$this->Redirect($id,'openitem','',array('item_id'=>$item_id,'active_tab'=>$params['active_tab'])); }
 }
 elseif(isset($params['delete'])) //delete selected fees(s)
 {
-	if(isset($params['selitems']))
+	if(isset($params['selfees']))
 	{
+		$ids = array_keys($params['selfees']);
 		//basic sanity check
-		foreach($params['selitems'] as &$one)
+		foreach($ids as &$one)
 		{
-			$t = (int)$one;
-			if(is_numeric($t) && $t >= 0)
-				$one = $t;
-			else
+			if(!is_numeric($one))
 				unset($one);
 		}
 		unset($one);
-		if($params['selitems'])
+		if($ids)
 		{
-			$t = implode(',',$params['selitems']);
-			$sql = 'DELETE FROM '.$this->PayTable.' WHERE condition_id IN ('.$t.')';
-			$db->Execute($sql);
+			delfeedata($params,$ids);
 		}
+		//TODO if $params['sel'] == multi-resources upon submit
 	}
 }
 elseif(isset($params['delfee'])) //delete single fee
 {
-	$sql = 'DELETE FROM '.$this->PayTable.' WHERE condition_id=?';
-	$db->Execute($sql, array((int)$params['cond_id']));
+	$cid = key($params['delfee']);
+	delfeedata($params,$cid);
+	//TODO if $params['sel'] == multi-resources upon submit
 }
 
 $is_group = ($item_id >= Booker::MINGRPID);
 $typestr = ($is_group) ? $this->Lang('group') : $this->Lang('item');
-
-$hidden = $this->CreateInputHidden($id,'item_id',$item_id);
-if($sel)
-	$hidden .= $this->CreateInputHidden($id,'sel',json_encode($sel))
-	.$this->CreateInputHidden($id,'active_tab',$params['active_tab']);
-
 $pmod = $this->_CheckAccess('admin');
+$pdata = getfeedata($params,$item_id,$this);
+
+if($pmod)
+{
+	if(isset($params['addfee']) || (!$pdata && $params['action'] == 'update')) {
+		addfeedata($params,$item_id,$pdata); }
+	elseif(isset($params['move'])) {
+		swapfeedata($pdata,key($params['move'])); }
+	//TODO if $params['sel'] == multi-resources upon submit
+}
+
+$hidden = $this->CreateInputHidden($id,'item_id',$item_id).
+ $this->CreateInputHidden($id,'active_tab',$params['active_tab']);
+$linkargs = array('item_id'=>$item_id,'active_tab'=>$params['active_tab']);
+if($sel)
+{
+	$t = json_encode($sel);
+	$hidden .= $this->CreateInputHidden($id,'sel',$t);
+	$linkargs['sel'] = $t;
+}
+
 $tplvars = array(
 	'mod' => $pmod,
 	'startform' => $this->CreateFormStart($id,'fees',$returnid),
@@ -113,16 +323,21 @@ $tplvars = array(
 if(isset($params['message']))
 	$tplvars['message'] = $params['message'];
 
-
 if ($pmod)
 {
-	$key = ($is_group) ? 'feemodtitle2' : 'feemodtitle';
+	if($sel)
+		$key = ($is_group) ? 'feemodtitle3' : 'feemodtitle1';
+	else
+		$key = ($is_group) ? 'feemodtitle2' : 'feemodtitle';
 }
 else
 {
 	$key = ($is_group) ? 'feeseetitle2' : 'feeseetitle';
 }
-$tplvars['title'] = $this->Lang($key);
+
+$funcs = new bkrshared();
+$t = $funcs->GetItemNameForID($this,$item_id);
+$tplvars['title'] = $this->Lang($key,$t);
 
 $jsloads = array();
 $jsfuncs = array();
@@ -131,20 +346,20 @@ $baseurl = $this->GetModuleURLPath();
 $theme = ($this->before20) ? cmsms()->get_variable('admintheme'):
 	cms_utils::get_theme_object();
 
-$sql = 'SELECT * FROM '.$this->PayTable.' WHERE item_id=? ORDER BY condorder';
-$pdata = $db->GetAll($sql,array($item_id));
 if($pdata)
 {
 	$count = count($pdata);
 	$choices = array($this->Lang('anytime')=>-1) + array_flip(explode(',',$this->Lang('periods'))); //'minute,hour,day,week,month,year'
 	if($pmod)
 	{
-		$tip = $this->Lang('tip_delfeetype',$typestr);
-		$icondel = $theme->DisplayImage('icons/system/delete.gif',$tip,'','','systemicon');
+		$tip_del = $this->Lang('tip_delfeetype',$typestr);
+		$icondel = 'delete.gif';
 		if($count > 1)
 		{
-			$iconup = $theme->DisplayImage('icons/system/arrow-u.gif',$this->Lang('tip_up'),'','','systemicon');
-			$icondn = $theme->DisplayImage('icons/system/arrow-d.gif',$this->Lang('tip_down'),'','','systemicon');
+			$tip_up = $this->Lang('tip_up');
+			$iconup = 'arrow-u.gif';
+			$tip_dn = $this->Lang('tip_down');
+			$icondn = 'arrow-d.gif';
 		}
 	}
 	else
@@ -161,38 +376,51 @@ if($pdata)
 		$oneset = new stdClass();
 		if($pmod)
 		{
-			$oneset->hidden = $this->CreateInputHidden($id,'condition_id[]',$one['condition_id']);
-			$oneset->desc = $this->CreateInputText($id,'description[]',$one['description'],20,64);
-			$oneset->count = $this->CreateInputText($id,'slotcount[]',$one['slotcount'],3,3);
-			$oneset->type = $this->CreateInputDropdown($id,'slottype[]',$choices,-1,$one['slottype']);
-			$oneset->fee = $this->CreateInputText($id,'fee',$one['fee[]'],6,8);
+			$cid = $one['condition_id'];
+			$oneset->hidden = $this->CreateInputHidden($id,'condition_id[]',$cid);
+			$oneset->desc = $this->CreateInputText($id,'description['.$cid.']',$one['description'],20,64);
+			$oneset->count = $this->CreateInputText($id,'slotcount['.$cid.']',$one['slotcount'],3,3);
+			$oneset->type = $this->CreateInputDropdown($id,'slottype['.$cid.']',$choices,-1,$one['slottype']);
+			$oneset->fee = $this->CreateInputText($id,'fee['.$cid.']',$one['fee'],6,8);
 			$oneset->cond = $this->CreateTextArea(FALSE,$id,$one['feecondition'],
-				'feecondition[]','','','','',15,2,'','','style="height:2em;"');
-			$oneset->active = $this->CreateInputCheckbox($id,'active[]',1,$one['active']);
+				'feecondition['.$cid.']','','','','',20,2,'','','style="height:2em;width:20em;"');
+			$oneset->active = $this->CreateInputCheckbox($id,'active['.$cid.']',1,$one['active']);
+			$cid = (int)$cid;
 			if($r == 0)
 			{
 				$oneset->uplink = '';
-				$oneset->dnlink = '';
+				if($count > 1)
+				{
+					$oneset->dnlink = $this->_CreateInputLinks($id,'move['.$cid.']',$icondn,FALSE,$tip_dn);
+					$previd = $cid;
+				}
+				else
+					$oneset->dnlink = '';
 			}
 			else
 			{
-				$thisid = (int)$one['condition_id'];
-				$oneset->uplink = $this->CreateLink($id,'swapfees',$returnid,$icnoup,
-					array('condition_id'=>$thisid, 'prev_cond_id'=>$previd));
-				$items[$r-1]->dnlink = $this->CreateLink($id,'swapfees',$returnid,$icondn,
-					array('condition_id'=>$previd,'next_cond_id'=>$thisid));
-				if($r == $rc)
+				$oneset->uplink = $this->_CreateInputLinks($id,'move['.$previd.']',$iconup,FALSE,$tip_up);
+				if($r < $rc)
+				{
+					$oneset->dnlink = $this->_CreateInputLinks($id,'move['.$cid.']',$icondn,FALSE,$tip_dn);
+					$previd = $cid;
+				}
+				else
 					$oneset->dnlink = '';
-				$previd = $thisid;
 			}
 			$r++;
 
 			$t = ($one['description']) ? $one['description'] : $one['fee'].
 				(($one['feecondition']) ? '::'.$one['feecondition']:'');
-			$this->Lang('delselfee_confirm',$t);
-			$oneset->deletelink = $this->CreateLink($id,'delfee',$returnid,$icondel,
-				array('cond_id'=>$one['condition_id']),$t);
-			$oneset->selected = ($count > 1) ? $this->CreateInputCheckbox($id,'selitems[]',1,-1):NULL;
+			if($t)
+				$t = '\\\''.$t.'\\\''; //surrounding escaped quotes go inside js string inside double-quoted html
+			else
+				$t = $this->Lang('fee_multi');
+			$t = $this->Lang('del_confirm',$t);
+			$oneset->deletelink = $this->_CreateInputLinks($id,'delfee['.$cid.']',
+				$icondel,FALSE,$tip_del,'onclick="return confirm(\''.$t.'\');"');
+			//NOT selitems or selgroups - those may be supplied from elsewhere
+			$oneset->selected = ($count > 1) ? $this->CreateInputCheckbox($id,'selfees['.$cid.']',1,-1):NULL;
 		}
 		else
 		{
@@ -212,8 +440,8 @@ if($pdata)
 	'items' => $items,
 	'desctext' => $this->Lang('description'),
 	'periodtext' => $this->Lang('interval'),
-	'feetext' => $this->Lang('title_fee1'),
-	'condtext' => $this->Lang('title_fee1condition'),
+	'feetext' => $this->Lang('title_feeinterval'),
+	'condtext' => $this->Lang('title_feecondition'),
 	'activetext' => $this->Lang('title_active'),
 	'movetext' => $this->Lang('move')
 	);
@@ -229,12 +457,7 @@ $tplvars['count'] = $count;
 if($pmod)
 {
 	$t = $this->Lang('addfee');
-	$tplvars['addlink'] = $this->CreateLink($id,'addfee',$returnid,
-		$theme->DisplayImage('icons/system/newobject.gif',$t,'','','systemicon'),
-			array(),'',false,false,'')
-		.' '.
-		$this->CreateLink($id,'addfee',$returnid,$t,
-			array(),'',false,false,'class="pageoptions"');
+	$tplvars['addlink'] = $this->_CreateInputLinks($id,'addfee','newobject.gif',TRUE,$t);
 	$tplvars['submit'] = $this->CreateInputSubmit($id,'submit',$this->Lang('submit'));
 	$tplvars['cancel'] = $this->CreateInputSubmit($id,'cancel',$this->Lang('cancel'));
 	$t = $this->Lang('fee_multi');
@@ -252,8 +475,8 @@ if($pmod)
 function select_all_items(b)
 {
  var st = $(b).attr('checked');
- if(! st) st = false;
- $('input[name="{$id}selitems[]"][type="checkbox"]').attr('checked', st);
+ if(!st) st = false;
+ $('input[name^="{$id}selfees"][type="checkbox"]').attr('checked', st);
 }
 
 EOS;
@@ -264,7 +487,7 @@ EOS;
 		$jsfuncs[] = <<<EOS
 function selitm_count()
 {
- var cb = $('input[name="{$id}selitems[]"]:checked');
+ var cb = $('input[name^="{$id}selfees"]:checked');
  return cb.length;
 }
 function confirm_selitm_count()
@@ -284,6 +507,10 @@ EOS;
 		$jsloads[] = <<<EOS
  $('.updown').hide();
  $('.dndhelp').css('display','block');
+ var elem = $('p.pageinput:first'),
+  color = $(elem).css('color'),
+  size = $(elem).css('font-size');
+ $('.fakelink').css({'color':color,'font-size':size});
  $('.table_drag').tableDnD({
   onDragClass: 'row1hover',
   onDrop: function(table, droprows){
@@ -293,12 +520,12 @@ EOS;
    var evenclass = 'row2';
    var droprow = $(droprows)[0];
    $(table).find('tbody tr').each(function(){
-    name = odd ? oddclass : evenclass;
-    if (this === droprow){
-     name = name+'hover';
-    }
-    $(this).removeClass().addClass(name);
-    odd = !odd;
+	name = odd ? oddclass : evenclass;
+	if (this === droprow){
+	 name = name+'hover';
+	}
+	$(this).removeClass().addClass(name);
+	odd = !odd;
    });
   }
  }).find('tbody tr').removeAttr('onmouseover').removeAttr('onmouseout')
@@ -312,7 +539,7 @@ EOS;
  });
  
 EOS;
-	}
+	}//$count > 0
 }
 else
 {
