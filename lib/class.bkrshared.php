@@ -19,6 +19,31 @@ class bkritem_namecmp
 	}
 }
 
+//comparer to sort fee-condition array rows, each with members including item_id,condorder
+class bkrfee_cmp
+{
+	var $ids;
+	function __contruct($allids)
+	{
+		$this->ids = $allids;
+	}
+	function feecmp($a,$b)
+	{
+		$ta = $a['item_id'];
+		$tb = $b['item_id'];
+		if($ta != $tb)
+		{
+			$ka = array_search($ta,$this->ids);
+			$kb = array_search($tb,$this->ids);
+			if($ka != $kb)
+			{
+				return ($ka-$kb); //should always happen!
+			}
+		}
+		return ($a['condorder'] - $b['condorder']);
+	}
+}
+
 class bkrshared
 {
 	/**
@@ -265,7 +290,7 @@ class bkrshared
 		if(!$grps)
 		{
 			//nothing extra to report
-			$sql = 'SELECT name FROM '.$mod->ItemTable.' WHERE item_id=?';
+			$sql = 'SELECT name FROM '.$mod->ItemTable.' WHERE item_id=? AND active>0';
 			$name = $db->GetOne($sql,array($item_id));
 			return array($item_id=>$name);
 		}
@@ -273,7 +298,7 @@ class bkrshared
 		$col = FALSE;
 		$getters = implode(',',$grps);
 		//name-n-sort em
-		$sql = 'SELECT item_id,name FROM '.$mod->ItemTable.' WHERE item_id IN ('.$getters.')';
+		$sql = 'SELECT item_id,name FROM '.$mod->ItemTable.' WHERE item_id IN ('.$getters.') AND active>0';
 		$grps = $db->GetAssoc($sql);
 		if(count($grps) > 1)
 		{
@@ -555,7 +580,7 @@ class bkrshared
 		$ret = array();
 		$db = $mod->dbHandle;
 		//first try for the requested data specific to the item
-		$sql = "SELECT $getcols FROM $mod->ItemTable WHERE item_id=? AND active>0";
+		$sql = "SELECT $getcols FROM $mod->ItemTable WHERE item_id=? AND active=1";
 		$rs = $db->Execute($sql,array($item_id));
 		if($rs)
 		{
@@ -697,33 +722,55 @@ class bkrshared
 	@item_id: identifier of item (resource or group) for which property is/are sought
 	@same: optional boolean, whether the test applies only to specific resource instead of inherited, default FALSE
 	@conditional: optional string, condition to check payability e.g. time, default FALSE means no check needed
-	Returns: boolean T/F
+	Returns: boolean, FALSE if there are no relevant fee-data, or
+	 TRUE if there's no condition (i.e. fee(s) always apply), or
+	 TRUE if @conditional is TRUE and there's a condition that matches it
+	 or FALSE
 	*/
 	public function GetItemPayable(&$mod,$item_id,$same=FALSE,$conditional=FALSE)
 	{
-//TODO $this->PayTable stuff
 		$db = $mod->dbHandle;
 		if($same)
 		{
-			$sql = "SELECT fee,feecondition FROM $mod->PayTable WHERE item_id=? AND active=TRUE ORDER BY condorder";
+			$sql = 'SELECT fee,feecondition FROM '.$mod->PayTable.' WHERE item_id=? AND active=1 ORDER BY condorder';
 			$fees = $db->GetAll($sql,array($item_id));
 		}
 		else
 		{
-			//TODO get all c.f. GetItemProperty
-			$sql = "SELECT fee,feecondition FROM $mod->PayTable WHERE item_id IN (...)
-AND active=TRUE ORDER BY X DESC,condorder";
-			$fees = $db->GetAll($sql,array($Y));
+			$db = $mod->dbHandle;
+			$allids = self::GetItemGroups($mod,$db,$item_id);
+			if($allids)
+				array_unshift($allids, $item_id); //priority-ordered for checking
+			$fillers = str_repeat('?,',count($allids)-1);
+			$sql = 'SELECT item_id,fee,feecondition,condorder FROM '.$mod->PayTable.
+			' WHERE item_id IN ('.$fillers.'?) AND active=1 ORDER BY item_id,condorder'; //a bit of upstream sorting might help ...
+			$fees = $db->GetAll($sql,$allids); //NB ordered by item_id prob not what we want: $allids
+			if($fees)
+			{
+				usort($fees,array(new bkrfee_cmp($allids),'feecmp'));
+			}
 		}
 		if($fees)
 		{
 			if(!$conditional)
 				return TRUE;
-			//TODO check for matching condition
+			$hascond = FALSE;
+			foreach($fees as $one)
+			{
+				if($one['feecondition'])
+				{
+	//TODO $this->PayTable stuff
+					if(0)//TODO check for matching condition
+						return TRUE;
+					else
+						$hascond = TRUE;
+				}
+			}
+			return !$hascond;
 		}
 		return FALSE;
 	}
-	
+
 	/**
 	Get name for an item, with fallback
 	*/
@@ -753,10 +800,10 @@ AND active=TRUE ORDER BY X DESC,condorder";
 /*	public function GetBookingItemName(&$mod,$bkg_id)
 	{
 		$sql =<<<EOS
-SELECT I.item_id,I.name FROM {$mod->ItemTable} I
-JOIN {$mod->DataTable} B ON I.item_id = B.item_id
-WHERE I.active>0 AND B.bkg_id=?
-EOS;
+	SELECT I.item_id,I.name FROM {$mod->ItemTable} I
+	JOIN {$mod->DataTable} B ON I.item_id = B.item_id
+	WHERE I.active>0 AND B.bkg_id=?
+	EOS;
 		$idata = self::SafeGet($sql,array($bkg_id),'row');
 		if($idata)
 			return self::GetItemName($mod,$idata);
@@ -1126,7 +1173,7 @@ EOS;
 
 	/**
 	GetTimeOffset:
-	Requires: PHP >= 5.2
+	Requires: PHP 5.2+
 	Get the offset from UTC to the local timezone, in seconds. 0 upon error.
 	@local_zone: a timezone identifier like 'Europe/London' (or 'UTC','GMT','')
 	@local_time: optional date/time string parsable by PHP strtotime(), default 'now'
@@ -1195,7 +1242,7 @@ EOS;
 	/*
 	GetTimeZones(&$mod)
 	Requires: PHP >= 5.2
- 	Generate an array looking like:
+	Generate an array looking like:
 	 [Pacific/Midway] => (UTC-11:00) Pacific/Midway
 	 [Pacific/Pago_Pago] => (UTC-11:00) Pacific/Pago_Pago
 	 [Pacific/Niue] => (UTC-11:00) Pacific/Niue
