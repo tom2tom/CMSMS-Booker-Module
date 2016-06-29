@@ -167,26 +167,22 @@ class bkritemops
 	*/
 	public function ToggleItemActive(&$mod,$item_id)
 	{
-		$qm = array();
 		$args = array();
 		if(!is_array($item_id))
 		{
 			$args[] = (int)$item_id;
-			$qm[] = '?';
+			$fillers = '?';
 		}
 		else
 		{
 			foreach($item_id as $one)
-			{
-				$args = (int)$one;
-				$qm[] = '?';
-			}
+				$args[] = (int)$one;
+			$fillers = str_repeat('?,',count(item_id)-1).'?';
 		}
-		$seps = implode(',',$qm);
-		$sql = 'SELECT COUNT(1) AS num FROM '.$mod->ItemTable.' WHERE item_id IN ('.$seps.') AND active=0';
+		$sql = 'SELECT COUNT(1) AS num FROM '.$mod->ItemTable.' WHERE item_id IN ('.$fillers.') AND active=0';
 		$inact = $db->GetOne($sql,$args);
 		$newstate = ($inact === FALSE || (int)$inact !== 0) ? '1':'0';
-		$sql = 'UPDATE '.$mod->ItemTable.' SET active='.$newstate.' WHERE item_id IN ('.$seps.')';
+		$sql = 'UPDATE '.$mod->ItemTable.' SET active='.$newstate.' WHERE item_id IN ('.$fillers.') AND active<>2';
 		$db->Execute($sql,$args);
 	}
 }
