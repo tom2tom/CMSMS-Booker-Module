@@ -690,7 +690,7 @@ class bkrschedule
 		$se = $ndt->getTimestamp();
 
 		$db = $mod->dbHandle;
-		$sql1 = 'SELECT repeatsuntil FROM '.$mod->ItemTable.' WHERE item_id=?';
+		$sql1 = 'SELECT repeatsuntil FROM '.$mod->ItemTable.' WHERE item_id=? AND active>0';
 		$sql2 = 'UPDATE '.$mod->ItemTable.' SET repeatsuntil=? WHERE item_id=?';
 
 		$shares = new bkrshared();
