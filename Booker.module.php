@@ -371,6 +371,7 @@ class Booker extends CMSModule
 		 case 'findbooking':
 		 case 'import':
 		 case 'notifybooker':
+		 case 'openitem':
 		 case 'openbooking':
 		 case 'openrequest':
 		 case 'requestbooking':
@@ -569,12 +570,12 @@ class Booker extends CMSModule
 				//trim string like <img src="..." class="fakeicon systemicon" alt="$text" title="$text" />
 				$imgstr = str_replace(array('<img','/>'),array('',''),$imgstr);
 			}
-			elseif($p == 0)
-				$imgstr = $this->GetModuleURLPath().$iconfile;
-			elseif(strpos($iconfile,'://',$p-1) === $p-1)
-				$imgstr = $iconfile;
-			else
-				$imgstr = $this->GetModuleURLPath().'/'.$iconfile;
+			elseif($p == 0) {
+				$imgstr = $this->GetModuleURLPath().$iconfile; }
+			elseif(strpos($iconfile,'://',$p-1) === $p-1) {
+				$imgstr = $iconfile; }
+			else {
+				$imgstr = $this->GetModuleURLPath().'/'.$iconfile; }
 			$ret = '<input type="image" '.$imgstr.' name="'.$id.$name.'"'; //conservative assumption about spaces
 			if($extra)
 				$ret .= ' '.$extra;
