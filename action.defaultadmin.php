@@ -897,7 +897,7 @@ if($pset)
 	$one->must = 1;
 	$settings[] = $one;
 
-	$sql = 'SELECT user_id,first_name,last_name FROM '.$this->UserTable.' WHERE active=TRUE ORDER BY last_name,first_name';
+	$sql = 'SELECT user_id,first_name,last_name FROM '.$this->UserTable.' WHERE active=1 ORDER BY last_name,first_name';
 	$allusers = $db->GetAssoc($sql);
 	if($allusers)
 	{
