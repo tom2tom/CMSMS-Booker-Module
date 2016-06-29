@@ -134,7 +134,11 @@ input.fakeicon
 {
 	margin:0;
 	padding:0;
-	border:medium;
+	border-style:hidden;
+	border-radius:0;
+	-moz-border-radius:0;
+	-webkit-border-radius:0;
+	background:none;
 	vertical-align:middle;
 }
 /* color and size will be conformed at runtime, if js is enabled */
@@ -146,11 +150,11 @@ input.fakelink
 	text-decoration:underline;
 	font-size:1em;
 	color:#000;
-	background:url("");
+	background:none;
 }
 
 input.fakelink:hover
 {
 	text-decoration:none;
-	background:url("");
+	background:none;
 }
