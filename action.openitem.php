@@ -953,7 +953,7 @@ EOS;
 	$jsloads[] =<<<EOS
  $('p.help').hide();
  $('.dndhelp').css('display','block');
-// $('.updown').hide();
+ $('.updown').hide();
  $('input[name^="{$id}sortlike"]').css('display','inline').click(function(ev){
   ev.stopImmediatePropagation();
   ev.preventDefault();
@@ -968,22 +968,13 @@ EOS;
     if (status=='success'){
      if (data != ''){
       \$tbl.find('tbody').html(data);
-      var odd = true,
-       oddclass = 'row1',
-       evenclass = 'row2',
-       name;
-      \$tbl.find('tbody tr').each(function(){
-       name = odd ? oddclass : evenclass;
-       $(this).removeClass().addClass(name);
-       odd = !odd;
-      });
      }
     } else {
      $('#page_tabs').prepend('<p style="font-weight:bold;color:red;">{$t}!</p><br />');
     }
    }
   });
-	return false;
+  return false;
  });
  $('img.tipper').css({'display':'inline','padding-left':'10px'}).click(function(){
    $(this).parent().next().next().slideToggle();
@@ -998,16 +989,31 @@ EOS;
   evensortClass: 'row2s'
  });
  $('table.table_drag').tableDnD({
-	onDragClass: 'row1hover'
+  onDragClass: 'row1hover',
+  onDrop: function(table, droprows){
+   var odd = false,
+    oddclass = 'row1',
+    evenclass = 'row2',
+    droprow = $(droprows)[0],
+    name, hname, fullname;
+   $(table).find('tbody tr').each(function(){
+    name = (odd) ? oddclass : evenclass;
+    if (this == droprow){
+     name = name+'hover';
+    }
+    $(this).removeClass().addClass(name);
+    odd = !odd;
+   });
+  }
  }).find('tbody tr').removeAttr('onmouseover').removeAttr('onmouseout')
- 	 .mouseover(function() {
-		var now = $(this).attr('class');
-		$(this).attr('class', now+'hover');
+ .mouseover(function() {
+     var now = $(this).attr('class');
+     $(this).attr('class', now+'hover');
  }).mouseout(function() {
-		var now = $(this).attr('class');
-		var to = now.indexOf('hover');
-		$(this).attr('class', now.substring(0,to));
-	});
+    var now = $(this).attr('class');
+    var to = now.indexOf('hover');
+    $(this).attr('class', now.substring(0,to));
+ });
  $('#members th > input').click(function(){
    var chk = $(this).is(':checked');
    $('#members > tbody').find('input[type="checkbox"]').attr('checked',chk);
