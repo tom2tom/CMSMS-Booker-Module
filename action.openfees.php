@@ -1,7 +1,7 @@
 <?php
 #----------------------------------------------------------------------
 # Module: Booker - a resource booking module
-# Action: fees
+# Action: openfees
 # view or edit usage-fees for the specified item or group ($params['item_id']) or
 # edit for all selected item(s) or group(s)
 #----------------------------------------------------------------------
@@ -386,7 +386,7 @@ if($sel)
 
 $tplvars = array(
 	'mod' => $pmod,
-	'startform' => $this->CreateFormStart($id,'fees',$returnid),
+	'startform' => $this->CreateFormStart($id,'openfees',$returnid),
 	'endform' => $this->CreateFormEnd(),
 	'hidden' => $hidden
 );
