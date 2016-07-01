@@ -789,7 +789,9 @@ if($is_group)
 				$i = groupstable($this,$tplvars,$id,'members',$returnid,$icondn,$iconup,
 					$item_id,$allgrps,$relations,TRUE,TRUE,'members');
 				$i .= '  '.$this->CreateInputSubmit($id,'sortlike',$this->Lang('sort'),
-					'title="'.$this->Lang('tip_sortchilds').'" style="display:none;"'); //button shown by runtime js
+					'title="'.$this->Lang('tip_sortchilds').
+					'" style="display:none;" onclick="current_tab();return confirm(\''.
+					$this->Lang('allsaved').'\');"'); //button shown by runtime js
 			}
 			elseif($sel)
 				$i = implode(', ',$sel);
@@ -910,7 +912,9 @@ if($allgrps)
 				$i = groupstable($this,$tplvars,$id,'ingroups',$returnid,$icondn,$iconup,
 					$item_id,$allgrps,$relations,TRUE,FALSE,'groups');
 				$i .= '  '.$this->CreateInputSubmit($id,'sortlike',$this->Lang('sort'),
-					'title="'.$this->Lang('tip_sortparents').'" style="display:none;"'); //button shown by runtime js
+					'title="'.$this->Lang('tip_sortparents').
+					'" style="display:none;" onclick="current_tab();return confirm(\''.
+					$this->Lang('allsaved').'\');"'); //button shown by runtime js
 			}
 			elseif($sel)
 				$i = implode(', ',$sel);
