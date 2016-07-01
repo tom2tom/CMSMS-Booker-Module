@@ -211,7 +211,7 @@ class Booker extends CMSModule
 			if(strpos($request['mact'],'exportbooking',6)) return TRUE;
 			if(strpos($request['mact'],'multibooking',6)
 				&& isset($request['m1_export'])) return TRUE;
-			if(strpos($request['mact'],'sortlike',6)) return TRUE;
+//no DnD	if(strpos($request['mact'],'sortlike',6)) return TRUE;
 		}
 		return FALSE;
 	}
@@ -351,7 +351,9 @@ class Booker extends CMSModule
 		 case 'see':
 		 case 'update': //apply/submit item/group changes
  			if(isset($params['modfee'])) //in-page edit-fees button clicked
-				$action = 'fees';
+				$action = 'openfees';
+			elseif(isset($params['sortlike']))
+				$action = 'sortlike';
 			else
 				$action = 'openitem';
 			break;
@@ -375,10 +377,10 @@ class Booker extends CMSModule
 		 case 'openbooking':
 		 case 'openrequest':
 		 case 'requestbooking':
+		 case 'openfees':
 		 case 'setprefs':
 		 case 'swapgroups':
 		 case 'sortlike':
-		 case 'fees':
 			break;
 		 case 'adminbooking':
 			if(isset($params['importbkg']))
@@ -389,8 +391,8 @@ class Booker extends CMSModule
 				$action = 'processrequest';
 			break;
 		 case 'process': //multiple/selected/?export?/delete etc
-			if(isset($params['fees']))
-				$action = 'fees';
+			if(isset($params['setfees']))
+				$action = 'openfees';
 			elseif(isset($params['importitm']))
 				$action = 'import';
 			break;
@@ -412,7 +414,7 @@ class Booker extends CMSModule
 		 case 'addfee':
 		 case 'delfee':
 		 case 'modfee':
-			$action = 'fees';
+			$action = 'openfees';
 			break;
 		 default:
 			if(isset($params['active_tab'])) //TODO if backend

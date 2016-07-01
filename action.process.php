@@ -25,7 +25,7 @@ elseif(isset($params['activate']))
 	  || $this->_CheckAccess('delete'))) exit;
 	$funcs->ToggleItemActive($this,$sel);
 }
-/*elseif (isset($params['fees']))
+/*elseif (isset($params['setfees']))
 {
 	diverted upstream
 	if(!($this->_CheckAccess('admin') || $this->_CheckAccess('modify'))) exit;
