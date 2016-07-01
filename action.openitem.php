@@ -31,6 +31,8 @@ if(!function_exists('groupstable'))
 		}
 		else
 		{
+			//TODO action.swapgroups would work better with a $params['active_tab'] for returning!
+			//TODO mechanism to incrementally [de]select items and re-arrange the current selected bundle
 			$one->uplink = $mod->CreateLink($id,'swapgroups',$returnid,$iconup,
 				array('item_id'=>$k, 'prev_item_id'=>$prevk,'ref_id'=>$item_id,'change'=>$target));
 			$rows[$r-1]->dnlink = $mod->CreateLink($id,'swapgroups',$returnid,$icondn,
