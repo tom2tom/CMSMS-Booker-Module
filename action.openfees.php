@@ -584,18 +584,18 @@ EOS;
  $('.table_drag').tableDnD({
   onDragClass: 'row1hover',
   onDrop: function(table, droprows){
-   var name;
-   var odd = true;
-   var oddclass = 'row1';
-   var evenclass = 'row2';
-   var droprow = $(droprows)[0];
+   var odd = false,
+    oddclass = 'row1',
+    evenclass = 'row2',
+    droprow = $(droprows)[0],
+    name;
    $(table).find('tbody tr').each(function(){
-	name = odd ? oddclass : evenclass;
-	if (this === droprow){
-	 name = name+'hover';
-	}
-	$(this).removeClass().addClass(name);
-	odd = !odd;
+    name = (odd) ? oddclass : evenclass;
+    if (this === droprow){
+      name = name+'hover';
+    }
+    $(this).removeClass().addClass(name);
+    odd = !odd;
    });
   }
  }).find('tbody tr').removeAttr('onmouseover').removeAttr('onmouseout')
