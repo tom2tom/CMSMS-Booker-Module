@@ -107,11 +107,18 @@ if(!function_exists('array_like'))
 	}
 
 }
-
+/*supplied $params = array(
+'item_id' => number
+'sort' => 'groups' or 'members')
+*/
 $funcs = new bkrshared();
-$group = (int)$params['item_id'];
-$havegroups = array($group);
-$members = $funcs->GetGroupItems($this,$group,TRUE);
+$item_id = (int)$params['item_id'];
+$havegroups = array($item_id);
+$type = $params['sort'];
+if($type == 'members')
+	$members = $funcs->GetGroupItems($this,$item_id,TRUE);
+else
+	$members = $funcs->GetItemGroups($this,$db,$item_id);
 if($members)
 {
 	if(count($members) > 1)
@@ -126,14 +133,14 @@ if($members)
 				$havegroups[] = $i;
 		}
 
-		$first = $params['first_id'];
+		$first = $item_id; //$params['first_id'];
 		$fname = !empty($data[$first]['name']) ? str_split($data[$first]['name']) : FALSE;
 		$fdesc = !empty($data[$first]['description']) ? str_split($data[$first]['description']) : FALSE;
 		$fkeys = !empty($data[$first]['keywords']) ? explode(',',$data[$first]['keywords']) : FALSE;
 		$cmps = array();
 		foreach($data as $i=>$one)
 		{
-			if(!($i == $first || $i == $group))
+			if(!($i == $first || $i == $item_id))
 			{
 				$cmps[$i] = array('score'=>0.0,'name'=>'');
 				if($fname && !empty($data[$i]['name']))
@@ -166,19 +173,22 @@ if($members)
 				$havegroups[] = $i;
 		}
 	}
-	$all = array($first=>array('score'=>50.0,'name'=>'')) + $cmps;
+	$all = array($first=>array('score'=>50.0,'name'=>'')) + $cmps; //CHECKME why prepend?
 
 	$sorted = array();
 	//NOTE must conform with action.openitem.php table-data creation, except -
 	//cuz' js & ajax are available, the up/down links will be hidden/irrelevant
 	foreach($all as $i=>$one)
 	{
-		$oneset = new stdClass();
-		$oneset->name = $data[$i]['name'];
-		$oneset->uplink = '';
-		$oneset->dnlink = '';
-		$oneset->check = $this->CreateInputCheckbox($id,'members[]',$i,$i);
-		$sorted[] = $oneset;
+		if(isset($data[$i]))
+		{
+			$oneset = new stdClass();
+			$oneset->name = $data[$i]['name'];
+			$oneset->uplink = '';
+			$oneset->dnlink = '';
+			$oneset->check = $this->CreateInputCheckbox($id,$type.'[]',$i,$i);
+			$sorted[] = $oneset;
+		}
 	}
 	//append extra groups, unselected
 	$moregroups = $db->GetAssoc('SELECT item_id,name FROM '.$this->ItemTable.
@@ -190,12 +200,12 @@ if($members)
 		$oneset->name = $one; //too bad if name empty!
 		$oneset->uplink = '';
 		$oneset->dnlink = '';
-		$oneset->check = $this->CreateInputCheckbox($id,'members[]',$i,-1);
+		$oneset->check = $this->CreateInputCheckbox($id,$type.'[]',$i,-1);
 		$sorted[] = $oneset;
 	}
 	$tplvars = array(
 		'entries' => $sorted,
-		'identifier' => 'members'
+		'identifier' => $type //checkbox class
 	);
 	echo bkrshared::ProcessTemplate($this,'membersbody.tpl',$tplvars);
 }
