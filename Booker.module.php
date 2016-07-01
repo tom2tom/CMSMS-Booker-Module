@@ -211,7 +211,7 @@ class Booker extends CMSModule
 			if(strpos($request['mact'],'exportbooking',6)) return TRUE;
 			if(strpos($request['mact'],'multibooking',6)
 				&& isset($request['m1_export'])) return TRUE;
-//no DnD	if(strpos($request['mact'],'sortlike',6)) return TRUE;
+			if(strpos($request['mact'],'sortlike',6)) return TRUE;
 		}
 		return FALSE;
 	}
