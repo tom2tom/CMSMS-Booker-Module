@@ -717,58 +717,114 @@ class bkrshared
 	}
 
 	/**
-	GetItemPayable:
-	@mod: reference to current Booker module object
-	@item_id: identifier of item (resource or group) for which property is/are sought
-	@same: optional boolean, whether the test applies only to specific resource instead of inherited, default FALSE
-	@conditional: optional string, condition to check payability e.g. time, default FALSE means no check needed
-	Returns: boolean, FALSE if there are no relevant fee-data, or
-	 TRUE if there's no condition (i.e. fee(s) always apply), or
-	 TRUE if @conditional is TRUE and there's a condition that matches it
-	 or FALSE
+	GetFeeSignature:
+	Get identifier usable for cross-resource fee-comparisons
+	@row: array of fee-data including members: slottype,slotcount,fee,feecondition
+	Returns: 32-bit integer
 	*/
-	public function GetItemPayable(&$mod,$item_id,$same=FALSE,$conditional=FALSE)
+	public function GetFeeSignature($row)
+	{
+		$sig = '';
+		foreach(array('slottype','slotcount','fee','feecondition') as $k)
+		{
+			$sig .= (isset($row[$k]) && $row[$k] !== NULL) ? $row[$k] : 'NULL';
+		}
+		return crc32($sig);
+	}
+
+	/**
+	GetItemFee:
+	@mod: reference to current Booker module object
+	@item_id: identifier of item (resource or group) for which fee(s) is/are sought
+	@search: optional boolean, whether to check for missing fee in ancestor groups (if any), default FALSE
+	@conditional: optional string, condition to check payability e.g. time or user-class,
+	 may be '' to match explicit non-condition, may be 'ID<:>NUM' to match the
+	 stored condition for @item_id and condition_id==NUM, default FALSE means
+	 unconditional/no check needed
+	Returns: the first-found non-NULL fee if @conditional === FALSE, or
+	 the first-found non-NULL fee whose condition matches @conditional !== FALSE, or
+	 boolean FALSE if there are no relevant fee-data (conditional or otherwise)
+	*/
+	public function GetItemFee(&$mod,$item_id,$search=FALSE,$conditional=FALSE)
 	{
 		$db = $mod->dbHandle;
-		if($same)
+		if($search)
 		{
-			$sql = 'SELECT fee,feecondition FROM '.$mod->PayTable.' WHERE item_id=? AND active=1 ORDER BY condorder';
-			$fees = $db->GetAll($sql,array($item_id));
+			$args = self::GetItemGroups($mod,$db,$item_id);
+			array_unshift($args, $item_id); //priority-ordered for checking
+			$fillers = str_repeat('?,',count($args)-1);
+			$sql = 'SELECT item_id,fee,feecondition,condorder FROM '.$mod->PayTable.
+			' WHERE item_id IN ('.$fillers.'?) AND active=1 ORDER BY item_id,condorder'; //a bit of downstream sorting might help ...
+			$fees = $db->GetAll($sql,$args); //NB ordered by item_id prob not what we want: $args has it
+			if($fees)
+			{
+				usort($fees,array(new bkrfee_cmp($args),'feecmp'));
+			}
 		}
 		else
 		{
-			$db = $mod->dbHandle;
-			$allids = self::GetItemGroups($mod,$db,$item_id);
-			if($allids)
-				array_unshift($allids, $item_id); //priority-ordered for checking
-			$fillers = str_repeat('?,',count($allids)-1);
-			$sql = 'SELECT item_id,fee,feecondition,condorder FROM '.$mod->PayTable.
-			' WHERE item_id IN ('.$fillers.'?) AND active=1 ORDER BY item_id,condorder'; //a bit of upstream sorting might help ...
-			$fees = $db->GetAll($sql,$allids); //NB ordered by item_id prob not what we want: $allids
-			if($fees)
-			{
-				usort($fees,array(new bkrfee_cmp($allids),'feecmp'));
-			}
+			$sql = 'SELECT fee,feecondition FROM '.$mod->PayTable.
+			' WHERE item_id=? AND active=1 ORDER BY condorder';
+			$fees = $db->GetAll($sql,array($item_id));
 		}
+
 		if($fees)
 		{
-			if(!$conditional)
-				return TRUE;
-			$hascond = FALSE;
+			if(strpos($conditional,'ID<:>') === 0)
+			{
+				$cid = substr($conditional,5);
+				$conditional = $db->GetOne('SELECT feecondition FROM '.
+					$mod->PayTable.' WHERE item_id=? AND condition_id=?',array($item_id,$cid));
+				if($conditional === FALSE)
+					return FALSE; //error
+				elseif(!$conditional)
+					$conditional = '';
+			}
+	
 			foreach($fees as $one)
 			{
-				if($one['feecondition'])
+				if($one['fee'] != NULL)
 				{
+					if($conditional === FALSE)
+					{
+						return $one['fee']; //CHECKME
+					}
+					elseif($one['feecondition'])
+					{
 	//TODO $this->PayTable stuff
-					if(0)//TODO check for matching condition
-						return TRUE;
-					else
-						$hascond = TRUE;
+						if(0)//TODO check for conforming condition
+						{
+							return $one['fee'];
+						}
+					}
+					elseif($conditional === '')
+					{
+						return $one['fee'];
+					}
 				}
 			}
-			return !$hascond;
 		}
 		return FALSE;
+	}
+
+	/**
+	GetItemPayable:
+	@mod: reference to current Booker module object
+	@item_id: identifier of item (resource or group) for which property is/are sought
+	@search: optional boolean, whether to check for missing fee in ancestor groups (if any), default FALSE
+	@conditional: optional string, condition to check payability e.g. time or user-class,
+	 may be '' to match explicit non-condition, may be 'ID<:>NUM' to match the
+	 stored condition for @item_id and condition_id==NUM, default FALSE means
+	 unconditional/no check needed
+	Returns: boolean, FALSE if there are no relevant fee-data, or
+	 TRUE if @conditional === FALSE there's any fee > 0, or
+	 TRUE if @conditional !== FALSE and there's a fee > 0 for a condition that matches it
+	 or FALSE
+	*/
+	public function GetItemPayable(&$mod,$item_id,$search=FALSE,$conditional=FALSE)
+	{
+		$fee = self::GetItemFee($mod,$item_id,$search,$conditional);
+		return ($fee !== FALSE && $fee > 0);
 	}
 
 	/**
