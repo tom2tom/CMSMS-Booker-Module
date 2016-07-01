@@ -131,22 +131,31 @@ $params = array
 'active_tab' => string 'items' OR 'groups'
 'action' => string 'process'
 */
-	$sel = $params['selitems'];
-	$item_id = reset($params['selitems']); //use 1st-selected for editing
+	$item_id = array_unshift($params['selitems']); //use 1st-selected for editing
+	$sel = $params['selitems']; //maybe empty now
 }
 elseif(isset($params['selgroups']))
 {
+	$item_id = array_unshift($params['selgroups']);
 	$sel = $params['selgroups'];
-	$item_id = reset($params['selgroups']);
+}
+elseif(!empty($params['sel']))
+{
+	//TODO came back
+$this->Crash();
+	$item_id = $params['item_id'];
+	$sel = json_decode($params['sel']);
 }
 else
 {
 /*came from openitem add/edit fees button-click
 $params = array of all item/group properties, including 'active_tab'
 */
-	$sel = FALSE;
 	$item_id = $params['item_id'];
+	$sel = FALSE;
 }
+
+$funcs = new bkrshared();
 
 if(isset($params['submit']))
 {
@@ -163,12 +172,15 @@ if(isset($params['submit']))
    missing member(s) whose condition is inactive AND missing whole $param if
    none is active
 */
+	$sql0 = 'DELETE FROM '.$mod->PayTable.' WHERE item_id IN(';
+
 	$pdata = mergefeedata($params,$item_id);
 	if($pdata)
 	{
 		$sql1 = 'INSERT INTO '.$mod->PayTable.' (
 condition_id,
 item_id,
+signature,
 description,
 slottype,
 slotcount,
@@ -176,8 +188,9 @@ fee,
 feecondition,
 condorder,
 active
-) VALUES (?,?,?,?,?,?,?,?,?)';
+) VALUES (?,?,?,?,?,?,?,?,?,?)';
 		$sql2 = 'UPDATE '.$mod->PayTable.' SET 
+signature=?
 description=?,
 slottype=?,
 slotcount=?,
@@ -188,24 +201,44 @@ active=?
 WHERE condition_id=?';
 		$allsql = array();
 		$allargs = array();
+		//accumulate all remaining and tabled condition-id's in array data
+		$allids = array();
 		foreach($pdata as $one)
 		{
-	$this->Crash();
+			if($one['condition_id'] >= 0)
+				$allids[] = (int)$one;
+		}
+		//remove non-continuing conditions for $item_id
+		$t = 'DELETE FROM '.$mod->PayTable.' WHERE item_id=?';
+		$args = array($item_id);
+		if($allids)
+		{
+			$fillers = str_repeat('?,',count($allids)-1);
+			$t .= ' AND condition_id NOT IN('.$fillers.'?)';
+			$args = $args + $allids;
+		}
+		$allsql[] = $t;
+		$allargs[] = $args;
+		//next, cleanup and accumulate new+retained data
+		foreach($pdata as &$one)
+		{
 			if($one['slottype'] == -1)
 				$one['slotcount'] = NULL; //no count for fixed fee
 			$relfee = preg_match('/^ *[+-]/', $one['fee']);
 			if($relfee)
 				$lp = $this->Lang('percent');
 			$one['active'] = (bool)$one['active'];
-			if($one['condition_id'] < 0)
+			if($one['condition_id'] < 0) //new fee-item
 			{
-				if($relfee)
-					$one['fee'] = NULL; //TODO [re-]get current fee, inherited if needed
 				$allsql[] = $sql1;
 				$cid = $db->GenID($this->PayTable.'_seq');
+				if($relfee)
+					$one['fee'] = NULL; //no basis for relative fee in new conditions
+				$sig = $funcs->GetFeeSignature($one);
 				$allargs[] = array(
 				 $cid,
 				 $item_id,
+				 $sig,
 				 $one['description'],
 				 $one['slottype'],
 				 $one['slotcount'],
@@ -215,30 +248,31 @@ WHERE condition_id=?';
 				 $one['active'],
 				);
 			}
-			else
+			else //existing fee-item
 			{
+				$allsql[] = $sql2;
 				if($relfee)
 				{
-					$sql = 'SELECT fee FROM '.$mod->PayTable.' WHERE condition_id=?';
-					$now = $db->GetOne($sql,array($one['condition_id']));
-//					$lang = CmsNlsOperations::get_current_language(); //CMSMS 1.11+ CRAP if resource-locale doesn't match lang
-//					$fmt = numfmt_create($lang,NumberFormatter::DECIMAL); //PHP 5.3+
-					$t = trim($one['fee']);
-					$r = preg_replace('/(%|'.$lp.')$/','',$t);
-					if($t != $r)
+					$now = $funcs->GetItemFee($this,$item_id,TRUE,'ID<:>'.$one['condition_id']);//re-get current fee, inherited if needed
+					if($now !== FALSE)
 					{
-//						$p = $fmt->parse($r);
-//						$one['fee'] = $now + ($now*$p)/100;
-						$one['fee'] = $now + ($now*(float)$r)/100;
+						$t = trim($one['fee']);
+						$r = preg_replace('/(%|'.$lp.')$/','',$t);
+						if($t != $r)
+						{
+							$one['fee'] = $now + ($now*(float)$r)/100; //maybe 0
+						}
+						else
+						{
+							$one['fee'] = $now + (float)$t; //ditto
+						}
 					}
 					else
-					{
-//						$one['fee'] = $now + $fmt->parse($t);
-						$one['fee'] = $now + (float)$t;
-					}
+						$one['fee'] = NULL;
 				}
-				$allsql[] = $sql2;
+				$sig = $funcs->GetFeeSignature($one);
 				$allargs[] = array(
+				 $sig,
 				 $one['description'],
 				 $one['slottype'],
 				 $one['slotcount'],
@@ -250,14 +284,53 @@ WHERE condition_id=?';
 				);
 			}
 		}
+		unset($one);
+
+		if(!empty($params['sel']))
+		{
+			//no basis for incremental update of other resources, so we start them afresh
+			//TODO scan for matching signature-field values, update those, otherwise add/delete rows
+			$sel = json_decode($params['sel']); //array
+			$fillers = str_repeat('?,',count($sel)-1);
+			$allsql[] = $sql0.$fillers.'?)';
+			$allargs[] = $sel;
+			foreach($sel as $thisid)
+			{
+				foreach($pdata as $one)
+				{
+					$allsql[] = $sql1;
+					$cid = $db->GenID($this->PayTable.'_seq');
+					$allargs[] = array(
+					 $cid,
+					 $thisid,
+					 $one['description'],
+					 $one['slottype'],
+					 $one['slotcount'],
+					 $one['fee'],
+					 $one['feecondition'],
+					 $one['condorder'],
+					 $one['active'],
+					);
+				}
+			}
+		}
 		bkrshared::SafeExec($allsql,$allargs);
 	}
-	else
+	else //no fee-data now, clear from table
 	{
-		$sql = 'DELETE FROM '.$this->PayTable.' WHERE item_id=?';
-		$db->Execute($sql,array($item_id));
+		if(isset($params['sel']))
+		{
+			$sel = json_decode($params['sel']); //array
+			$fillers = str_repeat('?,',count($sel)-1);
+			$sql = $sql0.$fillers.'?)';
+			$db->Execute($sql,$sel);
+		}
+		else
+		{
+			$sql = $sql0.'?)';
+			$db->Execute($sql,array($item_id));
+		}
 	}
-	//TODO if $params['sel'] == multi-resources upon submit
 	if(isset($params['sel'])) {
 		$this->Redirect($id,'defaultadmin','',array('active_tab'=>$params['active_tab'])); }
 	else {
@@ -305,12 +378,10 @@ if($pmod)
 
 $hidden = $this->CreateInputHidden($id,'item_id',$item_id).
  $this->CreateInputHidden($id,'active_tab',$params['active_tab']);
-$linkargs = array('item_id'=>$item_id,'active_tab'=>$params['active_tab']);
 if($sel)
 {
 	$t = json_encode($sel);
 	$hidden .= $this->CreateInputHidden($id,'sel',$t);
-	$linkargs['sel'] = $t;
 }
 
 $tplvars = array(
@@ -335,7 +406,6 @@ else
 	$key = ($is_group) ? 'feeseetitle2' : 'feeseetitle';
 }
 
-$funcs = new bkrshared();
 $t = $funcs->GetItemNameForID($this,$item_id);
 $tplvars['title'] = $this->Lang($key,$t);
 
