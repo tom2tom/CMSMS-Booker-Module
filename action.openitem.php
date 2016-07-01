@@ -788,10 +788,9 @@ if($is_group)
 				//TODO make action.sortlike work for this, make this work for GroupsTable+action.swapgroups
 				$i = groupstable($this,$tplvars,$id,'members',$returnid,$icondn,$iconup,
 					$item_id,$allgrps,$relations,TRUE,TRUE,'members');
-				$i .= '  '.$this->CreateInputSubmit($id,'sortlike',$this->Lang('sort'),
-					'title="'.$this->Lang('tip_sortchilds').
-					'" style="display:none;" onclick="current_tab();return confirm(\''.
-					$this->Lang('allsaved').'\');"'); //button shown by runtime js
+				if($rc > 1)
+					$i .= '  '.$this->CreateInputSubmit($id,'sortlike',$this->Lang('sort'),
+						'title="'.$this->Lang('tip_sortchilds').'" style="display:none;"'); //button shown by runtime js
 			}
 			elseif($sel)
 				$i = implode(', ',$sel);
@@ -911,10 +910,9 @@ if($allgrps)
 				//TODO make action.sortlike work for this, make this work for GroupsTable+action.swapgroups
 				$i = groupstable($this,$tplvars,$id,'ingroups',$returnid,$icondn,$iconup,
 					$item_id,$allgrps,$relations,TRUE,FALSE,'groups');
-				$i .= '  '.$this->CreateInputSubmit($id,'sortlike',$this->Lang('sort'),
-					'title="'.$this->Lang('tip_sortparents').
-					'" style="display:none;" onclick="current_tab();return confirm(\''.
-					$this->Lang('allsaved').'\');"'); //button shown by runtime js
+				if($rc > 1)
+					$i .= '  '.$this->CreateInputSubmit($id,'sortlike',$this->Lang('sort'),
+						'title="'.$this->Lang('tip_sortparents').'" style="display:none;"'); //button shown by runtime js
 			}
 			elseif($sel)
 				$i = implode(', ',$sel);
@@ -947,14 +945,49 @@ if($allgrps)
 <script type="text/javascript" src="{$baseurl}/include/jquery.SSsort.min.js"></script>
 EOS;
 
+	$t = $this->Lang('err_server');
+	$u = $this->create_url($id,'sortlike','',array('item_id'=>$item_id,'sort'=>''));
+	$offs = strpos($u,'?mact=');
+	$u = str_replace('&amp;','&',substr($u,$offs+1)); //'groups' or 'members' will be appended at runtime
+
 	$jsloads[] =<<<EOS
  $('p.help').hide();
  $('.dndhelp').css('display','block');
- $('.updown').hide();
- $('input[name^="{$id}sortlike"]').css('display','inline');
+// $('.updown').hide();
+ $('input[name^="{$id}sortlike"]').css('display','inline').click(function(ev){
+  ev.stopImmediatePropagation();
+  ev.preventDefault();
+  var \$tbl = $(this).prev('table'),
+   what = \$tbl.attr('id');
+  $.ajax({
+   type: 'POST',
+   url: 'moduleinterface.php',
+   data: '{$u}'+what,
+   dataType: 'html',
+   success: function(data,status){
+    if (status=='success'){
+     if (data != ''){
+      \$tbl.find('tbody').html(data);
+      var odd = true,
+       oddclass = 'row1',
+       evenclass = 'row2',
+       name;
+      \$tbl.find('tbody tr').each(function(){
+       name = odd ? oddclass : evenclass;
+       $(this).removeClass().addClass(name);
+       odd = !odd;
+      });
+     }
+    } else {
+     $('#page_tabs').prepend('<p style="font-weight:bold;color:red;">{$t}!</p><br />');
+    }
+   }
+  });
+	return false;
+ });
  $('img.tipper').css({'display':'inline','padding-left':'10px'}).click(function(){
    $(this).parent().next().next().slideToggle();
-	});
+ });
  $('table.table_sort').SSsort({
   sortClass: 'SortAble',
   ascClass: 'SortUp',
