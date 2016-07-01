@@ -376,6 +376,7 @@ class Booker extends CMSModule
 		 case 'openrequest':
 		 case 'requestbooking':
 		 case 'setprefs':
+		 case 'swapgroups':
 		 case 'sortlike':
 		 case 'fees':
 			break;
