@@ -10,6 +10,7 @@
 confusingly, $params['ref_id'] = id of resource/group being processed
 $params['*item_id'] are id's of parent or child of that id, and for which a relevant field-value is to be swapped
  */
+//TODO support swapping not-yet-grouped items i.e. one or both not in GroupTable
 if (!isset($params['item_id']) || !isset($params['ref_id']))
 	$this->Redirect($id,'defaultadmin','',array('message'=>$this->Lang('err_parm')));
 $item_id = $params['ref_id'];
@@ -34,17 +35,20 @@ $thisrow = $db->GetRow($sql,$thisargs);
 if ($thisrow === FALSE)
 	$this->Redirect($id,'openitem','',array('item_id'=>$item_id,'message'=>$this->Lang('err_parm')));
 
-$thisargs2 = array(end($thisrow),$thisrow['gid']);
-$otherargs2 = array(end($otherrow),$otherrow['gid']);
+$thisargs = array(end($otherrow),$thisrow['gid']);
+$otherargs = array(end($thisrow),$otherrow['gid']);
 
-if($params['change'] == 'parent')
-	$sql2 = 'UPDATE '.$this->GroupTable.' SET proximity=? WHERE gid=?';
-else
-	$sql2 = 'UPDATE '.$this->GroupTable.' SET likeorder=? WHERE gid=?';
+if($thisargs[0] && $otherargs[0])
+{
+	if($params['change'] == 'parent')
+		$sql = 'UPDATE '.$this->GroupTable.' SET proximity=? WHERE gid=?';
+	else
+		$sql = 'UPDATE '.$this->GroupTable.' SET likeorder=? WHERE gid=?';
 
-$db->Execute($sql2,$thisargs2);
-$db->Execute($sql2,$otherargs2);
+	$db->Execute($sql,$thisargs);
+	$db->Execute($sql,$otherargs);
+}
 
-$this->Redirect($id,'openitem','',array('item_id'=>$item_id));
+$this->Redirect($id,'openitem','',array('item_id'=>$item_id)); //TODO 'active_tab'=>$params['active_tab'] N/A here
 
 ?>
