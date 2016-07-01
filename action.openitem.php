@@ -11,14 +11,15 @@ if(!function_exists('groupstable'))
 {
  //construct table of group-data (members, parents) for display on advanced-tab
  function groupstable(&$mod,&$tplvars,$id,$obname,$returnid,$icondn,$iconup,
-	&$items,$relations=FALSE,$dodrag=FALSE,$dosort=FALSE,$tableid=FALSE)
+	$item_id,&$groups,$relations=FALSE,$dodrag=FALSE,$dosort=FALSE,$tableid=FALSE)
  {
 	$r = 0;
-	$rc = count($items) - 1; //last index
+	$rc = count($groups) - 1; //last index
 	$sel = is_array($relations);
+	$target = ($obname == 'members') ? 'child':'parent';
 	$rows = array();
-	//NOTE action.sortlike.php table-data creation must conform with this
-	foreach($items as $k=>&$name)
+	//NOTE action.sortlike table-data creation must conform with this
+	foreach($groups as $k=>&$name)
 	{
 		$one = new stdClass();
 		$one->name = $name;
@@ -26,13 +27,15 @@ if(!function_exists('groupstable'))
 		{
 			$one->uplink = '';
 			$one->dnlink = '';
+			$prevk = $k;
 		}
 		else
 		{
-			$one->uplink = $mod->CreateLink($id,'swaporder',$returnid,$iconup,
-				array('item_id'=>$k, 'prev_item_id'=>$prevk));
-			$rows[$r-1]->dnlink = $mod->CreateLink($id,'swaporder',$returnid,$icondn,
-				array('item_id'=>$prevk,'next_item_id'=>$k));
+			$one->uplink = $mod->CreateLink($id,'swapgroups',$returnid,$iconup,
+				array('item_id'=>$k, 'prev_item_id'=>$prevk,'ref_id'=>$item_id,'change'=>$target));
+			$rows[$r-1]->dnlink = $mod->CreateLink($id,'swapgroups',$returnid,$icondn,
+				array('item_id'=>$prevk,'next_item_id'=>$k,'ref_id'=>$item_id,'change'=>$target));
+			$prevk = $k;
 			if($r == $rc)
 				$one->dnlink = '';
 		}
@@ -42,7 +45,6 @@ if(!function_exists('groupstable'))
 			$m = -1;
 		$one->check = $mod->CreateInputCheckbox($id,$obname.'[]',$k,$m);
 		$rows[] = $one;
-		$prevk = $k;
 		$r++;
 	}
 	unset($name);
@@ -710,14 +712,13 @@ if($sel)
 }
 else
 {
-	$i = $this->Lang('nofees');
+	$i = $this->Lang('nofees').'<br />';
 	$t = $this->Lang('addfee');
 	$h = NULL;
 }
 if($pmod)
-	$i .= '<br />'.$this->CreateInputSubmit($id,'modfee',$t,'onclick="current_tab()"');
-	//TODO confirm message c.f. 'is everything saved?'
-
+	$i .= '<br />'.$this->CreateInputSubmit($id,'modfee',$t,
+		'onclick="current_tab();return confirm(\''.$this->Lang('allsaved').'\');"');
 $basic[] = array('ttl'=>$cascade.$this->Lang('title_feeusage'),
 'inp'=>$i,
 'hlp'=>$h
@@ -784,10 +785,11 @@ if($is_group)
 					unset($allgrps[$k]);
 				//rest are still alphabetic by name
 				$allgrps = $sel + $allgrps;
+				//TODO make action.sortlike work for this, make this work for GroupsTable+action.swapgroups
 				$i = groupstable($this,$tplvars,$id,'members',$returnid,$icondn,$iconup,
-					$allgrps,$relations,TRUE,TRUE,'members');
+					$item_id,$allgrps,$relations,TRUE,TRUE,'members');
 				$i .= '  '.$this->CreateInputSubmit($id,'sortlike',$this->Lang('sort'),
-					'title="'.$this->Lang('tip_sortmems').'" style="display:none;"');
+					'title="'.$this->Lang('tip_sortchilds').'" style="display:none;"'); //button shown by runtime js
 			}
 			elseif($sel)
 				$i = implode(', ',$sel);
@@ -797,14 +799,14 @@ if($is_group)
 		elseif($pmod && $padm) //editing old item
 			//create table, alphabetic by groupname, each row has name, unchecked checkbox
 			$i = groupstable($this,$tplvars,$id,'members',$returnid,$icondn,$iconup,
-				$allgrps,FALSE,TRUE,TRUE,'members');
+				$item_id,$allgrps,FALSE,TRUE,TRUE,'members');
 		else //viewing old item
 			$i = $none;
 	}
 	elseif($pmod && $padm) //editing new item
 		//create table, alphabetic by groupname, each row has name, unchecked checkbox
 		$i = groupstable($this,$tplvars,$id,'members',$returnid,$icondn,$iconup,
-			$allgrps,FALSE,TRUE,TRUE,'members');
+			$item_id,$allgrps,FALSE,TRUE,TRUE,'members');
 	else //viewing new item - should never happen
 		$i = $none;
 	if(count($allgrps) > 1)
@@ -904,8 +906,11 @@ if($allgrps)
 			if($pmod && $padm)
 			{
 				$allgrps = $sel + $allgrps;
+				//TODO make action.sortlike work for this, make this work for GroupsTable+action.swapgroups
 				$i = groupstable($this,$tplvars,$id,'ingroups',$returnid,$icondn,$iconup,
-					$allgrps,$relations,TRUE,FALSE,'groups');
+					$item_id,$allgrps,$relations,TRUE,FALSE,'groups');
+				$i .= '  '.$this->CreateInputSubmit($id,'sortlike',$this->Lang('sort'),
+					'title="'.$this->Lang('tip_sortparents').'" style="display:none;"'); //button shown by runtime js
 			}
 			elseif($sel)
 				$i = implode(', ',$sel);
@@ -915,14 +920,14 @@ if($allgrps)
 		elseif($pmod && $padm) //editing old item
 			//create table, alphabetic by groupname, each row has name, unchecked checkbox
 			$i = groupstable($this,$tplvars,$id,'ingroups',$returnid,$icondn,$iconup,
-				$allgrps,FALSE,TRUE,FALSE,'groups');
+				$item_id,$allgrps,FALSE,TRUE,FALSE,'groups');
 		else //viewing old item
 			$i = $none;
 	}
 	elseif($pmod && $padm) //editing new item
 		//create table, alphabetic by groupname, each row has name, unchecked checkbox
 		$i = groupstable($this,$tplvars,$id,'ingroups',$returnid,$icondn,$iconup,
-			$allgrps,FALSE,TRUE,FALSE,'groups');
+			$item_id,$allgrps,FALSE,TRUE,FALSE,'groups');
 	else //viewing new item - should never happen
 		$i = $none;
 	$h = $this->Lang('help_groups',$s,$s,$s);
@@ -940,11 +945,12 @@ EOS;
 
 	$jsloads[] =<<<EOS
  $('p.help').hide();
+ $('.dndhelp').css('display','block');
+ $('.updown').hide();
+ $('input[name^="{$id}sortlike"]').css('display','inline');
  $('img.tipper').css({'display':'inline','padding-left':'10px'}).click(function(){
    $(this).parent().next().next().slideToggle();
 	});
- $('.updown').hide();
- $('.dndhelp').css('display','block');
  $('table.table_sort').SSsort({
   sortClass: 'SortAble',
   ascClass: 'SortUp',
