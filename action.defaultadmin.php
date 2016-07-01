@@ -712,7 +712,7 @@ if ($icount > 0)
 	$t = $this->Lang($t);
 	$t = mb_convert_case($t,MB_CASE_LOWER);
 	$tplvars['feebtn1'] =
-		$this->CreateInputSubmit($id,'fees',$this->Lang('title_fees'),
+		$this->CreateInputSubmit($id,'setfees',$this->Lang('title_fees'),
 		'title="'.$this->Lang('feesel',$t,$this->Lang('item_multi')).'" onclick="return confirm_itmcount();"');
 	if ($mod)
 	{
@@ -809,7 +809,7 @@ if($gcount > 0)
 	$t = $this->Lang($t);
 	$t = mb_convert_case($t,MB_CASE_LOWER);
 	$tplvars['feebtn2'] =
-		$this->CreateInputSubmit($id,'fees',$this->Lang('title_fees'),
+		$this->CreateInputSubmit($id,'setfees',$this->Lang('title_fees'),
 		'title="'.$this->Lang('feesel',$t,$this->Lang('group_multi')).'" onclick="return confirm_grpcount();"');
 	if ($mod)
 	{
