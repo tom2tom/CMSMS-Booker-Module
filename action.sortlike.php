@@ -109,7 +109,8 @@ if(!function_exists('array_like'))
 }
 /*supplied $params = array(
 'item_id' => number
-'sort' => 'groups' or 'members')
+'sort' => 'groups' or 'members'
+)
 */
 $funcs = new bkrshared();
 $item_id = (int)$params['item_id'];
@@ -174,6 +175,7 @@ if($members)
 		}
 	}
 	$all = array($first=>array('score'=>50.0,'name'=>'')) + $cmps; //CHECKME why prepend?
+	$chkname = ($type == 'members') ? $type : 'ingroups'; //kludge to conform
 
 	$sorted = array();
 	//NOTE must conform with action.openitem.php table-data creation, except -
@@ -186,7 +188,7 @@ if($members)
 			$oneset->name = $data[$i]['name'];
 			$oneset->uplink = '';
 			$oneset->dnlink = '';
-			$oneset->check = $this->CreateInputCheckbox($id,$type.'[]',$i,$i);
+			$oneset->check = $this->CreateInputCheckbox($id,$chkname.'[]',$i,$i);
 			$sorted[] = $oneset;
 		}
 	}
@@ -200,12 +202,12 @@ if($members)
 		$oneset->name = $one; //too bad if name empty!
 		$oneset->uplink = '';
 		$oneset->dnlink = '';
-		$oneset->check = $this->CreateInputCheckbox($id,$type.'[]',$i,-1);
+		$oneset->check = $this->CreateInputCheckbox($id,$chkname.'[]',$i,-1);
 		$sorted[] = $oneset;
 	}
 	$tplvars = array(
 		'entries' => $sorted,
-		'identifier' => $type //checkbox class
+		'cellclass' => $type
 	);
 	echo bkrshared::ProcessTemplate($this,'membersbody.tpl',$tplvars);
 }
