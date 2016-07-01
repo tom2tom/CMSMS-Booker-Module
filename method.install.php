@@ -238,6 +238,7 @@ $db->CreateSequence($this->RequestTable.'_seq');
 /* Fees & related conditions
  condition_id:
  item_id: group/item to which the condition applies
+ signature: identifier for cross-resource matching, raw crc32 hash of slottype.slotcount.fee.feecondition
  description: public info/help about the condition
  slottype: enumerator for interval covered by the payment, 0..5 per TimeIntervals() or -1 for fixed amount
  slotcount: count of slottype intervals which, together with slottype, defines length to which fee applies
@@ -252,6 +253,7 @@ $db->CreateSequence($this->RequestTable.'_seq');
 $fields = "
  condition_id I(4) KEY,
  item_id I(4),
+ signature I(4),
  description C(64),
  slottype I(1),
  slotcount I(1),
@@ -431,12 +433,18 @@ array(10003,'	Non-members hire',1,1,'28.00',NULL),
 array(10004,'Nightplay fee',1,1,'10.00','0..sunrise,sunset..23:59'),
 	);
 	$sql = 'INSERT INTO '.$this->PayTable.
-' (condition_id,item_id,description,slottype,slotcount,fee,feecondition,condorder) VALUES (?,?,?,?,?,?,?,?)';
+' (condition_id,item_id,signature,description,slottype,slotcount,fee,feecondition,condorder) VALUES (?,?,?,?,?,?,?,?,?)';
 	$i = 0;
 	foreach($data as $dummy)
 	{
+		$sig = '';
+		foreach(array(2,3,4,5) as $k)
+		{
+			$sig .= ($dummy[$k] !== NULL) ? $dummy[$k] : 'NULL';
+		}
+		$sig = crc32($sig);
 		$bid = $db->GenID($this->PayTable.'_seq');
-		$args = array($bid,$dummy[0],$dummy[1],$dummy[2],$dummy[3],$dummy[4],$dummy[5],$i);
+		$args = array($bid,$dummy[0],$sig,$dummy[1],$dummy[2],$dummy[3],$dummy[4],$dummy[5],$i);
 		$db->Execute($sql,$args);
 		$i++;
 	}
