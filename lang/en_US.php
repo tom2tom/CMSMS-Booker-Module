@@ -13,6 +13,7 @@ $lang['additem'] = 'Add new resource';
 $lang['advanced'] = 'Advanced';
 $lang['all'] = 'All';
 $lang['allgroups'] = 'All of these';
+$lang['allsaved']='Is everything saved that needs to be?';
 $lang['allusers'] = 'Everyone Authorised';
 $lang['always'] = 'Always';
 $lang['anytime'] = 'anything';
