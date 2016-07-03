@@ -430,7 +430,7 @@ class Shared
 	*/
 	public function OrderGroups(&$mod,&$db)
 	{
-		$rows = $db->GetAssoc("SELECT gid,parent FROM $mod->GroupTable ORDER BY parent,likeorder,proximity");
+		$rows = $db->GetAssoc('SELECT gid,parent FROM '.$mod->GroupTable.' ORDER BY parent,likeorder,proximity');
 		if($rows)
 		{
 			//for each distinct parent, renumber likeorder ascending from 1
