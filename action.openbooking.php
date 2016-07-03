@@ -516,7 +516,7 @@ if($jsloads)
 	$jsfuncs[] = '$(document).ready(function() {
 ';
 	$jsfuncs = array_merge($jsfuncs,$jsloads);
-	$jsfuncs[] = '})
+	$jsfuncs[] = '});
 ';
 }
 $tplvars['jsfuncs'] = $jsfuncs;
