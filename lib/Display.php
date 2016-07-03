@@ -5,6 +5,7 @@
 #----------------------------------------------------------------------
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
+namespace Booker;
 
 class Display
 {
@@ -16,8 +17,8 @@ class Display
 	function __construct(&$mod)
 	{
 		$this->mod = $mod;
-		$this->shares = new Booker\Shared();
-		$this->reps = new Booker\Repeats($mod);
+		$this->shares = new Shared();
+		$this->reps = new Repeats($mod);
 	}
 
 	/*
@@ -125,11 +126,11 @@ class Display
 
 		switch($seglen)
 		{
-		 case Booker::SEGDAY: //day-per-column
+		 case \Booker::SEGDAY: //day-per-column
 			$dtw->modify('+1 day'); //segment limit
 			$fmt = $idata['timeformat'] ? $idata['timeformat'] : 'G:i';
 			break;
-		 case Booker::SEGWEEK: //week-per-column
+		 case \Booker::SEGWEEK: //week-per-column
 			$t = $dtstart->format('w');
 			if($t > 0) //Sunday start
 				$dts->modify('-'.$t.' days'); //segment start
@@ -139,7 +140,7 @@ class Display
 			$shortday = (strpos($fmt,'D') !== FALSE);
 			$daynames = $this->shares->DayNames($this->mod,range(0,6),$shortday);
 			break;
-		 case Booker::SEGMTH: //month-per-column
+		 case \Booker::SEGMTH: //month-per-column
 			$t = $dtstart->format('Y-m');
 			$dts->modify($t.'-1 0:0:0');
 			$dtw->modify($t.'-1 0:0:0 +31 days'); //in this context, assume each reported month has max. # days
@@ -157,17 +158,17 @@ class Display
 		while($ss < $se)
 		{
 			$dtw->setTimestamp($ss);
-			$one = new stdClass();
+			$one = new \stdClass();
 			switch($seglen)
 			{
-			 case Booker::SEGDAY:
+			 case \Booker::SEGDAY:
 				$one->data = $dtw->format($fmt);
 				break;
-			 case Booker::SEGWEEK:
+			 case \Booker::SEGWEEK:
 				$t = $dtw->format('w'); //day of week 0..6
 				$one->data = $daynames[$t];
 				break;
-			 case Booker::SEGMTH:
+			 case \Booker::SEGMTH:
 				$t = count($cells) + 1; //next integer = day of (longest) month 1..31
 				$one->data = sprintf('%2d',$t);
 				break;
@@ -202,7 +203,7 @@ class Display
 		$longday = (strpos($fmt,'l') !== FALSE);
 		switch($range)
 		{
-			case Booker::RANGEDAY: //single-day-view
+			case \Booker::RANGEDAY: //single-day-view
 				$t = $dtstart->format('w'); //0 (for Sunday) .. 6 (for Saturday)
 				$d = $this->shares->DayNames($this->mod,$t,$shortday);
 				if($shortday)
@@ -211,7 +212,7 @@ class Display
 					$fmt = preg_replace('/(?<!\\\)l,?\w*/','',$fmt);
 				$titles[] = $d.'<br />'.$dtstart->format($fmt);
 				break;
-			case Booker::RANGEWEEK: //week-view
+			case \Booker::RANGEWEEK: //week-view
 				$names = $this->shares->DayNames($this->mod,range(0,6),$shortday);
 				if($shortday)
 					$fmt = preg_replace('/(?<!\\\)D,?\w*/','',$fmt);
@@ -230,9 +231,9 @@ class Display
 					$dt2->modify('+1 day');
 				} while($t != $t1);
 				break;
-			case Booker::RANGEMTH: //month-view
+			case \Booker::RANGEMTH: //month-view
 				$dt2 = clone $dtstart; //preserve $dtstart
-				if($seglen == Booker::SEGDAY) //day-per-column
+				if($seglen == \Booker::SEGDAY) //day-per-column
 				{
 					//show individual days
 					$names = $this->shares->DayNames($this->mod,range(0,6),TRUE); //for 30-ish cols, force short name
@@ -253,7 +254,7 @@ class Display
 						$dt2->modify('+1 day');
 					} while($t != $t1);
 				}
-				else //$seglen == Booker::SEGWEEK, week-per-column
+				else //$seglen == \Booker::SEGWEEK, week-per-column
 				{
 					if($shortday)
 						$fmt = preg_replace('/(?<!\\\)D,?\w*/','',$fmt);
@@ -281,9 +282,9 @@ class Display
 					} while($dt2 < $dt3);
 				}
 				break;
-			case Booker::RANGEYR: //year-view
+			case \Booker::RANGEYR: //year-view
 				$dt2 = clone $dtstart;
-				if($seglen == Booker::SEGWEEK) //week-per-column
+				if($seglen == \Booker::SEGWEEK) //week-per-column
 				{
 					$w = $dt2->format('w');
 					switch($w)
@@ -305,7 +306,7 @@ class Display
 						$dt2->modify('+7 days');
 					} while($dt2 < $dt3);
 				}
-				else //$seglen == Booker::SEGMTH, month-per-column
+				else //$seglen == \Booker::SEGMTH, month-per-column
 				{
 					$shortmonth = (strpos($fmt,'M') !== FALSE);
 					//$longmonth = (strpos($fmt,'F') !== FALSE);
@@ -410,7 +411,7 @@ class Display
 		{
 			$iter->seek($position);
 		} catch (Exception $e) {
-			$one = new stdClass();
+			$one = new \stdClass();
 			$one->data = NULL; //$e->getMessage();
 			$one->style = 'class="vacant"';
 			return array($one,$position);
@@ -476,7 +477,7 @@ class Display
 			}
 		}
 
-		$one = new stdClass();
+		$one = new \stdClass();
 		if($bslots) //found booking(s)
 		{
 			if(count($users) == 1)
@@ -570,7 +571,7 @@ class Display
 	are for each month.
 	@idata: array of data for item as per table-record, with inherited data where available
 	@start: UTC timestamp for start of first day to be reported
-	@range: enum 0..3 indicating span of report day..year (per bkrshared::DisplayIntervals())
+	@range: enum 0..3 indicating span of report day..year (per Booker\Shared::DisplayIntervals())
 	Returns: array of columns' data, each member being an array of cells' data,
 	 first column has slot-titles
 	*/
@@ -580,24 +581,24 @@ class Display
 		list($dt,$ndt) = $this->shares->RangeStamps($start,$range);
 		switch($range)
 		{
-			case Booker::RANGEDAY:
-			case Booker::RANGEWEEK:
-				$seglen = Booker::SEGDAY; //table-column period one day
+			case \Booker::RANGEDAY:
+			case \Booker::RANGEWEEK:
+				$seglen = \Booker::SEGDAY; //table-column period one day
 				//$celloff: cell-coverage '' = slot, otherwise DateTime modifier like '+1 X'
 				$celloff = ($slotlen < 84600) ? '':'+1 day'; //each cell spans min(slotlen,report period)
 				break;
-			case Booker::RANGEMTH:
-				$seglen = Booker::SEGDAY; //report divided into days
+			case \Booker::RANGEMTH:
+				$seglen = \Booker::SEGDAY; //report divided into days
 				$celloff = ($slotlen < 84600) ? '+1 hour':'+1 day'; //each cell :: min(hour,report period)
 				break;
-			case Booker::RANGEYR:
-				$seglen = Booker::SEGMTH; //report divided into months
+			case \Booker::RANGEYR:
+				$seglen = \Booker::SEGMTH; //report divided into months
 				$celloff = ($slotlen < 84600) ? '+1 day':''; //each cell :: min(day,slotlen)
 				break;
 		}
 		switch($seglen)
 		{
-		 case Booker::SEGWEEK: //week-per-column
+		 case \Booker::SEGWEEK: //week-per-column
 			$t = $dt->format('w');
 			if($t > 0) //Sunday start
 				$dt->modify('-'.$t.' days');
@@ -605,7 +606,7 @@ class Display
 			if($t > 0)
 				$ndt->modify('+'.(7-$t).' days');
 			break;
-		 case Booker::SEGMTH: //month-per-column
+		 case \Booker::SEGMTH: //month-per-column
 			$t = $dt->format('Y-m');
 			$dt->modify($t.'-1 0:0:0');
 			$t = $ndt->format('Y-m');
@@ -615,14 +616,14 @@ class Display
 		$dtw = clone $dt;
 
 		$item_id = (int)$idata['item_id'];
-		$is_group = ($item_id >= Booker::MINGRPID);
+		$is_group = ($item_id >= \Booker::MINGRPID);
 		if($is_group)
 			$allresource = $this->shares->GetGroupItems($this->mod,$item_id); //no sub-group(s)
 		else
 			$allresource = array($item_id);
 
 		//update respective last-processed-repeats dates, if relevant
-		$funcs = new Booker\Schedule();
+		$funcs = new Schedule();
 		foreach($allresource as $one)
 			$funcs->UpdateRepeats($this->mod,$one,$ndt);
 
@@ -636,7 +637,7 @@ class Display
 		$cells = self::_GetSlotNames($idata,$dt,$segoffst,$segoffnd,$seglen,$slotlen,$celloff);
 
 		//prepend top-left cell
-		$one = new stdClass();
+		$one = new \stdClass();
 		$one->data = NULL;
 		$one->style = 'class="topleft"';
 		array_unshift($cells,$one);
@@ -648,12 +649,12 @@ class Display
 		$titles = self::_GetTitles($idata,$dt,$range,$seglen);
 		$cc = count($titles);
 
-		$funcs = new Booker\Bookingops();
+		$funcs = new Bookingops();
 		$booked = $funcs->GetTableBooked($this->mod,$allresource,$dt->getTimestamp(),$ndt->getTimestamp()-1);
 		if($booked)
 		{
 			//setup iterator
-			$bookob = new ArrayObject($booked);
+			$bookob = new \ArrayObject($booked);
 			$position = 0; //init array-iterator-position
 		}
 		else
@@ -670,7 +671,7 @@ class Display
 		{
 			$cells = array();
 			//title
-			$one = new stdClass();
+			$one = new \stdClass();
 			$one->data = $titles[$c];
 			$one->style = 'class="periodname"';
 			$cells[] = $one;
@@ -689,7 +690,7 @@ class Display
 				}
 				else
 				{
-					$one = new stdClass();
+					$one = new \stdClass();
 					$one->data = NULL;
 					$one->style = 'class="vacant"';
 				}
@@ -733,15 +734,15 @@ class Display
 			{
 				switch($range)
 				{
-				 case Booker::RANGEYR:
+				 case \Booker::RANGEYR:
 					return sprintf($rangefmt,$st.' '.$st2,$nd2);
-				 case Booker::RANGEMTH:
-				 case Booker::RANGEWEEK:
+				 case \Booker::RANGEMTH:
+				 case \Booker::RANGEWEEK:
 					if(!$timegroup)
 						return sprintf($rangefmt,$st.' '.$st2,$nd2);
 					else
 						return sprintf($rangefmt,$st2,$nd2);
-				 case Booker::RANGEDAY:
+				 case \Booker::RANGEDAY:
 					return sprintf($rangefmt,$st2,$nd2);
 				}
 			}
@@ -752,7 +753,7 @@ class Display
 	_ListFill:
 	@idata: array of data for resource or group as per table-record, with inherited data where available
 	@start: timestamp for start of first day to be reported
-	@range: enum 0..3 indicating span of report day..year (per bkrshared::DisplayIntervals())
+	@range: enum 0..3 indicating span of report day..year (per Booker\Shared::DisplayIntervals())
 	Returns: array of sections' data, each member being an object with array of text-rows
 	*/
 	private function _ListFill(&$idata,$start,$range)
@@ -760,44 +761,44 @@ class Display
 		list($dt,$ndt) = $this->shares->RangeStamps($start,$range);
 		$dtw = clone $dt;
 		$item_id = (int)$idata['item_id'];
-		$is_group = ($item_id >= Booker::MINGRPID);
+		$is_group = ($item_id >= \Booker::MINGRPID);
 		if($is_group)
 			$allresource = $this->shares->GetGroupItems($this->mod,$item_id);
 		else
 			$allresource = array($item_id);
 		//update respective last-processed-repeats dates, if relevant
-		$funcs = new Booker\Schedule();
+		$funcs = new Schedule();
 		foreach($allresource as $one)
 			$funcs->UpdateRepeats($this->mod,$one,$ndt);
-		$funcs = new Booker\Bookingops();
+		$funcs = new Bookingops();
 		$lfmt = (int)$idata['listformat'];
 		$booked = $funcs->GetListBooked($this->mod,$is_group,$allresource,
 			$lfmt,$dt->getTimestamp(),$ndt->getTimestamp()- 1);
 		if($booked)
 		{
-			$majr_fmt = $idata['dateformat']; //part of report  //c.f. bkrshared::IntervalFormat($mod,$format,$dt)
+			$majr_fmt = $idata['dateformat']; //part of report  //c.f. Booker\Shared::IntervalFormat($mod,$format,$dt)
 			$minr_fmt = $idata['timeformat']; //other part
 			$rangefmt = $this->mod->Lang('showrange');
 			switch($lfmt)
 			{
-			 case Booker::LISTUS:
-			 case Booker::LISTRS:
+			 case \Booker::LISTUS:
+			 case \Booker::LISTRS:
 				$tkey = 'user';
 				break;
-			 case Booker::LISTSR:
+			 case \Booker::LISTSR:
 				$tkey = 'name';
 				break;
-//			 case Booker::LISTSU:
+//			 case \Booker::LISTSU:
 			 default:
 				$tkey = 'slotstart';
 				switch($range)
 				{
-				 case Booker::RANGEDAY:
-				 case Booker::RANGEWEEK:
-				 case Booker::RANGEMTH:
- 					$hfmt = $idata['dateformat']; //title-format, group by day  //c.f. bkrshared::IntervalFormat($mod,$format,$dt)
+				 case \Booker::RANGEDAY:
+				 case \Booker::RANGEWEEK:
+				 case \Booker::RANGEMTH:
+ 					$hfmt = $idata['dateformat']; //title-format, group by day  //c.f. Booker\Shared::IntervalFormat($mod,$format,$dt)
 					break;
-				 case Booker::RANGEYR:
+				 case \Booker::RANGEYR:
 					$hfmt = 'n'; //group by month
 					break;
 				}
@@ -820,10 +821,10 @@ class Display
 						$sections[] = $oneset;
 					}
 					$title = $t;
-					$oneset = new stdClass();
-					if($tkey != 'slotstart' || $range > Booker::RANGEDAY)
+					$oneset = new \stdClass();
+					if($tkey != 'slotstart' || $range > \Booker::RANGEDAY)
 					{
-						if($tkey == 'slotstart' && $range == Booker::RANGEYR) //year special case
+						if($tkey == 'slotstart' && $range == \Booker::RANGEYR) //year special case
 							$oneset->title = $dt->format('F Y'); //TODO translated month-name
 						else
 							$oneset->title = $t;
@@ -837,20 +838,20 @@ class Display
 				$t = self::_TextInterval($dt,$ndt,$range,$majr_fmt,$minr_fmt,$rangefmt,($tkey == 'slotstart'));
 				switch($lfmt)
 				{
-				 case Booker::LISTUS:
+				 case \Booker::LISTUS:
 					$txt = $t;
 					if($is_group) $txt .= ' :: '.$one['name'];
 					break;
-				 case Booker::LISTRS:
+				 case \Booker::LISTRS:
 					$txt = $t;
 					$txt .= ' :: '.$one['user'];
 					break;
-				 case Booker::LISTSR:
+				 case \Booker::LISTSR:
 					$txt = $one['user'];
 					if($is_group) $txt .= ' :: '.$one['name'];
 					$txt .= ' :: '.$t;
 					break;
-//				 case Booker::LISTSU:
+//				 case \Booker::LISTSU:
 				 default:
 					$txt = $t;
 					if($is_group) $txt .= ' :: '.$one['name'];
@@ -890,16 +891,16 @@ class Display
 			$tplvars['rowcount'] = $rc;
 			switch($range)
 			{
-			 case Booker::RANGEDAY:
+			 case \Booker::RANGEDAY:
 				$tc = 'daily';
 				break;
-			 case Booker::RANGEWEEK:
+			 case \Booker::RANGEWEEK:
 				$tc = 'weekly';
 				break;
-			 case Booker::RANGEMTH:
+			 case \Booker::RANGEMTH:
 				$tc = 'monthly';
 				break;
-			 case Booker::RANGEYR:
+			 case \Booker::RANGEYR:
 				$tc = 'yearly';
 				break;
 			}

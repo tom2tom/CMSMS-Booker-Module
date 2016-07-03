@@ -6,6 +6,7 @@
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
 # needs Multibyte String extension
+namespace Booker;
 
 class CSV
 {
@@ -19,7 +20,7 @@ class CSV
 	*/
 	public function ExportName(&$mod,$item_id=FALSE,$bkg_id=FALSE)
 	{
-		$funcs = new Booker\Shared();
+		$funcs = new Shared();
 		$multi = FALSE;
 		if($item_id)
 		{
@@ -62,7 +63,7 @@ class CSV
 	*/
 	private function BookingCSV(&$mod,$item_id=FALSE,$bkg_id=FALSE,$fh=FALSE,$sep=',')
 	{
-		$funcs = new Booker\Shared();
+		$funcs = new Shared();
 		if($item_id)
 		{
 			if(is_array($item_id))
@@ -132,7 +133,7 @@ class CSV
 			=>'bkg_id'
 			=>'status'
 			*/
-			$dts = new DateTime('1900-1-1',new DateTimeZone('UTC'));
+			$dts = new \DateTime('1900-1-1',new \DateTimeZone('UTC'));
 			//header line
 			$outstr = implode($sep,array_keys($translates));
 			$outstr .= "\n";
@@ -234,7 +235,7 @@ class CSV
 
 		if($mod->GetPreference('pref_exportfile'))
 		{
-			$funcs = new Booker\Shared();
+			$funcs = new Shared();
 			$updir = $funcs->GetUploadsPath($mod);
 			if($updir)
 			{
@@ -405,8 +406,8 @@ class CSV
 					return array(FALSE,'err_file');
 				}
 			}
-			$funcs = new Booker\Shared();
-			$tzone = new DateTimeZone('UTC');
+			$funcs = new Shared();
+			$tzone = new \DateTimeZone('UTC');
 			$item_lens = array();
 			$skip = FALSE;
 			$icount = 0;
@@ -450,7 +451,7 @@ class CSV
 									return array(FALSE,'err_file');
 								}
 								try {
-									$dts = new DateTime($one,$tzone);
+									$dts = new \DateTime($one,$tzone);
 								} catch (Exception $e) {
 									return array(FALSE,'err_badstart');
 								}
@@ -462,7 +463,7 @@ class CSV
 									return array(FALSE,'err_file');
 								}
 								try {
-									$dte = new DateTime($one,$tzone);
+									$dte = new \DateTime($one,$tzone);
 								} catch (Exception $e) {
 									return array(FALSE,'err_badend');
 								}
@@ -516,7 +517,7 @@ class CSV
 						$funcs->TrimRange($dts,$dte,$slen);
 						$data['slotstart'] = $dts->getTimestamp();
 						$data['slotlen'] = $dte->getTimestamp() - $data['slotstart'];
-						$funcs2 = new Booker\Schedule();
+						$funcs2 = new Schedule();
 						$save = !$funcs2->ItemBooked($mod,$data['item_id'],$dts,$dte)
 							&& $funcs2->ItemAvailable($mod,$funcs,$data['item_id'],$dts,$dte);
 					}
@@ -652,7 +653,7 @@ class CSV
 				}
 			}
 
-			$funcs = new Booker\Shared();
+			$funcs = new Shared();
 			$periods = $funcs->TimeIntervals();
 			$icount = 0;
 			$db = $mod->dbHandle;
@@ -747,7 +748,7 @@ class CSV
 							switch($k)
 							{
 							 case 'listformat':
-								$data[$k] = ($is_group) ? Booker::LISTSR:Booker::LISTSU;
+								$data[$k] = ($is_group) ? \Booker::LISTSR:\Booker::LISTSU;
 								break;
 							 case 'cleargroup':
 								$data[$k] = 0; //no clear group

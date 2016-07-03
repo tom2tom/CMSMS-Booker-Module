@@ -5,6 +5,7 @@
 #----------------------------------------------------------------------
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
+namespace Booker;
 
 class Requestops
 {
@@ -169,7 +170,7 @@ class Requestops
 		$what = ($bdata['subgrpcount'] > 1) ?
 			sprintf('%d %s',$bdata['subgrpcount'],$idata['membersname']):
 			$shares->GetItemName($mod,$idata);
-		$dts = new DateTime('1900-1-1',new DateTimeZone('UTC'));
+		$dts = new \DateTime('1900-1-1',new \DateTimeZone('UTC'));
 		$dts->setTimestamp($bdata['slotstart']);
 		$on = $shares->IntervalFormat($mod,$dts,'D j M');
 
@@ -215,8 +216,8 @@ class Requestops
 		if($rows)
 		{
 			$db = $mod->dbHandle;
-			$shares = new Booker\Shared();
-			$sched = new Booker\Schedule();
+			$shares = new Shared();
+			$sched = new Schedule();
 			//cluster the requests by id, for specific processing
 			krsort($rows,SORT_NUMERIC); //reverse, so groups-first
 			$m = -900; //unmatchable
@@ -225,27 +226,27 @@ class Requestops
 			{
 				switch($one['status'])
 				{
-				 case Booker::STATDEL:
-				 case Booker::STATCHG: //TODO setup replacement
+				 case \Booker::STATDEL:
+				 case \Booker::STATCHG: //TODO setup replacement
 					 $sql = 'DELETE FROM '.$mod->RequestTable.' WHERE req_id=?';
 					 $db->Execute($sql,array($id));
 					 break;
-				 case Booker::STATCANCEL:
-				 case Booker::STATTELL:
-				 case Booker::STATASK: 
-				 case Booker::STATBIG: 
-				 case Booker::STATNA:
-				 case Booker::STATDUP:
-				 case Booker::STATOK:
-				 case Booker::STATGONE:
-//				 case Booker::STATERR: retry this
+				 case \Booker::STATCANCEL:
+				 case \Booker::STATTELL:
+				 case \Booker::STATASK: 
+				 case \Booker::STATBIG: 
+				 case \Booker::STATNA:
+				 case \Booker::STATDUP:
+				 case \Booker::STATOK:
+				 case \Booker::STATGONE:
+//				 case \Booker::STATERR: retry this
 					break;
 				 default:
 					if($id != $m)
 					{
 						if($collect)
 						{
-							if($m < Booker::MINGRPID)
+							if($m < \Booker::MINGRPID)
 								$sched->ScheduleResource($mod,$shares,$m,$collect);
 							else
 								$sched->ScheduleGroup($mod,$shares,$m,$collect);
@@ -260,7 +261,7 @@ class Requestops
 			unset($one);
 			if($collect)
 			{
-				if($m < Booker::MINGRPID)
+				if($m < \Booker::MINGRPID)
 					$sched->ScheduleResource($mod,$shares,$m,$collect);
 				else
 					$sched->ScheduleGroup($mod,$shares,$m,$collect);
@@ -278,14 +279,14 @@ class Requestops
 			{
 				unset($ob);
 				//notify lodger
-				$funcs = new MessageSender();
+				$funcs = new \MessageSender();
 				$fails = array();
 
 				foreach($rows as $id=>&$one)
 				{
 					switch($one['status'])
 					{
-					 case Booker::STATNONE:
+					 case \Booker::STATNONE:
 						$idata = $shares->GetItemProperty($mod,$one['item_id'],'*');
 						list($from,$to,$textparms,$mailparms,$tweetparms) = self::MsgParms($mod,$shares,$one,$idata,self::MSGAPPROVE,$custommsg);
 						list($res,$msg) = $funcs->Send($from,$to,$textparms,$mailparms,$tweetparms);
@@ -294,21 +295,21 @@ class Requestops
 						break;
 					 default:
 /* TODO relevant advice
-					 case Booker::STATASK:
-					 case Booker::STATBIG:
-					 case Booker::STATCANCEL:
-					 case Booker::STATCHG:
-					 case Booker::STATDEFER:
-					 case Booker::STATDEL:
-					 case Booker::STATDUP:
-					 case Booker::STATERR:
-					 case Booker::STATGONE:
-					 case Booker::STATNA:
-					 case Booker::STATNEW:
-					 case Booker::STATNOPAY:
-					 case Booker::STATOK:
-					 case Booker::STATTELL:
-					 case Booker::STATTEMP:
+					 case \Booker::STATASK:
+					 case \Booker::STATBIG:
+					 case \Booker::STATCANCEL:
+					 case \Booker::STATCHG:
+					 case \Booker::STATDEFER:
+					 case \Booker::STATDEL:
+					 case \Booker::STATDUP:
+					 case \Booker::STATERR:
+					 case \Booker::STATGONE:
+					 case \Booker::STATNA:
+					 case \Booker::STATNEW:
+					 case \Booker::STATNOPAY:
+					 case \Booker::STATOK:
+					 case \Booker::STATTELL:
+					 case \Booker::STATTEMP:
 */
 					 	break;
 					}
@@ -343,14 +344,14 @@ class Requestops
 			if($ob)
 			{
 				unset($ob);
-				$funcs = new MessageSender();
-				$shares = new Booker\Shared();
+				$funcs = new \MessageSender();
+				$shares = new Shared();
 				$fails = array();
 			}
 			else
 				$funcs = FALSE;
 			$db = $mod->dbHandle;
-			$sql = 'UPDATE '.$mod->RequestTable.' SET status='.Booker::STATCANCEL.' WHERE req_id=?';
+			$sql = 'UPDATE '.$mod->RequestTable.' SET status='.\Booker::STATCANCEL.' WHERE req_id=?';
 			foreach($rows as $req_id=>$one)
 			{
 				if($funcs)
@@ -388,14 +389,14 @@ class Requestops
 			if($ob)
 			{
 				unset($ob);
-				$funcs = new MessageSender();
-				$shares = new Booker\Shared();
+				$funcs = new \MessageSender();
+				$shares = new Shared();
 				$fails = array();
 			}
 			else
 				$funcs = FALSE;
 			$db = $mod->dbHandle;
-			$sql = 'UPDATE '.$mod->RequestTable.' SET status='.Booker::STATASK.' WHERE req_id=?';
+			$sql = 'UPDATE '.$mod->RequestTable.' SET status='.\Booker::STATASK.' WHERE req_id=?';
 			foreach($rows as $req_id=>$one)
 			{
 				if($funcs)
@@ -433,8 +434,8 @@ class Requestops
 			if($ob)
 			{
 				unset($ob);
-				$funcs = new MessageSender();
-				$shares = new Booker\Shared();
+				$funcs = new \MessageSender();
+				$shares = new Shared();
 				$fails = array();
 			}
 			else
@@ -443,7 +444,7 @@ class Requestops
 			$sql = 'DELETE FROM '.$mod->RequestTable.' WHERE req_id=?';
 			foreach($rows as $req_id=>$one)
 			{
-				if($funcs && $one['status'] !== Booker::STATOK)
+				if($funcs && $one['status'] !== \Booker::STATOK)
 				{
 					//notify lodger
 					$idata = $shares->GetItemProperty($mod,$one['item_id'],'*');
@@ -473,7 +474,7 @@ class Requestops
 	public function SaveReq(&$mod,&$params,&$rdata,$is_new)
 	{
 		$db = $mod->dbHandle;
-		$tzone = new DateTimeZone('UTC');
+		$tzone = new \DateTimeZone('UTC');
 		if($is_new)
 		{
 			$rid = $db->GenID($mod->RequestTable.'_seq');
@@ -500,12 +501,12 @@ class Requestops
 					if($k == 'when')
 					{
 						//to support better feedback to user, no period-cleanup until after approval
-						$dts = new DateTime($params['when'],$tzone);
+						$dts = new \DateTime($params['when'],$tzone);
 						$params[$k] = $dts->getTimestamp();
 					}
 					elseif($k == 'until')
 					{
-						$dte = new DateTime($params['until'],$tzone);
+						$dte = new \DateTime($params['until'],$tzone);
 						$params[$k] = $dte->getTimestamp() - $params['when'];
 					}
 					$args[$field] = $params[$k];
@@ -515,7 +516,7 @@ class Requestops
 				{
 					if($k == 'requesttype')
 					{
-						$args[$field] = Booker::STATNEW;
+						$args[$field] = \Booker::STATNEW;
 						$fillers[] = '?';
 					}
 				}
@@ -527,7 +528,7 @@ class Requestops
 		else //update
 		{
 //TODO		X::ConformBookingData($mod,$params,$rdata); //general update where needed
-			$dts = new DateTime($params['when'],$tzone);
+			$dts = new \DateTime($params['when'],$tzone);
 			$params['when'] = $dts->getTimestamp();
 			if(isset($params['until']))
 			{
@@ -554,7 +555,7 @@ class Requestops
 			$args[] = (int)$params['req_id'];
 			$sql = 'UPDATE '.$mod->RequestTable.' SET '.$sql2.' WHERE req_id=?';
 		}
-//		$funcs = new Booker\Shared();
+//		$funcs = new Shared();
 //		return $funcs->SafeExec($sql,$args);
 		return ($db->Execute($sql,$args)) != FALSE;
 	}

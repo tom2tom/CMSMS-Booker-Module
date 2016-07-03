@@ -7,6 +7,7 @@ More info at http://dev.cmsmadesimple.org/projects/booker
 
 Class: Cleanold_task
 */
+namespace Booker;
 
 class Cleanold_task implements CmsRegularTask
 {

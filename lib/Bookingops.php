@@ -5,6 +5,7 @@
 #----------------------------------------------------------------------
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
+namespace Booker;
 
 class Bookingops
 {
@@ -80,7 +81,7 @@ class Bookingops
 		$what = ($bdata['subgrpcount'] > 1) ?
 			sprintf('%d %s',$bdata['subgrpcount'],$idata['membersname']):
 			$shares->GetItemName($mod,$idata);
-		$dts = new DateTime('1900-1-1',new DateTimeZone('UTC'));
+		$dts = new \DateTime('1900-1-1',new \DateTimeZone('UTC'));
 		$dts->setTimestamp($bdata['slotstart']);
 		$on = $shares->IntervalFormat($mod,$dts,'D j M');
 
@@ -128,8 +129,8 @@ class Bookingops
 			if($ob)
 			{
 				unset($ob);
-				$funcs = new MessageSender();
-				$shares = new Booker\Shared();
+				$funcs = new \MessageSender();
+				$shares = new Shared();
 				$fails = array();
 				foreach($rows as $bid=>$one)
 				{
@@ -159,7 +160,7 @@ class Bookingops
 		$rows = self::GetBkgData($mod,$bkg_id);
 		if($rows)
 		{
-			$funcs = new Booker\CSV();
+			$funcs = new CSV();
 			list($res,$key) = $funcs->ExportBookings($mod,FALSE,array_keys($rows));
 			if($res)
 				return array(TRUE,'');
@@ -186,18 +187,18 @@ class Bookingops
 			if($ob)
 			{
 				unset($ob);
-				$funcs = new MessageSender();
+				$funcs = new \MessageSender();
 				$fails = array();
 			}
 			else
 				$funcs = FALSE;
 
-			$shares = new Booker\Shared();
+			$shares = new Shared();
 			$sql = 'DELETE FROM '.$mod->DataTable.' WHERE bkg_id=?';
 
 			foreach($rows as $bid=>$one)
 			{
-				if($funcs && $one['status'] !== Booker::STATOK)
+				if($funcs && $one['status'] !== \Booker::STATOK)
 				{
 					//notify user
 					$idata = $shares->GetItemProperty($mod,$one['item_id'],'*');
@@ -226,7 +227,7 @@ class Bookingops
 	*/
 	public function DeleteRepeat(&$mod,$bkg_id)
 	{
-		$shares = new Booker\Shared();
+		$shares = new Shared();
 		if(is_array($bkg_id))
 		{
 			$fillers = str_repeat('?,',count($bkg_id)-1);
@@ -245,7 +246,7 @@ class Bookingops
 			if($ob)
 			{
 				unset($ob);
-				$funcs = new MessageSender();
+				$funcs = new \MessageSender();
 				$fails = array();
 			}
 			else
@@ -292,7 +293,7 @@ class Bookingops
 	*/
 	public function ConformBookingData(&$mod,&$params)
 	{
-		$shares = new Booker\Shared();
+		$shares = new Shared();
 		$old = FALSE;
 		$ret = TRUE;
 		if(!empty($params['conformcontact']))
@@ -346,7 +347,7 @@ class Bookingops
 	{
 		if(isset($params['when']))
 		{
-			$dts = new DateTime($params['when'],new DateTimeZone('UTC'));
+			$dts = new \DateTime($params['when'],new \DateTimeZone('UTC'));
 			$params['when'] = $dts->getTimestamp();
 			if(isset($params['until']))
 			{
@@ -399,7 +400,7 @@ class Bookingops
 			$args[] = (int)$params['bkg_id'];
 			$sql = 'UPDATE '.$mod->DataTable.' SET '.$sql2.' WHERE bkg_id=?';
 		}
-		$shares = new Booker\Shared();
+		$shares = new Shared();
 		return $shares->SafeExec($sql,$args);
 	}
 
@@ -426,9 +427,9 @@ EOS;
 			$fillers = str_repeat('?,',count($args)-1);
 			$sql .= ' IN('.$fillers.'?)';
 		}
-		elseif($item_id >= Booker::MINGRPID)
+		elseif($item_id >= \Booker::MINGRPID)
 		{
-			$funcs = new Booker\Shared();
+			$funcs = new Shared();
 			$args = $funcs->GetGroupItems($mod,$item_id);
 			if(!$args)
 				return array();
@@ -444,7 +445,7 @@ EOS;
 		$args[] = $endstamp;
 		$args[] = $startstamp;
 		$sql .= ' AND B.slotstart <= ? AND (B.slotstart+B.slotlen) >= ? ORDER BY I.name,B.slotstart';
-		$shares = new Booker\Shared();
+		$shares = new Shared();
 		return $shares->SafeGet($sql,$args);
 	}
 
@@ -473,7 +474,7 @@ ORDER BY B.slotstart,I.name
 EOS;
 		$args[] = $endstamp;
 		$args[] = $startstamp;
-		$shares = new Booker\Shared();
+		$shares = new Shared();
 		return $shares->SafeGet($sql,$args);
 	}
 
@@ -504,18 +505,18 @@ ORDER BY
 EOS;
 		switch($lfmt)
 		{
-		 case Booker::LISTUS:
+		 case \Booker::LISTUS:
 			$t = ($is_group) ? 'I.name,':'';
 			$sql .= ' B.user,'.$t.'B.slotstart';
 			break;
-		 case Booker::LISTRS:
+		 case \Booker::LISTRS:
 			$sql .= ' B.user,B.slotstart';
 			if($is_group) $sql .= ',I.name';
 			break;
-		 case Booker::LISTSR: //only for groups
+		 case \Booker::LISTSR: //only for groups
 			$sql .= ' I.name,B.slotstart,B.user';
 			break;
-//	 case Booker::LISTSU:
+//	 case \Booker::LISTSU:
 		 default:
 			$sql .= ' B.slotstart,B.user';
 			if($is_group) $sql .= ',I.name';
@@ -523,7 +524,7 @@ EOS;
 		}
 		$args[] = $endstamp;
 		$args[] = $startstamp;
-		$shares = new Booker\Shared();
+		$shares = new Shared();
 		return $shares->SafeGet($sql,$args);
 	}
 }

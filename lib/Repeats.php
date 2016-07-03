@@ -7,6 +7,7 @@ More info at http://dev.cmsmadesimple.org/projects/booker
 
 Class: Repeats
 */
+namespace Booker;
 
 class Repeats extends RepeatLexer
 {
@@ -88,7 +89,7 @@ no FALSE in $ends[]
 	*/
 /*	private function _GetSlotHours($item_id)
 	{
-		$funcs = new Booker\Shared();
+		$funcs = new Shared();
 		$len = $funcs->GetInterval($this->mod,$item_id,'slot');
 		return min($len/3600,24.0);
 	}
@@ -368,8 +369,8 @@ no FALSE in $ends[]
 				break;
 			default:
 				try {
-					$tz = new DateTimeZone($zone);
-					$dt = new DateTime($at,$tz);
+					$tz = new \DateTimeZone($zone);
+					$dt = new \DateTime($at,$tz);
 					$offs = $dt->format('Z')/3600;
 				} catch (Exception $e) {
 					$offs = 0;

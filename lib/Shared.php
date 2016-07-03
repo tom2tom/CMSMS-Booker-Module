@@ -5,6 +5,7 @@
 #----------------------------------------------------------------------
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
+namespace Booker;
 
 class bkritem_namecmp
 {
@@ -254,7 +255,7 @@ class Shared
 		{
 			foreach ($rows as $cid=>$row)
 			{
-				$one = new stdClass();
+				$one = new \stdClass();
 				$one->group_id = $cid;
 				$one->name = $row['name'];
 				if ($full)
@@ -285,7 +286,7 @@ class Shared
 	{
 		$sql = 'SELECT DISTINCT parent FROM '.$mod->GroupTable.' WHERE child=?';
 		$grps = $db->GetCol($sql,array($item_id));
-		if($item_id >= Booker::MINGRPID)
+		if($item_id >= \Booker::MINGRPID)
 			$grps[] = $item_id;
 		if(!$grps)
 		{
@@ -306,7 +307,7 @@ class Shared
 			{
 				try
 				{
-					$col = new Collator(self::GetLocale());
+					$col = new \Collator(self::GetLocale());
 					uasort($grps,array(new bkritem_namecmp($col),'namecmp'));
 				} catch (Exception $e) {
 					asort($grps,SORT_LOCALE_STRING);
@@ -316,7 +317,7 @@ class Shared
 				asort($grps,SORT_LOCALE_STRING);
 		}
 		$sql = 'SELECT DISTINCT child FROM '.$mod->GroupTable.' WHERE parent IN ('.
-			$getters.') AND child<'.Booker::MINGRPID;
+			$getters.') AND child<'.\Booker::MINGRPID;
 		$mems = $db->GetCol($sql);
 		if($mems)
 		{
@@ -332,7 +333,7 @@ class Shared
 					{
 						try
 						{
-							$col = new Collator(self::GetLocale());
+							$col = new \Collator(self::GetLocale());
 							uasort($mems,array(new bkritem_namecmp($col),'namecmp'));
 						} catch (Exception $e) {
 							asort($mems,SORT_LOCALE_STRING);
@@ -384,7 +385,7 @@ class Shared
 	public function GetGroupItems(&$mod,$gid,$withgrps=FALSE,$down=0)
 	{
 		$ids = array();
-		if($gid >= Booker::MINGRPID)
+		if($gid >= \Booker::MINGRPID)
 		{
 			$db = $mod->dbHandle;
 			$members = $db->GetCol('SELECT DISTINCT child FROM '.$mod->GroupTable.
@@ -393,7 +394,7 @@ class Shared
 			{
 				foreach($members as $mid)
 				{
-					if($mid >= Booker::MINGRPID)
+					if($mid >= \Booker::MINGRPID)
 					{
 						$downers = self::GetGroupItems($mod,$mid,$withgrps,$down+1); //recurse
 						if($downers)
@@ -836,7 +837,7 @@ class Shared
 			return $idata['name'];
 		else
 		{
-			$type = ($idata['item_id'] >= Booker::MINGRPID) ? $mod->Lang('group'):$mod->Lang('item');
+			$type = ($idata['item_id'] >= \Booker::MINGRPID) ? $mod->Lang('group'):$mod->Lang('item');
 			return $mod->Lang('title_noname',$type,$idata['item_id']);
 		}
 	}
@@ -1168,7 +1169,7 @@ class Shared
 			$url = self::GetUploadURL($mod,$one);
 			if($url)
 			{
-				$oneset = new stdClass();
+				$oneset = new \stdClass();
 				$oneset->url = $url;
 				$oneset->title = $title;
 				$all[] = $oneset;
@@ -1244,16 +1245,16 @@ class Shared
 				return 0;
 		}
 		try {
-			$tz = new DateTimeZone($local_zone);
+			$tz = new \DateTimeZone($local_zone);
 		} catch (Exception $e) {
 			return 0;
 		}
 		try {
-			$dt = new DateTime($local_time,$tz);
+			$dt = new \DateTime($local_time,$tz);
 		} catch (Exception $e) {
 			return 0;
 		}
-//		$dt2 = new DateTime($local_time,new DateTimeZone('UTC'));
+//		$dt2 = new \DateTime($local_time,new \DateTimeZone('UTC'));
 //		$dbg = $dt->getTimestamp() - $dt2->getTimestamp();
 //		$dbg2 = $dt->format('Z');
 		return $dt->format('Z');
@@ -1267,19 +1268,19 @@ class Shared
 	*/
 	public function GetZoneTime($zonename,$when='now')
 	{
-		$tz = new DateTimeZone('UTC');
+		$tz = new \DateTimeZone('UTC');
 		if($when === FALSE)
 			$when = 'now';
 		if(is_numeric($when))
 		{
 			$stamp = $when;
-			$dt = new DateTime('1900-1-1',$tz);
+			$dt = new \DateTime('1900-1-1',$tz);
 			$dt->setTimestamp($stamp);
 		}
 		else
 		{
 			try {
-				$dt = new DateTime($when,$tz);
+				$dt = new \DateTime($when,$tz);
 			} catch (Exception $e) {
 				return 0;
 			}
@@ -1287,7 +1288,7 @@ class Shared
 		}
 
 		try {
-			$tz = new DateTimeZone($zonename);
+			$tz = new \DateTimeZone($zonename);
 			$offt = $tz->getOffset($dt);
 		} catch (Exception $e) {
 			$offt = 0;
@@ -1326,11 +1327,11 @@ class Shared
 		}
 		ksort($timezones);
 
-		$current = new DateTime();
+		$current = new \DateTime();
 		$timezone_offsets = array();
 		foreach($timezones as $timezone)
 		{
-			$tz = new DateTimeZone($timezone);
+			$tz = new \DateTimeZone($timezone);
 			$timezone_offsets[$timezone] = $tz->getOffset($current);
 		}
 
@@ -1373,7 +1374,7 @@ class Shared
 	*/
 	public function RangeStamps($start,$range)
 	{
-		$sdt = new DateTime('1900-1-1 0:0:0',new DateTimeZone('UTC'));
+		$sdt = new \DateTime('1900-1-1 0:0:0',new \DateTimeZone('UTC'));
 		//start of day including start
 		$sdt->setTimestamp($start);
 		$sdt->setTime(0,0,0); //in case
@@ -1381,16 +1382,16 @@ class Shared
 		$ndt = clone $sdt;
 		switch($range)
 		{
-			case Booker::RANGEDAY:
+			case \Booker::RANGEDAY:
 				$ndt->modify('+1 day');
 				break;
-			case Booker::RANGEWEEK:
+			case \Booker::RANGEWEEK:
 				$ndt->modify('+7 days');
 				break;
-			case Booker::RANGEMTH:
+			case \Booker::RANGEMTH:
 				$ndt->modify('+1 month');
 				break;
-			case Booker::RANGEYR:
+			case \Booker::RANGEYR:
 				$ndt->modify('+1 year');
 				break;
 		}
@@ -1580,7 +1581,7 @@ class Shared
 
 	@mod reference to current module-object
 	@which: index 0 (for 'day'), 1 (for 'week') .. 3 (for 'year'), or
-		array of such indices consistent with bkrshared::DisplayIntervals()
+		array of such indices consistent with Booker\Shared::DisplayIntervals()
 	@plural: optional, whether to get plural form of the interval name(s), default FALSE
 	@cap: optional, whether to capitalise the first character of the name(s), default FALSE
 	*/

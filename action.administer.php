@@ -78,7 +78,7 @@ else
 	$tplvars['item_title'] = $this->Lang('title_booksfor',$t,'');
 }
 if(!empty($idata['description']))
-	$tplvars['desc'] = bkrshared::ProcessTemplateFromData($this,$idata['description'],$tplvars);
+	$tplvars['desc'] = Booker\Shared::ProcessTemplateFromData($this,$idata['description'],$tplvars);
 //in this context, ignore $idata['image']
 
 $payable = $funcs->GetItemPayable($this,$item_id); //any payment condition
@@ -193,7 +193,7 @@ if($data)
 	$tplvars['colnames'] = $titles;
 	$tplvars['colsorts'] = $titles;
 
-	$dfmt = $idata['dateformat']; //translation via bkrshared::IntervalFormat() not relevant here
+	$dfmt = $idata['dateformat']; //translation via Booker\Shared::IntervalFormat() not relevant here
 	$tfmt = $idata['timeformat'];
 	$bfmt = $dfmt.' '.$tfmt;
 	$rfmt = $this->Lang('showrange');
@@ -673,6 +673,6 @@ if($pmod)
 EOS;
 $tplvars['jsincs'] = $jsincs;
 
-echo bkrshared::ProcessTemplate($this,'administer.tpl',$tplvars);
+echo Booker\Shared::ProcessTemplate($this,'administer.tpl',$tplvars);
 
 ?>

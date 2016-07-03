@@ -5,6 +5,7 @@
 #----------------------------------------------------------------------
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
+namespace Booker;
 
 class Schedule
 {
@@ -35,7 +36,7 @@ class Schedule
 	*/
 	private function GetSlotStatus(&$mod,&$shares,$session_id,$item_id,$dtstart,$dtend)
 	{
-/*		$funcs = new Booker\Cache();
+/*		$funcs = new Cache();
 		$cache = $funcs->GetCache();
 		if($cache && )	//$cache->
 */
@@ -187,7 +188,7 @@ class Schedule
 			if($se > $max)
 				$max = $se;
 		}
-		$ndt = new DateTime('1900-1-1',new DateTimeZone('UTC'));
+		$ndt = new \DateTime('1900-1-1',new \DateTimeZone('UTC'));
 		$ndt->setTimestamp($max);
 		$ndt->setTime(0,0,0);
 		$ndt->modify('+1 day');
@@ -209,7 +210,7 @@ class Schedule
 	{
 		$idata = $shares->GetItemProperty($mod,$item_id,array('bookcount','timezone'));
 		$sb = $reqdata['slotstart'];
-		$dts = new DateTime('1900-1-1',new DateTimeZone('UTC'));
+		$dts = new \DateTime('1900-1-1',new \DateTimeZone('UTC'));
 		$dts->setTimestamp($sb);
 		$sl = $shares->GetInterval($mod,$item_id,'slot');
 		if(empty($reqdata['slotlen']))
@@ -223,13 +224,13 @@ class Schedule
 		$limit = $shares->GetZoneTime($idata['timezone']) + $shares->GetInterval($mod,$item_id,'lead');
 		if($sb > $limit) //too far ahead
 		{
-			$reqdata['status'] = Booker::STATDEFER;
+			$reqdata['status'] = \Booker::STATDEFER;
 			return FALSE;
 		}
 		$se = $dte->getTimestamp();
 		if($se - $sb > $idata['bookcount'] * $sl)
 		{
-			$reqdata['status'] = Booker::STATBIG;
+			$reqdata['status'] = \Booker::STATBIG;
 			return FALSE;
 		}
 
@@ -247,7 +248,7 @@ class Schedule
 				$bid = $mod->dbHandle->GenID($mod->DataTable.'_seq');
 				$class = (!empty($reqdata['userclass'])) ? $reqdata['userclass'] :
 					self::MatchUserClass($mod,$shares,$item_id,$reqdata['sender']);
-				$status = Booker::STATNONE; //TODO or STATNOPAY etc
+				$status = \Booker::STATNONE; //TODO or STATNOPAY etc
 				$args = array(
 					$bid,
 					$item_id,
@@ -269,7 +270,7 @@ class Schedule
 				}
 				else
 				{
-					$reqdata['status'] = Booker::STATERR; //system error? RETRY?
+					$reqdata['status'] = \Booker::STATERR; //system error? RETRY?
 					return FALSE;
 				}
 			}
@@ -280,13 +281,13 @@ class Schedule
 			}
 		}
 		if(($slotstatus & 4) > 0)
-			$status = Booker::STATDUP;
+			$status = \Booker::STATDUP;
 		elseif(($slotstatus & 2) > 0)
-			$status = Booker::STATNA;
+			$status = \Booker::STATNA;
 //		elseif(($slotstatus & 1) > 0)
-//			$status = Booker::STATRETRY;
+//			$status = \Booker::STATRETRY;
 		else
-			$status = Booker::STATRETRY;
+			$status = \Booker::STATRETRY;
 		$reqdata['status'] = $status;
 		return $cando;
 	}
@@ -319,12 +320,12 @@ class Schedule
 		{
 			foreach($members as $mid)
 			{
-				if($mid < Booker::MINGRPID)
+				if($mid < \Booker::MINGRPID)
 					$ids[] = (int)$mid;
 			}
 			foreach($members as $mid)
 			{
-				if($mid >= Booker::MINGRPID)
+				if($mid >= \Booker::MINGRPID)
 				{
 					$downers = self::MembersLike($mod,$mid,$down+1); //recurse
 					if($downers)
@@ -347,7 +348,7 @@ class Schedule
 	*/
 	private function FindCluster($likes,$lcount,$num,$first,$dts,$dte,$session_id,$roll=FALSE)
 	{
-/*		$funcs = new Booker\Cache();
+/*		$funcs = new Cache();
 		$cache = $funcs->GetCache();
 */
 		$c = $num;
@@ -426,17 +427,17 @@ class Schedule
 
 		switch($alloctype)
 		{
-		 case Booker::ALLOCCHOOSE:
+		 case \Booker::ALLOCCHOOSE:
 			$F = $allocdata;
 			break;
-		 case Booker::ALLOCRAND:
+		 case \Booker::ALLOCRAND:
 			$R = mt_rand(0,$blocks-1);
 			if($countback && $R == $blocks-1)
 				$F = $lcount - $rescount + 1;
 			else
 				$F = $R * $rescount;
 			break;
-		 case Booker::ALLOCROTE:
+		 case \Booker::ALLOCROTE:
 			$indx = $allocdata;
 			$R = (int)($indx % $blocks);
 			if($countback && $R == $blocks-1)
@@ -444,8 +445,8 @@ class Schedule
 			else
 				$F = $R * $rescount;
 			break;
-//		 case Booker::ALLOCFIRST:
-//		 case Booker::ALLOCNONE:
+//		 case \Booker::ALLOCFIRST:
+//		 case \Booker::ALLOCNONE:
 		 default:
 			$F = 0;
 			break;
@@ -457,7 +458,7 @@ class Schedule
 			$ret = self::FindCluster($likes,$lcount,$rescount,$first,$dts,$dte);
 			if($ret)
 			{
-				if($alloctype == Booker::ALLOCROTE)
+				if($alloctype == \Booker::ALLOCROTE)
 					$allocdata += $rescount; //CHECKME or ++?
 				return $ret;
 			}
@@ -501,7 +502,7 @@ class Schedule
 				$ret = FALSE;
 		}
 		unset($one);
-/*		$funcs = new Booker\Cache();
+/*		$funcs = new Cache();
 		$cache = $funcs->GetCache();
 		TODO clear any cached PUBLIC slotstatus data for this session
 */
@@ -547,7 +548,7 @@ class Schedule
 		//assume no need for resource-specific leadtimes
 		$limit = $shares->GetZoneTime($idata['timezone']) + $shares->GetInterval($mod,$item_id,'lead');
 		$session_id = 0; //TODO $mod->dbHandle->GenID(cms_db_prefix().'module_bkrcache_seq'); //uid for cached slotstatus data
-/*		$funcs = new Booker\Cache();
+/*		$funcs = new Cache();
 		$cache = $funcs->GetCache();
 */
 		$sql = 'INSERT INTO '.$mod->DataTable.
@@ -574,8 +575,8 @@ class Schedule
 						$full = TRUE;
 						switch ($one['status'])
 						{
-						 case Booker::STATNEW:
-							$one['status'] = Booker::STATRETRY;
+						 case \Booker::STATNEW:
+							$one['status'] = \Booker::STATRETRY;
 							break;
 						}
 						$ret = FALSE;
@@ -586,7 +587,7 @@ class Schedule
 			}
 
 			$sb = $one['slotstart'];
-			$dts = new DateTime('1900-1-1',new DateTimeZone('UTC'));
+			$dts = new \DateTime('1900-1-1',new \DateTimeZone('UTC'));
 			$dts->setTimestamp($sb);
 			if(empty($reqdata['slotlen']))
 				$reqdata['slotlen'] = $sl;
@@ -597,14 +598,14 @@ class Schedule
 			$sb = $dts->getTimestamp();
 			if($sb > $limit) //too far ahead
 			{
-				$one['status'] = Booker::STATDEFER;
+				$one['status'] = \Booker::STATDEFER;
 				$ret = FALSE;
 				continue;
 			}
 			$se = $dte->getTimestamp();
 			if($se - $sb > $idata['bookcount'] * $sl)
 			{
-				$one['status'] = Booker::STATBIG;
+				$one['status'] = \Booker::STATBIG;
 				$ret = FALSE;
 				continue;
 			}
@@ -618,7 +619,7 @@ class Schedule
 				$bid = $mod->dbHandle->GenID($mod->DataTable.'_seq');
 				$class = (!empty($one['userclass'])) ? $one['userclass'] :
 					self::MatchUserClass($mod,$shares,reset($items),$one['sender']);
-				$status = Booker::STATNONE; //TODO or STATNOPAY etc
+				$status = \Booker::STATNONE; //TODO or STATNOPAY etc
 				foreach($items as $memberid)
 				{
 					//TODO signature(s) for actual slot(s), not booking interval
@@ -646,7 +647,7 @@ class Schedule
 				}
 				else
 				{
-					$one['status'] = Booker::STATERR; //system error? RETRY?
+					$one['status'] = \Booker::STATERR; //system error? RETRY?
 					$ret = FALSE;
 				}
 /*				if($cache && $cache->
@@ -655,7 +656,7 @@ class Schedule
 			}
 			else
 			{
-				$one['status'] = Booker::STATRETRY;
+				$one['status'] = \Booker::STATRETRY;
 				$ret = FALSE;
 			}
 		}
@@ -693,10 +694,10 @@ class Schedule
 		$sql1 = 'SELECT repeatsuntil FROM '.$mod->ItemTable.' WHERE item_id=? AND active>0';
 		$sql2 = 'UPDATE '.$mod->ItemTable.' SET repeatsuntil=? WHERE item_id=?';
 
-		$shares = new Booker\Shared();
-		$reps = new Booker\Repeats($mod);
+		$shares = new Shared();
+		$reps = new Repeats($mod);
 
-		if($item_id >= Booker::MINGRPID)
+		if($item_id >= \Booker::MINGRPID)
 			$all = self::MembersLike($mod,$item_id);
 		else
 			$all = array($item_id);
@@ -738,14 +739,14 @@ class Schedule
 	*/
 	public function ItemAvailable(&$mod,&$shares,$item_id,$dtstart,$dtend)
 	{
-		if($item_id >= Booker::MINGRPID);
+		if($item_id >= \Booker::MINGRPID);
 		{
 			//TODO decide how to interrogate & report on group-members
 		}
 		$idata = $shares->GetItemProperty($mod,$item_id,'*');
 		if(empty($idata['available']))
 			return TRUE;
-		$funcs = new Booker\Repeats($mod);
+		$funcs = new Repeats($mod);
 		$sunparms = $funcs->SunParms($idata); //TODO extra arg current date/time
 		$dtw = clone $dtend;
 		$dtw->modify('+1 second'); //past the end
@@ -778,8 +779,8 @@ class Schedule
 	*/
 	public function ItemBooked(&$mod,$item_id,$dtstart,$dtend,$bkg_id=FALSE)
 	{
-		$funcs = new Booker\Shared();
-		if($item_id >= Booker::MINGRPID);
+		$funcs = new Shared();
+		if($item_id >= \Booker::MINGRPID);
 		{
 			//TODO decide how to interrogate & report on group-members
 		}

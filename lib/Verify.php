@@ -5,6 +5,7 @@
 #----------------------------------------------------------------------
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
+namespace Booker;
 
 class Verify
 {
@@ -20,7 +21,7 @@ class Verify
 	function VerifyAdmin(&$mod,&$shares,&$params,$item_id,$is_new)
 	{
 		$msg = array();
-		$tz = new DateTimeZone('UTC');
+		$tz = new \DateTimeZone('UTC');
 		$slen =  $shares->GetInterval($mod,$item_id,'slot');
 /*supplied $params keys
 		'subgrpcount'? 'when' 'until'? 'user' 'conformuser' 'userclass'
@@ -37,7 +38,7 @@ TODO support 'past' data without both date/time $params[]
 			{
 				try
 				{
-					$dts = new DateTime($fv,$tz);
+					$dts = new \DateTime($fv,$tz);
 				}
 				catch (Exception $e)
 				{
@@ -55,7 +56,7 @@ TODO support 'past' data without both date/time $params[]
 			{
 				try
 				{
-					$dte = new DateTime($fv,$tz);
+					$dte = new \DateTime($fv,$tz);
 				}
 				catch (Exception $e)
 				{
@@ -75,7 +76,7 @@ TODO support 'past' data without both date/time $params[]
 		{
 			if($dte > $dts)
 			{
-				$funcs = new Booker\Schedule();
+				$funcs = new Schedule();
 				//rationalise specified times relative to slot length
 				$shares->TrimRange($dts,$dte,$slen);
 				$params['when'] = $dts->getTimestamp();
@@ -140,7 +141,7 @@ TODO support 'past' data without both date/time $params[]
 	function VerifyPublic(&$mod,&$shares,&$params,$is_new)
 	{
 		$msg = array();
-		$tz = new DateTimeZone('UTC');
+		$tz = new \DateTimeZone('UTC');
 /* supplied $params keys
 	'returnid' 'item_id' 'startat' 'range' 'view' 'origreturnid'
 	'requesttype'? 'subgrpcount'? 'when'? 'until'? 'user' 'contact' 'captcha'? 'chooser'
@@ -156,7 +157,7 @@ TODO support 'past' data without both date/time $params[]
 			{
 				try
 				{
-					$dts = new DateTime($fv,$tz);
+					$dts = new \DateTime($fv,$tz);
 				}
 				catch(Exception $e)
 				{
@@ -174,7 +175,7 @@ TODO support 'past' data without both date/time $params[]
 			{
 				try
 				{
-					$dte = new DateTime($fv,$tz);
+					$dte = new \DateTime($fv,$tz);
 				}
 				catch(Exception $e)
 				{
@@ -206,7 +207,7 @@ TODO support 'past' data without both date/time $params[]
 
 			if($timely)
 			{
-				$funcs = new Booker\Schedule();
+				$funcs = new Schedule();
 				//rationalise specified times relative to slot length
 				if($is_new)
 				{
@@ -488,7 +489,7 @@ EOS;
 
 		try
 		{
-			$lzone = new DateTimeZone($zonename);
+			$lzone = new \DateTimeZone($zonename);
 			$t = $lzone->getLocation();
 			$t = $t['country_code'];
 		}

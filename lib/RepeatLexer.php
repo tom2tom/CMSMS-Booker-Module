@@ -104,6 +104,7 @@ Day descriptors
 Time descriptors
  9 or 2:30 or (9,12,15:15) or 12..23 or 6..15:30 or sunrise..16 or 9..sunset-3:30
 */
+namespace Booker;
 
 class RepeatLexer
 {

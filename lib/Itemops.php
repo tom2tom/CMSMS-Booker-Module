@@ -5,6 +5,7 @@
 #----------------------------------------------------------------------
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
+namespace Booker;
 
 class Itemops
 {
@@ -33,7 +34,7 @@ class Itemops
 		{
 			$sql = array(
 				'DELETE FROM '.$mod->DataTable.' WHERE item_id=? AND slotstart>=?',
-				'UPDATE '.$mod->DataTable.' SET status='.Booker::STATGONE.' WHERE item_id=? AND slotstart<?',
+				'UPDATE '.$mod->DataTable.' SET status='.\Booker::STATGONE.' WHERE item_id=? AND slotstart<?',
 				'UPDATE '.$mod->ItemTable.' SET active=-1 WHERE item_id=?'
 			);
 			$args = array(
@@ -70,7 +71,7 @@ class Itemops
 		{
 			foreach($members as $mid)
 			{
-				if($mid >= Booker::MINGRPID)
+				if($mid >= \Booker::MINGRPID)
 				{
 					$idata = $shares->GetItemProperty($mod,$mid,'cleargroup');
 					if(!empty($idata['cleargroup']))
@@ -96,10 +97,10 @@ class Itemops
 	{
 		if(!is_array($item_id))
 			$item_id = array($item_id);
-		$funcs = new Booker\Shared();
+		$funcs = new Shared();
 		foreach($item_id as $one)
 		{
-			if($one >= Booker::MINGRPID)
+			if($one >= \Booker::MINGRPID)
 			{
 				$idata = $funcs->GetItemProperty($mod,$one,'cleargroup');
 				if(!empty($idata['cleargroup']))
@@ -124,7 +125,7 @@ class Itemops
 	*/
 /*	public function ExportItem(&$mod,$item_id,$members=TRUE)
 	{
-		$funcs = new Booker\CSV();
+		$funcs = new CSV();
 		if(!is_array($item_id))
 			$item_id = array($item_id);
 		foreach($item_id as $one)
@@ -138,13 +139,13 @@ class Itemops
 			if($members)
 			{
 				$onemore = array(); //lazy recursion!!
-				while($one >= Booker::MINGRPID)
+				while($one >= \Booker::MINGRPID)
 				{
 					$rows = $mod->dbHandle->GetCol('SELECT child FROM '.$mod->GroupTable.
 					' WHERE parent=? ORDER BY proximity',array($one));
 					foreach($rows as $one)
 					{
-						if($one >= Booker::MINGRPID)
+						if($one >= \Booker::MINGRPID)
 							$onemore[] = $one;
 						list($res,$key) = $funcs->ExportItems($mod,$one);
 						if(!$res)

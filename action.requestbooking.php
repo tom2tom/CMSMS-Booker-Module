@@ -241,7 +241,7 @@ $jsincs = array();
 $tplvars['title'] = $funcs->GetItemName($this,$idata);
 if(!empty($idata['description']))
 {
-	$tplvars['desc'] = bkrshared::ProcessTemplateFromData($this,$idata['description'],$tplvars);
+	$tplvars['desc'] = Booker\Shared::ProcessTemplateFromData($this,$idata['description'],$tplvars);
 }
 $urls = $funcs->GetImageURLs($this,$idata['image'],$idata['name']);
 if($urls)
@@ -355,7 +355,7 @@ else
 		if($is_group)
 		{
 			$tplvars['nowbooked'] = $nowbooked;
-			$d = $this->Lang('currentdesc3').bkrshared::ProcessTemplate($this,'currentbookings.tpl',$tplvars);
+			$d = $this->Lang('currentdesc3').Booker\Shared::ProcessTemplate($this,'currentbookings.tpl',$tplvars);
 		}
 		elseif($choosend)
 			$d = $this->Lang('currentdesc2',$bdata['user'],$t,$t2);
@@ -495,5 +495,5 @@ if($jsloads)
 $tplvars['jsfuncs'] = $jsfuncs;
 $tplvars['jsincs'] = $jsincs;
 
-echo bkrshared::ProcessTemplate($this,'requestbooking.tpl',$tplvars);
+echo Booker\Shared::ProcessTemplate($this,'requestbooking.tpl',$tplvars);
 ?>

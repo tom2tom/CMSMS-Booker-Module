@@ -209,7 +209,7 @@ if($members)
 		'entries' => $sorted,
 		'cellclass' => $type
 	);
-	echo bkrshared::ProcessTemplate($this,'membersbody.tpl',$tplvars);
+	echo Booker\Shared::ProcessTemplate($this,'membersbody.tpl',$tplvars);
 }
 else
 	echo 0;

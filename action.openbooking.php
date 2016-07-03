@@ -220,7 +220,7 @@ else
 
 $t = '';
 if(!empty($idata['description']))
-	$t .= bkrshared::ProcessTemplateFromData($this,$idata['description'],$tplvars);
+	$t .= Booker\Shared::ProcessTemplateFromData($this,$idata['description'],$tplvars);
 $tplvars['desc'] = $t;
 //in this context, ignore any image
 
@@ -522,5 +522,5 @@ if($jsloads)
 $tplvars['jsfuncs'] = $jsfuncs;
 $tplvars['jsincs'] = $jsincs;
 
-echo bkrshared::ProcessTemplate($this,'openbooking.tpl',$tplvars);
+echo Booker\Shared::ProcessTemplate($this,'openbooking.tpl',$tplvars);
 ?>

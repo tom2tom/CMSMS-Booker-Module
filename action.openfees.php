@@ -314,7 +314,7 @@ WHERE condition_id=?';
 				}
 			}
 		}
-		bkrshared::SafeExec($allsql,$allargs);
+		Booker\Shared::SafeExec($allsql,$allargs);
 	}
 	else //no fee-data now, clear from table
 	{
@@ -628,5 +628,5 @@ if($jsloads)
 }
 $tplvars['jsfuncs'] = $jsfuncs;
 
-echo bkrshared::ProcessTemplate($this,'fullfees.tpl',$tplvars);
+echo Booker\Shared::ProcessTemplate($this,'fullfees.tpl',$tplvars);
 ?>

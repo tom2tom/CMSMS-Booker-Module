@@ -14,6 +14,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU Affero General Public License for more details. If you don't have a copy
 of that license, read it online at: www.gnu.org/licenses/licenses.html#AGPL
 */
+namespace Booker;
+
 class PeriodInterpreter
 {
 	/* *

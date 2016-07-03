@@ -5,6 +5,7 @@
 #----------------------------------------------------------------------
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
+namespace Booker;
 
 class Cache
 {
@@ -64,7 +65,7 @@ class Cache
 			$class = 'pwfCache_'.$one;
 			try
 			{
-				$cache = new $class($settings);
+				$cache = new $class($settings); //TODO namespace
 			}
 			catch(Exception $e)
 			{

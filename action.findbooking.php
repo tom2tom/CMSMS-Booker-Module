@@ -247,6 +247,6 @@ if($jsloads)
 $tplvars['jsfuncs'] = $jsfuncs;
 $tplvars['jsincs'] = $jsincs;
 
-echo bkrshared::ProcessTemplate($this,'find.tpl',$tplvars);
+echo Booker\Shared::ProcessTemplate($this,'find.tpl',$tplvars);
 ?>
 

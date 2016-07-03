@@ -7,6 +7,7 @@ More info at http://dev.cmsmadesimple.org/projects/booker
 
 Class: Clearcache_task
 */
+namespace Booker;
 
 class Clearcache_task implements CmsRegularTask
 {

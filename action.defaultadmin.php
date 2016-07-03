@@ -1228,6 +1228,6 @@ $jsfuncs[] = '});
 $tplvars['jsincs'] = $jsincs;
 $tplvars['jsfuncs'] = $jsfuncs;
 
-echo bkrshared::ProcessTemplate($this,'adminpanel.tpl',$tplvars);
+echo Booker\Shared::ProcessTemplate($this,'adminpanel.tpl',$tplvars);
 
 ?>

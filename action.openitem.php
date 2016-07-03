@@ -61,7 +61,7 @@ if(!function_exists('groupstable'))
 	$tplvars['sort'] = $dosort && ($c > 1);
 	$tplvars['entries'] = $rows;
 
-	return bkrshared::ProcessTemplate($mod,'groupsinput.tpl',$tplvars);
+	return Booker\Shared::ProcessTemplate($mod,'groupsinput.tpl',$tplvars);
  }
 }
 
@@ -708,7 +708,7 @@ if($sel)
 	}
 	unset($one);
 	$tplvars['entries'] = $fees;
-	$i = bkrshared::ProcessTemplate($this,'brieffees.tpl',$tplvars);
+	$i = Booker\Shared::ProcessTemplate($this,'brieffees.tpl',$tplvars);
 	$t = $this->Lang('edit');
 	$h = $this->Lang('help_fee');
 }
@@ -1430,5 +1430,5 @@ if($jsloads)
 $tplvars['jsfuncs'] = $jsfuncs;
 $tplvars['jsincs'] = $jsincs;
 
-echo bkrshared::ProcessTemplate($this,'openitem.tpl',$tplvars);
+echo Booker\Shared::ProcessTemplate($this,'openitem.tpl',$tplvars);
 ?>
