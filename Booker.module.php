@@ -115,16 +115,8 @@ class Booker extends CMSModule
 			// base directory for the namespace prefix
 			$base_dir = __DIR__.DIRECTORY_SEPARATOR.'lib'.DIRECTORY_SEPARATOR;
 			$fp = $base_dir.str_replace('\\',DIRECTORY_SEPARATOR,$relative_class).'.php';
-/*			if (!file_exists($fp))
-			{
-				$fn = basename($fp);
-				$fp  = dirname($fp).DIRECTORY_SEPARATOR.'class.'.$fn;
-			}
-*/
 			if (file_exists($fp))
-			{
 				include $fp;
-			}
 		});
 	}
 
@@ -320,7 +312,7 @@ class Booker extends CMSModule
 		these regexes translate url-parameter(s) to $param[](s) be supplied
 		to the specified actions (default calls ->DisplayModuleOutput())
 		so the routes need to conform to parameter-usage in handler-func(s).
-		See also: bkrshared::GetLink() which needs to conform to this.
+		See also: Booker\Shared::GetLink() which needs to conform to this.
 		*/
 		// for showing the contents of a specific group
 		$this->RegisterRoute('/[Bb]ookings?\/group(?P<group>.*?)\/(?P<returnid>[0-9]+)$/',array('action'=>'default'));
