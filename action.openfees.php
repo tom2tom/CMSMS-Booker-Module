@@ -155,7 +155,7 @@ $params = array of all item/group properties, including 'active_tab'
 	$sel = FALSE;
 }
 
-$funcs = new bkrshared();
+$funcs = new Booker\Shared();
 
 if(isset($params['submit']))
 {

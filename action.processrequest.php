@@ -24,7 +24,7 @@ LINK-CLICK actions
 */
 $parms = array();
 $sel = (isset($params['selreq'])) ? $params['selreq'] : FALSE;
-$funcs = new bkrrequestops();
+$funcs = new Booker\Requestops();
 $res = TRUE;
 //link-actions
 if($params['action'] == 'rapprove')

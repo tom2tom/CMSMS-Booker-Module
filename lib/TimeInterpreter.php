@@ -18,6 +18,7 @@ class TimeInterpreter
 {
 	/*No checks here for valid parameters - assumed done before
 		$start is bracket-local timestamp
+	c.f. bkrrepeats::SunParms()
 	*/
 	function GetSunData(&$bdata,$start)
 	{

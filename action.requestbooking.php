@@ -40,7 +40,7 @@ if(!empty($params['nosend']))	//user cancelled
 
 $item_id = (int)$params['item_id'];
 $is_group = ($item_id >= Booker::MINGRPID);
-$funcs = new bkrshared();
+$funcs = new Booker\Shared();
 
 if(isset($params['slotid']))
 {
@@ -70,7 +70,7 @@ $tplvars = array();
 
 if(!empty($params['send']))
 {
-	$funcs2 = new bkrverify();
+	$funcs2 = new Booker\Verify();
 	//TODO make this handle $past == TRUE
 	list($res,$errmsg) = $funcs2->VerifyPublic($this,$funcs,$params,$is_new);
 	if($res)
@@ -108,7 +108,7 @@ $this->Crash();
 			//localise 'now'
 			$params['lodged'] = $funcs->GetZoneTime($idata['timezone']);
 			$rdata = FALSE; //passed-by-ref
-			$funcs2 = new bkrrequestops();
+			$funcs2 = new Booker\Requestops();
 //			$ares =
 			$funcs2->SaveReq($this,$params,$rdata,TRUE);
 		}
@@ -266,7 +266,7 @@ if(!$past)
 			}
 
 			$nowbooked = array();
-			$funcs2 = new bkrbookingops();
+			$funcs2 = new Booker\Bookingops();
 			$allbooked = $funcs2->GetBooked($this,$members,$bdata['slotstart'],$bdata['slotstart']+$bdata['slotlen']);
 			foreach($allbooked as $one)
 			{
@@ -432,7 +432,7 @@ if($ob)
 	$tplvars['captcha'] = $ob->getCaptcha();
 }
 
-$funcs2 = new bkrverify();
+$funcs2 = new Booker\Verify();
 $checkdates = !($past || (isset($params['slotid']) && !$groupextra));
 $jsfuncs[] = $funcs2->VerifyScript($this,$id,FALSE,$checkdates,FALSE,$idata['timezone']);
 //for email-validator

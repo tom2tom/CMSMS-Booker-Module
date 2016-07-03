@@ -9,7 +9,7 @@
 if(!($this->_CheckAccess('admin') || $this->_CheckAccess('book'))) exit;
 
 $msg = FALSE;
-$funcs = new bkrbookingops();
+$funcs = new Booker\Bookingops();
 if(!empty($params['repeat'])) //doing a repeat-booking
 {
 	$msg = $funcs->DeleteRepeat($this,$params['bkg_id']);

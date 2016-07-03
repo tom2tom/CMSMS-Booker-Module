@@ -103,6 +103,29 @@ class Booker extends CMSModule
 		$this->UserTable = $pre.'users';
 		global $CMS_VERSION;
 		$this->before20 = (version_compare($CMS_VERSION,'2.0') < 0);
+
+		spl_autoload_register(function ($class)
+		{
+			$prefix = self::GetName().'\\'; //specific namespace prefix
+			// does the class use the namespace prefix?
+			if (strpos($class,$prefix) !== 0)
+				return;
+			// get the relative class name
+			$relative_class = substr($class,strlen($prefix));
+			// base directory for the namespace prefix
+			$base_dir = __DIR__.DIRECTORY_SEPARATOR.'lib'.DIRECTORY_SEPARATOR;
+			$fp = $base_dir.str_replace('\\',DIRECTORY_SEPARATOR,$relative_class).'.php';
+/*			if (!file_exists($fp))
+			{
+				$fn = basename($fp);
+				$fp  = dirname($fp).DIRECTORY_SEPARATOR.'class.'.$fn;
+			}
+*/
+			if (file_exists($fp))
+			{
+				include $fp;
+			}
+		});
 	}
 
 	function GetName()
@@ -132,7 +155,7 @@ class Booker extends CMSModule
 
 	function GetHelp()
 	{
-		$fn = cms_join_path(dirname(__FILE__),'css','public.css');
+		$fn = cms_join_path(__DIR__,'css','public.css');
 		$cont = @file_get_contents($fn);
 		if ($cont)
 		{
@@ -156,7 +179,7 @@ class Booker extends CMSModule
 
 	function GetChangeLog()
 	{
-		$fn = cms_join_path(dirname(__FILE__),'include','changelog.inc');
+		$fn = cms_join_path(__DIR__,'include','changelog.inc');
 		return @file_get_contents($fn);
 	}
 
@@ -326,8 +349,8 @@ class Booker extends CMSModule
 	function get_tasks()
 	{
 		return array(
-			new bkrcleanold_task(),
-			new bkrclearcache_task()
+			new Booker\Cleanold_task(),
+			new Booker\Clearcache_task()
 		);
 	}
 

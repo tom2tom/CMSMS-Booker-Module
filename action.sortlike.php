@@ -112,7 +112,7 @@ if(!function_exists('array_like'))
 'sort' => 'groups' or 'members'
 )
 */
-$funcs = new bkrshared();
+$funcs = new Booker\Shared();
 $item_id = (int)$params['item_id'];
 $havegroups = array($item_id);
 $type = $params['sort'];

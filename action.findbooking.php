@@ -60,7 +60,7 @@ else
 }
 
 $tplvars = array();
-$funcs = new bkrshared();
+$funcs = new Booker\Shared();
 $idata = $funcs->GetItemProperty($this,$item_id,'*');
 $tzone = new DateTimeZone('UTC');
 

@@ -170,7 +170,7 @@ if(!function_exists('groupsupdate'))
 
 	if($current || $new)
 	{
-		$funcs = new bkrshared();
+		$funcs = new Booker\Shared();
 		$funcs->OrderGroups($mod,$db);
 	}
  }
@@ -457,7 +457,7 @@ if(isset($params['cancel']) || $act == 'submit')
 }
 
 // get data for the item with the passed-in id, or an empty one if that id not found
-$funcs = new bkrshared();
+$funcs = new Booker\Shared();
 //$item = $funcs->GetItem($this,$item_id,FALSE);
 $sql = 'SELECT * FROM '.$this->ItemTable.' WHERE item_id=?';
 $row = $db->GetRow($sql,array($item_id));
@@ -787,10 +787,10 @@ if($is_group)
 					unset($allgrps[$k]);
 				//rest are still alphabetic by name
 				$allgrps = $sel + $allgrps;
-				//TODO make action.sortlike work for this, make this work for GroupsTable+action.swapgroups
+				//TODO send 'active_tab' as a $param to action.swapgroups				
 				$i = groupstable($this,$tplvars,$id,'members',$returnid,$icondn,$iconup,
 					$item_id,$allgrps,$relations,TRUE,TRUE,'members');
-				if($rc > 1)
+				if($rc > 1) //TODO send 'active_tab' as a $param to action.swapgroups
 					$i .= '  '.$this->CreateInputSubmit($id,'sortlike',$this->Lang('sort'),
 						'title="'.$this->Lang('tip_sortchilds').'" style="display:none;"'); //button shown by runtime js
 			}
@@ -909,8 +909,8 @@ if($allgrps)
 			if($pmod && $padm)
 			{
 				$allgrps = $sel + $allgrps;
-				//TODO make action.sortlike work for this, make this work for GroupsTable+action.swapgroups
-				$i = groupstable($this,$tplvars,$id,'ingroups',$returnid,$icondn,$iconup,
+				 //TODO send 'active_tab' as a $param to action.swapgroups
+ 				$i = groupstable($this,$tplvars,$id,'ingroups',$returnid,$icondn,$iconup,
 					$item_id,$allgrps,$relations,TRUE,FALSE,'groups');
 				if($rc > 1)
 					$i .= '  '.$this->CreateInputSubmit($id,'sortlike',$this->Lang('sort'),
@@ -970,6 +970,7 @@ EOS;
     if (status=='success'){
      if (data != ''){
       \$tbl.find('tbody').html(data);
+      \$tbl.find('.updown').hide();
      }
     } else {
      $('#page_tabs').prepend('<p style="font-weight:bold;color:red;">{$t}!</p><br />');

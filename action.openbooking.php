@@ -28,8 +28,8 @@ $is_group = ($item_id >= Booker::MINGRPID);
 $type = ($is_group) ? $this->Lang('group'):$this->Lang('item');
 $is_new = ($params['bkg_id'] == -1);
 $viewmode = ($resume == 'inspect');
-$funcs = new bkrshared();
-$funcs2 = new bkrbookingops();
+$funcs = new Booker\Shared();
+$funcs2 = new Booker\Bookingops();
 
 if(isset($params['submit']) || isset($params['apply']))
 {
@@ -65,7 +65,7 @@ if(isset($params['submit']) || isset($params['apply']))
 		$t = trim($params['formula']);
 		if($t)
 		{
-			$funcs3 = new RepeatLexer($this);
+			$funcs3 = new Booker\RepeatLexer($this);
 			$t = $funcs3->CheckCondition($t);
 		}
 		if($t)
@@ -148,7 +148,7 @@ if(isset($params['submit']) || isset($params['apply']))
 	}
 	else //onetime booking
 	{
-		$funcs3 = new bkrverify();
+		$funcs3 = new Booker\Verify();
 		list($res,$xmsg) = $funcs3->VerifyAdmin($mod,$funcs,$params,$item_id,$is_new);
 		if($res)
 		{
@@ -484,7 +484,7 @@ else //add/edit mode
 EOS;
 		$tplvars['yes'] = $this->Lang('yes');
 		$tplvars['no'] = $this->Lang('no');
-		$funcs3 = new bkrverify();
+		$funcs3 = new Booker\Verify();
 		$jsfuncs[] = $funcs3->VerifyScript($this,$id,TRUE,TRUE,FALSE,$idata['timezone']);
 		$jsloads[] = <<<EOS
  var obs = [$('#{$id}submit'),$('#{$id}apply')];

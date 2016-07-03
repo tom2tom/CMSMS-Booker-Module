@@ -61,7 +61,7 @@ $this->_BuildNav($id,$params,$returnid,$tplvars);
 if(!empty($params['message']))
 	$tplvars['message'] = $params['message'];
 
-$funcs = new bkrshared();
+$funcs = new Booker\Shared();
 $idata = $funcs->GetItemProperty($this,$item_id,'*',FALSE);
 
 $type = ($is_group) ? $this->Lang('group'):$this->Lang('item');

@@ -16,7 +16,7 @@ if($this->_CheckAccess('admin') || $this->_CheckAccess('see'))
 		$bid = (int)$params['bkg_id'];
 	else
 	{
-		$funcs = new bkrshared();
+		$funcs = new Booker\Shared();
 		$sql = 'SELECT bkg_id FROM '.$mod->DataTable.' WHERE item_id=?';
 		$bid = $funcs->SafeGet($sql,array($params['item_id']),'col');
 		if(!$bid)
@@ -28,7 +28,7 @@ if($this->_CheckAccess('admin') || $this->_CheckAccess('see'))
 			$this->Redirect($id,'defaultadmin','',array('active_tab'=>$tab,'message'=>$msg));
 		}
 	}
-	$funcs = new bkrbookingops();
+	$funcs = new Booker\Bookingops();
 	$msg = $funcs->ExportBkg($this,$bid);
 	if($msg !== TRUE)
 	{

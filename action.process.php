@@ -13,7 +13,7 @@ else if(isset($params['selgroups']))
 else
 	$this->Redirect($id,'defaultadmin','',array('active_tab'=>$params['active_tab'],'message'=>$this->_PrettyMessage('nosel',FALSE)));
 
-$funcs = new bkritemops();
+$funcs = new Booker\Itemops();
 if(isset($params['delete']))
 {
 	if(!($this->_CheckAccess('admin') || $this->_CheckAccess('delete'))) exit;

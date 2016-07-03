@@ -22,17 +22,17 @@ $is_group = ($rdata['item_id'] >= Booker::MINGRPID);
 $type = ($is_group) ? $this->Lang('group'):$this->Lang('item');
 $is_new = ($rdata['status'] == Booker::STATNEW); //ETC?
 $viewmode = ($params['mode'] == 'inspect');
-$funcs = new bkrshared();
+$funcs = new Booker\Shared();
 
 if(isset($params['submit']) || isset($params['apply']))
 {
 	if(!($this->_CheckAccess('admin') || $this->_CheckAccess('book'))) exit;
 	//validate
-	$funcs2 = new bkrverify();
+	$funcs2 = new Booker\Verify();
 	list($res,$msg) = $funcs2->VerifyAdmin($this,$funcs,$params,$rdata['item_id'],$is_new);
 	if($res)
 	{
-		$funcs2 = new bkrrequestops();
+		$funcs2 = new Booker\Requestops();
 		$funcs2->SaveReq($this,$params,$rdata,FALSE);
 		//TODO message to lodger
 		if(isset($params['submit']))
@@ -417,7 +417,7 @@ else //edit mode
 		$tplvars['approve'] = $this->CreateInputSubmit($id,'approve',$this->Lang('approve'));
 		$tplvars['reject'] = $this->CreateInputSubmit($id,'reject',$this->Lang('reject'));
 	}
-	$funcs2 = new bkrverify();
+	$funcs2 = new Booker\Verify();
 	$jsfuncs[] = $funcs2->VerifyScript($this,$id,TRUE,TRUE,TRUE,$idata['timezone']);
 	$jsloads[] = <<<EOS
  var \$appbtn = $('#{$id}approve'),

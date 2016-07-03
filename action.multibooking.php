@@ -27,7 +27,7 @@ if(!isset($params['sel'])) //nothing selected
 	 'message'=> $this->_PrettyMessage($msg,FALSE,FALSE)));
 }
 
-$funcs = new bkrbookingops();
+$funcs = new Booker\Bookingops();
 $msg = FALSE;
 if(isset($params['delete']))
 {

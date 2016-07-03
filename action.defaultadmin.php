@@ -110,7 +110,7 @@ $tplvars['tab_headers'] = $this->StartTabHeaders().
 $tplvars['tab_footers'] = $this->EndTabContent();
 $tplvars['end_tab'] = $this->EndTab();
 
-$funcs = new bkrshared();
+$funcs = new Booker\Shared();
 $jsfuncs = array(); //script accumulators
 $jsloads = array();
 $jsincs = array();

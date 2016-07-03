@@ -36,7 +36,7 @@ if(!($imitm || $imbkg)) exit;
 
 if(isset($_FILES) && isset($_FILES[$id.'csvfile']))
 {
-	$funcs = new bkrcsv();
+	$funcs = new Booker\CSV();
 	if($imitm)
 	{
 		list($res,$prop) = $funcs->ImportItems($this,$id);

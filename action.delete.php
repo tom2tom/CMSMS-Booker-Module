@@ -8,7 +8,7 @@
 
 if(!($this->_CheckAccess('admin') || $this->_CheckAccess('delete'))) exit;
 
-$funcs = new bkritemops();
+$funcs = new Booker\Itemops();
 $item_id = (int)$params['item_id'];
 $funcs->DeleteItem($this,$item_id);
 
