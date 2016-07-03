@@ -4,8 +4,9 @@
  * Website: http://www.phpfastcache.com
  * Example at our website, any bugs, problems, please visit http://faster.phpfastcache.com
  */
+namespace FastCache;
 
-class pwfCache_database extends pwfCacheBase implements pwfCache {
+class Cache_database extends CacheBase implements CacheInterface {
 
 	var $table;
 
@@ -14,7 +15,7 @@ class pwfCache_database extends pwfCacheBase implements pwfCache {
 		if($this->checkdriver()) {
 			$this->setup($config);
 		} else {
-			throw new Exception('no database storage');
+			throw new \Exception('no database storage');
 		}
 	}
 
@@ -30,14 +31,14 @@ class pwfCache_database extends pwfCacheBase implements pwfCache {
 			$rs->Close();
 			return $ret;
 		}
-		return false;
+		return FALSE;
 	}
 
 	function driver_set($keyword, $value = '', $time = 300, $option = array()) {
 		$db = cmsms()->GetDb();
 		$sql = 'SELECT cache_id FROM '.$this->table.' WHERE keyword=?';
 		$id = $db->GetOne($sql,array($keyword));
-		$ret = false;
+		$ret = FALSE;
 		if(empty($option['skipExisting'])) {
 			//upsert, sort-of
 			if($id)
@@ -61,7 +62,7 @@ class pwfCache_database extends pwfCacheBase implements pwfCache {
 		if($ret) {
 			$this->index[$keyword] = 1;
 		}
-		return ($ret != false);
+		return ($ret != FALSE);
 	}
 
 	function driver_get($keyword, $option = array()) {
@@ -70,7 +71,7 @@ class pwfCache_database extends pwfCacheBase implements pwfCache {
 		if ($val !== FALSE) {
 			return $val;
 		}
-		return null;
+		return NULL;
 	}
 
 	function driver_getall($option = array()) {
@@ -81,9 +82,9 @@ class pwfCache_database extends pwfCacheBase implements pwfCache {
 		$db = cmsms()->GetDb();
 		if($db->Execute('DELETE FROM '.$this->table.' WHERE keyword=?',array($keyword))) {
 			unset($this->index[$keyword]);
-			return true;
+			return TRUE;
 		} else {
-			return false;
+			return FALSE;
 		}
 	}
 

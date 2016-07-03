@@ -9,7 +9,7 @@
 # e.g. CartItemInterface or WeightedCartItemInterface
 #----------------------------------------------------------------------
 
-namespace Riesenia\Cart;
+//namespace Riesenia\Cart;
 
 class Cart
 {
@@ -26,6 +26,11 @@ class Cart
 	@var array
 	*/
 	protected $_propeties = ['price', 'tax', 'weight', 'count'];
+
+	/**
+	For overloaded properties
+	*/
+	private $_xtradata = [];
 
 	/**
 	Context data
@@ -69,7 +74,7 @@ class Cart
 		$this->setRoundingDecimals($roundingDecimals);
 	}
 
-	public function __set()
+/*	public function __set()
 	{
 	}
 
@@ -84,7 +89,7 @@ class Cart
 	public function __unset()
 	{
 	}
-
+*/
 	/**
 	Format decimal number
 

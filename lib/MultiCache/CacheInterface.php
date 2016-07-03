@@ -4,8 +4,9 @@
  * Website: http://www.phpfastcache.com
  * Example at our website, any bugs, problems, please visit http://faster.phpfastcache.com
  */
+namespace FastCache
 
-interface pwfCache {
+interface CacheInterface {
 	/*
 	 * Check if this Cache driver is available for server or not
 	 */

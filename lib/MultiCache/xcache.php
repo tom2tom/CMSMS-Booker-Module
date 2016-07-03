@@ -4,14 +4,15 @@
  * Website: http://www.phpfastcache.com
  * Example at our website, any bugs, problems, please visit http://faster.phpfastcache.com
  */
+namespace FastCache;
 
-class pwfCache_apc extends pwfCacheBase implements pwfCache {
+class Cache_xcache extends CacheBase implements CacheInterface  {
 
 	function __construct($config = array()) {
 		if($this->checkdriver()) {
 			$this->setup($config);
 		} else {
-			throw new Exception('no apc storage');
+			throw new \Exception('no xcache storage');
 		}
 	}
 
@@ -20,14 +21,16 @@ class pwfCache_apc extends pwfCacheBase implements pwfCache {
 	}
 */
 	function checkdriver() {
-		return (extension_loaded('apc') && ini_get('apc.enabled'));
+		return (extension_loaded('xcache') && function_exists('xcache_get'));
 	}
 
-	function driver_set($keyword, $value = '', $time = 300, $option = array()) {
+	function driver_set($keyword, $value = "", $time = 300, $option = array() ) {
 		if(empty($option['skipExisting'])) {
-			$ret = apc_store($keyword,$value,$time);
+			$ret = xcache_set($keyword,$value,$time);
+		} else if(!$this->isExisting($keyword)) {
+			$ret = xcache_set($keyword,$value,$time);
 		} else {
-			$ret = apc_add($keyword,$value,$time);
+			$ret = FALSE;
 		}
 		if($ret) {
 			$this->index[$keyword] = 1;
@@ -35,12 +38,13 @@ class pwfCache_apc extends pwfCacheBase implements pwfCache {
 		return $ret;
 	}
 
+	// return cached value or null
 	function driver_get($keyword, $option = array()) {
-		$data = apc_fetch($keyword,$bo);
-		if($bo !== false) {
-			return $data;
+		$data = xcache_get($keyword);
+		if($data === FALSE || $data == '') {
+			return NULL;
 		}
-		return null;
+		return $data;
 	}
 
 	function driver_getall($option = array()) {
@@ -48,11 +52,12 @@ class pwfCache_apc extends pwfCacheBase implements pwfCache {
 	}
 
 	function driver_delete($keyword, $option = array()) {
-		if(apc_delete($keyword)) {
+		if(xcache_unset($keyword)) {
 			unset($this->index[$keyword]);
-			return true;
+			return TRUE;
+		} else {
+			return FALSE;
 		}
-		return false;
 	}
 
 	function driver_stats($option = array()) {
@@ -61,21 +66,24 @@ class pwfCache_apc extends pwfCacheBase implements pwfCache {
 			'size' => count($this->index)
 		);
 		try {
-			$res['data'] = apc_cache_info('user');
-		} catch(Exception $e) {
+			$res['data'] = xcache_list(XC_TYPE_VAR,100);
+		} catch(\Exception $e) {
 			$res['data'] = array();
 		}
 		return $res;
 	}
 
 	function driver_clean($option = array()) {
-		@apc_clear_cache();
-		@apc_clear_cache('user');
+		$cnt = xcache_count(XC_TYPE_VAR);
+		for ($i=0; $i<$cnt; $i++) {
+			xcache_clear_cache(XC_TYPE_VAR, $i);
+		}
 		$this->index = array();
+		return TRUE;
 	}
 
 	function driver_isExisting($keyword) {
-		return apc_exists($keyword);
+		return xcache_isset($keyword);
 	}
 
 }

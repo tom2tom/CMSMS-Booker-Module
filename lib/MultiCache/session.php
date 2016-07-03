@@ -4,9 +4,10 @@
  * Website: http://www.phpfastcache.com
  * Example at our website, any bugs, problems, please visit http://faster.phpfastcache.com
  */
+namespace FastCache;
 
-class FastCache_ram extends FastCacheBase implements FastCache {
-	
+class FastCache_session extends CacheBase implements CacheInterface {
+
 	function __construct($config = array())	{
 	}
 
@@ -15,23 +16,23 @@ class FastCache_ram extends FastCacheBase implements FastCache {
 	}
 */
 	function checkdriver() {
-		return true;
+		return TRUE;
 	}
 		 
 	function driver_set($keyword, $value = '', $time = 300, $option = array()) {
 		if(empty($option['skipExisting']) ||
 			!array_key_exists($keyword, $this->index)) {
 			$this->index[$keyword] = $value;
-			return true;
+			return TRUE;
 		}
-		return false;
+		return FALSE;
 	}
 
 	function driver_get($keyword, $option = array()) {
 		if(array_key_exists($keyword, $this->index)) {
 			return $this->index[$keyword];
 		}
-		return null;
+		return NULL;
 	}
 
 	function driver_getall($option = array()) {
@@ -41,9 +42,9 @@ class FastCache_ram extends FastCacheBase implements FastCache {
 	function driver_delete($keyword, $option = array()) {
 		if(array_key_exists($keyword, $this->index)) {
 			unset($this->index[$keyword]);
-			return true;
+			return TRUE;
 		}
-		return false;
+		return FALSE;
 	}
 
 	function driver_stats($option = array()) {

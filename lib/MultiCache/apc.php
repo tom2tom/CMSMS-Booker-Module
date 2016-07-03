@@ -4,14 +4,15 @@
  * Website: http://www.phpfastcache.com
  * Example at our website, any bugs, problems, please visit http://faster.phpfastcache.com
  */
+namespace FastCache;
 
-class pwfCache_wincache extends pwfCacheBase implements pwfCache  {
+class Cache_apc extends CacheBase implements CacheInterface {
 
 	function __construct($config = array()) {
 		if($this->checkdriver()) {
 			$this->setup($config);
 		} else {
-			throw new Exception('no wincache storage');
+			throw new \Exception('no apc storage');
 		}
 	}
 
@@ -20,14 +21,14 @@ class pwfCache_wincache extends pwfCacheBase implements pwfCache  {
 	}
 */
 	function checkdriver() {
-		return (extension_loaded('wincache') && function_exists('wincache_ucache_set'));
+		return (extension_loaded('apc') && ini_get('apc.enabled'));
 	}
 
-	function driver_set($keyword, $value = "", $time = 300, $option = array() ) {
+	function driver_set($keyword, $value = '', $time = 300, $option = array()) {
 		if(empty($option['skipExisting'])) {
-			$ret = wincache_ucache_set($keyword, $value, $time);
+			$ret = apc_store($keyword,$value,$time);
 		} else {
-			$ret = wincache_ucache_add($keyword, $value, $time);
+			$ret = apc_add($keyword,$value,$time);
 		}
 		if($ret) {
 			$this->index[$keyword] = 1;
@@ -35,14 +36,12 @@ class pwfCache_wincache extends pwfCacheBase implements pwfCache  {
 		return $ret;
 	}
 
-	// return cached value or null
 	function driver_get($keyword, $option = array()) {
-		$x = wincache_ucache_get($keyword,$suc);
-		if($suc) {
-			return $x;
-		} else {
-			return null;
+		$data = apc_fetch($keyword,$bo);
+		if($bo !== FALSE) {
+			return $data;
 		}
+		return NULL;
 	}
 
 	function driver_getall($option = array()) {
@@ -50,31 +49,34 @@ class pwfCache_wincache extends pwfCacheBase implements pwfCache  {
 	}
 
 	function driver_delete($keyword, $option = array()) {
-		if(wincache_ucache_delete($keyword)) {
+		if(apc_delete($keyword)) {
 			unset($this->index[$keyword]);
-			return true;
-		} else {
-			return false;
+			return TRUE;
 		}
+		return FALSE;
 	}
 
 	function driver_stats($option = array()) {
 		$res = array(
 			'info' => '',
-			'size' => count($this->index),
-			'data' => wincache_scache_info(),
+			'size' => count($this->index)
 		);
+		try {
+			$res['data'] = apc_cache_info('user');
+		} catch(\Exception $e) {
+			$res['data'] = array();
+		}
 		return $res;
 	}
 
 	function driver_clean($option = array()) {
-		wincache_ucache_clear();
+		@apc_clear_cache();
+		@apc_clear_cache('user');
 		$this->index = array();
-		return true;
 	}
 
 	function driver_isExisting($keyword) {
-		return wincache_ucache_exists($keyword);
+		return apc_exists($keyword);
 	}
 
 }

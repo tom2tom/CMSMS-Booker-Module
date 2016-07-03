@@ -4,14 +4,15 @@
  * Website: http://www.phpfastcache.com
  * Example at our website, any bugs, problems, please visit http://faster.phpfastcache.com
  */
+namespace FastCache;
 
-class pwfCache_shmop extends pwfCacheBase implements pwfCache  {
+class Cache_shmop extends CacheBase implements CacheInterface  {
 
 	function __construct($config = array()) {
 		if($this->checkdriver()) {
 			$this->setup($config);
 		} else {
-			throw new Exception('no shared memory storage');
+			throw new \Exception('no shared memory storage');
 		}
 	}
 
@@ -28,7 +29,7 @@ class pwfCache_shmop extends pwfCacheBase implements pwfCache  {
 			if(empty($option['skipExisting'])) {
 				driver_delete($keyword, $option);
 			} else {
-				return false;
+				return FALSE;
 			}
 		}
 		$sysid = md5(uniqid($keyword,TRUE));
@@ -37,10 +38,10 @@ class pwfCache_shmop extends pwfCacheBase implements pwfCache  {
 		if($shmid !== FALSE) {
 			if(shmop_write($shmid, $value, 0) !== FALSE) {
 				$this->index[$keyword] = $shmid;
-				return true;
+				return TRUE;
 			}
 		}
-		return false;
+		return FALSE;
 	}
 
 	function driver_get($keyword, $option = array()) {
@@ -49,7 +50,7 @@ class pwfCache_shmop extends pwfCacheBase implements pwfCache  {
 			$size = shmop_size($shmid);
 			return shmop_read($shmid, 0, $size);
 		}
-		return null;
+		return NULL;
 	}
 
 	function driver_getall($option = array()) {

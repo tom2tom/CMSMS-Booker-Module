@@ -4,14 +4,15 @@
  * Website: http://www.phpfastcache.com
  * Example at our website, any bugs, problems, please visit http://faster.phpfastcache.com
  */
+namespace FastCache;
 
-class pwfCache_xcache extends pwfCacheBase implements pwfCache  {
+class Cache_wincache extends CacheBase implements CacheInterface {
 
 	function __construct($config = array()) {
 		if($this->checkdriver()) {
 			$this->setup($config);
 		} else {
-			throw new Exception('no xcache storage');
+			throw new \Exception('no wincache storage');
 		}
 	}
 
@@ -20,16 +21,14 @@ class pwfCache_xcache extends pwfCacheBase implements pwfCache  {
 	}
 */
 	function checkdriver() {
-		return (extension_loaded('xcache') && function_exists('xcache_get'));
+		return (extension_loaded('wincache') && function_exists('wincache_ucache_set'));
 	}
 
 	function driver_set($keyword, $value = "", $time = 300, $option = array() ) {
 		if(empty($option['skipExisting'])) {
-			$ret = xcache_set($keyword,$value,$time);
-		} else if(!$this->isExisting($keyword)) {
-			$ret = xcache_set($keyword,$value,$time);
+			$ret = wincache_ucache_set($keyword, $value, $time);
 		} else {
-			$ret = false;
+			$ret = wincache_ucache_add($keyword, $value, $time);
 		}
 		if($ret) {
 			$this->index[$keyword] = 1;
@@ -39,11 +38,12 @@ class pwfCache_xcache extends pwfCacheBase implements pwfCache  {
 
 	// return cached value or null
 	function driver_get($keyword, $option = array()) {
-		$data = xcache_get($keyword);
-		if($data === false || $data == '') {
-			return null;
+		$x = wincache_ucache_get($keyword,$suc);
+		if($suc) {
+			return $x;
+		} else {
+			return NULL;
 		}
-		return $data;
 	}
 
 	function driver_getall($option = array()) {
@@ -51,38 +51,31 @@ class pwfCache_xcache extends pwfCacheBase implements pwfCache  {
 	}
 
 	function driver_delete($keyword, $option = array()) {
-		if(xcache_unset($keyword)) {
+		if(wincache_ucache_delete($keyword)) {
 			unset($this->index[$keyword]);
-			return true;
+			return TRUE;
 		} else {
-			return false;
+			return FALSE;
 		}
 	}
 
 	function driver_stats($option = array()) {
 		$res = array(
 			'info' => '',
-			'size' => count($this->index)
+			'size' => count($this->index),
+			'data' => wincache_scache_info(),
 		);
-		try {
-			$res['data'] = xcache_list(XC_TYPE_VAR,100);
-		} catch(Exception $e) {
-			$res['data'] = array();
-		}
 		return $res;
 	}
 
 	function driver_clean($option = array()) {
-		$cnt = xcache_count(XC_TYPE_VAR);
-		for ($i=0; $i<$cnt; $i++) {
-			xcache_clear_cache(XC_TYPE_VAR, $i);
-		}
+		wincache_ucache_clear();
 		$this->index = array();
-		return true;
+		return TRUE;
 	}
 
 	function driver_isExisting($keyword) {
-		return xcache_isset($keyword);
+		return wincache_ucache_exists($keyword);
 	}
 
 }

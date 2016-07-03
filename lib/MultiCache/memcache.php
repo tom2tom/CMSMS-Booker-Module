@@ -4,8 +4,9 @@
  * Website: http://www.phpfastcache.com
  * Example at our website, any bugs, problems, please visit http://faster.phpfastcache.com
  */
+namespace FastCache;
 
-class pwfCache_memcache extends pwfCacheBase implements pwfCache {
+class Cache_memcache extends CacheBase implements CacheInterface {
 
 	var $instant;
 
@@ -18,7 +19,7 @@ class pwfCache_memcache extends pwfCacheBase implements pwfCache {
 			}
 			unset($this->instant);
 		}
-		throw new Exception('no memcache storage');
+		throw new \Exception('no memcache storage');
 	}
 
 /*	function __destruct() {
@@ -40,19 +41,19 @@ class pwfCache_memcache extends pwfCacheBase implements pwfCache {
 				try {
 					if($this->instant->addserver($s[0],$s[1])) {
 						$this->checked[$name] = 1;
-						return true;
+						return TRUE;
 					}
-				} catch(Exception $e) {}
+				} catch(\Exception $e) {}
 			}
 		}
-		return false;
+		return FALSE;
 	}
 
 	function driver_set($keyword, $value = '', $time = 300, $option = array() ) {
 		if(empty($option['skipExisting'])) {
-			$ret = $this->instant->set($keyword, $value, false, $time );
+			$ret = $this->instant->set($keyword, $value, FALSE, $time );
 		} else {
-			$ret = $this->instant->add($keyword, $value, false, $time );
+			$ret = $this->instant->add($keyword, $value, FALSE, $time );
 		}
 		if($ret) {
 			$this->index[$keyword] = 1;
@@ -60,13 +61,13 @@ class pwfCache_memcache extends pwfCacheBase implements pwfCache {
 		return $ret;
 	}
 
-	// return cached value or null
+	// return cached value or NULL
 	function driver_get($keyword, $option = array()) {
 		$x = $this->instant->get($keyword);
 		if($x) {
 			return $x;
 		} else {
-			return null;
+			return NULL;
 		}
 	}
 
@@ -77,7 +78,7 @@ class pwfCache_memcache extends pwfCacheBase implements pwfCache {
 	function driver_delete($keyword, $option = array()) {
 		$this->instant->delete($keyword);
 		unset($this->index[$keyword]);
-		return true;
+		return TRUE;
 	}
 
 	function driver_stats($option = array()) {
@@ -94,7 +95,7 @@ class pwfCache_memcache extends pwfCacheBase implements pwfCache {
 	}
 
 	function driver_isExisting($keyword) {
-		return ($this->get($keyword) != null);
+		return ($this->get($keyword) != NULL);
 	}
 
 }

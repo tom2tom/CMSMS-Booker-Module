@@ -4,8 +4,9 @@
  * Website: http://www.phpfastcache.com
  * Example at our website, any bugs, problems, please visit http://faster.phpfastcache.com
  */
+namespace FastCache;
 
-class pwfCache_memcached extends pwfCacheBase implements pwfCache  {
+class Cache_memcached extends CacheBase implements CacheInterface  {
 
 	var $instant;
 
@@ -19,7 +20,7 @@ class pwfCache_memcached extends pwfCacheBase implements pwfCache  {
 			}
 			unset($this->instant);
 		}
-		throw new Exception('no memcached storage');
+		throw new \Exception('no memcached storage');
 	}
 
 /*	function __destruct() {
@@ -33,7 +34,7 @@ class pwfCache_memcached extends pwfCacheBase implements pwfCache  {
 	function connectServer() {
 
 		if(!$this->checkdriver()) {
-			return false;
+			return FALSE;
 		}
 
 		$s = $this->option['memcache'];
@@ -53,16 +54,16 @@ class pwfCache_memcached extends pwfCacheBase implements pwfCache  {
 					if($sharing > 0) {
 						if($this->instant->addServer($name,$port,$sharing)) {
 							$this->checked[$checked] = 1;
-							return true;
+							return TRUE;
 						}
 					} elseif($this->instant->addServer($name,$port)) {
 						$this->checked[$checked] = 1;
-						return true;
+						return TRUE;
 					}
-				} catch(Exception $e) {}
+				} catch(\Exception $e) {}
 			}
 		}
-		return false;
+		return FALSE;
 	}
 
 	function driver_set($keyword, $value = '', $time = 300, $option = array() ) {
@@ -83,7 +84,7 @@ class pwfCache_memcached extends pwfCacheBase implements pwfCache  {
 		if($x) {
 			return $x;
 		} else {
-			return null;
+			return NULL;
 		}
 	}
 
@@ -94,7 +95,7 @@ class pwfCache_memcached extends pwfCacheBase implements pwfCache  {
 	function driver_delete($keyword, $option = array()) {
 		$this->instant->delete($keyword);
 		unset($this->index[$keyword]);
-		return true;
+		return TRUE;
 	}
 
 	function driver_stats($option = array()) {
@@ -111,7 +112,7 @@ class pwfCache_memcached extends pwfCacheBase implements pwfCache  {
 	}
 
 	function driver_isExisting($keyword) {
-		return ($this->get($keyword) != null);
+		return ($this->get($keyword) != NULL);
 	}
 
 }

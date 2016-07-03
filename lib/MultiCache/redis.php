@@ -7,11 +7,12 @@
  * Redis Extension with:
  * http://pecl.php.net/package/redis
  */
+namespace FastCache;
 
-class pwfCache_redis extends pwfCacheBase implements pwfCache {
+class Cache_redis extends CacheBase implements CacheInterface {
 
 	var $instant;
-	var $checked_redis = false;
+	var $checked_redis = FALSE;
 
 	function __construct($config = array()) {
 		if($this->checkdriver()) {
@@ -22,7 +23,7 @@ class pwfCache_redis extends pwfCacheBase implements pwfCache {
 			}
 			unset($this->instant);
 		}
-		throw new Exception('no redis storage');
+		throw new \Exception('no redis storage');
 	}
 
 /*	function __destruct() {
@@ -72,17 +73,17 @@ class pwfCache_redis extends pwfCacheBase implements pwfCache {
 			}
 
 			if(!$this->instant->connect($host,(int)$port,(int)$timeout)) {
-				$this->checked_redis = true;
-				return false;
+				$this->checked_redis = TRUE;
+				return FALSE;
 			} else {
 				if($database!='') {
 					$this->instant->select((int)$database);
 				}
-				$this->checked_redis = true;
-				return true;
+				$this->checked_redis = TRUE;
+				return TRUE;
 			}
 		}
-		return true;
+		return TRUE;
 	}
 
 	function driver_set($keyword, $value = '', $time = 300, $option = array() ) {
@@ -104,7 +105,7 @@ class pwfCache_redis extends pwfCacheBase implements pwfCache {
 		if($x) {
 			return $this->decode($x);
 		} else {
-			return null;
+			return NULL;
 		}
 	}
 
@@ -115,7 +116,7 @@ class pwfCache_redis extends pwfCacheBase implements pwfCache {
 	function driver_delete($keyword, $option = array()) {
 		$this->instant->delete($keyword);
 		unset($this->index[$keyword]);
-		return true;
+		return TRUE;
 	}
 
 	function driver_stats($option = array()) {
@@ -132,7 +133,7 @@ class pwfCache_redis extends pwfCacheBase implements pwfCache {
 	}
 
 	function driver_isExisting($keyword) {
-		return ($this->instant->exists($keyword) != null);
+		return ($this->instant->exists($keyword) != NULL);
 	}
 
 }

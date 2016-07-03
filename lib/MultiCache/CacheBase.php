@@ -4,8 +4,9 @@
  * Website: http://www.phpfastcache.com
  * Example at our website, any bugs, problems, please visit http://faster.phpfastcache.com
  */
+namespace FastCache
 
-abstract class pwfCacheBase {
+abstract class CacheBase {
 
 	var $tmp = array();
 
@@ -39,7 +40,7 @@ abstract class pwfCacheBase {
 			'value' => $value,
 			'write_time' => @date('U'),
 			'expired_in' => $time,
-			'expired_time' => @date('U') + (Int)$time,
+			'expired_time' => @date('U') + (int)$time,
 		);
 
 		return $this->driver_set($keyword,$object,$time,$option);
@@ -51,13 +52,13 @@ abstract class pwfCacheBase {
 	   * Khoa. B
 	   */
 //		if(phpFastCache::$disabled === true) {
-//			return null;
+//			return NULL;
 //		}
 
 		$object = $this->driver_get($keyword,$option);
 
-		if($object == null) {
-			return null;
+		if($object == NULL) {
+			return NULL;
 		}
 		return isset($option['all_keys']) && $option['all_keys'] ? $object : $object['value'];
 	}
@@ -65,8 +66,8 @@ abstract class pwfCacheBase {
 	function getInfo($keyword, $option = array()) {
 		$object = $this->driver_get($keyword,$option);
 
-		if($object == null) {
-			return null;
+		if($object == NULL) {
+			return NULL;
 		}
 		return $object;
 	}
@@ -89,7 +90,7 @@ abstract class pwfCacheBase {
 		}
 
 		$data = $this->get($keyword);
-		return ($data != null);
+		return ($data != NULL);
 
 	}
 
@@ -115,7 +116,7 @@ abstract class pwfCacheBase {
 		if(isset($v[1]) && is_numeric($v[1])) {
 			return $this->set($name,$v[0],$v[1], isset($v[2]) ? $v[2] : array() );
 		} else {
-			throw new Exception("Example ->$name = array('VALUE', 300);",98);
+			throw new \Exception("Example ->$name = array('VALUE', 300);",98);
 		}
 	}
 
