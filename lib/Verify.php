@@ -1,12 +1,12 @@
 <?php
 #----------------------------------------------------------------------
 # Module: Booker - a resource booking module
-# Library file: verify - verify intended-booking information
+# Library file: Verify - verify intended-booking information
 #----------------------------------------------------------------------
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
 
-class bkrverify
+class Verify
 {
 	/**
 	VerifyAdmin:
@@ -75,7 +75,7 @@ TODO support 'past' data without both date/time $params[]
 		{
 			if($dte > $dts)
 			{
-				$funcs = new bkrschedule();
+				$funcs = new Booker\Schedule();
 				//rationalise specified times relative to slot length
 				$shares->TrimRange($dts,$dte,$slen);
 				$params['when'] = $dts->getTimestamp();
@@ -206,7 +206,7 @@ TODO support 'past' data without both date/time $params[]
 
 			if($timely)
 			{
-				$funcs = new bkrschedule();
+				$funcs = new Booker\Schedule();
 				//rationalise specified times relative to slot length
 				if($is_new)
 				{

@@ -5,10 +5,10 @@ Copyright(C) 2014-2015 Tom Phane <tpgww@onepost.net>
 Refer to licence and other details at the top of file Booker.module.php
 More info at http://dev.cmsmadesimple.org/projects/booker
 
-Class: bkrclearcache_task
+Class: Clearcache_task
 */
 
-class bkrclearcache_task implements CmsRegularTask
+class Clearcache_task implements CmsRegularTask
 {
 	const MODNAME = 'Booker';
 

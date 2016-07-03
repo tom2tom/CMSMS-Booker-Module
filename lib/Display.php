@@ -1,12 +1,12 @@
 <?php
 #----------------------------------------------------------------------
 # Module: Booker - a resource booking module
-# Library file: display
+# Library file: Display
 #----------------------------------------------------------------------
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
 
-class bkrdisplay
+class Display
 {
 	private $mod; //Booker module-object reference
 	private $shares; //bkrshared object
@@ -16,8 +16,8 @@ class bkrdisplay
 	function __construct(&$mod)
 	{
 		$this->mod = $mod;
-		$this->shares = new bkrshared();
-		$this->reps = new bkrrepeats($mod);
+		$this->shares = new Booker\Shared();
+		$this->reps = new Booker\Repeats($mod);
 	}
 
 	/*
@@ -622,7 +622,7 @@ class bkrdisplay
 			$allresource = array($item_id);
 
 		//update respective last-processed-repeats dates, if relevant
-		$funcs = new bkrschedule();
+		$funcs = new Booker\Schedule();
 		foreach($allresource as $one)
 			$funcs->UpdateRepeats($this->mod,$one,$ndt);
 
@@ -648,7 +648,7 @@ class bkrdisplay
 		$titles = self::_GetTitles($idata,$dt,$range,$seglen);
 		$cc = count($titles);
 
-		$funcs = new bkrbookingops();
+		$funcs = new Booker\Bookingops();
 		$booked = $funcs->GetTableBooked($this->mod,$allresource,$dt->getTimestamp(),$ndt->getTimestamp()-1);
 		if($booked)
 		{
@@ -766,10 +766,10 @@ class bkrdisplay
 		else
 			$allresource = array($item_id);
 		//update respective last-processed-repeats dates, if relevant
-		$funcs = new bkrschedule();
+		$funcs = new Booker\Schedule();
 		foreach($allresource as $one)
 			$funcs->UpdateRepeats($this->mod,$one,$ndt);
-		$funcs = new bkrbookingops();
+		$funcs = new Booker\Bookingops();
 		$lfmt = (int)$idata['listformat'];
 		$booked = $funcs->GetListBooked($this->mod,$is_group,$allresource,
 			$lfmt,$dt->getTimestamp(),$ndt->getTimestamp()- 1);

@@ -1,12 +1,13 @@
 <?php
 #----------------------------------------------------------------------
 # Module: Booker - a resource booking module
-# Library file: csv - functions for import/export of module data
+# Library file: CSV - functions for import/export of module data
 #----------------------------------------------------------------------
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
+# needs Multibyte String extension
 
-class bkrcsv
+class CSV
 {
 	/**
 	ExportName:
@@ -18,7 +19,7 @@ class bkrcsv
 	*/
 	public function ExportName(&$mod,$item_id=FALSE,$bkg_id=FALSE)
 	{
-		$funcs = new bkrshared();
+		$funcs = new Booker\Shared();
 		$multi = FALSE;
 		if($item_id)
 		{
@@ -61,7 +62,7 @@ class bkrcsv
 	*/
 	private function BookingCSV(&$mod,$item_id=FALSE,$bkg_id=FALSE,$fh=FALSE,$sep=',')
 	{
-		$funcs = new bkrshared();
+		$funcs = new Booker\Shared();
 		if($item_id)
 		{
 			if(is_array($item_id))
@@ -233,7 +234,7 @@ class bkrcsv
 
 		if($mod->GetPreference('pref_exportfile'))
 		{
-			$funcs = new bkrshared();
+			$funcs = new Booker\Shared();
 			$updir = $funcs->GetUploadsPath($mod);
 			if($updir)
 			{
@@ -404,7 +405,7 @@ class bkrcsv
 					return array(FALSE,'err_file');
 				}
 			}
-			$funcs = new bkrshared();
+			$funcs = new Booker\Shared();
 			$tzone = new DateTimeZone('UTC');
 			$item_lens = array();
 			$skip = FALSE;
@@ -515,7 +516,7 @@ class bkrcsv
 						$funcs->TrimRange($dts,$dte,$slen);
 						$data['slotstart'] = $dts->getTimestamp();
 						$data['slotlen'] = $dte->getTimestamp() - $data['slotstart'];
-						$funcs2 = new bkrschedule();
+						$funcs2 = new Booker\Schedule();
 						$save = !$funcs2->ItemBooked($mod,$data['item_id'],$dts,$dte)
 							&& $funcs2->ItemAvailable($mod,$funcs,$data['item_id'],$dts,$dte);
 					}
@@ -601,10 +602,11 @@ class bkrcsv
 			 'Rationcount'=>'rationcount',
 			 'Keeptype'=>'keeptype',
 			 'Keepcount'=>'keepcount',
-			 'Fee1'=>'fee1',
-			 'Fee1condition'=>'fee1condition',
-			 'Fee2'=>'fee2',
-			 'Fee2condition'=>'fee2condition',
+// TODO $this->PayTable stuff pairs of fee+condition
+//			 'Fee1'=>'fee1',
+//			 'Fee1condition'=>'fee1condition',
+//			 'Fee2'=>'fee2',
+//			 'Fee2condition'=>'fee2condition',
 			 'PayInterface'=>'paymentiface',
 			 'Latitude'=>'latitude',
 			 'Longitude'=>'longitude',
@@ -650,7 +652,7 @@ class bkrcsv
 				}
 			}
 
-			$funcs = new bkrshared();
+			$funcs = new Booker\Shared();
 			$periods = $funcs->TimeIntervals();
 			$icount = 0;
 			$db = $mod->dbHandle;
@@ -680,8 +682,9 @@ class bkrcsv
 							 case 'keywords':
 							 case 'image':
 							 case 'available': //NO sanity check
-							 case 'fee1condition':
-							 case 'fee2condition':
+// TODO $this->PayTable stuff pairs of fee+condition
+//							 case 'fee1condition':
+//							 case 'fee2condition':
 							 case 'timezone':
 							 case 'dateformat':
 							 case 'timeformat':
@@ -712,8 +715,9 @@ class bkrcsv
 								$data[$k] = (int)$one;
 								$save = TRUE;
 								break;
-							 case 'fee1':
-							 case 'fee2':
+// TODO $this->PayTable stuff pairs of fee+condition
+//							 case 'fee1':
+//							 case 'fee2':
 							 case 'latitude':
 							 case 'longitude':
 								$data[$k] = (float)$one;

@@ -5,10 +5,10 @@ Copyright(C) 2014-2015 Tom Phane <tpgww@onepost.net>
 Refer to licence and other details at the top of file Booker.module.php
 More info at http://dev.cmsmadesimple.org/projects/booker
 
-Class: bkrrepeats
+Class: Repeats
 */
 
-class bkrrepeats extends RepeatLexer
+class Repeats extends RepeatLexer
 {
 	function __construct(&$mod)
 	{
@@ -88,7 +88,7 @@ no FALSE in $ends[]
 	*/
 /*	private function _GetSlotHours($item_id)
 	{
-		$funcs = new bkrshared();
+		$funcs = new Booker\Shared();
 		$len = $funcs->GetInterval($this->mod,$item_id,'slot');
 		return min($len/3600,24.0);
 	}

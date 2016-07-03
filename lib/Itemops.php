@@ -1,12 +1,12 @@
 <?php
 #----------------------------------------------------------------------
 # Module: Booker - a resource booking module
-# Library file: bkritemops - functions for processing resources and groups
+# Library file: Itemops - functions for processing resources and groups
 #----------------------------------------------------------------------
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
 
-class bkritemops
+class Itemops
 {
 	/*
 	ClearBookings:
@@ -96,7 +96,7 @@ class bkritemops
 	{
 		if(!is_array($item_id))
 			$item_id = array($item_id);
-		$funcs = new bkrshared();
+		$funcs = new Booker\Shared();
 		foreach($item_id as $one)
 		{
 			if($one >= Booker::MINGRPID)
@@ -124,7 +124,7 @@ class bkritemops
 	*/
 /*	public function ExportItem(&$mod,$item_id,$members=TRUE)
 	{
-		$funcs = new bkrcsv();
+		$funcs = new Booker\CSV();
 		if(!is_array($item_id))
 			$item_id = array($item_id);
 		foreach($item_id as $one)

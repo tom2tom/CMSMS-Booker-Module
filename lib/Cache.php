@@ -1,12 +1,12 @@
 <?php
 #----------------------------------------------------------------------
 # Module: Booker - a resource booking module
-# Library file: cache
+# Library file: Cache
 #----------------------------------------------------------------------
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
 
-class bkrcache
+class Cache
 {
 	private static $cache = NULL; //cache object
 	/**
@@ -52,7 +52,7 @@ class bkrcache
 		if(strpos($storage,'auto') !== FALSE)
 			$storage = 'shmop,apc,memcached,wincache,xcache,memcache,redis,database';
 
-		$path = dirname(__FILE__).DIRECTORY_SEPARATOR.'cache'.DIRECTORY_SEPARATOR;
+		$path = __DIR__.DIRECTORY_SEPARATOR.'cache'.DIRECTORY_SEPARATOR;
 		require($path.'interface.FastCache.php');
 		require($path.'FastCacheBase.php');
 

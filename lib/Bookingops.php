@@ -1,12 +1,12 @@
 <?php
 #----------------------------------------------------------------------
 # Module: Booker - a resource booking module
-# Library file: bkrbookingops - functions for processing bookings
+# Library file: Bookingops - functions for processing bookings
 #----------------------------------------------------------------------
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
 
-class bkrbookingops
+class Bookingops
 {
 	const MSGCHANGED = 3;
 	const MSGCANCELLED = 4;
@@ -129,7 +129,7 @@ class bkrbookingops
 			{
 				unset($ob);
 				$funcs = new MessageSender();
-				$shares = new bkrshared();
+				$shares = new Booker\Shared();
 				$fails = array();
 				foreach($rows as $bid=>$one)
 				{
@@ -159,7 +159,7 @@ class bkrbookingops
 		$rows = self::GetBkgData($mod,$bkg_id);
 		if($rows)
 		{
-			$funcs = new bkrcsv();
+			$funcs = new Booker\CSV();
 			list($res,$key) = $funcs->ExportBookings($mod,FALSE,array_keys($rows));
 			if($res)
 				return array(TRUE,'');
@@ -192,7 +192,7 @@ class bkrbookingops
 			else
 				$funcs = FALSE;
 
-			$shares = new bkrshared();
+			$shares = new Booker\Shared();
 			$sql = 'DELETE FROM '.$mod->DataTable.' WHERE bkg_id=?';
 
 			foreach($rows as $bid=>$one)
@@ -226,7 +226,7 @@ class bkrbookingops
 	*/
 	public function DeleteRepeat(&$mod,$bkg_id)
 	{
-		$shares = new bkrshared();
+		$shares = new Booker\Shared();
 		if(is_array($bkg_id))
 		{
 			$fillers = str_repeat('?,',count($bkg_id)-1);
@@ -292,7 +292,7 @@ class bkrbookingops
 	*/
 	public function ConformBookingData(&$mod,&$params)
 	{
-		$shares = new bkrshared();
+		$shares = new Booker\Shared();
 		$old = FALSE;
 		$ret = TRUE;
 		if(!empty($params['conformcontact']))
@@ -399,7 +399,7 @@ class bkrbookingops
 			$args[] = (int)$params['bkg_id'];
 			$sql = 'UPDATE '.$mod->DataTable.' SET '.$sql2.' WHERE bkg_id=?';
 		}
-		$shares = new bkrshared();
+		$shares = new Booker\Shared();
 		return $shares->SafeExec($sql,$args);
 	}
 
@@ -428,7 +428,7 @@ EOS;
 		}
 		elseif($item_id >= Booker::MINGRPID)
 		{
-			$funcs = new bkrshared();
+			$funcs = new Booker\Shared();
 			$args = $funcs->GetGroupItems($mod,$item_id);
 			if(!$args)
 				return array();
@@ -444,7 +444,7 @@ EOS;
 		$args[] = $endstamp;
 		$args[] = $startstamp;
 		$sql .= ' AND B.slotstart <= ? AND (B.slotstart+B.slotlen) >= ? ORDER BY I.name,B.slotstart';
-		$shares = new bkrshared();
+		$shares = new Booker\Shared();
 		return $shares->SafeGet($sql,$args);
 	}
 
@@ -473,7 +473,7 @@ ORDER BY B.slotstart,I.name
 EOS;
 		$args[] = $endstamp;
 		$args[] = $startstamp;
-		$shares = new bkrshared();
+		$shares = new Booker\Shared();
 		return $shares->SafeGet($sql,$args);
 	}
 
@@ -523,7 +523,7 @@ EOS;
 		}
 		$args[] = $endstamp;
 		$args[] = $startstamp;
-		$shares = new bkrshared();
+		$shares = new Booker\Shared();
 		return $shares->SafeGet($sql,$args);
 	}
 }

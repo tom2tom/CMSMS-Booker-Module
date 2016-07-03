@@ -1,12 +1,12 @@
 <?php
 #----------------------------------------------------------------------
 # Module: Booker - a resource booking module
-# Library file: bkrrequestops - functions for processing booking requests
+# Library file: Requestops - functions for processing booking requests
 #----------------------------------------------------------------------
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
 
-class bkrrequestops
+class Requestops
 {
 	const MSGAPPROVE = 1;
 	const MSGREJECT = 2;
@@ -215,8 +215,8 @@ class bkrrequestops
 		if($rows)
 		{
 			$db = $mod->dbHandle;
-			$shares = new bkrshared();
-			$sched = new bkrschedule();
+			$shares = new Booker\Shared();
+			$sched = new Booker\Schedule();
 			//cluster the requests by id, for specific processing
 			krsort($rows,SORT_NUMERIC); //reverse, so groups-first
 			$m = -900; //unmatchable
@@ -344,7 +344,7 @@ class bkrrequestops
 			{
 				unset($ob);
 				$funcs = new MessageSender();
-				$shares = new bkrshared();
+				$shares = new Booker\Shared();
 				$fails = array();
 			}
 			else
@@ -389,7 +389,7 @@ class bkrrequestops
 			{
 				unset($ob);
 				$funcs = new MessageSender();
-				$shares = new bkrshared();
+				$shares = new Booker\Shared();
 				$fails = array();
 			}
 			else
@@ -434,7 +434,7 @@ class bkrrequestops
 			{
 				unset($ob);
 				$funcs = new MessageSender();
-				$shares = new bkrshared();
+				$shares = new Booker\Shared();
 				$fails = array();
 			}
 			else
@@ -554,7 +554,7 @@ class bkrrequestops
 			$args[] = (int)$params['req_id'];
 			$sql = 'UPDATE '.$mod->RequestTable.' SET '.$sql2.' WHERE req_id=?';
 		}
-//		$funcs = new bkrshared();
+//		$funcs = new Booker\Shared();
 //		return $funcs->SafeExec($sql,$args);
 		return ($db->Execute($sql,$args)) != FALSE;
 	}

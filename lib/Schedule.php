@@ -1,12 +1,12 @@
 <?php
 #----------------------------------------------------------------------
 # Module: Booker - a resource booking module
-# Library file: schedule - apply booking(s) to relevant resource(s)
+# Library file: Schedule - apply booking(s) to relevant resource(s)
 #----------------------------------------------------------------------
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
 
-class bkrschedule
+class Schedule
 {
 	private $slotsdone = array(); //which slots we've filled
 
@@ -35,7 +35,7 @@ class bkrschedule
 	*/
 	private function GetSlotStatus(&$mod,&$shares,$session_id,$item_id,$dtstart,$dtend)
 	{
-/*		$funcs = new bkrcache();
+/*		$funcs = new Booker\Cache();
 		$cache = $funcs->GetCache();
 		if($cache && )	//$cache->
 */
@@ -347,7 +347,7 @@ class bkrschedule
 	*/
 	private function FindCluster($likes,$lcount,$num,$first,$dts,$dte,$session_id,$roll=FALSE)
 	{
-/*		$funcs = new bkrcache();
+/*		$funcs = new Booker\Cache();
 		$cache = $funcs->GetCache();
 */
 		$c = $num;
@@ -501,7 +501,7 @@ class bkrschedule
 				$ret = FALSE;
 		}
 		unset($one);
-/*		$funcs = new bkrcache();
+/*		$funcs = new Booker\Cache();
 		$cache = $funcs->GetCache();
 		TODO clear any cached PUBLIC slotstatus data for this session
 */
@@ -547,7 +547,7 @@ class bkrschedule
 		//assume no need for resource-specific leadtimes
 		$limit = $shares->GetZoneTime($idata['timezone']) + $shares->GetInterval($mod,$item_id,'lead');
 		$session_id = 0; //TODO $mod->dbHandle->GenID(cms_db_prefix().'module_bkrcache_seq'); //uid for cached slotstatus data
-/*		$funcs = new bkrcache();
+/*		$funcs = new Booker\Cache();
 		$cache = $funcs->GetCache();
 */
 		$sql = 'INSERT INTO '.$mod->DataTable.
@@ -693,8 +693,8 @@ class bkrschedule
 		$sql1 = 'SELECT repeatsuntil FROM '.$mod->ItemTable.' WHERE item_id=? AND active>0';
 		$sql2 = 'UPDATE '.$mod->ItemTable.' SET repeatsuntil=? WHERE item_id=?';
 
-		$shares = new bkrshared();
-		$reps = new bkrrepeats($mod);
+		$shares = new Booker\Shared();
+		$reps = new Booker\Repeats($mod);
 
 		if($item_id >= Booker::MINGRPID)
 			$all = self::MembersLike($mod,$item_id);
@@ -745,7 +745,7 @@ class bkrschedule
 		$idata = $shares->GetItemProperty($mod,$item_id,'*');
 		if(empty($idata['available']))
 			return TRUE;
-		$funcs = new bkrrepeats($mod);
+		$funcs = new Booker\Repeats($mod);
 		$sunparms = $funcs->SunParms($idata); //TODO extra arg current date/time
 		$dtw = clone $dtend;
 		$dtw->modify('+1 second'); //past the end
@@ -778,7 +778,7 @@ class bkrschedule
 	*/
 	public function ItemBooked(&$mod,$item_id,$dtstart,$dtend,$bkg_id=FALSE)
 	{
-		$funcs = new bkrshared();
+		$funcs = new Booker\Shared();
 		if($item_id >= Booker::MINGRPID);
 		{
 			//TODO decide how to interrogate & report on group-members

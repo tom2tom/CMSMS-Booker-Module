@@ -1,7 +1,7 @@
 <?php
 #----------------------------------------------------------------------
 # Module: Booker - a resource booking module
-# Library file: shared
+# Library file: Shared
 #----------------------------------------------------------------------
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
@@ -44,7 +44,7 @@ class bkrfee_cmp
 	}
 }
 
-class bkrshared
+class Shared
 {
 	/**
 	ProcessTemplate:
