@@ -1,13 +1,9 @@
 <?php
 /*
- * khoaofgod@gmail.com
- * Website: http://www.phpfastcache.com
- * Example at our website, any bugs, problems, please visit http://faster.phpfastcache.com
- *
  * Redis Extension with:
  * http://pecl.php.net/package/redis
  */
-namespace FastCache;
+namespace MultiCache;
 
 class Cache_redis extends CacheBase implements CacheInterface {
 
