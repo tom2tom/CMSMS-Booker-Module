@@ -1,19 +1,14 @@
 <?php
-/*
- * khoaofgod@gmail.com
- * Website: http://www.phpfastcache.com
- * Example at our website, any bugs, problems, please visit http://faster.phpfastcache.com
- */
-namespace FastCache
+namespace MultiCache;
 
 interface CacheInterface {
+
+	 function __construct($config = array());
+//	 function __destruct();
+
 	/*
 	 * Check if this Cache driver is available for server or not
 	 */
-	 function __construct($config = array());
-
-//	 function __destruct();
-
 	 function checkdriver();
 
 	/*
@@ -48,7 +43,5 @@ interface CacheInterface {
 	 * Clean up whole cache
 	 */
 	 function driver_clean($option = array());
-
 }
-
 ?>

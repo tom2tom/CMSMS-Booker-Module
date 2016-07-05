@@ -1,10 +1,5 @@
 <?php
-/*
- * khoaofgod@gmail.com
- * Website: http://www.phpfastcache.com
- * Example at our website, any bugs, problems, please visit http://faster.phpfastcache.com
- */
-namespace FastCache
+namespace MultiCache;
 
 abstract class CacheBase {
 
@@ -124,7 +119,5 @@ abstract class CacheBase {
 		$str = implode(',',$args);
 		eval('return $this->instant->$name('.$str.');');
 	}
-
 }
-
 ?>
