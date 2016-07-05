@@ -9,28 +9,28 @@ namespace Riesenia\Cart;
 interface CartItemInterface
 {
 	/**
-	Get item identifier
+	Get this item's unique identifier
 
 	@return mixed
 	*/
 	public function getCartId();
 
 	/**
-	Get type of the item
+	Get this item's type for discrimination within the cart
 
 	@return string
 	*/
 	public function getCartType();
 
 	/**
-	Get name of the item
+	Get this item's name
 
 	@return string
 	*/
 	public function getCartName();
 
 	/**
-	Set cart context
+	Set cart-context for this item
 
 	@param mixed
 	@return void
@@ -38,7 +38,7 @@ interface CartItemInterface
 	public function setCartContext($context);
 
 	/**
-	Set cart quantity
+	Log the no. of this item in the cart
 
 	@param int
 	@return void
@@ -46,21 +46,21 @@ interface CartItemInterface
 	public function setCartQuantity($quantity);
 
 	/**
-	Get cart quantity
+	Log the no. of this item in the cart
 
 	@return int
 	*/
 	public function getCartQuantity();
 
 	/**
-	Get unit price based on quantity and context
+	Get this item's unit-price (perhaps based on quantity and context)
 
 	@return float
 	*/
 	public function getUnitPrice();
 
 	/**
-	Get tax rate percentage
+	Get this item's tax rate (percentage)
 
 	@return float
 	*/
