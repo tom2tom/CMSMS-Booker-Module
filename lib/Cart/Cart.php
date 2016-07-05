@@ -4,33 +4,19 @@
 #----------------------------------------------------------------------
 # Derived from code by Riešenia, spol. s r.o. <www.riesenia.com>
 # Licensed under the MIT licence
-# requires PHP 5.3+
-# This class would normally be sub-classed to support interface(s)
-# e.g. CartItemInterface or WeightedCartItemInterface
+# Requires PHP 5.3+
+# Manages array of items each of which implements CartItemInterface or an extension of that
 #----------------------------------------------------------------------
-
-//namespace Riesenia\Cart;
+namespace Riesenia\Cart;
 
 class Cart
 {
 	/**
 	Cart items
 
-	@var array
+	@var array of objects
 	*/
 	protected $_items = [];
-
-	/**
-	Recognised properties of items
-
-	@var array
-	*/
-	protected $_propeties = ['price', 'tax', 'weight', 'count'];
-
-	/**
-	For overloaded properties
-	*/
-	private $_xtradata = [];
 
 	/**
 	Context data
@@ -40,14 +26,14 @@ class Cart
 	protected $_context;
 
 	/**
-	If prices are listed as gross
+	Whether prices are listed as gross
 
 	@var bool
 	*/
 	protected $_pricesWithTax;
 
 	/**
-	Rounding decimals
+	Rounding decimal-places
 
 	@var int
 	*/
@@ -74,24 +60,8 @@ class Cart
 		$this->setRoundingDecimals($roundingDecimals);
 	}
 
-/*	public function __set()
-	{
-	}
-
-	public function __get()
-	{
-	}
-
-	public function __isset()
-	{
-	}
-
-	public function __unset()
-	{
-	}
-*/
 	/**
-	Format decimal number
+	Format (rounded) decimal number
 
 	@param optional no. of decimal places
 	@return float with specified no. of decimal places
@@ -147,9 +117,9 @@ class Cart
 	}
 
 	/**
-	Set sorting by type
+	Sort cart items by prescribed order of item-types
 
-	@param array
+	@param array of types and orders
 	@return void
 	*/
 	public function sortByType($sorting)
@@ -157,10 +127,12 @@ class Cart
 		$sorting = array_flip($sorting);
 
 		uasort($this->_items, function (CartItemInterface $a, CartItemInterface $b) use ($sorting) {
-			$aSort = isset($sorting[$a->getCartType()]) ? $sorting[$a->getCartType()] : 1000;
-			$bSort = isset($sorting[$b->getCartType()]) ? $sorting[$b->getCartType()] : 1000;
+			$ta = $a->getCartType();
+			$aSort = isset($sorting[$ta]) ? (int)$sorting[$ta] : 1000;
+			$tb = $b->getCartType();
+			$bSort = isset($sorting[$tb]) ? (int)$sorting[$tb] : 1000;
 
-			return ($aSort < $bSort) ? -1 : 1;
+			return ($aSort - $bSort);
 		});
 	}
 
@@ -207,7 +179,7 @@ class Cart
 	}
 
 	/**
-	Get items
+	Get cart items (as references), optionally filtered
 
 	@param NULL|callable filter
 	@return array
@@ -265,13 +237,14 @@ class Cart
 	*/
 	public function addItem(CartItemInterface $item, $quantity = 1)
 	{
-		if (isset($this->_items[$item->getCartId()])) {
-			$quantity += $this->_items[$item->getCartId()]->getCartQuantity();
+		$id = $item->getCartId();
+		if (isset($this->_items[$id])) {
+			$quantity += $this->_items[$id]->getCartQuantity();
 		}
 
 		$item->setCartQuantity($quantity);
 		$item->setCartContext($this->_context);
-		$this->_items[$item->getCartId()] = $item;
+		$this->_items[$id] = $item;
 
 		$this->_cartModified();
 	}
@@ -284,7 +257,7 @@ class Cart
 	*/
 	public function setItems($items)
 	{
-		if (!is_array($items) && !$items instanceof \Traversable) {
+		if (!(is_array($items) || $items instanceof \Traversable)) {
 			throw new \InvalidArgumentException('Only an array or Traversable is allowed for setItems.');
 		}
 
@@ -292,7 +265,7 @@ class Cart
 
 		foreach ($items as $item) {
 			if (!$item instanceof CartItemInterface) {
-				throw new \InvalidArgumentException('All items have to implement CartItemInterface.');
+				throw new \InvalidArgumentException('All items must implement CartItemInterface.');
 			}
 
 			$this->addItem($item, $item->getCartQuantity());
@@ -316,7 +289,7 @@ class Cart
 	}
 
 	/**
-	Set item quantity by cart id
+	Set item quantity by cart id, <= 0 removes item
 
 	@param mixed cart id
 	@param int quantity
@@ -332,10 +305,9 @@ class Cart
 
 		if ($quantity <= 0) {
 			$this->removeItem($cartId);
-			return;
+		} else {
+			$this->getItem($cartId)->setCartQuantity($quantity);
 		}
-
-		$this->getItem($cartId)->setCartQuantity($quantity);
 		$this->_cartModified();
 	}
 
@@ -350,7 +322,7 @@ class Cart
 	{
 		$item->setCartContext($this->_context);
 
-		return $this->countPrice($item->getUnitPrice(), $item->getTaxRate(), $quantity ?: $item->getCartQuantity());
+		return $this->countPrice($item->getUnitPrice(), $item->getTaxRate(), $quantity ? : $item->getCartQuantity());
 	}
 
 	/**
@@ -379,7 +351,7 @@ class Cart
 			$price *= (1 + $this->decimal_format($taxRate / 100,3));
 		}
 
-		return $this->decimal_format($price * $quantity,$roundingDecimals);
+		return $this->decimal_format($price * $quantity, $roundingDecimals);
 	}
 
 	/**
@@ -397,7 +369,7 @@ class Cart
 	Get totals using filter
 	If filter is string, uses _getTypeCondition to build filter function.
 
-	@param mixed filter
+	@param callable|string, if string  then maybe ','-separated, leading ~ to negate
 	@return array
 	*/
 	public function getTotals($filter = '~')
@@ -405,17 +377,17 @@ class Cart
 		$store = FALSE;
 
 		if (is_string($filter)) {
-			$store = $filter;
 
-			if (isset($this->_totals[$store])) {
-				return $this->_totals[$store];
+			if (isset($this->_totals[$filter])) {
+				return $this->_totals[$filter];
 			}
 
+			$store = $filter;
 			$filter = $this->_getTypeCondition($filter);
 		}
 
 		if (!is_callable($filter)) {
-			throw new \InvalidArgumentException('Filter for getTotals method has to be callable.');
+			throw new \InvalidArgumentException('Filter for getTotals method must be callable.');
 		}
 
 		$totals = $this->_calculateTotals($filter);
@@ -430,7 +402,7 @@ class Cart
 	/**
 	Get subtotal
 
-	@param string type
+	@param string type, maybe ','-separated, leading ~ to negate
 	@return formatted decimal
 	*/
 	public function getSubtotal($type = '~')
@@ -447,7 +419,7 @@ class Cart
 	/**
 	Get total
 
-	@param string type
+	@param string type, maybe ','-separated, leading ~ to negate
 	@return formatted decimal
 	*/
 	public function getTotal($type = '~')
@@ -464,7 +436,7 @@ class Cart
 	/**
 	Get taxes
 
-	@param string type
+	@param string type, maybe ','-separated, leading ~ to negate
 	@return array
 	*/
 	public function getTaxes($type = '~')
@@ -475,7 +447,7 @@ class Cart
 	/**
 	Get tax bases
 
-	@param string type
+	@param string type, maybe ','-separated, leading ~ to negate
 	@return array
 	*/
 	public function getTaxBases($type = '~')
@@ -486,7 +458,7 @@ class Cart
 	/**
 	Get tax totals
 
-	@param string type
+	@param string type, maybe ','-separated, leading ~ to negate
 	@return array
 	*/
 	public function getTaxTotals($type = '~')
@@ -497,56 +469,12 @@ class Cart
 	/**
 	Get weight
 
-	@param string type
+	@param string type, maybe ','-separated, leading ~ to negate
 	@return array
 	*/
 	public function getWeight($type = '~')
 	{
 		return $this->getTotals($type)['weight'];
-	}
-
-	/**
-	Get property value for item|all
-
-	@param string type
-	@return mixed
-	*/
-	public function getProperty($propname, $type = '~', $item = NULL)
-	{
-		return FALSE;
-	}
-
-	/**
-	Get boolean indicating whether item|all has named property
-
-	@param string type
-	@return boolean
-	*/
-	public function hasProperty($propname, $type = '~', $item = NULL)
-	{
-		return FALSE;
-	}
-
-	/**
-	Set property value for item|all, after adding the property type if necessary
-
-	@param string type
-	@return boolean
-	*/
-	public function setProperty($propname, $type = '~', $value, $item = NULL)
-	{
-		return FALSE;
-	}
-
-	/**
-	Remove property value for item|all
-
-	@param string type
-	@return boolean
-	*/
-	public function deleteProperty($propname, $type = '~', $item = NULL)
-	{
-		return FALSE;
 	}
 
 	/**
@@ -558,7 +486,7 @@ class Cart
 	protected function _calculateTotals($filter)
 	{
 		if (!is_callable($filter)) {
-			throw new \InvalidArgumentException('Filter for _calculateTotals method has to be callable.');
+			throw new \InvalidArgumentException('Filter for _calculateTotals method must be callable.');
 		}
 
 		$taxTotals = [];
@@ -606,12 +534,9 @@ class Cart
 	*/
 	protected function _getTypeCondition($type)
 	{
-
-		if (strpos($type, '~') === 0) {
-			$negative = TRUE;
+		$negative = ($type[0] == '~');
+		if ($negative) {
 			$type = substr($type, 1);
-		} else {
-			$negative = FALSE;
 		}
 
 		$type = explode(',', $type);
