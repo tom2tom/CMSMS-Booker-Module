@@ -3,24 +3,22 @@ namespace MultiCache;
 
 abstract class CacheBase {
 
-	var $config;	//array of runtime options, may be merged into driver-specific options
-	var $crypt;
+	protected $config;	//array of runtime options, may be merged into driver-specific options
 
 	public function __construct($config) {
 		/*
 		 * Parameters for driver(s)
 		 */
 		$this->config = $config;
-		$this->crypt = new X(); //TODO encryption setup
 	}
 
 	/*
 	 * Basic Functions
 	 */
-
 	public function newsert($keyword, $value = '', $time = 0) {
-		$ob = new namespace\flatter($value);
-		$value = $ob->serialize();//TODO encryption
+		$cob = new Booker\Crypter();
+		$fob = new flatter($value);
+		$value = $cob->encrypt_value($fob->serialize());
 
 		if((int)$time < 0) {
 			// server-based caches will gone upon restart
@@ -30,9 +28,10 @@ abstract class CacheBase {
 	}
 
 	public function upsert($keyword, $value = '', $time = 0) {
-		$ob = new namespace\flatter($value);
-		$value = $ob->serialize();//TODO encryption
-
+		$cob = new Booker\Crypter();
+		$fob = new flatter($value);
+		$value = $cob->encrypt_value($fob->serialize());
+ 
 		if((int)$time < 0) {
 			// server-based caches will gone upon restart
 			$time = 3600*24*365*5; //5 years maybe useful for for database,file
@@ -43,22 +42,23 @@ abstract class CacheBase {
 	public function get($keyword) {
 		$value = $this->_get(__NAMESPACE__.'\\'.$keyword);
 		if($value !== NULL) {
-			$ob = new namespace\flatter();
-			$ob->unserialize($value);
-			return $ob->getData(); //TODO decrypt
+			$cob = new Booker\Crypter();
+			$fob = new flatter($value);
+			$fob->unserialize($value);
+			return $cob->decrypt_value($fob->getData());
 		}
 		return NULL;
 	}
 
-	function delete($keyword) {
+	public function delete($keyword) {
 		return $this->_delete(__NAMESPACE__.'\\'.$keyword);
 	}
 
-	function clean() {
+	public function clean() {
 		return $this->_clean();
 	}
 
-	function has($keyword) {
+	public function has($keyword) {
 		if(method_exists($this,'_has')) {
 			return $this->_has(__NAMESPACE__.'\\'.$keyword);
 		}
