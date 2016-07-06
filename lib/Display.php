@@ -571,7 +571,7 @@ class Display
 	are for each month.
 	@idata: array of data for item as per table-record, with inherited data where available
 	@start: UTC timestamp for start of first day to be reported
-	@range: enum 0..3 indicating span of report day..year (per Booker\Shared::DisplayIntervals())
+	@range: enum 0..3 indicating span of report day..year (per namespace\Shared::DisplayIntervals())
 	Returns: array of columns' data, each member being an array of cells' data,
 	 first column has slot-titles
 	*/
@@ -753,7 +753,7 @@ class Display
 	_ListFill:
 	@idata: array of data for resource or group as per table-record, with inherited data where available
 	@start: timestamp for start of first day to be reported
-	@range: enum 0..3 indicating span of report day..year (per Booker\Shared::DisplayIntervals())
+	@range: enum 0..3 indicating span of report day..year (per namespace\Shared::DisplayIntervals())
 	Returns: array of sections' data, each member being an object with array of text-rows
 	*/
 	private function _ListFill(&$idata,$start,$range)
@@ -776,7 +776,7 @@ class Display
 			$lfmt,$dt->getTimestamp(),$ndt->getTimestamp()- 1);
 		if($booked)
 		{
-			$majr_fmt = $idata['dateformat']; //part of report  //c.f. Booker\Shared::IntervalFormat($mod,$format,$dt)
+			$majr_fmt = $idata['dateformat']; //part of report  //c.f. namespace\Shared::IntervalFormat($mod,$format,$dt)
 			$minr_fmt = $idata['timeformat']; //other part
 			$rangefmt = $this->mod->Lang('showrange');
 			switch($lfmt)
@@ -796,7 +796,7 @@ class Display
 				 case \Booker::RANGEDAY:
 				 case \Booker::RANGEWEEK:
 				 case \Booker::RANGEMTH:
- 					$hfmt = $idata['dateformat']; //title-format, group by day  //c.f. Booker\Shared::IntervalFormat($mod,$format,$dt)
+ 					$hfmt = $idata['dateformat']; //title-format, group by day  //c.f. namespace\Shared::IntervalFormat($mod,$format,$dt)
 					break;
 				 case \Booker::RANGEYR:
 					$hfmt = 'n'; //group by month

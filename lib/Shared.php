@@ -1581,7 +1581,7 @@ class Shared
 
 	@mod reference to current module-object
 	@which: index 0 (for 'day'), 1 (for 'week') .. 3 (for 'year'), or
-		array of such indices consistent with Booker\Shared::DisplayIntervals()
+		array of such indices consistent with namespace\Shared::DisplayIntervals()
 	@plural: optional, whether to get plural form of the interval name(s), default FALSE
 	@cap: optional, whether to capitalise the first character of the name(s), default FALSE
 	*/
