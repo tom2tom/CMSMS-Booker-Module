@@ -37,7 +37,7 @@ class Schedule
 	private function GetSlotStatus(&$mod,&$shares,$session_id,$item_id,$dtstart,$dtend)
 	{
 /*		$funcs = new Cache();
-		$cache = $funcs->GetCache();
+		$cache = $funcs->GetCache($mod);
 		if($cache && )	//$cache->
 */
 		if(0) //slot-status is cached
@@ -349,7 +349,7 @@ class Schedule
 	private function FindCluster($likes,$lcount,$num,$first,$dts,$dte,$session_id,$roll=FALSE)
 	{
 /*		$funcs = new Cache();
-		$cache = $funcs->GetCache();
+		$cache = $funcs->GetCache($mod);
 */
 		$c = $num;
 		$i = $first;
@@ -503,7 +503,7 @@ class Schedule
 		}
 		unset($one);
 /*		$funcs = new Cache();
-		$cache = $funcs->GetCache();
+		$cache = $funcs->GetCache($mod);
 		TODO clear any cached PUBLIC slotstatus data for this session
 */
 		return $ret;
@@ -549,7 +549,7 @@ class Schedule
 		$limit = $shares->GetZoneTime($idata['timezone']) + $shares->GetInterval($mod,$item_id,'lead');
 		$session_id = 0; //TODO $mod->dbHandle->GenID(cms_db_prefix().'module_bkrcache_seq'); //uid for cached slotstatus data
 /*		$funcs = new Cache();
-		$cache = $funcs->GetCache();
+		$cache = $funcs->GetCache($mod);
 */
 		$sql = 'INSERT INTO '.$mod->DataTable.
 ' (bkg_id,item_id,slotstart,slotlen,user,contact,userclass,status,paid) VALUES (?,?,?,?,?,?,?,?,?)';
