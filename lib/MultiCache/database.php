@@ -3,22 +3,24 @@ namespace MultiCache;
 
 class Cache_database extends CacheBase implements CacheInterface {
 
-	var $table;
+	protected $stored = array();
+	protected $table;
 
 	function __construct($config = array()) {
-		$this->table = $config['database']['table'];
-		if($this->checkdriver()) {
-			$this->setup($config);
+		$this->table = $config['table'];
+		if($this->use_driver()) {
+			parent::__construct($config);
+			//TODO populate $this->stored[] from table
 		} else {
 			throw new \Exception('no database storage');
 		}
 	}
 
 /*	function __destruct() {
-		$this->driver_clean();
+		//TODO transfer $this->stored[] into table
 	}
 */
-	function checkdriver() {
+	function use_driver() {
 		$db = cmsms()->GetDb();
 		$rs = $db->Execute("SHOW TABLES LIKE '".$this->table."'");
 		if($rs) {
@@ -29,83 +31,71 @@ class Cache_database extends CacheBase implements CacheInterface {
 		return FALSE;
 	}
 
-	function driver_set($keyword, $value = '', $time = 300, $option = array()) {
+	function _newsert($keyword, $value , $time = FALSE) {
 		$db = cmsms()->GetDb();
 		$sql = 'SELECT cache_id FROM '.$this->table.' WHERE keyword=?';
 		$id = $db->GetOne($sql,array($keyword));
-		$ret = FALSE;
-		if(empty($option['skipExisting'])) {
-			//upsert, sort-of
-			if($id)
-			{
-				$sql = 'UPDATE '.$this->table.' SET value=? WHERE cache_id=?';
-				$ret = $db->Execute($sql,array($value,$id));
-			}
-			else
-			{
-				$sql = 'INSERT INTO '.$this->table.' (keyword,value,save_time) VALUES (?,?,NOW())';
-				$ret = $db->Execute($sql,array($keyword,$value));
-			}
-		} else {
-			// skip driver
-			if(!$id)
-			{
-				$sql = 'INSERT INTO '.$this->table.' (keyword,value,save_time) VALUES (?,?,NOW())';
-				$ret = $db->Execute($sql,array($keyword,$value));
-			}
+		if(!$id)
+		{
+			//TODO retention-time if not FALSE
+			$sql = 'INSERT INTO '.$this->table.' (keyword,value,save_time) VALUES (?,?,NOW())';
+			$ret = $db->Execute($sql,array($keyword,$value));
+			return $ret;
 		}
-		if($ret) {
-			$this->index[$keyword] = 1;
+		return FALSE;
+	}
+
+	function _upsert($keyword, $value, $time = FALSE) {
+		//TODO retention-time if not FALSE
+		$db = cmsms()->GetDb();
+		$sql = 'SELECT cache_id FROM '.$this->table.' WHERE keyword=?';
+		$id = $db->GetOne($sql,array($keyword));
+		//upsert, sort-of
+		if($id)
+		{
+			$sql = 'UPDATE '.$this->table.' SET value=? WHERE cache_id=?';
+			$ret = $db->Execute($sql,array($value,$id));
+		}
+		else
+		{
+			$sql = 'INSERT INTO '.$this->table.' (keyword,value,save_time) VALUES (?,?,NOW())';
+			$ret = $db->Execute($sql,array($keyword,$value));
 		}
 		return ($ret != FALSE);
 	}
 
-	function driver_get($keyword, $option = array()) {
+	function _get($keyword) {
 		$db = cmsms()->GetDb();
-		$val = $db->GetOne('SELECT value FROM '.$this->table.' WHERE keyword=?',array($keyword));
-		if ($val !== FALSE) {
-			return $val;
+		$data = $db->GetOne('SELECT value FROM '.$this->table.' WHERE keyword=?',array($keyword));
+		if ($data !== FALSE) {
+			return $data;
 		}
 		return NULL;
 	}
 
-	function driver_getall($option = array()) {
-		return array_keys($this->index);
+	function _getall() {
+		return $TODO;
 	}
 
-	function driver_delete($keyword, $option = array()) {
+	function _has($keyword) {
+		$db = cmsms()->GetDb();
+		$sql = 'SELECT cache_id FROM '.$this->table.' WHERE keyword=?';
+		$id = $db->GetOne($sql,array($keyword));
+		return $id !== FALSE;
+	}
+
+	function _delete($keyword) {
 		$db = cmsms()->GetDb();
 		if($db->Execute('DELETE FROM '.$this->table.' WHERE keyword=?',array($keyword))) {
-			unset($this->index[$keyword]);
 			return TRUE;
 		} else {
 			return FALSE;
 		}
 	}
 
-	function driver_stats($option = array()) {
-		return array(
-			'info' => '',
-			'size' => count($this->index),
-			'data' => '',
-		);
-	}
-
-	function driver_clean($option = array()) {
-		if($this->index) {
-			$db = cmsms()->GetDb();
-//ADODB BUG prevents this
-//			$fillers = str_repeat('?,',count($this->index)-1).'?';
-//			$args = array_keys($this->index);
-//			$db->Execute('DELETE FROM '.$this->table.' WHERE keyword IN('.$fillers.')',$args);
-			$fillers = implode(',',array_keys($this->index));
-			$db->Execute('DELETE FROM '.$this->table.' WHERE keyword IN('.$fillers.')');
-			$this->index = array();
-		}
-	}
-
-	function driver_isExisting($keyword) {
-		return array_key_exists($keyword, $this->index);
+	function _clean() {
+		$db = cmsms()->GetDb();
+		$db->Execute('DELETE FROM '.$this->table);
 	}
 
 }

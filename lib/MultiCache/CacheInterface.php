@@ -7,41 +7,40 @@ interface CacheInterface {
 //	 function __destruct();
 
 	/*
-	 * Check if this Cache driver is available for server or not
+	 * Check whether this cache driver can be used
 	 */
-	 function checkdriver();
+	 function use_driver();
 
 	/*
-	 * SET
-	 * set a obj to cache
+	 * Set
+	 * Upsert an item in cache
 	 */
-	 function driver_set($keyword, $value = "", $time = 300, $option = array());
+	 function _newsert($keyword, $value, $time = FALSE);
+	 function _upsert($keyword, $value, $time = FALSE);
 
 	/*
-	 * GET
-	 * return null or value of cache
+	 * Get
+	 * Return NULL or cached value
 	 */
-	 function driver_get($keyword, $option = array());
-
-	 function driver_getall($option = array());
+	 function _get($keyword);
+	 function _getall();
 
 	/*
-	 * Stats
-	 * Show stats of caching
-	 * Return array ("info","size","data")
+	 * Has
+	 * Check whether an item is cached
 	 */
-	 function driver_stats($option = array());
+	 function _has($keyword);
 
 	/*
 	 * Delete
-	 * Delete a cache
+	 * Delete a cached value
 	 */
-	 function driver_delete($keyword, $option = array());
+	 function _delete($keyword);
 
 	/*
-	 * clean
+	 * Clean
 	 * Clean up whole cache
 	 */
-	 function driver_clean($option = array());
+	 function _clean();
 }
 ?>

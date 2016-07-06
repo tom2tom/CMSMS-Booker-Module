@@ -4,73 +4,55 @@ namespace MultiCache;
 class Cache_wincache extends CacheBase implements CacheInterface {
 
 	function __construct($config = array()) {
-		if($this->checkdriver()) {
-			$this->setup($config);
+		if($this->use_driver()) {
+			parent::__construct($config);
 		} else {
 			throw new \Exception('no wincache storage');
 		}
 	}
 
 /*	function __destruct() {
-		$this->driver_clean();
 	}
 */
-	function checkdriver() {
+	function use_driver() {
 		return (extension_loaded('wincache') && function_exists('wincache_ucache_set'));
 	}
 
-	function driver_set($keyword, $value = "", $time = 300, $option = array() ) {
-		if(empty($option['skipExisting'])) {
+	function _newsert($keyword, $value, $time = FALSE) {
+	}
+
+	function _upsert($keyword, $value, $time = FALSE) {
+		$ret = wincache_ucache_add($keyword, $value, $time);
+		if(!$ret) {
 			$ret = wincache_ucache_set($keyword, $value, $time);
-		} else {
-			$ret = wincache_ucache_add($keyword, $value, $time);
-		}
-		if($ret) {
-			$this->index[$keyword] = 1;
 		}
 		return $ret;
 	}
 
 	// return cached value or null
-	function driver_get($keyword, $option = array()) {
-		$x = wincache_ucache_get($keyword,$suc);
-		if($suc) {
-			return $x;
-		} else {
-			return NULL;
+	function _get($keyword) {
+		$data = wincache_ucache_get($keyword,$suxs);
+		if($suxs) {
+			return $data;
 		}
+		return NULL;
 	}
 
-	function driver_getall($option = array()) {
-		return array_keys($this->index);
+	function _getall() {
+		return $TODO;
 	}
 
-	function driver_delete($keyword, $option = array()) {
-		if(wincache_ucache_delete($keyword)) {
-			unset($this->index[$keyword]);
-			return TRUE;
-		} else {
-			return FALSE;
-		}
-	}
-
-	function driver_stats($option = array()) {
-		$res = array(
-			'info' => '',
-			'size' => count($this->index),
-			'data' => wincache_scache_info(),
-		);
-		return $res;
-	}
-
-	function driver_clean($option = array()) {
-		wincache_ucache_clear();
-		$this->index = array();
-		return TRUE;
-	}
-
-	function driver_isExisting($keyword) {
+	function _has($keyword) {
 		return wincache_ucache_exists($keyword);
+	}
+
+	function _delete($keyword) {
+		return wincache_ucache_delete($keyword);
+	}
+
+	function _clean() {
+		wincache_ucache_clear();
+		return TRUE;
 	}
 
 }

@@ -3,101 +3,67 @@ namespace MultiCache;
 
 abstract class CacheBase {
 
-	var $tmp = array();
+	var $config;	//array of runtime options, may be merged into driver-specific options
+	var $crypt;
 
-	// default options, this will be merge to Driver's Options
-	var $config = array();
-	// log of items in the cache
-	var $index = array();
+	public function __construct($config) {
+		/*
+		 * Parameters for driver(s)
+		 */
+		$this->config = $config;
+		$this->crypt = new X(); //TODO encryption setup
+	}
 
 	/*
 	 * Basic Functions
 	 */
 
-	public function set($keyword, $value = '', $time = 0, $option = array() ) {
-		/*
-		 * Infinity Time
-		 * Khoa. B
-		 */
-		if((int)$time <= 0) {
-			// 5 years, however memcached or memory cached will gone when u restart it
-			// just recommended for sqlite. files
-			$time = 3600*24*365*5;
+	public function newsert($keyword, $value = '', $time = 0) {
+		$ob = new namespace\flatter($value);
+		$value = $ob->serialize();//TODO encryption
+
+		if((int)$time < 0) {
+			// server-based caches will gone upon restart
+			$time = 3600*24*365*5; //5 years maybe useful for for database,file
 		}
-		/*
-		 * Temporary disabled phpFastCache::$disabled = true
-		 * Khoa. B
-		 */
-//		if(phpFastCache::$disabled === true) {
-//			return false;
-//		}
-		$object = array(
-			'value' => $value,
-			'write_time' => @date('U'),
-			'expired_in' => $time,
-			'expired_time' => @date('U') + (int)$time,
-		);
-
-		return $this->driver_set($keyword,$object,$time,$option);
+		return $this->_newsert(__NAMESPACE__.'\\'.$keyword,$value,$time);
 	}
 
-	public function get($keyword, $option = array()) {
-		/*
-	   * Temporary disabled phpFastCache::$disabled = true
-	   * Khoa. B
-	   */
-//		if(phpFastCache::$disabled === true) {
-//			return NULL;
-//		}
+	public function upsert($keyword, $value = '', $time = 0) {
+		$ob = new namespace\flatter($value);
+		$value = $ob->serialize();//TODO encryption
 
-		$object = $this->driver_get($keyword,$option);
-
-		if($object == NULL) {
-			return NULL;
+		if((int)$time < 0) {
+			// server-based caches will gone upon restart
+			$time = 3600*24*365*5; //5 years maybe useful for for database,file
 		}
-		return isset($option['all_keys']) && $option['all_keys'] ? $object : $object['value'];
+		return $this->_upsert(__NAMESPACE__.'\\'.$keyword,$value,$time);
 	}
 
-	function getInfo($keyword, $option = array()) {
-		$object = $this->driver_get($keyword,$option);
-
-		if($object == NULL) {
-			return NULL;
+	public function get($keyword) {
+		$value = $this->_get(__NAMESPACE__.'\\'.$keyword);
+		if($value !== NULL) {
+			$ob = new namespace\flatter();
+			$ob->unserialize($value);
+			return $ob->getData(); //TODO decrypt
 		}
-		return $object;
+		return NULL;
 	}
 
-	function delete($keyword, $option = array()) {
-		return $this->driver_delete($keyword,$option);
+	function delete($keyword) {
+		return $this->_delete(__NAMESPACE__.'\\'.$keyword);
 	}
 
-	function stats($option = array()) {
-		return $this->driver_stats($option);
+	function clean() {
+		return $this->_clean();
 	}
 
-	function clean($option = array()) {
-		return $this->driver_clean($option);
-	}
-
-	function isExisting($keyword) {
-		if(method_exists($this,'driver_isExisting')) {
-			return $this->driver_isExisting($keyword);
+	function has($keyword) {
+		if(method_exists($this,'_has')) {
+			return $this->_has(__NAMESPACE__.'\\'.$keyword);
 		}
-
-		$data = $this->get($keyword);
+		$data = $this->_get(__NAMESPACE__.'\\'.$keyword);
 		return ($data != NULL);
-
-	}
-
-	public function setup($config_name,$value = '') {
-		/*
-		 * Config for class
-		 */
-		if(is_array($config_name)) {
-			$this->config = $config_name;
-		} else {
-			$this->config[$config_name] = $value;
-		}
 	}
 
 	/*
@@ -107,9 +73,9 @@ abstract class CacheBase {
 		return $this->get($name);
 	}
 
-	public function function_set($name, $v) {
-		if(isset($v[1]) && is_numeric($v[1])) {
-			return $this->set($name,$v[0],$v[1], isset($v[2]) ? $v[2] : array() );
+	public function function_set($name, $val) {
+		if(isset($val[1]) && is_numeric($val[1])) {
+			return $this->set($name,$val[0],$val[1], isset($val[2]) ? $val[2] : array() );
 		} else {
 			throw new \Exception("Example ->$name = array('VALUE', 300);",98);
 		}
@@ -117,7 +83,48 @@ abstract class CacheBase {
 
 	public function function_call($name, $args) {
 		$str = implode(',',$args);
-		eval('return $this->instant->$name('.$str.');');
+		eval('return $this->instance->$name('.$str.');');
 	}
 }
+
+class flatter implements Serializable {
+
+    private $data;
+
+    public function __construct($data = NULL) {
+        $this->data = $data;
+    }
+
+    public function serialize() {
+		if($this->data != NULL) {
+			if(is_scalar($this->data) || !is_null(@get_resource_type($this->data))) {
+				return (string)$this->data;
+			}
+			return serialize($this->data);
+		}
+		return '_REALNULL_'; //prevent '' equivalent to FALSE
+    }
+
+    public function unserialize($data) {
+		if ($data == 'b:0;') {
+			$this->data = FALSE;
+		} elseif($data == '_REALNULL_') {
+			$this->data = NULL;
+		} elseif(strpos('Resource id', $data) === 0) {
+			$this->data = NULL; //can't usefully reinstate a (string'd)resource
+		} else {
+			$conv = @unserialize($data);
+			if($conv === FALSE) {
+				$this->data = $data;
+			} else {
+				$this->data = $conv;
+			}
+		}
+    }
+
+    public function getData() {
+        return $this->data;
+    }
+}
+
 ?>

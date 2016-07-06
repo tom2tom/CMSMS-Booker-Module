@@ -3,30 +3,29 @@ namespace MultiCache;
 
 class Cache_memcache extends CacheBase implements CacheInterface {
 
-	var $instant;
+	protected $instance;
 
 	function __construct($config = array()) {
-		if($this->checkdriver()) {
-			$this->instant = new Memcache();
-			$this->setup($config);
+		if($this->use_driver()) {
+			parent::__construct($config);
+			$this->instance = new Memcache(); //CHECKME data persistence ??
 			if($this->connectServer()) {
 				return;
 			}
-			unset($this->instant);
+			unset($this->instance);
 		}
 		throw new \Exception('no memcache storage');
 	}
 
 /*	function __destruct() {
-		$this->driver_clean();
 	}
 */
-	function checkdriver() {
+	function use_driver() {
 		return class_exists('Memcache') && function_exists('memcache_connect');
 	}
 
 	function connectServer() {
-		$settings = isset($this->option['memcache']) ? $this->option['memcache'] : array();
+		$settings = isset($this->config['memcache']) ? $this->config['memcache'] : array();
 		$server = array_merge($settings, array(
 				array('127.0.0.1',11211)
 				));
@@ -34,7 +33,7 @@ class Cache_memcache extends CacheBase implements CacheInterface {
 			$name = $s[0].'_'.$s[1];
 			if(!isset($this->checked[$name])) {
 				try {
-					if($this->instant->addserver($s[0],$s[1])) {
+					if($this->instance->addserver($s[0],$s[1])) {
 						$this->checked[$name] = 1;
 						return TRUE;
 					}
@@ -44,53 +43,58 @@ class Cache_memcache extends CacheBase implements CacheInterface {
 		return FALSE;
 	}
 
-	function driver_set($keyword, $value = '', $time = 300, $option = array() ) {
-		if(empty($option['skipExisting'])) {
-			$ret = $this->instant->set($keyword, $value, FALSE, $time );
-		} else {
-			$ret = $this->instant->add($keyword, $value, FALSE, $time );
+	function _newsert($keyword, $value, $time = FALSE) {
+		if($this->_has($keyword)) {
+			return FALSE;
 		}
-		if($ret) {
-			$this->index[$keyword] = 1;
+		if ($time) {
+			$ret = $this->instance->add($keyword, $value, 0, time() + (int)$time);
+		} else {
+			$ret = $this->instance->add($keyword, $value, 0);
 		}
 		return $ret;
 	}
 
-	// return cached value or NULL
-	function driver_get($keyword, $option = array()) {
-		$x = $this->instant->get($keyword);
-		if($x) {
-			return $x;
+	function _upsert($keyword, $value, $time = FALSE) {
+		if ($time) {
+			$expire = time() + (int)$time;
+			$ret = $this->instance->add($keyword, $value, 0, $expire);
 		} else {
-			return NULL;
+			$ret = $this->instance->add($keyword, $value, 0);
 		}
+		if(!$ret) {
+			if($time) {
+				$ret = $this->instance->set($keyword, $value, 0, $expire);
+			} else {
+				$ret = $this->instance->set($keyword, $value, 0);
+			}
+		}
+		return $ret;
 	}
 
-	function driver_getall($option = array()) {
-		return array_keys($this->index);
+	function _get($keyword) {
+		$data = $this->instance->get($keyword);
+		if($data !== FALSE) {
+			return $data;
+		}
+		return NULL;
 	}
 
-	function driver_delete($keyword, $option = array()) {
-		$this->instant->delete($keyword);
-		unset($this->index[$keyword]);
+	function _getall() {
+		return $TODO;
+	}
+
+	function _has($keyword) {
+		return ($this->_get($keyword) != NULL);
+	}
+
+	function _delete($keyword) {
+		$this->instance->delete($keyword);
 		return TRUE;
 	}
 
-	function driver_stats($option = array()) {
-		return array(
-			'info' => '',
-			'size' => count($this->index),
-			'data' => $this->instant->getStats(),
-		);
-	}
-
-	function driver_clean($option = array()) {
-		$this->instant->flush();
-		$this->index = array();
-	}
-
-	function driver_isExisting($keyword) {
-		return ($this->get($keyword) != NULL);
+	function _clean() {
+		$this->instance->flush();
 	}
 
 }

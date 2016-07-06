@@ -7,32 +7,28 @@ namespace MultiCache;
 
 class Cache_redis extends CacheBase implements CacheInterface {
 
-	var $instant;
-	var $checked_redis = FALSE;
+	protected $instance;
+	protected $checked_redis = FALSE;
 
 	function __construct($config = array()) {
-		if($this->checkdriver()) {
-			$this->instant = new Redis();
-			$this->setup($config);
+		if($this->use_driver()) {
+			parent::__construct($config);
+			$this->instance = new Redis(); //TODO CHECK data persistence?
 			if($this->connectServer()) {
 				return;
 			}
-			unset($this->instant);
+			unset($this->instance);
 		}
 		throw new \Exception('no redis storage');
 	}
 
-/*	function __destruct() {
-		$this->driver_clean();
-	}
-*/
-	function checkdriver() {
+	function use_driver() {
 		return class_exists('Redis');
 	}
 
 	function connectServer() {
 		if(!$this->checked_redis) {
-			$settings = isset($this->option['redis']) ? $this->option['redis'] : array();
+			$settings = $this->config; //TODO API
 			$server = array_merge(array(
 				'host' => '127.0.0.1',
 				'port'  => 6379,
@@ -68,12 +64,12 @@ class Cache_redis extends CacheBase implements CacheInterface {
 				$c['read_write_timeout'] = $read_write_timeout;
 			}
 
-			if(!$this->instant->connect($host,(int)$port,(int)$timeout)) {
+			if(!$this->instance->connect($host,(int)$port,(int)$timeout)) {
 				$this->checked_redis = TRUE;
 				return FALSE;
 			} else {
-				if($database!='') {
-					$this->instant->select((int)$database);
+				if($database != '') {
+					$this->instance->select((int)$database);
 				}
 				$this->checked_redis = TRUE;
 				return TRUE;
@@ -82,54 +78,46 @@ class Cache_redis extends CacheBase implements CacheInterface {
 		return TRUE;
 	}
 
-	function driver_set($keyword, $value = '', $time = 300, $option = array() ) {
-		$value = $this->encode($value);
-		if (empty($option['skipExisting'])) {
-			$ret = $this->instant->set($keyword, $value, $time);
-		} else {
-			$ret = $this->instant->set($keyword, $value, array('xx', 'ex' => $time));
+	function _newsert($keyword, $value, $time = FALSE) {
+		if(!$this->_has($keyword)) {
+			$ret = $this->instance->set($keyword, $value, array('xx', 'ex' => $time));
+			return $ret;
 		}
-		if($ret) {
-			$this->index[$keyword] = 1;
+		return FALSE;
+	}
+
+	function _upsert($keyword, $value, $time = FALSE) {
+		$ret = $this->instance->set($keyword, $value, array('xx', 'ex' => $time));
+		if ($ret === FALSE) {
+			$ret = $this->instance->set($keyword, $value, $time);
 		}
 		return $ret;
 	}
 
 	// return cached value or null
-	function driver_get($keyword, $option = array()) {
-		$x = $this->instant->get($keyword);
-		if($x) {
-			return $this->decode($x);
-		} else {
-			return NULL;
+	function _get($keyword) {
+		$data = $this->instance->get($keyword);
+		if($data !== FALSE) {
+			return $data;
 		}
+		return NULL;
 	}
 
-	function driver_getall($option = array()) {
-		return array_keys($this->index);
+	function _getall() {
+		return $TODO;
 	}
 
-	function driver_delete($keyword, $option = array()) {
-		$this->instant->delete($keyword);
-		unset($this->index[$keyword]);
+	function _has($keyword) {
+		return ($this->instance->exists($keyword) != NULL);
+	}
+
+	function _delete($keyword) {
+		$this->instance->delete($keyword);
 		return TRUE;
 	}
 
-	function driver_stats($option = array()) {
-		return array(
-			'info' => '',
-			'size' => count($this->index),
-			'data' => $this->instant->info(),
-		);
-	}
-
-	function driver_clean($option = array()) {
-		$this->instant->flushDB();
-		$this->index = array();
-	}
-
-	function driver_isExisting($keyword) {
-		return ($this->instant->exists($keyword) != NULL);
+	function _clean() {
+		$this->instance->flushDB();
 	}
 
 }
