@@ -8,7 +8,6 @@ class Cache_memcache extends CacheBase implements CacheInterface {
 	function __construct($config = array()) {
 		if($this->use_driver()) {
 			parent::__construct($config);
-			$this->instance = new Memcache(); //CHECKME data persistence ??
 			if($this->connectServer()) {
 				return;
 			}
@@ -25,15 +24,16 @@ class Cache_memcache extends CacheBase implements CacheInterface {
 	}
 
 	function connectServer() {
-		$settings = isset($this->config['memcache']) ? $this->config['memcache'] : array();
-		$server = array_merge($settings, array(
-				array('127.0.0.1',11211)
-				));
-		foreach($server as $s) {
-			$name = $s[0].'_'.$s[1];
+		$this->instance = new Memcache(); //CHECKME data persistence ??
+	
+		$params = array_merge($this->config,
+			array(array('host'=>'127.0.0.1','port'=>11211))
+		);
+		foreach($params as $server) {
+			$name = $server['host'].'_'.$server['port'];
 			if(!isset($this->checked[$name])) {
 				try {
-					if($this->instance->addserver($s[0],$s[1])) {
+					if($this->instance->addserver($server['host'],(int)$server['port'])) {
 						$this->checked[$name] = 1;
 						return TRUE;
 					}
@@ -81,7 +81,7 @@ class Cache_memcache extends CacheBase implements CacheInterface {
 	}
 
 	function _getall() {
-		return $TODO;
+		return $TODOallitems;
 	}
 
 	function _has($keyword) {

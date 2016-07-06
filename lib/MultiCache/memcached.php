@@ -8,7 +8,6 @@ class Cache_memcached extends CacheBase implements CacheInterface  {
 	function __construct($config = array()) {
 		if($this->use_driver()) {
 			parent::__construct($config);
-			$this->instance = new Memcached(); //TODO CHECK data persistence??
 			if($this->connectServer()) {
 				return;
 			}
@@ -26,30 +25,26 @@ class Cache_memcached extends CacheBase implements CacheInterface  {
 
 	function connectServer() {
 
-		if(!$this->use_driver()) {
-			return FALSE;
-		}
+		$this->instance = new Memcached(); //TODO CHECK data persistence??
 
-		$s = $this->config['memcache']; //TODO CHECK memcached ?
-		if(count($s) < 1) {
-			$s = array(
-				array('127.0.0.1',11211,100),
+		$settings = $this->config;
+		if(count($settings) < 1) {
+			$settings = array(
+				array('host'=>'127.0.0.1','port'=>11211,'persist'=>1),
 			);
 		}
-
-		foreach($s as $server) {
-			$name = isset($server[0]) ? $server[0] : '127.0.0.1';
-			$port = isset($server[1]) ? $server[1] : 11211;
-			$sharing = isset($server[2]) ? $server[2] : 0;
+		foreach($settings as $params) {
 			$checked = $name.'_'.$port;
 			if(!isset($this->checked[$checked])) {
+				$name = !empty($params['host']) ? $params['address'] : '127.0.0.1';
+				$port = !empty($params['port']) ? (int)$params['port'] : 11211;
 				try {
-					if($sharing > 0) {
-						if($this->instance->addServer($name,$port,$sharing)) {
+					if(!empty($params['persist'])) {
+						if($this->instance->addServer($name,$port)) {
 							$this->checked[$checked] = 1;
 							return TRUE;
 						}
-					} elseif($this->instance->addServer($name,$port)) {
+					} elseif($this->instance->addServer($name,$port,FALSE)) {
 						$this->checked[$checked] = 1;
 						return TRUE;
 					}
@@ -97,7 +92,7 @@ class Cache_memcached extends CacheBase implements CacheInterface  {
 	}
 
 	function _getall() {
-		return $TODO;
+		return $TODOallitems;
 	}
 
 	function _has($keyword) {
