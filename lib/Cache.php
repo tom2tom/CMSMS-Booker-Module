@@ -9,9 +9,10 @@ namespace Booker;
 
 class Cache
 {
-	private static $cache = NULL; //cache object
+	private static $cache = NULL; //intra-request cache-cache object
 	/**
 	GetCache:
+    @mod: reference to Booker-module object
 	@storage: optional cache-type name, one (or more, ','-separated) of
 		auto,shmop,apc,memcached,wincache,xcache,memcache,redis,database
 		default = 'auto'
@@ -20,7 +21,7 @@ class Cache
 		default empty
 	Returns: cache-object (after creating it if not already done) or NULL
 	*/
-	public function GetCache($storage='auto',$settings=array())
+	public function GetCache(&$mod,$storage='auto',$settings=array())
 	{
 //		if($this->cache == NULL && isset($_SESSION['bkrcache']))
 //			$this->cache = $_SESSION['bkrcache'];
@@ -28,18 +29,29 @@ class Cache
 			return $this->cache;
 
 		$config = cmsms()->GetConfig();
-		$url = $config['root_url'];
+		$url = (empty($_SERVER['HTTPS'])) ? $config['root_url'] : $config['ssl_url'];
+
+        $basedir = $mod->GetPreference('pref_uploadsdir');
+		if(!$basedir)
+			$basedir = $config['uploads_path'];
+
 		$settings = array_merge(
 			array(
-				'memcache' => array(
-					array($url,11211,1)
+/*				'memcache' => array(
+					array('host'=>$url,'port'=>11211)
 				),
+				'memcached' => array(
+					array('host'=>$url,'port'=>11211,'persist'=>1)
+				),
+*/
 				'redis' => array(
-					'host' => $url,
-					'port' => '',
-					'password' => '',
-					'database' => '',
-					'timeout' => ''
+					'host' => $url
+				),
+				'predis' => array(
+					'host' => $url
+				),
+				'file' => array(
+					'path' => $basedir
 				),
 				'database' => array(
 					'table' => cms_db_prefix().'module_bkr_cache'
@@ -51,23 +63,25 @@ class Cache
 		else
 			$storage = 'auto';
 		if(strpos($storage,'auto') !== FALSE)
-			$storage = 'shmop,apc,memcached,wincache,xcache,memcache,redis,database';
-
-		$path = __DIR__.DIRECTORY_SEPARATOR.'cache'.DIRECTORY_SEPARATOR;
-		require($path.'interface.FastCache.php');
-		require($path.'FastCacheBase.php');
+			$storage = 'shmop,apc,wincache,xcache,redis,predis,file,database';
+//			$storage = 'shmop,apc,memcached,wincache,xcache,memcache,redis,database';
+		$path = __DIR__.DIRECTORY_SEPARATOR.'MultiCache'.DIRECTORY_SEPARATOR;
+		require($path.'CacheInterface.php');
+		require($path.'CacheBase.php');
 
 		$types = explode(',',$storage);
 		foreach($types as $one)
 		{
 			$one = trim($one);
 			require($path.$one.'.php');
-			$class = 'pwfCache_'.$one;
+			$class = 'MultiCache\Cache_'.$one;
+			if(!isset($settings[$one]))
+				$settings[$one] = array();
 			try
 			{
-				$cache = new $class($settings); //TODO namespace
+				$cache = new $class($settings[$one]);
 			}
-			catch(Exception $e)
+			catch(\Exception $e)
 			{
 				continue;
 			}
