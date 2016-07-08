@@ -1,7 +1,7 @@
 <?php
 namespace MultiCache;
 
-class Cache_database extends CacheBase implements CacheInterface {
+class Cache_file extends CacheBase implements CacheInterface {
 	protected $basepath; //has trailing separator
 
 	function __construct($config = array()) {
@@ -15,13 +15,10 @@ class Cache_database extends CacheBase implements CacheInterface {
 	}
 
 	function use_driver() {
-		return TRUE;
+		return !empty($this->config['path']);
 	}
 	
 	function connectServer() {
-		if(empty($this->config['path'])) {
-			return FALSE;
-		}
 		$dir = trim(rtrim($this->config['path'],'/\\ \t'));
 		if(!$dir) {
 			return FALSE;
@@ -124,7 +121,7 @@ class Cache_database extends CacheBase implements CacheInterface {
 		{
 			$content = @fread($h,filesize($filepath));
 			@fclose($h);
-			return $content;
+			return unserialize($content);
 		}
 		return FALSE;
 	}
@@ -134,7 +131,7 @@ class Cache_database extends CacheBase implements CacheInterface {
 		$h = @fopen($filepath,'wb');
 		if($h)
 		{
-			$ret = @fwrite($h,$content);
+			$ret = @fwrite($h,serialize($content));
 			$ret = $ret && @fclose($h);
 			return $ret;
 		}
