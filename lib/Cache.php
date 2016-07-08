@@ -30,6 +30,10 @@ class Cache
 		if(self::$cache)
 			return self::$cache;
 
+		$path = __DIR__.DIRECTORY_SEPARATOR.'MultiCache'.DIRECTORY_SEPARATOR;
+		require($path.'CacheInterface.php');
+		require($path.'CacheBase.php');
+
 		$config = cmsms()->GetConfig();
 		$url = (empty($_SERVER['HTTPS'])) ? $config['root_url'] : $config['ssl_url'];
 
@@ -55,7 +59,7 @@ class Cache
 				),
 */
 				'redis' => array(
-					'host' => $url
+					'host' => $url //TODO CHECKME
 				),
 				'predis' => array(
 					'host' => $url
@@ -69,25 +73,25 @@ class Cache
 			), $settings);
 
 		if($storage)
+		{
 			$storage = strtolower($storage);
+			$storage = str_replace('apcu','apc',$storage); //same driver used
+		}
 		else
 			$storage = 'auto';
 		if(strpos($storage,'auto') !== FALSE)
-			$storage = 'yac,apc,apcu,wincache,xcache,redis,predis,file,database';
-		$path = __DIR__.DIRECTORY_SEPARATOR.'MultiCache'.DIRECTORY_SEPARATOR;
-		require($path.'CacheInterface.php');
-		require($path.'CacheBase.php');
+			$storage = 'yac,apc,wincache,xcache,redis,predis,file,database';
 
 		$types = explode(',',$storage);
 		foreach($types as $one)
 		{
 			$one = trim($one);
-			require($path.$one.'.php');
 			$class = 'MultiCache\Cache_'.$one;
 			if(!isset($settings[$one]))
 				$settings[$one] = array();
 			try
 			{
+				require($path.$one.'.php');
 				$cache = new $class($settings[$one]);
 			}
 			catch(\Exception $e)
