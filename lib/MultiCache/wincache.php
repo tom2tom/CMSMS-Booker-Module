@@ -18,13 +18,13 @@ class Cache_wincache extends CacheBase implements CacheInterface {
 		return (extension_loaded('wincache') && function_exists('wincache_ucache_set'));
 	}
 
-	function _newsert($keyword, $value, $time = FALSE) {
+	function _newsert($keyword, $value, $lifetime = FALSE) {
 	}
 
-	function _upsert($keyword, $value, $time = FALSE) {
-		$ret = wincache_ucache_add($keyword, $value, $time);
+	function _upsert($keyword, $value, $lifetime = FALSE) {
+		$ret = wincache_ucache_add($keyword, $value, $lifetime);
 		if(!$ret) {
-			$ret = wincache_ucache_set($keyword, $value, $time);
+			$ret = wincache_ucache_set($keyword, $value, $lifetime);
 		}
 		return $ret;
 	}
@@ -39,7 +39,7 @@ class Cache_wincache extends CacheBase implements CacheInterface {
 	}
 
 	function _getall() {
-		return $TODO;
+		return NULL; //TODO allitems;
 	}
 
 	function _has($keyword) {

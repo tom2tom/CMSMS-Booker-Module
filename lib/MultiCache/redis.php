@@ -52,18 +52,18 @@ class Cache_redis extends CacheBase implements CacheInterface {
 		return TRUE;
 	}
 
-	function _newsert($keyword, $value, $time = FALSE) {
+	function _newsert($keyword, $value, $lifetime = FALSE) {
 		if(!$this->_has($keyword)) {
-			$ret = $this->instance->set($keyword, $value, array('xx', 'ex' => $time));
+			$ret = $this->instance->set($keyword, $value, array('xx', 'ex' => $lifetime));
 			return $ret;
 		}
 		return FALSE;
 	}
 
-	function _upsert($keyword, $value, $time = FALSE) {
-		$ret = $this->instance->set($keyword, $value, array('xx', 'ex' => $time));
+	function _upsert($keyword, $value, $lifetime = FALSE) {
+		$ret = $this->instance->set($keyword, $value, array('xx', 'ex' => $lifetime));
 		if ($ret === FALSE) {
-			$ret = $this->instance->set($keyword, $value, $time);
+			$ret = $this->instance->set($keyword, $value, $lifetime);
 		}
 		return $ret;
 	}
@@ -78,7 +78,7 @@ class Cache_redis extends CacheBase implements CacheInterface {
 	}
 
 	function _getall() {
-		return $TODOallitems;
+		return NULL; //TODO allitems;
 	}
 
 	function _has($keyword) {

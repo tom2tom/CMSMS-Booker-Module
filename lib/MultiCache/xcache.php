@@ -3,12 +3,16 @@ namespace MultiCache;
 
 class Cache_xcache extends CacheBase implements CacheInterface  {
 
+    protected $instance;
+
 	function __construct($config = array()) {
 		if($this->use_driver()) {
 			parent::__construct($config);
-		} else {
-			throw new \Exception('no xcache storage');
+			if($this->connectServer()) {
+				return;
+			}
 		}
+		throw new \Exception('no xcache storage');
 	}
 
 /*	function __destruct() {
@@ -18,23 +22,29 @@ class Cache_xcache extends CacheBase implements CacheInterface  {
 		return (extension_loaded('xcache') && function_exists('xcache_get'));
 	}
 
-	function _newsert($keyword, $value, $time = FALSE) {
-//TODO support xcache_clear_cache(int type [, int id = -1])
+	function connectServer() {
+        $this->instance = new \XCache();
+//     $adbg = xcache_info(XC_TYPE_VAR, int id);
+		return TRUE;  //TODO
+	}
+
+	function _newsert($keyword, $value, $lifetime = FALSE) {
+//TODO support xcache_clear_cache(XC_TYPE_VAR [, int id = -1])
 		if(xcache_isset($keyword)) {
 			return FALSE;
 		}
-		if($time !== FALSE) {
-			$ret = xcache_set($keyword,$value,(int)$time);
+		if($lifetime) {
+			$ret = xcache_set($keyword,$value,(int)$lifetime);
 		} else {
 			$ret = xcache_set($keyword,$value);
 		}
 		return $ret;
 	}
 
-	function _upsert($keyword, $value, $time = FALSE) {
-//TODO support xcache_clear_cache(int type [, int id = -1])
-		if($time !== FALSE) {
-			$ret = xcache_set($keyword,$value,(int)$time);
+	function _upsert($keyword, $value, $lifetime = FALSE) {
+//TODO support xcache_clear_cache(XC_TYPE_VAR [, int id = -1])
+		if($lifetime) {
+			$ret = xcache_set($keyword,$value,(int)$lifetime);
 		} else {
 			$ret = xcache_set($keyword,$value);
 		}
@@ -50,6 +60,7 @@ class Cache_xcache extends CacheBase implements CacheInterface  {
 	}
 
 	function _getall() {
+//TODO xcache_list(XC_TYPE_VAR, int id)
 		$vals = array();
 		$cnt = xcache_count(XC_TYPE_VAR);
 		for ($i=0; $i<$cnt; $i++) {
@@ -67,7 +78,8 @@ class Cache_xcache extends CacheBase implements CacheInterface  {
 	}
 
 	function _clean() {
-//TODO xcache_clear_cache(int type [, int id = -1])
+//TODO xcache_clear_cache(XC_TYPE_VAR [, int id = -1])
+//xcache_unset_by_prefix(string prefix)
 		$cnt = xcache_count(XC_TYPE_VAR);
 		for ($i=0; $i<$cnt; $i++) {
 			xcache_clear_cache(XC_TYPE_VAR, $i);
