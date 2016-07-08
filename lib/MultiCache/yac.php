@@ -36,22 +36,22 @@ class Cache_yac extends CacheBase implements CacheInterface  {
 		if($this->_has($keyword)) {
 			return FALSE;
 		}
-		return $this->instance->set($keyword, $value, (int)$lifetime);
+		return $this->instance->set($keyword, serialize($value), (int)$lifetime);
 	}
 
 	function _upsert($keyword, $value, $lifetime = FALSE) {
-		return $this->instance->set($keyword, $value, (int)$lifetime);
+		return $this->instance->set($keyword, serialize($value), (int)$lifetime);
 	}
 
 	function _get($keyword) {
 		$value = $this->instance->get($keyword);
 		if($value !== FALSE) {
-			return $value;
+			return unserialize($value);
 		}
 		return NULL;
 	}
 
-	function _getall() {
+	function _getall($filter) {
 		$items = [];
 		$info = $this->instance->info();
 		$count = (int)$info['slots_used'];
@@ -60,8 +60,12 @@ class Cache_yac extends CacheBase implements CacheInterface  {
 			if($info) {
 				$items = [];
 				foreach($info as $one) {
-					if(1) { //TODO filter 'ours'
-						$items[$one['key']] = $one['value'];
+					$keyword = $one['key'];
+					if(!$filter || $this->filterKey($filter,$keyword)) {
+						$value = $this->_get($keyword);
+						if($value !== NULL) {
+							$items[$keyword] = $value;
+						}
 					}
 				}
 			}
@@ -76,8 +80,8 @@ class Cache_yac extends CacheBase implements CacheInterface  {
 	function _delete($keyword) {
 		return $this->instance->delete($keyword);
 	}
-
-	function _clean() {
+	
+	function _clean($filter) {
 		$info = $this->instance->info();
 		$count = (int)$info['slots_used'];
 		if($count) {
@@ -85,8 +89,9 @@ class Cache_yac extends CacheBase implements CacheInterface  {
 			if($info) {
 				$ret = TRUE;
 				foreach($info as $one) {
-					if(1) { //TODO filter 'ours'
-						$ret = $ret && $this->instance->delete($one['key']);
+					$keyword = $one['key'];
+					if(!$filter || $this->filterKey($filter,$keyword)) {
+						$ret = $ret && $this->instance->delete($keyword);
 					}
 				}
 				return $ret;

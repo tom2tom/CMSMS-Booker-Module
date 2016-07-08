@@ -80,14 +80,15 @@ class Cache_database extends CacheBase implements CacheInterface {
 		return NULL;
 	}
 
-	function _getall() {
+	function _getall($filter) {
 		$items = [];
 		$db = cmsms()->GetDb();
 		$info = $db->GetAll('SELECT * FROM '.$this->table);
 		if($info) {
-			$foreach($info as $row) {
-				if(1) { //TODO filter 'ours'
-					$items[$row['keyword']] = unserialize($row['value']);
+			foreach($info as $row) {
+				$keyword = $row['keyword'];
+				if(!$filter || $this->filterKey($filter,$keyword)) {
+					$items[$keyword] = unserialize($row['value']);
 				}
 			}
 		}
@@ -100,8 +101,8 @@ class Cache_database extends CacheBase implements CacheInterface {
 		$row = $db->GetRow($sql,array($keyword));
 		if($row) {
 			if(is_null($row['lifetime']) ||
-			  time() <= $row['savetime'] + $row['lifetime'])
-					return TRUE;
+			  time() <= $row['savetime'] + $row['lifetime']) {
+				return TRUE;
 			}
 		}
 		return FALSE;
@@ -116,7 +117,7 @@ class Cache_database extends CacheBase implements CacheInterface {
 		}
 	}
 
-	function _clean() {
+	function _clean($filter) {
 		$db = cmsms()->GetDb();
 	//TODO filter 'ours'
 		$db->Execute('DELETE FROM '.$this->table);

@@ -49,13 +49,13 @@ class Cache_apc extends CacheBase implements CacheInterface {
 		return NULL;
 	}
 
-	function _getall() {
+	function _getall($filter) {
 		$items = [];
 		$iter = new \APCUIterator();
 		if($iter) {
-			foreach($iter as $key=>$val) {
-				if(1) { //TODO filter 'ours'
-					$items[$key] = $val;
+			foreach($iter as $keyword=>$value) {
+				if(!$filter || $this->filterKey($filter,$keyword)) {
+					$items[$keyword] = $value;
 				}
 			}
 		}
@@ -70,17 +70,17 @@ class Cache_apc extends CacheBase implements CacheInterface {
 		return apcu_delete($keyword);
 	}
 
-	function _clean() {
+	function _clean($filter) {
 		$iter = new \APCUIterator();
 		if($iter) {
-			$data = [];
-			foreach($iter as $key=>$val) {
-				if(1) { //TODO filter 'ours'
-					$data[] = $key;
+			$items = [];
+			foreach($iter as $keyword=>$value) {
+				if(!$filter || $this->filterKey($filter,$keyword)) {
+					$items[] = $key;
 				}
 			}
 			$ret = TRUE;
-			foreach($data as $key) {
+			foreach($items as $key) {
 				$ret = $ret && apcu_delete($key);
 			}
 			return $ret;

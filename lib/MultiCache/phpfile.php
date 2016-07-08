@@ -68,13 +68,13 @@ class Cache_phpfile extends CacheBase implements CacheInterface  {
 		return NULL;
 	}
 
-	function _getall() {
+	function _getall($filter) {
 		$vals = [];
 		$files = glob($this->basepath.'*',GLOB_NOSORT);
 		foreach($files as $fp) {
 			if(is_file($fp)) {
 				$keyword = $this->keyword($fp);
-				if(1) { //TODO filter 'ours'
+				if(!$filter || $this->filterKey($filter,$keyword)) {
 					$value = $this->readfile($keyword);
 					if($value !== FALSE) {
 						$vals[$keyword] = $value;
@@ -98,12 +98,12 @@ class Cache_phpfile extends CacheBase implements CacheInterface  {
 		return FALSE;
 	}
 
-	function _clean() {
+	function _clean($filter) {
 		$files = glob($this->basepath.'*',GLOB_NOSORT);
 		foreach($files as $fp) {
 			if(is_file($fp)) {
 				$keyword = $this->keyword($fp);
-				if(1) { //TODO filter 'ours'
+				if(!$filter || $this->filterKey($filter,$keyword)) {
 					@unlink($fp);
 				}
 			}

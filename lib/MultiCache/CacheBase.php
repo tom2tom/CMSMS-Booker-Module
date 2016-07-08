@@ -50,6 +50,10 @@ abstract class CacheBase {
 		return $value;
 	}
 
+	public function getall($filter=NULL) {
+		return $this->_getall($filter);
+	}
+	
 	public function has($keyword) {
 		if(method_exists($this,'_has')) {
 			return $this->_has($this->getKey($keyword));
@@ -62,8 +66,8 @@ abstract class CacheBase {
 		return $this->_delete($this->getKey($keyword));
 	}
 
-	public function clean() {
-		return $this->_clean();
+	public function clean($filter=NULL) {
+		return $this->_clean($filter);
 	}
 
 	public function setKeySpace($name) {
@@ -79,6 +83,37 @@ abstract class CacheBase {
 		return $pre.__NAMESPACE__.'\\'.$keyword;
 	}
 
+/*	private function is_regex($string) {
+		if(@preg_match('/^([^[:alnum:][:space:]\\]).+(\1)[agmijsux]{0,6}$/i',$string)) {
+			if(@preg_match($string,'ABC') !== FALSE) {
+				 return TRUE;
+			}
+		}
+		return FALSE;
+	}
+*/
+   	/*
+	$filter may be:
+	 a regex to match against keyword, must NOT be end-user definable (injection-risk)
+	 the prefix of keyword or all of it
+	 a callable with keyword as argument and returning TRUE if keyword is wanted,
+	  must NOT be end-user definable (injection-risk)
+	 Returns TRUE by default
+	*/
+	protected function filterKey($filter,$keyword) {
+		if($filter) {
+			if(is_string($filter)) {
+				if(@preg_match($filter,'') !== FALSE) {
+					return preg_match($filter,$keyword);
+				} else {
+					return (strpos($keyword,$filter) === 0);
+				}
+			} elseif(is_callable($filter)) {
+				return $filter($keyword);
+			}
+		}
+		return TRUE;
+	}
 }
 
 /* class flatter implements \Serializable {
