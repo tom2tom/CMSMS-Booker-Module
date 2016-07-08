@@ -40,7 +40,7 @@ class Cache_redis extends CacheBase implements CacheInterface {
 			'timeout' => 0.0,
 			), $this->config);
 
-		$this->instance = new Redis();
+		$this->instance = new \Redis();
 		if(!$this->instance->connect($params['host'],(int)$params['port'],(float)$params['timeout'])) {
 			return FALSE;
 		} elseif ($params['password'] && !$this->instance->auth($params['password'])) {

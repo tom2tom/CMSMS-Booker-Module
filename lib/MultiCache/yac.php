@@ -25,9 +25,9 @@ class Cache_yac extends CacheBase implements CacheInterface  {
 
 	function connectServer() {
 		if(!empty($this->config['prefix'])) {
-			$this->instance = new Yac($this->config['prefix']);
+			$this->instance = new \Yac($this->config['prefix']);
 		} else {
-			$this->instance = new Yac();
+			$this->instance = new \Yac();
 		}
 		return TRUE;
 	}

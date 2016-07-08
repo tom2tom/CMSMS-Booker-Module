@@ -67,7 +67,7 @@ class Cache_predis extends CacheBase implements CacheInterface {
 			$c['read_write_timeout'] = (float)$p;
 		}
 
-		$this->instance = new Predis\Client($c);
+		$this->instance = new \Predis\Client($c);
 		return $this->instance !== NULL;
 	}
 
