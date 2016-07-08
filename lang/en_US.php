@@ -641,6 +641,8 @@ Any group may be assigned to an authorized admin user.</p>
 <li><a href="http://dev.cmsmadesimple.org/projects/notifier">CMSMS Notifier module</a>
 <li><a href="http://php.net/manual/class.collator.php">PHP Collator class</a></li>
 <li><a href="http://php.net/manual/ref.mbstring.php">PHP mbstring module</a></li>
+<li><a href="http://php.net/manual/ref.mcrypt.php">PHP mcrypt module</a></li>
+<li>At least one of these PHP cache modules: apc[u],[p]redis,wincache,xcache,yac</li>
 </ul></p>
 <h3>Support</h3>
 <p>This module is provided as-is. Please read the text of the license for the full disclaimer.</p>
