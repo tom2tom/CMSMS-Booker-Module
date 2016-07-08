@@ -15,12 +15,12 @@ interface CacheInterface {
 	 * Set
 	 * Upsert an item in cache
 	 */
-	 function _newsert($keyword, $value, $time = FALSE);
-	 function _upsert($keyword, $value, $time = FALSE);
+	 function _newsert($keyword, $value, $lifetime = FALSE);
+	 function _upsert($keyword, $value, $lifetime = FALSE);
 
 	/*
 	 * Get
-	 * Return NULL or cached value
+	 * Return cached value or NULL
 	 */
 	 function _get($keyword);
 	 function _getall();

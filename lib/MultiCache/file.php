@@ -3,22 +3,22 @@ namespace MultiCache;
 
 class Cache_database extends CacheBase implements CacheInterface {
 	protected $basepath; //has trailing separator
-	private $stored = array();
 
 	function __construct($config = array()) {
-		parent::__construct($config);
 		if($this->use_driver()) {
-			//TODO populate $this->stored[] from files
-		} else {
-			throw new \Exception('no file storage');
+			parent::__construct($config);
+			if($this->connectServer()) {
+				return;
+			}
 		}
+		throw new \Exception('no file storage');
 	}
 
-/*	function __destruct() {
-		//TODO transfer $this->stored[] into files
-	}
-*/
 	function use_driver() {
+		return TRUE;
+	}
+	
+	function connectServer() {
 		if(empty($this->config['path'])) {
 			return FALSE;
 		}
@@ -43,7 +43,7 @@ class Cache_database extends CacheBase implements CacheInterface {
 		return TRUE;
 	}
 
-	function _newsert($keyword, $value, $time = FALSE) {
+	function _newsert($keyword, $value, $lifetime = FALSE) {
 		$fp = $this->basepath.$this->filename($keyword);
 		if(!file_exists($fp)) {
 			return $this->writefile($fp,$value);
@@ -51,7 +51,7 @@ class Cache_database extends CacheBase implements CacheInterface {
 		return FALSE;
 	}
 
-	function _upsert($keyword, $value, $time = FALSE) {
+	function _upsert($keyword, $value, $lifetime = FALSE) {
 		$fp = $this->basepath.$this->filename($keyword);
 		return $this->writefile($fp,$value);
 	}
@@ -60,8 +60,9 @@ class Cache_database extends CacheBase implements CacheInterface {
 		$fp = $this->basepath.$this->filename($keyword);
 		if(is_file($fp)) {
 			$value = $this->readfile($fp);
-			if($value !== FALSE)
+			if($value !== FALSE) {
 				return $value;
+			}
 		}
 		return NULL;
 	}
@@ -73,7 +74,7 @@ class Cache_database extends CacheBase implements CacheInterface {
 			if(is_file($fp)) {
 				$value = $this->readfile($fp);
 				if($value !== FALSE) {
-					$keyword = str_replace('|%|','\\',$basename($fp));
+					$keyword = $this->keyword($fp);
 					$vals[$keyword] = $value;
 				}
 			}
@@ -109,6 +110,11 @@ class Cache_database extends CacheBase implements CacheInterface {
 	private function filename($keyword)
 	{
 		return str_replace('\\','|%|',$keyword);
+	}
+
+	private function keyword($filepath)
+	{
+		return str_replace('|%|','\\',basename($filepath));
 	}
 
 	private function readfile($filepath)

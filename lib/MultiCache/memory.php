@@ -16,7 +16,7 @@ class Cache_memory extends CacheBase implements CacheInterface {
 		return TRUE;
 	}
 
-	function _newsert($keyword, $value, $time = FALSE) {
+	function _newsert($keyword, $value, $lifetime = FALSE) {
 		if(!array_key_exists($keyword, $this->stored)) {
 			$this->stored[$keyword] = $value;
 			return TRUE;
@@ -24,7 +24,7 @@ class Cache_memory extends CacheBase implements CacheInterface {
 		return FALSE;
 	}
 
-	function _upsert($keyword, $value, $time = FALSE) {
+	function _upsert($keyword, $value, $lifetime = FALSE) {
 		$this->stored[$keyword] = $value;
 		return TRUE;
 	}

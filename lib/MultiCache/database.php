@@ -31,7 +31,7 @@ class Cache_database extends CacheBase implements CacheInterface {
 		return FALSE;
 	}
 
-	function _newsert($keyword, $value , $time = FALSE) {
+	function _newsert($keyword, $value , $lifetime = FALSE) {
 		$db = cmsms()->GetDb();
 		$sql = 'SELECT cache_id FROM '.$this->table.' WHERE keyword=?';
 		$id = $db->GetOne($sql,array($keyword));
@@ -45,7 +45,7 @@ class Cache_database extends CacheBase implements CacheInterface {
 		return FALSE;
 	}
 
-	function _upsert($keyword, $value, $time = FALSE) {
+	function _upsert($keyword, $value, $lifetime = FALSE) {
 		//TODO retention-time if not FALSE
 		$db = cmsms()->GetDb();
 		$sql = 'SELECT cache_id FROM '.$this->table.' WHERE keyword=?';
@@ -74,7 +74,7 @@ class Cache_database extends CacheBase implements CacheInterface {
 	}
 
 	function _getall() {
-		return $TODO;
+		return NULL; //TODO allitems;
 	}
 
 	function _has($keyword) {

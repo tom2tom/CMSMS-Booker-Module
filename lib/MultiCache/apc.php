@@ -6,13 +6,14 @@ class Cache_apc extends CacheBase implements CacheInterface {
 	function __construct($config = array()) {
 		if($this->use_driver()) {
 			parent::__construct($config);
-		} else {
-			throw new \Exception('no APC storage');
+			if($this->connectServer()) {
+				return;
+			}
 		}
+		throw new \Exception('no APC storage');
 	}
 
 /*	function __destruct() {
-		$this->_clean();
 	}
 */
 	function use_driver() {
@@ -20,19 +21,23 @@ class Cache_apc extends CacheBase implements CacheInterface {
 			&& ini_get('apc.enabled'));
 	}
 
-	function _newsert($keyword, $value, $time = FALSE) {
+	function connectServer() {
+		return TRUE;  //TODO
+	}
+
+	function _newsert($keyword, $value, $lifetime = FALSE) {
 		if($this->_has($keyword)) {
 			return FALSE;
 		}
-		$ret = apc_add($keyword,$value,(int)$time);
+		$ret = apc_add($keyword,$value,(int)$lifetime);
 		return $ret;
 	}
 
-	function _upsert($keyword, $value, $time = FALSE) {
-		$time = (int)$time;
-		$ret = apc_add($keyword,$value,$time);
+	function _upsert($keyword, $value, $lifetime = FALSE) {
+		$lifetime = (int)$lifetime;
+		$ret = apc_add($keyword,$value,$lifetime);
 		if(!$ret) {
-			$ret = apc_store($keyword,$value,$time);
+			$ret = apc_store($keyword,$value,$lifetime);
 		}
 		return $ret;
 	}
@@ -46,7 +51,7 @@ class Cache_apc extends CacheBase implements CacheInterface {
 	}
 
 	function _getall() {
-		return $TODO;
+		return NULL; //TODO allitems;
 	}
 
 	function _has($keyword) {
