@@ -278,7 +278,8 @@ $fields = "
 	cache_id I(2) AUTO KEY,
 	keyword C(48),
 	value B,
-	save_time ".CMS_ADODB_DT;
+	save_time ".CMS_ADODB_DT."
+	lifetime I";
 $pre = cms_db_prefix();
 $sqlarray = $dict->CreateTableSQL($pre.'module_bkr_cache',$fields,$taboptarray);
 $dict->ExecuteSQLArray($sqlarray);
