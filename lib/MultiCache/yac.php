@@ -8,7 +8,7 @@ class Cache_yac extends CacheBase implements CacheInterface  {
 
 	protected $instance;
 
-	function __construct($config = array()) {
+	function __construct($config = []) {
 		if($this->use_driver()) {
 			parent::__construct($config);
 			if($this->connectServer()) {
@@ -36,25 +36,37 @@ class Cache_yac extends CacheBase implements CacheInterface  {
 		if($this->_has($keyword)) {
 			return FALSE;
 		}
-		$this->instance->set($keyword, $value, (int)$lifetime);
-		return TRUE;
+		return $this->instance->set($keyword, $value, (int)$lifetime);
 	}
 
 	function _upsert($keyword, $value, $lifetime = FALSE) {
-		$this->instance->set($keyword, $value, (int)$lifetime);
-		return TRUE;
+		return $this->instance->set($keyword, $value, (int)$lifetime);
 	}
 
 	function _get($keyword) {
-		$data = $this->instance->get($keyword);
-		if($data !== FALSE) {
-			return $data;
+		$value = $this->instance->get($keyword);
+		if($value !== FALSE) {
+			return $value;
 		}
 		return NULL;
 	}
 
 	function _getall() {
-		return NULL; //TODO allitems;
+		$items = [];
+		$info = $this->instance->info();
+		$count = (int)$info['slots_used'];
+		if($count) {
+			$info = $this->instance->dump($count);
+			if($info) {
+				$items = [];
+				foreach($info as $one) {
+					if(1) { //TODO filter 'ours'
+						$items[$one['key']] = $one['value'];
+					}
+				}
+			}
+		}
+		return $items;
 	}
 
 	function _has($keyword) {
@@ -62,12 +74,26 @@ class Cache_yac extends CacheBase implements CacheInterface  {
 	}
 
 	function _delete($keyword) {
-		$this->instance->delete($keyword);
-		return TRUE;
+		return $this->instance->delete($keyword);
 	}
 
 	function _clean() {
-		$this->instance->flush();
+		$info = $this->instance->info();
+		$count = (int)$info['slots_used'];
+		if($count) {
+			$info = $this->instance->dump($count);
+			if($info) {
+				$ret = TRUE;
+				foreach($info as $one) {
+					if(1) { //TODO filter 'ours'
+						$ret = $ret && $this->instance->delete($one['key']);
+					}
+				}
+				return $ret;
+			}
+			return FALSE;
+		}
+		return TRUE;
 	}
 
 }

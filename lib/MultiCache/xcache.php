@@ -5,7 +5,7 @@ class Cache_xcache extends CacheBase implements CacheInterface  {
 
     protected $instance;
 
-	function __construct($config = array()) {
+	function __construct($config = []) {
 		if($this->use_driver()) {
 			parent::__construct($config);
 			if($this->connectServer()) {
@@ -25,7 +25,7 @@ class Cache_xcache extends CacheBase implements CacheInterface  {
 	function connectServer() {
         $this->instance = new \XCache();
 //     $adbg = xcache_info(XC_TYPE_VAR, int id);
-		return TRUE;  //TODO
+		return TRUE;  //TODO connect
 	}
 
 	function _newsert($keyword, $value, $lifetime = FALSE) {
@@ -61,12 +61,16 @@ class Cache_xcache extends CacheBase implements CacheInterface  {
 
 	function _getall() {
 //TODO xcache_list(XC_TYPE_VAR, int id)
-		$vals = array();
+		$items = [];
 		$cnt = xcache_count(XC_TYPE_VAR);
 		for ($i=0; $i<$cnt; $i++) {
-			$vals[] = $TODO;
+			$keyword = NULL;
+			if(1) { //TODO filter 'ours'
+				$value = NULL;
+				$items[$keyword] = $value;
+			}
 		}
-		return $vals;
+		return $items;
 	}
 
 	function _has($keyword) {
@@ -82,7 +86,10 @@ class Cache_xcache extends CacheBase implements CacheInterface  {
 //xcache_unset_by_prefix(string prefix)
 		$cnt = xcache_count(XC_TYPE_VAR);
 		for ($i=0; $i<$cnt; $i++) {
-			xcache_clear_cache(XC_TYPE_VAR, $i);
+			$keyword = NULL;
+			if(1) { //TODO filter 'ours'
+				xcache_clear_cache(XC_TYPE_VAR, $i);
+			}
 		}
 		return TRUE;
 	}

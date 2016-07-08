@@ -4,7 +4,7 @@ namespace MultiCache;
 class Cache_file extends CacheBase implements CacheInterface {
 	protected $basepath; //has trailing separator
 
-	function __construct($config = array()) {
+	function __construct($config = []) {
 		if($this->use_driver()) {
 			parent::__construct($config);
 			if($this->connectServer()) {
@@ -65,14 +65,16 @@ class Cache_file extends CacheBase implements CacheInterface {
 	}
 
 	function _getall() {
-		$vals = array();
+		$vals = [];
 		$files = glob($this->basepath.'*',GLOB_NOSORT);
 		foreach($files as $fp) {
 			if(is_file($fp)) {
-				$value = $this->readfile($fp);
-				if($value !== FALSE) {
-					$keyword = $this->keyword($fp);
-					$vals[$keyword] = $value;
+				$keyword = $this->keyword($fp);
+				if(1) { //TODO filter 'ours'
+					$value = $this->readfile($fp);
+					if($value !== FALSE) {
+						$vals[$keyword] = $value;
+					}
 				}
 			}
 		}
@@ -96,7 +98,10 @@ class Cache_file extends CacheBase implements CacheInterface {
 		$files = glob($this->basepath.'*',GLOB_NOSORT);
 		foreach($files as $fp) {
 			if(is_file($fp)) {
-				@unlink($fp);
+				$keyword = $this->keyword($fp);
+				if(1) { //TODO filter 'ours'
+					@unlink($fp);
+				}
 			}
 		}
 	}

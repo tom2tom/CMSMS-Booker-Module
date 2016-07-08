@@ -3,7 +3,7 @@ namespace MultiCache;
 
 class Cache_apc extends CacheBase implements CacheInterface {
 
-	function __construct($config = array()) {
+	function __construct($config = []) {
 		if($this->use_driver()) {
 			parent::__construct($config);
 			if($this->connectServer()) {
@@ -17,12 +17,11 @@ class Cache_apc extends CacheBase implements CacheInterface {
 	}
 */
 	function use_driver() {
-		return ((extension_loaded('apc') || extension_loaded('apcu'))
-			&& ini_get('apc.enabled'));
+		return (extension_loaded('apc') && ini_get('apc.enabled'));
 	}
 
 	function connectServer() {
-		return TRUE;  //TODO
+		return TRUE;  //TODO connect
 	}
 
 	function _newsert($keyword, $value, $lifetime = FALSE) {
@@ -43,15 +42,24 @@ class Cache_apc extends CacheBase implements CacheInterface {
 	}
 
 	function _get($keyword) {
-		$data = apc_fetch($keyword,$bo);
-		if($bo !== FALSE) {
-			return $data;
+		$value = apc_fetch($keyword,$suxs);
+		if($suxs !== FALSE) {
+			return $value;
 		}
 		return NULL;
 	}
 
 	function _getall() {
-		return NULL; //TODO allitems;
+		$items = [];
+		$iter = new \APCIterator();
+		if($iter) {
+			foreach($iter as $keyword=>$value) {
+				if(1) { //TODO filter 'ours'
+					$items[$keyword] = $value;
+				}
+			}
+		}
+		return $items;
 	}
 
 	function _has($keyword) {
@@ -63,8 +71,21 @@ class Cache_apc extends CacheBase implements CacheInterface {
 	}
 
 	function _clean() {
-		@apc_clear_cache(); //TODO CHECKME too broad?
-		@apc_clear_cache('user');
+		$iter = new \APCIterator();
+		if($iter) {
+			$data = [];
+			foreach($iter as $keyword=>$value) {
+				if(1) { //TODO filter 'ours'
+					$data[] = $keyword;
+				}
+			}
+			$ret = TRUE;
+			foreach($data as $keyword) {
+				$ret = $ret && apc_delete($keyword);
+			}
+			return $ret;
+		}
+		return FALSE;
 	}
 
 }
