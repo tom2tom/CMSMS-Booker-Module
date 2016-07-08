@@ -76,6 +76,7 @@ class Booker extends CMSModule
 //	public $CacheTable; //cached bookings-data
 	public $UserTable; //admin users (who may 'own' resource/group)
 	public $before20;
+	public $havemcrypt;
 
 	protected $PermStructName = 'Booker Module Admin';
 	protected $PermAdminName = 'Booker Admin';
@@ -103,6 +104,7 @@ class Booker extends CMSModule
 		$this->UserTable = $pre.'users';
 		global $CMS_VERSION;
 		$this->before20 = (version_compare($CMS_VERSION,'2.0') < 0);
+		$this->havemcrypt = function_exists('mcrypt_encrypt');
 
 		spl_autoload_register(function ($class)
 		{
