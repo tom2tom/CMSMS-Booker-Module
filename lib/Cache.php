@@ -16,11 +16,11 @@ class Cache
 	GetCache:
     @mod: reference to Booker-module object
 	@storage: optional cache-type name, one (or more, ','-separated) of
-		auto,shmop,apc,memcached,wincache,xcache,memcache,redis,database
-		default = 'auto'
+	 auto,yac,apc,apcu,wincache,xcache,redis,predis,file,database
+	 default = 'auto' to try all of the above, in that order
 	@settings: optional array of general and cache-type-specific parameters,
-		(e.g. see default array in this func)
-		default empty
+	 (e.g. see default array in this func)
+	 default empty
 	Returns: cache-object (after creating it if not already done) or NULL
 	*/
 	public function GetCache(&$mod,$storage='auto',$settings=array())
@@ -75,12 +75,11 @@ class Cache
 		if($storage)
 		{
 			$storage = strtolower($storage);
-			$storage = str_replace('apcu','apc',$storage); //same driver used
 		}
 		else
 			$storage = 'auto';
 		if(strpos($storage,'auto') !== FALSE)
-			$storage = 'yac,apc,wincache,xcache,redis,predis,file,database';
+			$storage = 'yac,apc,apcu,wincache,xcache,redis,predis,file,database';
 
 		$types = explode(',',$storage);
 		foreach($types as $one)
@@ -88,7 +87,7 @@ class Cache
 			$one = trim($one);
 			$class = 'MultiCache\Cache_'.$one;
 			if(!isset($settings[$one]))
-				$settings[$one] = array();
+				$settings[$one] = [];
 			try
 			{
 				require($path.$one.'.php');
