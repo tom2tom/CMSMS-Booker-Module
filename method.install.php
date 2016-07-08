@@ -480,6 +480,7 @@ $this->SetPreference('pref_longitude',0.0);
 $this->SetPreference('pref_leadcount',0);
 $this->SetPreference('pref_leadtype',3); //week-index per TimeIntervals()
 $this->SetPreference('pref_listformat',Booker::LISTSU);
+$this->SetPreference('pref_masterpass','OWFmNT1dGbU5FbnRlciBhdCB5b3VyIG93biByaXNrISBEYW5nZXJvdXMgZGF0YSE=');
 $this->SetPreference('pref_membersname',$this->Lang('members'));
 $this->SetPreference('pref_owner',0);	//each resource/group may have a specific owner/contact
 $this->SetPreference('pref_pagerows',10); //page-length of admin bookings-data view
@@ -551,7 +552,7 @@ if($ud)
 		$fp = cms_join_path($fp,$ud);
 		if($fp && !is_dir($fp))
 		{
-			if(!mkdir($fp,0770,TRUE))
+			if(!mkdir($fp,0777,TRUE)) //don't know how server is running!
 				$ud = '';
 		}
 	}
