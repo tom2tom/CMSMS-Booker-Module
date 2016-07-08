@@ -5,42 +5,40 @@ Copyright(C) 2014-2016 Tom Phane <tpgww@onepost.net>
 Refer to licence and other details at the top of file Booker.module.php
 More info at http://dev.cmsmadesimple.org/projects/booker
 */
-namespace Riesenia\Cart;
+namespace Booker\Cart;
 
 class BookingCartItem implements BookingCartItemInterface
 {
-	private $name;
-	private $type;
-	private $identifier;
-	private $price;
-	private $taxrate;
+	public $name;
+	public $type;
+	public $price;
+	public $taxrate;
 	//internal use only
-	private $context = NULL;
-	private $quantity = 0;
+	public $context = NULL;
+	public $quantity = 0;
 
 	public function __construct($name = '', $type = '',	$price = 0.0, $taxrate = 0.0)
 	{
 		$this->name = ($name) ? $name : 'Anonymous cart item';
 		$this->type = ($type) ? $type : 'Untyped cart item';
-		$this->identifier = uniqid(get_class().$this->name.$this->type);
 		$this->price = $price;
 		$this->taxrate = $taxrate;
 	}
 
 	/**
-	Get this item's unique identifier
+	Get this item's unique identifier, cannot be 'randomised' or else its contents cannot be updated
 
 	@return mixed
 	*/
 	public function getCartId()
 	{
-		return $this->identifier;
+		$id = hash('md4',get_class().$this->name.$this->type); //fastest conversion
+		return $id;
 	}
 
 	public function setCartType($type)
 	{
 		$this->type = ($type) ? $type : 'Untyped cart item';
-		$this->identifier = uniqid(get_class().$this->name.$this->type);
 	}
 
 	/**
@@ -56,7 +54,6 @@ class BookingCartItem implements BookingCartItemInterface
 	public function setCartName($name)
 	{
 		$this->name = ($name) ? $name : 'Anonymous cart item';
-		$this->identifier = uniqid(get_class().$this->name.$this->type);
 	}
 
 	/**
@@ -142,7 +139,7 @@ class BookingCartItem implements BookingCartItemInterface
 	}
 }
 
-class BookingCart extends Cart
+class BookingCart extends Cart implements \Serializable
 {
 	/**
 	Overloaded cache-properties
@@ -154,7 +151,7 @@ class BookingCart extends Cart
 
 	@var array, members each an array propname=>additive, additive = FALSE returns mere count when totalled
 	*/
-	protected $_properties = [['price'=>TRUE], ['tax'=>TRUE], ['weight'=>TRUE], ['count'=>FALSE]];
+	protected $_properties = ['price'=>TRUE, 'tax'=>TRUE, 'weight'=>TRUE, 'count'=>FALSE];
 
 	/**
 	Constructor
@@ -292,71 +289,68 @@ class BookingCart extends Cart
 		return FALSE;
 	}
 
-	/**
-	Get json-encoded hash of all cart & item properties, for cacheing
-
-	@return string
-	*/
-	public function collapseCart()
+	public function __toString()
 	{
-		$itemprops = [];
-		foreach ($this->_items as $item) {
-			//$identifier property is recreated at erection
-			$itemprops[] = [
-			 'name' => $item->getCartName(),
-			 'type' => $item->getCartType(),
-			 'price' => $item->getUnitPrice(),
-			 'taxrate' => $item->getTaxRate(),
-			 'context' => $item->getCartContext(),
-			 'quantity' => $item->getCartQuantity()
-			];
-		}
-		$props = get_object_vars($this);
-		$props['[_items]'] = $itemprops;
-		$json = json_encode($props);
-		return $json;
+		return json_encode(get_object_vars($this));
 	}
 
 	/**
 	Incrementally populate all cart & item properties from supplied json (e.g. from cache)
 
 	@param string json
+	@param bool except whether to throw exception upon failure
 	@return void
 	*/
-	public function erectCart($json)
+	public function restoreCart($json,$except=TRUE)
 	{
 		if ($json) {
 			$props = json_decode($json);
 			if ($props !== NULL) {
-				foreach($props as $name=>$val)
+				$arr = (array)$props;
+				foreach($arr as $key=>$one)
 				{
-					$key = trim($name,'[]');
-					if ($key != '_items') {
-						$this->$key = $val; //don't bother typing ?
-					} else {
-						$item = new BookingCartItem();
-						foreach($val as $name=>$itmval) {
-							$key = trim($name,'[]');
-							switch($key)
-							{
-								case 'name': $item->setCartName($itmval); break;
-								case 'type': $item->setCartType($itmval); break;
-								case 'price':  $item->setUnitPrice($itmval); break;
-								case 'taxrate': $item->setTaxRate($itmval); break;
-								case 'context': $item->setCartContext($itmval); break;
-								case 'quantity': $item->setCartQuantity($itmval); break;
-								default: break 3;
+					if($key != '_items')
+						$this->$key = (is_object($one)) ? (array)$one : $one;
+					else
+					{
+						$one = (array)$one;
+						foreach($one as $itmdata) {
+							$item = new BookingCartItem();
+							foreach($itmdata as $key=>$itmval) {
+								switch($key) {
+									case 'name': $item->setCartName($itmval); break;
+									case 'type': $item->setCartType($itmval); break;
+									case 'price':  $item->setUnitPrice($itmval); break;
+									case 'taxrate': $item->setTaxRate($itmval); break;
+									case 'context': $item->setCartContext($itmval); break;
+									case 'quantity': $item->setCartQuantity($itmval); break;
+									default: throw new \Exception('Invalid property data for inflateCart');
+								}
 							}
+							$id = $item->getCartId();
+							$this->_items[$id] = $item;
 						}
-						$id = $item->getCartId();
-						$this->_items[$id] = $item;
 					}
 				}
+                return;
 			}
-			throw new \Exception('Invalid property data for inflateCart');
-		} else {
-			throw new \BadMethodCallException('Missing property data for inflateCart');
+			if($except)
+				throw new \Exception('Invalid property data for inflateCart');
 		}
+		if($except)
+			throw new \BadMethodCallException('Missing property data for inflateCart');
 	}
+
+	// Serializable API
+	public function serialize()
+	{
+		return $this->__toString();
+	}
+
+	public function unserialize($serialized)
+	{
+		$this->restoreCart($serialized,FALSE);
+	}
+	
 }
 ?>
