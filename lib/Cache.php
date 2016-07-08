@@ -2,6 +2,8 @@
 #----------------------------------------------------------------------
 # Module: Booker - a resource booking module
 # Library file: Cache
+# For driver comparisons, see e.g.
+#  http://we-love-php.blogspot.com.au/2013/02/php-caching-shm-apc-memcache-mysql-file-cache.html
 #----------------------------------------------------------------------
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
@@ -23,17 +25,25 @@ class Cache
 	*/
 	public function GetCache(&$mod,$storage='auto',$settings=array())
 	{
-//		if($this->cache == NULL && isset($_SESSION['bkrcache']))
-//			$this->cache = $_SESSION['bkrcache'];
-		if($this->cache)
-			return $this->cache;
+//		if(self::$cache == NULL && isset($_SESSION['bkrcache']))
+//			self::$cache = $_SESSION['bkrcache'];
+		if(self::$cache)
+			return self::$cache;
 
 		$config = cmsms()->GetConfig();
 		$url = (empty($_SERVER['HTTPS'])) ? $config['root_url'] : $config['ssl_url'];
 
-        $basedir = $mod->GetPreference('pref_uploadsdir');
-		if(!$basedir)
-			$basedir = $config['uploads_path'];
+		$basedir = $config['uploads_path'];
+		if(is_dir($basedir))
+		{
+			$rel = $mod->GetPreference('pref_uploadsdir');
+			if($rel)
+			{
+				$basedir .= DIRECTORY_SEPARATOR.$rel;
+			}
+		}
+		else
+			$basedir = '';
 
 		$settings = array_merge(
 			array(
@@ -63,8 +73,7 @@ class Cache
 		else
 			$storage = 'auto';
 		if(strpos($storage,'auto') !== FALSE)
-			$storage = 'shmop,apc,wincache,xcache,redis,predis,file,database';
-//			$storage = 'shmop,apc,memcached,wincache,xcache,memcache,redis,database';
+			$storage = 'yac,apc,apcu,wincache,xcache,redis,predis,file,database';
 		$path = __DIR__.DIRECTORY_SEPARATOR.'MultiCache'.DIRECTORY_SEPARATOR;
 		require($path.'CacheInterface.php');
 		require($path.'CacheBase.php');
@@ -86,8 +95,8 @@ class Cache
 				continue;
 			}
 //			$_SESSION['bkrcache'] = $cache;
-			$this->cache = $cache;
-			return $this->cache;
+			self::$cache = $cache;
+			return self::$cache;
 		}
 		return NULL;
 	}
