@@ -3,128 +3,129 @@ namespace MultiCache;
 
 abstract class CacheBase {
 
-	protected $config;	//array of runtime options, may be merged into driver-specific options
+	protected $config;	//array of runtime options, merged into driver-specific options (if any)
+	protected $keyspace = ''; //string prepended to cache keys (kinda cache-namespace)
 
-	public function __construct($config) {
-		/*
-		 * Parameters for driver(s)
-		 */
+	public function __construct($config = array()) {
 		$this->config = $config;
+		if(!empty($config['namespace'])) {
+			$this->keyspace = $config['namespace'];
+		}
+	}
+
+	/* Core Functions */
+	/*
+	Add $keyword:$value to cache if $keyword not found in cache
+	$lifetime (seconds) 0 >> perpetual, <0 >> 5 yrs, tho' server-based caches won't survive restart
+	*/
+	public function newsert($keyword, $value, $lifetime = 0) {
+		if($value === NULL) {
+			$value = '_REALNULL_';
+		}
+		if((int)$lifetime < 0) {
+			$lifetime = 157680000; //3600*24*365*5
+		}
+		return $this->_newsert($this->getKey($keyword),$value,$lifetime);
 	}
 
 	/*
-	 * Basic Functions
-	 */
-	public function newsert($keyword, $value = '', $time = 0) {
-		$cob = new Booker\Crypter();
-		$fob = new flatter($value);
-		$value = $cob->encrypt_value($fob->serialize());
-
-		if((int)$time < 0) {
-			// server-based caches will gone upon restart
-			$time = 3600*24*365*5; //5 years maybe useful for for database,file
+	If $keyword not found in cache, add $keyword:$value to cache, otherwise update to $value
+	$lifetime (seconds) 0 >> perpetual, <0 >> 5 yrs, tho' server-based caches won't survive restart
+	*/
+	public function upsert($keyword, $value, $lifetime = 0) {
+		if($value === NULL) {
+			$value = '_REALNULL_';
 		}
-		return $this->_newsert(__NAMESPACE__.'\\'.$keyword,$value,$time);
-	}
-
-	public function upsert($keyword, $value = '', $time = 0) {
-		$cob = new Booker\Crypter();
-		$fob = new flatter($value);
-		$value = $cob->encrypt_value($fob->serialize());
- 
-		if((int)$time < 0) {
-			// server-based caches will gone upon restart
-			$time = 3600*24*365*5; //5 years maybe useful for for database,file
+		if((int)$lifetime < 0) {
+			$lifetime = 157680000; //3600*24*365*5
 		}
-		return $this->_upsert(__NAMESPACE__.'\\'.$keyword,$value,$time);
+		return $this->_upsert($this->getKey($keyword),$value,$lifetime);
 	}
 
 	public function get($keyword) {
-		$value = $this->_get(__NAMESPACE__.'\\'.$keyword);
-		if($value !== NULL) {
-			$cob = new Booker\Crypter();
-			$fob = new flatter($value);
-			$fob->unserialize($value);
-			return $cob->decrypt_value($fob->getData());
+		$value = $this->_get($this->getKey($keyword));
+		if($value == '_REALNULL_') {
+			$value = NULL;
 		}
-		return NULL;
+		return $value;
+	}
+
+	public function has($keyword) {
+		if(method_exists($this,'_has')) {
+			return $this->_has($this->getKey($keyword));
+		}
+		$value = $this->_get($this->getKey($keyword));
+		return ($value !== NULL);
 	}
 
 	public function delete($keyword) {
-		return $this->_delete(__NAMESPACE__.'\\'.$keyword);
+		return $this->_delete($this->getKey($keyword));
 	}
 
 	public function clean() {
 		return $this->_clean();
 	}
 
-	public function has($keyword) {
-		if(method_exists($this,'_has')) {
-			return $this->_has(__NAMESPACE__.'\\'.$keyword);
-		}
-		$data = $this->_get(__NAMESPACE__.'\\'.$keyword);
-		return ($data != NULL);
+	public function setKeySpace($name) {
+		$this->keyspace = $name;
 	}
 
-	/*
-	 * Magic Functions
-	 */
-	public function function_get($name) {
-		return $this->get($name);
+	public function getKeySpace() {
+		return $this->keyspace;
+	}
+	/* Support */
+	protected function getKey ($keyword) {
+		$pre = ($this->keyspace) ? $this->keyspace.'\\' : '';
+		return $pre.__NAMESPACE__.'\\'.$keyword;
 	}
 
-	public function function_set($name, $val) {
-		if(isset($val[1]) && is_numeric($val[1])) {
-			return $this->set($name,$val[0],$val[1], isset($val[2]) ? $val[2] : array() );
-		} else {
-			throw new \Exception("Example ->$name = array('VALUE', 300);",98);
-		}
-	}
-
-	public function function_call($name, $args) {
-		$str = implode(',',$args);
-		eval('return $this->instance->$name('.$str.');');
-	}
 }
 
-class flatter implements Serializable {
+/* class flatter implements \Serializable {
 
-    private $data;
+	private $data;
 
-    public function __construct($data = NULL) {
-        $this->data = $data;
-    }
+	public function __construct($data = NULL) {
+		$this->data = $data;
+	}
 
-    public function serialize() {
+	public function serialize() {
 		if($this->data != NULL) {
 			if(is_scalar($this->data) || !is_null(@get_resource_type($this->data))) {
 				return (string)$this->data;
 			}
-			return serialize($this->data);
+//			return serialize($this->data);
+			$value = var_export($this->data,TRUE);
+			// HHVM fails at __set_state, so just use object-cast for now
+			return str_replace('stdClass::__set_state','(object)',$value);
 		}
 		return '_REALNULL_'; //prevent '' equivalent to FALSE
-    }
+	}
 
-    public function unserialize($data) {
-		if ($data == 'b:0;') {
-			$this->data = FALSE;
-		} elseif($data == '_REALNULL_') {
+	public function unserialize($data) {
+//		if ($data == 'b:0;') {
+//			$this->data = FALSE;
+//		} else
+		if($data == '_REALNULL_') {
 			$this->data = NULL;
-		} elseif(strpos('Resource id', $data) === 0) {
+		} elseif(is_string($data) && strpos('Resource id', $data) === 0) {
 			$this->data = NULL; //can't usefully reinstate a (string'd)resource
 		} else {
-			$conv = @unserialize($data);
+/ *			$conv = @unserialize($data);
 			if($conv === FALSE) {
 				$this->data = $data;
 			} else {
 				$this->data = $conv;
 			}
+* /
+			$this->data = $data;
 		}
-    }
+	}
 
-    public function getData() {
-        return $this->data;
-    }
+	public function getData() {
+		return $this->data;
+	}
 }
+*/
 
 ?>
