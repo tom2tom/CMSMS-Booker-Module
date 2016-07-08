@@ -3,23 +3,17 @@ namespace MultiCache;
 
 class Cache_database extends CacheBase implements CacheInterface {
 
-//	protected $stored = array();
 	protected $table;
 
-	function __construct($config = array()) {
+	function __construct($config = []) {
 		$this->table = $config['table'];
 		if($this->use_driver()) {
 			parent::__construct($config);
-			//TODO populate $this->stored[] from table
 		} else {
 			throw new \Exception('no database storage');
 		}
 	}
 
-/*	function __destruct() {
-		//TODO transfer $this->stored[] into table
-	}
-*/
 	function use_driver() {
 		$db = cmsms()->GetDb();
 		$rs = $db->Execute("SHOW TABLES LIKE '".$this->table."'");
@@ -38,12 +32,12 @@ class Cache_database extends CacheBase implements CacheInterface {
 		if(!$id)
 		{
 			$value = serialize($value);
-			if(!$lifetime)
+			$lifetime = (int)$lifetime;
+			if($lifetime <= 0) {
 				$lifetime = NULL;
-			else
-				$lifetime = (int)$lifetime;
-			$sql = 'INSERT INTO '.$this->table.' (keyword,value,save_time,lifetime) VALUES (?,?,NOW(),?)';
-			$ret = $db->Execute($sql,array($keyword,$value,$lifetime));
+			}
+			$sql = 'INSERT INTO '.$this->table.' (keyword,value,savetime,lifetime) VALUES (?,?,?,?)';
+			$ret = $db->Execute($sql,array($keyword,$value,time(),$lifetime));
 			return $ret;
 		}
 		return FALSE;
@@ -54,44 +48,63 @@ class Cache_database extends CacheBase implements CacheInterface {
 		$sql = 'SELECT cache_id FROM '.$this->table.' WHERE keyword=?';
 		$id = $db->GetOne($sql,array($keyword));
 		$value = serialize($value);
-		if(!$lifetime)
+		$lifetime = (int)$lifetime;
+		if($lifetime <= 0) {
 			$lifetime = NULL;
-		else
-			$lifetime = (int)$lifetime;
+		}
 		//upsert, sort-of
 		if($id)
 		{
-			$sql = 'UPDATE '.$this->table.' SET value=?,lifetime=? WHERE cache_id=?';
-			$ret = $db->Execute($sql,array($value,$lifetime,$id));
+			$sql = 'UPDATE '.$this->table.' SET value=?,savetime=?,lifetime=? WHERE cache_id=?';
+			$ret = $db->Execute($sql,array($value,time(),$lifetime,$id));
 		}
 		else
 		{
-			$sql = 'INSERT INTO '.$this->table.' (keyword,value,save_time,lifetime) VALUES (?,?,NOW(),?)';
-			$ret = $db->Execute($sql,array($keyword,$value,$lifetime));
+			$sql = 'INSERT INTO '.$this->table.' (keyword,value,savetime,lifetime) VALUES (?,?,?,?)';
+			$ret = $db->Execute($sql,array($keyword,$value,time(),$lifetime));
 		}
 		return ($ret != FALSE);
 	}
 
 	function _get($keyword) {
-	//TODO retention-time excess >> ignore
 		$db = cmsms()->GetDb();
-		$value = $db->GetOne('SELECT value FROM '.$this->table.' WHERE keyword=?',array($keyword));
-		if ($value !== FALSE) {
-			return unserialize($value);
+		$row = $db->GetRow('SELECT value,savetime,lifetime FROM '.$this->table.' WHERE keyword=?',array($keyword));
+		if($row) {
+			if(is_null($row['lifetime']) ||
+				 time() <= $row['savetime'] + $row['lifetime']) {
+				if(!is_null($row['value'])) {
+					return unserialize($row['value']);
+				}
+			}
 		}
 		return NULL;
 	}
 
 	function _getall() {
-		return NULL; //TODO allitems;
+		$items = [];
+		$db = cmsms()->GetDb();
+		$info = $db->GetAll('SELECT * FROM '.$this->table);
+		if($info) {
+			$foreach($info as $row) {
+				if(1) { //TODO filter 'ours'
+					$items[$row['keyword']] = unserialize($row['value']);
+				}
+			}
+		}
+		return $items[];
 	}
 
 	function _has($keyword) {
-	//TODO retention-time excess >> ignore
 		$db = cmsms()->GetDb();
-		$sql = 'SELECT cache_id FROM '.$this->table.' WHERE keyword=?';
-		$id = $db->GetOne($sql,array($keyword));
-		return $id !== FALSE;
+		$sql = 'SELECT cache_id,savetime,lifetime FROM '.$this->table.' WHERE keyword=?';
+		$row = $db->GetRow($sql,array($keyword));
+		if($row) {
+			if(is_null($row['lifetime']) ||
+			  time() <= $row['savetime'] + $row['lifetime'])
+					return TRUE;
+			}
+		}
+		return FALSE;
 	}
 
 	function _delete($keyword) {
@@ -105,7 +118,9 @@ class Cache_database extends CacheBase implements CacheInterface {
 
 	function _clean() {
 		$db = cmsms()->GetDb();
+	//TODO filter 'ours'
 		$db->Execute('DELETE FROM '.$this->table);
+		return TRUE;
 	}
 
 }
