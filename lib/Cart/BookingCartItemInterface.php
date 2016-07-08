@@ -1,11 +1,11 @@
 <?php
-namespace Riesenia\Cart;
-
 /**
 Iterface for items in bookings cart
 
 @author Tom Phane <tpgww@onepost.net>
 */
+namespace Booker\Cart;
+
 interface BookingCartItemInterface extends CartItemInterface
 {
 	public function getCartContext();

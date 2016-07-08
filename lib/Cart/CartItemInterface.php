@@ -1,11 +1,11 @@
 <?php
-namespace Riesenia\Cart;
-
 /**
  Iterface for items in cart
 
  @author Tomas Saghy <segy@riesenia.com>
 */
+namespace Booker\Cart;
+
 interface CartItemInterface
 {
 	/**

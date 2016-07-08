@@ -7,7 +7,7 @@
 # Requires PHP 5.3+
 # Manages array of items each of which implements CartItemInterface or an extension of that
 #----------------------------------------------------------------------
-namespace Riesenia\Cart;
+namespace Booker\Cart;
 
 class Cart
 {
@@ -19,7 +19,7 @@ class Cart
 	protected $_items = [];
 
 	/**
-	Context data
+	Something usable for in-cart determinations e.g. cart name
 
 	@var mixed
 	*/
