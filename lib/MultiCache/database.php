@@ -3,7 +3,7 @@ namespace MultiCache;
 
 class Cache_database extends CacheBase implements CacheInterface {
 
-	protected $stored = array();
+//	protected $stored = array();
 	protected $table;
 
 	function __construct($config = array()) {
@@ -37,38 +37,47 @@ class Cache_database extends CacheBase implements CacheInterface {
 		$id = $db->GetOne($sql,array($keyword));
 		if(!$id)
 		{
-			//TODO retention-time if not FALSE
-			$sql = 'INSERT INTO '.$this->table.' (keyword,value,save_time) VALUES (?,?,NOW())';
-			$ret = $db->Execute($sql,array($keyword,$value));
+			$value = serialize($value);
+			if(!$lifetime)
+				$lifetime = NULL;
+			else
+				$lifetime = (int)$lifetime;
+			$sql = 'INSERT INTO '.$this->table.' (keyword,value,save_time,lifetime) VALUES (?,?,NOW(),?)';
+			$ret = $db->Execute($sql,array($keyword,$value,$lifetime));
 			return $ret;
 		}
 		return FALSE;
 	}
 
 	function _upsert($keyword, $value, $lifetime = FALSE) {
-		//TODO retention-time if not FALSE
 		$db = cmsms()->GetDb();
 		$sql = 'SELECT cache_id FROM '.$this->table.' WHERE keyword=?';
 		$id = $db->GetOne($sql,array($keyword));
+		$value = serialize($value);
+		if(!$lifetime)
+			$lifetime = NULL;
+		else
+			$lifetime = (int)$lifetime;
 		//upsert, sort-of
 		if($id)
 		{
-			$sql = 'UPDATE '.$this->table.' SET value=? WHERE cache_id=?';
-			$ret = $db->Execute($sql,array($value,$id));
+			$sql = 'UPDATE '.$this->table.' SET value=?,lifetime=? WHERE cache_id=?';
+			$ret = $db->Execute($sql,array($value,$lifetime,$id));
 		}
 		else
 		{
-			$sql = 'INSERT INTO '.$this->table.' (keyword,value,save_time) VALUES (?,?,NOW())';
-			$ret = $db->Execute($sql,array($keyword,$value));
+			$sql = 'INSERT INTO '.$this->table.' (keyword,value,save_time,lifetime) VALUES (?,?,NOW(),?)';
+			$ret = $db->Execute($sql,array($keyword,$value,$lifetime));
 		}
 		return ($ret != FALSE);
 	}
 
 	function _get($keyword) {
+	//TODO retention-time excess >> ignore
 		$db = cmsms()->GetDb();
-		$data = $db->GetOne('SELECT value FROM '.$this->table.' WHERE keyword=?',array($keyword));
-		if ($data !== FALSE) {
-			return $data;
+		$value = $db->GetOne('SELECT value FROM '.$this->table.' WHERE keyword=?',array($keyword));
+		if ($value !== FALSE) {
+			return unserialize($value);
 		}
 		return NULL;
 	}
@@ -78,6 +87,7 @@ class Cache_database extends CacheBase implements CacheInterface {
 	}
 
 	function _has($keyword) {
+	//TODO retention-time excess >> ignore
 		$db = cmsms()->GetDb();
 		$sql = 'SELECT cache_id FROM '.$this->table.' WHERE keyword=?';
 		$id = $db->GetOne($sql,array($keyword));
