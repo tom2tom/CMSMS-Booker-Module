@@ -181,7 +181,7 @@ class Cart
 	/**
 	Get cart items (as references), optionally filtered
 
-	@param NULL|callable filter
+	@param NULL|callable filter, must NOT be end-user definable (injection-risk)
 	@return array
 	*/
 	public function getItems($filter = NULL)
