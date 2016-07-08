@@ -17,7 +17,7 @@ class Cache_predis extends CacheBase implements CacheInterface {
 	'timeout' => float seconds
 	'read_write_timeout' => float seconds
 	*/
-	function __construct($config = array()) {
+	function __construct($config = []) {
 		if($this->use_driver()) {
 			parent::__construct($config);
 			if($this->connectServer()) {

@@ -3,7 +3,7 @@ namespace MultiCache;
 
 interface CacheInterface {
 
-	 function __construct($config = array());
+	 function __construct($config = []);
 //	 function __destruct();
 
 	/*

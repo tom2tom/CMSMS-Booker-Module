@@ -3,9 +3,9 @@ namespace MultiCache;
 
 class Cache_memory extends CacheBase implements CacheInterface {
 
-	private $stored = array();
+	private $stored = [];
 
-	function __construct($config = array())	{
+	function __construct($config = [])	{
 	}
 
 /*	function __destruct() {
@@ -53,7 +53,7 @@ class Cache_memory extends CacheBase implements CacheInterface {
 	}
 
 	function _clean() {
-		$this->stored = array();
+		$this->stored = [];
 	}
 
 }
