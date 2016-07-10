@@ -9,7 +9,7 @@ Class: Clearcache_task
 */
 namespace Booker;
 
-class Clearcache_task implements CmsRegularTask
+class Clearcache_task implements \CmsRegularTask
 {
 	const MODNAME = 'Booker';
 

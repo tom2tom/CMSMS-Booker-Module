@@ -171,9 +171,9 @@ class PeriodInterpreter
 		}
 		//DateTime::diff, DateInterval need PHP 5.3+ ATM we allow 5.2
 		$st = gmmktime(0,0,0,$stmonth,$stday,$styear);
-		$stdt = new DateTime('@'.$st); //zone irrelevant
+		$stdt = new \DateTime('@'.$st); //zone irrelevant
 		$st = gmmktime(0,0,0,$ndmonth,$ndday,$ndyear);
-		$nddt = new DateTime('@'.$st);
+		$nddt = new \DateTime('@'.$st);
 		$diff = ($interval == 1) ? '+1 day':'+'.$interval.' days';
 		$yn = FALSE;
 		$doy = FALSE;
@@ -435,7 +435,7 @@ class PeriodInterpreter
 	public function tester($year, $month, $week, $day)
 	{
 		$ret = array();
-		$dt = new DateTime('1900-1-1',new DateTimeZone('UTC'));
+		$dt = new \DateTime('1900-1-1',new \DateTimeZone('UTC'));
 		$data = self::YearDays($year,$month,$week,$day);
 		foreach ($data as $row) {
 			$yr = $row[0];
@@ -456,7 +456,7 @@ class PeriodInterpreter
 		$ndyear=FALSE, $ndmonth=FALSE, $ndday=FALSE)
 	{
 		$ret = array();
-		$dt = new DateTime('1900-1-1',new DateTimeZone('UTC'));
+		$dt = new \DateTime('1900-1-1',new \DateTimeZone('UTC'));
 		$data = self::SuccessiveDays($interval,$styear,$stmonth,$stday,$ndyear,$ndmonth,$ndday);
 		foreach ($data as $row) {
 			$yr = $row[0];

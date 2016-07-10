@@ -9,7 +9,7 @@ Class: Cleanold_task
 */
 namespace Booker;
 
-class Cleanold_task implements CmsRegularTask
+class Cleanold_task implements \CmsRegularTask
 {
 	const MODNAME = 'Booker';
 
