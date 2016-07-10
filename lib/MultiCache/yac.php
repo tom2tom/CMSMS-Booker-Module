@@ -4,66 +4,77 @@
  */
 namespace MultiCache;
 
-class Cache_yac extends CacheBase implements CacheInterface  {
+class Cache_yac extends CacheBase implements CacheInterface
+{
+	protected $client;
 
-	protected $instance;
-
-	function __construct($config = []) {
-		if($this->use_driver()) {
+	function __construct($config=array())
+	{
+		if ($this->use_driver()) {
 			parent::__construct($config);
-			if($this->connectServer()) {
+			if ($this->connectServer()) {
 				return;
 			}
-			unset($this->instance);
+			unset($this->client);
 		}
 		throw new \Exception('no yac storage');
 	}
 
-	function use_driver() {
+	function use_driver()
+	{
 		return extension_loaded('yac');
 	}
 
-	function connectServer() {
-		if(!empty($this->config['prefix'])) {
-			$this->instance = new \Yac($this->config['prefix']);
+	function connectServer()
+	{
+		if (!empty($this->config['prefix'])) {
+			$this->client = new \Yac($this->config['prefix']);
 		} else {
-			$this->instance = new \Yac();
+			$this->client = new \Yac();
 		}
 		return TRUE;
 	}
 
-	function _newsert($keyword, $value, $lifetime = FALSE) {
-		if($this->_has($keyword)) {
+	function _newsert($keyword, $value, $lifetime=FALSE)
+	{
+		if ($this->_has($keyword)) {
 			return FALSE;
 		}
-		return $this->instance->set($keyword, serialize($value), (int)$lifetime);
+		return $this->client->set($keyword, serialize($value), (int)$lifetime);
 	}
 
-	function _upsert($keyword, $value, $lifetime = FALSE) {
-		return $this->instance->set($keyword, serialize($value), (int)$lifetime);
+	function _upsert($keyword, $value, $lifetime=FALSE)
+	{
+		return $this->client->set($keyword, serialize($value), (int)$lifetime);
 	}
 
-	function _get($keyword) {
-		$value = $this->instance->get($keyword);
-		if($value !== FALSE) {
+	function _get($keyword)
+	{
+		$value = $this->client->get($keyword);
+		if ($value !== FALSE) {
 			return unserialize($value);
 		}
 		return NULL;
 	}
 
-	function _getall($filter) {
-		$items = [];
-		$info = $this->instance->info();
+	function _getall($filter)
+	{
+		$items = array();
+		$info = $this->client->info();
 		$count = (int)$info['slots_used'];
-		if($count) {
-			$info = $this->instance->dump($count);
-			if($info) {
-				$items = [];
-				foreach($info as $one) {
+		if ($count) {
+			$info = $this->client->dump($count);
+			if ($info) {
+				$items = array();
+				foreach ($info as $one) {
 					$keyword = $one['key'];
-					if(!$filter || $this->filterKey($filter,$keyword)) {
-						$value = $this->_get($keyword);
-						if($value !== NULL) {
+					$value = $this->_get($keyword);
+					$again = is_object($value); //get it again, in case the filter played with it!
+					if ($this->filterKey($filter,$keyword,$value)) {
+						if ($again) {
+							$value = $this->_get($keyword);
+						}
+						if ($value !== NULL) {
 							$items[$keyword] = $value;
 						}
 					}
@@ -73,25 +84,29 @@ class Cache_yac extends CacheBase implements CacheInterface  {
 		return $items;
 	}
 
-	function _has($keyword) {
+	function _has($keyword)
+	{
 		return ($this->_get($keyword) !== NULL);
 	}
 
-	function _delete($keyword) {
-		return $this->instance->delete($keyword);
+	function _delete($keyword)
+	{
+		return $this->client->delete($keyword);
 	}
 	
-	function _clean($filter) {
-		$info = $this->instance->info();
+	function _clean($filter)
+	{
+		$info = $this->client->info();
 		$count = (int)$info['slots_used'];
-		if($count) {
-			$info = $this->instance->dump($count);
-			if($info) {
+		if ($count) {
+			$info = $this->client->dump($count);
+			if ($info) {
 				$ret = TRUE;
-				foreach($info as $one) {
+				foreach ($info as $one) {
 					$keyword = $one['key'];
-					if(!$filter || $this->filterKey($filter,$keyword)) {
-						$ret = $ret && $this->instance->delete($keyword);
+					$value = $this->_get($keyword);
+					if ($this->filterKey($filter,$keyword,$value)) {
+						$ret = $ret && $this->client->delete($keyword);
 					}
 				}
 				return $ret;
@@ -102,5 +117,3 @@ class Cache_yac extends CacheBase implements CacheInterface  {
 	}
 
 }
-
-?>
