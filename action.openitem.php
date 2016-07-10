@@ -7,11 +7,10 @@
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
 
-if(!function_exists('groupstable'))
-{
+if (!function_exists('groupstable')) {
  //construct table of group-data (members, parents) for display on advanced-tab
- function groupstable(&$mod,&$tplvars,$id,$obname,$returnid,$icondn,$iconup,
-	$item_id,&$groups,$relations=FALSE,$dodrag=FALSE,$dosort=FALSE,$tableid=FALSE)
+ function groupstable(&$mod, &$tplvars, $id, $obname, $returnid,  $icondn,$iconup,
+	$item_id, &$groups, $relations=FALSE, $dodrag=FALSE, $dosort=FALSE, $tableid=FALSE)
  {
 	$r = 0;
 	$rc = count($groups) - 1; //last index
@@ -19,18 +18,14 @@ if(!function_exists('groupstable'))
 	$target = ($obname == 'members') ? 'child':'parent';
 	$rows = array();
 	//NOTE action.sortlike table-data creation must conform with this
-	foreach($groups as $k=>&$name)
-	{
+	foreach ($groups as $k=>&$name) {
 		$one = new stdClass();
 		$one->name = $name;
-		if($r == 0)
-		{
+		if ($r == 0) {
 			$one->uplink = '';
 			$one->dnlink = '';
 			$prevk = $k;
-		}
-		else
-		{
+		} else {
 			//TODO action.swapgroups would work better with a $params['active_tab'] for returning!
 			//TODO mechanism to incrementally [de]select items and re-arrange the current selected bundle
 			$one->uplink = $mod->CreateLink($id,'swapgroups',$returnid,$iconup,
@@ -38,10 +33,10 @@ if(!function_exists('groupstable'))
 			$rows[$r-1]->dnlink = $mod->CreateLink($id,'swapgroups',$returnid,$icondn,
 				array('item_id'=>$prevk,'next_item_id'=>$k,'ref_id'=>$item_id,'change'=>$target));
 			$prevk = $k;
-			if($r == $rc)
+			if ($r == $rc)
 				$one->dnlink = '';
 		}
-		if($sel)
+		if ($sel)
 			$m = (array_search($k,$relations) !== FALSE) ? $k:-1;
 		else
 			$m = -1;
@@ -52,7 +47,7 @@ if(!function_exists('groupstable'))
 	unset($name);
 	$c = count($rows);
 	$tplvars['rc'] = $c;
-	if($c > 1)
+	if ($c > 1)
 		$tplvars['selectall'] = $mod->CreateInputCheckbox($id,'selectall',1,-1);
 	else
 		$tplvars['selectall'] = '';
@@ -65,8 +60,7 @@ if(!function_exists('groupstable'))
  }
 }
 
-if(!function_exists('groupsupdate'))
-{
+if (!function_exists('groupsupdate')) {
 /*
  Update relevant data in GroupTable
 
@@ -77,9 +71,9 @@ if(!function_exists('groupsupdate'))
   or FALSE if is child (for which we're processing group(s))
  $sel array of id's of group members (if $parent TRUE) or else groups in which $item_is placed
 */
- function groupsupdate(&$mod,&$db,$item_id,$parent,$sel)
+ function groupsupdate(&$mod, &$db, $item_id, $parent, $sel)
  {
-	if(!$sel)
+	if (!$sel)
 		return;
 	$o = 1;	//reordered-row ordinator
 	$os = 1; //appended-row offsetter
@@ -87,52 +81,35 @@ if(!function_exists('groupsupdate'))
 	$sortby = ($parent) ? 'likeorder':'proximity';
 	$current = $db->GetAssoc("SELECT * FROM $mod->GroupTable WHERE $getby=? ORDER BY $sortby",array($item_id));
 	$new = array();
-	if($parent) //we're processing members of group $item_id
-	{
-		foreach($sel as $oneid)
-		{
-			if($current)
-			{
+	if ($parent) { //we're processing members of group $item_id
+		foreach ($sel as $oneid) {
+			if ($current) {
 				$p = rowof($current,$oneid,$item_id);
-				if ($p > 0)
-				{
+				if ($p > 0) {
 					$p = $current[$p]['proximity'];
-				}
-				else
-				{
+				} else {
 //				$p = maxfield($current,'proximity','child',$oneid) + $os++;
 					$p = Booker::MINGRPID + $os++;
 				}
-			}
-			else
-			{
+			} else {
 //			$p = maxfield($current,'likeorder','child',$oneid) + $os++;
 				$p = Booker::MINGRPID + $os++;
 			}
 			//add new member in lowest likeorder
 			$new[] = array('child'=>$oneid,'parent'=>$item_id,'likeorder'=>$o++,'proximity'=>$p);
 		}
-	}
-	else //we're processing groups of which $item_id is a member
-	{
-		foreach($sel as $oneid)
-		{
-			if($current)
-			{
+	} else { //we're processing groups of which $item_id is a member
+		foreach ($sel as $oneid) {
+			if ($current) {
 				$p = rowof($current,$item_id,$oneid);
-				if ($p > 0)
-				{
+				if ($p > 0) {
 					$p = $current[$p]['likeorder'];
-				}
-				else
-				{
+				} else {
 					//add new group with highest/closest proximity
 					//$p = maxfield($current,'likeorder','parent',$oneid) + $os++;
 					$p = Booker::MINGRPID + $os++;
 				}
-			}
-			else
-			{
+			} else {
 				//add new group with highest/closest proximity
 				//$p = maxfield($current,'proximity','parent',$oneid) + $os++;
 				$p = Booker::MINGRPID + $os++;
@@ -142,45 +119,37 @@ if(!function_exists('groupsupdate'))
 	}
 	$db = $mod->dbHandle;
 	$nt = 10;
-	while($nt > 0)
-	{
+	while ($nt > 0) {
 		$db->Execute('SET TRANSACTION ISOLATION LEVEL SERIALIZABLE'); //this isn't perfect!
 		$db->StartTrans();
-		if($current)
-		{
+		if ($current) {
 			$db->Execute("DELETE FROM $mod->GroupTable WHERE $getby=?",array($item_id)); //start afresh
 		}
-		if($new)
-		{
+		if ($new) {
 			$sql = 'INSERT INTO '.$mod->GroupTable.' (child,parent,likeorder,proximity) VALUES (?,?,?,?)';
-			foreach($new as &$row)
-			{
+			foreach ($new as &$row) {
 				$db->Execute($sql,array($row['child'],$row['parent'],$row['likeorder'],$row['proximity']));
 			}
 			unset($row);
 		}
-		if($db->CompleteTrans())
+		if ($db->CompleteTrans())
 			break;
-		else
-		{
+		else {
 			$nt--;
 			usleep(50000);
 		}
 	}
 
-	if($current || $new)
-	{
+	if ($current || $new) {
 		$funcs = new Booker\Shared();
 		$funcs->OrderGroups($mod,$db);
 	}
  }
 
- function rowof(&$current,$c,$p)
+ function rowof(&$current, $c, $p)
  {
-	foreach($current as $k=>&$row)
-	{
-		if($row['child'] == $c && $row['parent'] == $p)
-		{
+	foreach ($current as $k=>&$row) {
+		if ($row['child'] == $c && $row['parent'] == $p) {
 			unset($row);
 			return $k;
 		}
@@ -189,15 +158,13 @@ if(!function_exists('groupsupdate'))
 	return 0;
  }
  //find max value of field $check where field $type = $oneid
-/* function maxfield(&$current,$check,$type,$oneid)
+/* function maxfield(&$current, $check, $type, $oneid)
  {
  	$max = -1;
-	foreach($current as &$row)
-	{
-		if($row[$type] == $oneid)
-		{
+	foreach ($current as &$row) {
+		if ($row[$type] == $oneid) {
 			$m = $row[$check];
-			if($m > $max)
+			if ($m > $max)
 				$max = $m;
 		}
 	}
@@ -210,125 +177,99 @@ if(!function_exists('groupsupdate'))
 $item_id = (int)$params['item_id'];
 $is_group = ($item_id >= Booker::MINGRPID || $item_id == -Booker::MINGRPID);
 $act = $params['action'];
-if(isset($params['active_tab']))
-{
+if (isset($params['active_tab'])) {
 	$seetab = $params['active_tab'];
 	unset($params['active_tab']);
-}
-else
+} else
 	$seetab = 'basic'; //default to show this tab
 
 //feedback-message-accumulator
-if(isset($params['message']))
+if (isset($params['message']))
 	$msg = $params['message'];
 else
 	$msg = '';
 
-if(isset($params['apply']) || isset($params['submit']))
-{
+if (isset($params['apply']) || isset($params['submit'])) {
 	//===== FIELD CLEANUPS TO SUIT PRE-SAVE CONVERSION =====
 	unset($params['action']);
-	if(isset($params['apply']))
-	{
+	if (isset($params['apply'])) {
 		unset($params['apply']);
 		$act = 'edit';
-	}
-	else
-	{
+	} else {
 		unset($params['submit']);
 		$act = 'submit';
 	}
 	//============ DATA CLEANUPS =============
-	if($params['name'] == FALSE)
+	if ($params['name'] == FALSE)
 		$params['name'] = '<'.$this->Lang('noname').$item_id.'>';
-	elseif($params['alias'] == FALSE)
+	elseif ($params['alias'] == FALSE)
 		$params['alias'] = strtolower(soundex($params['name']));
-	if(isset($params['owner']) && $params['owner'] == FALSE) //list-selector value 0 is returned as ''
+	if (isset($params['owner']) && $params['owner'] == FALSE) //list-selector value 0 is returned as ''
 			$params['owner'] = 0;
-	if(!isset($params['active']))
+	if (!isset($params['active']))
 		$params['active'] = 0;
 	//group members
 	//if present, is ordered array of strings, each value being a member's item_id
 	//like $params['members'] = array(0 => string '21', 1 => string '1')
 	//if not, no member selected
-	if(isset($params['members']))
-	{
+	if (isset($params['members'])) {
 		$members = $params['members'];
 		unset($params['members']);
-	}
-	else
+	} else
 		$members = FALSE; //option not in use, or no member selected
-	if($item_id >= Booker::MINGRPID)
-	{
-		if($members)
-		{
+	if ($item_id >= Booker::MINGRPID) {
+		if ($members) {
 			groupsupdate($this,$db,$item_id,TRUE,$members);
-		}
-		else
-		{
+		} else {
 			$sql = 'DELETE FROM '.$this->GroupTable.' WHERE parent=?';
 			$db->Execute($sql,array($item_id));
 		}
 	}
 	//(parent) groups
-	if(isset($params['ingroups']))
-	{
+	if (isset($params['ingroups'])) {
 		$groups = $params['ingroups'];
 		unset($params['ingroups']);
-	}
-	else
+	} else
 		$groups = FALSE; //option not in use, or no group selected
-	if($groups)
-	{
-		if($members)
+	if ($groups) {
+		if ($members)
 			$groups = array_diff($groups,$members);//filter out any common values
-		if($groups)
+		if ($groups)
 			groupsupdate($this,$db,$item_id,FALSE,$groups);
-	}
-	elseif($item_id > 0 && $item_id < Booker::MINGRPID)
-	{
+	} elseif ($item_id > 0 && $item_id < Booker::MINGRPID) {
 		$sql = 'DELETE FROM '.$this->GroupTable.' WHERE child=?';
 		$db->Execute($sql,array($item_id));
 	}
 	//stylesfile
-	if(isset($params['stylesdelete']))
-	{
+	if (isset($params['stylesdelete'])) {
 		$fp = $config['uploads_path'];
-		if($fp && is_dir($fp))
-		{
+		if ($fp && is_dir($fp)) {
 			$ud = $this->GetPreference('pref_uploadsdir','');
-			if($ud)
+			if ($ud)
 				$fp = cms_join_path($fp,$ud,$params['oldstyles']);
 			else
 				$fp = cms_join_path($fp,$params['oldstyles']);
-			if(is_file($fp))
+			if (is_file($fp))
 				unlink($fp);
 		}
 		unset($params['stylesdelete']);
 	}
 	$t = $id.'stylesfile';
-	if (isset($_FILES) && isset($_FILES[$t]))
-	{
+	if (isset($_FILES) && isset($_FILES[$t])) {
 		$file_data = $_FILES[$t];
-		if($file_data['name'])
-		{
-		 	if($file_data['error'] != 0)
+		if ($file_data['name']) {
+		 	if ($file_data['error'] != 0)
 				$umsg = $this->Lang('err_upload',$this->Lang('err_system'));
-			else
-			{
+			else {
 				$parts = explode('.',$file_data['name']);
 				$ext = end($parts);
 				if ($file_data['type'] != 'text/css'
 				 || !($ext == 'css' || $ext == 'CSS')
-				 || $file_data['size'] <= 0 || $file_data['size'] > 2048) //plenty big enough in this context
-				{
+				 || $file_data['size'] <= 0 || $file_data['size'] > 2048) { //plenty big enough in this context
 					$umsg = $this->Lang('err_upload',$this->Lang('err_file'));
-				}
-				else
-				{
+				} else {
 					$h = fopen($file_data['tmp_name'],'r');
-					if ($h)
-					{
+					if ($h) {
 						//basic validation of file-content
 						$content = fread($h,512);
 						fclose($h);
@@ -337,101 +278,81 @@ if(isset($params['apply']) || isset($params['submit']))
 						elseif (!preg_match('/\.bkgitem/',$content))
 							$umsg = $this->Lang('err_upload',$this->Lang('err_file'));
 						unset($content);
-					}
-					else
+					} else
 						$umsg = $this->Lang('err_upload',$this->Lang('err_perm'));
 				}
-				if (empty($umsg))
-				{
+				if (empty($umsg)) {
 					$fp = $config['uploads_path'];
-					if($fp && is_dir($fp))
-					{
+					if ($fp && is_dir($fp)) {
 						$ud = $this->GetPreference('pref_uploadsdir','');
-						if($ud)
+						if ($ud)
 							$fp = cms_join_path($fp,$ud,$file_data['name']);
 						else
 							$fp = cms_join_path($fp,$file_data['name']);
 						if (// !chmod($file_data['tmp_name'],0644) ||
-							!cms_move_uploaded_file($file_data['tmp_name'],$fp))
-						{
+							!cms_move_uploaded_file($file_data['tmp_name'],$fp)) {
 							$umsg = $this->Lang('err_upload',$this->Lang('err_perm'));
 						}
-					}
-					else
+					} else
 						$umsg = $this->Lang('err_upload',$this->Lang('err_system'));
 				}
 			}
 			if (empty($umsg))
 				$params['stylesfile'] = $file_data['name'];
-			else
-			{
+			else {
 				$msg .= '<br />'.$umsg;
 				$params['stylesfile'] = $params['oldstyles'];
 			}
 
-		}
-		else
-		{
+		} else {
 //TODO adding file	$params['stylesfile'] = $params['oldstyles'];
 		}
 	}
 	unset($params['stylessel']);
 	unset($params['oldstyles']);
 	$t = $id.'imgfile';
-	if (isset($_FILES) && isset($_FILES[$t]))
-	{
+	if (isset($_FILES) && isset($_FILES[$t])) {
 		$file_data = $_FILES[$t];
-		if($file_data['name'])
-		{
-		 	if($file_data['error'] != 0)
+		if ($file_data['name']) {
+		 	if ($file_data['error'] != 0)
 				$umsg = $this->Lang('err_upload',$this->Lang('err_system'));
-			else
-			{
+			else {
 				$fp = $config['uploads_path'];
-				if($fp && is_dir($fp))
-				{
+				if ($fp && is_dir($fp)) {
 					$ud = $this->GetPreference('pref_uploadsdir','');
-					if($ud)
+					if ($ud)
 						$fp = cms_join_path($fp,$ud,$file_data['name']);
 					else
 						$fp = cms_join_path($fp,$file_data['name']);
 					if (// !chmod($file_data['tmp_name'],0644) ||
-						!cms_move_uploaded_file($file_data['tmp_name'],$fp))
-					{
+						!cms_move_uploaded_file($file_data['tmp_name'],$fp)) {
 						$umsg = $this->Lang('err_upload',$this->Lang('err_perm'));
 					}
-				}
-				else
+				} else
 					$umsg = $this->Lang('err_upload',$this->Lang('err_system'));
 			}
-			if (!empty($umsg))
-			{
+			if (!empty($umsg)) {
 				$msg .= '<br />'.$umsg;
 			}
 		}
 	}
 	unset($params['imgsel']);
 
-	if($item_id == -1)
-	{
+	if ($item_id == -1) {
 		$params['item_id'] = $db->GenID($this->ItemTable.'_seq');
 		$data = array_keys($params);
 		$fields = implode(',',$data);
 		$data = array_values($params);
 		$placer = str_repeat('?,',count($data)-1).'?';
 		$sql = 'INSERT INTO '.$this->ItemTable." ($fields) VALUES ($placer)";
-	}
-	elseif($item_id == -Booker::MINGRPID)
-	{
+	} elseif ($item_id == -Booker::MINGRPID) {
 		$params['item_id'] = $db->GenID($this->ItemTable.'_gseq');
 		$data = array_keys($params);
 		$fields = implode(',',$data);
 		$data = array_values($params);
 		$placer = str_repeat('?,',count($data)-1).'?';
 		$sql = 'INSERT INTO '.$this->ItemTable." ($fields) VALUES ($placer)";
-	}
-	else
-	{
+	} else {
 		unset($params['item_id']);
 		$data = array_keys($params);
 		$fields = implode('=?,',$data).'=?';
@@ -440,18 +361,16 @@ if(isset($params['apply']) || isset($params['submit']))
 		$sql = 'UPDATE '.$this->ItemTable." SET $fields WHERE item_id=?";
 	}
 	//cleanup
-	foreach($data as &$val)
-	{
-		if(is_numeric($val))
+	foreach ($data as &$val) {
+		if (is_numeric($val))
 			$val = $val + 0; //cast to number
-		elseif($val == '')
+		elseif ($val == '')
 			$val = NULL;
 	}
 	unset($val);
 	$db->Execute($sql,$data);
 }
-if(isset($params['cancel']) || $act == 'submit')
-{
+if (isset($params['cancel']) || $act == 'submit') {
 	$t = ($is_group) ? 'groups':'items';
 	$this->Redirect($id,'defaultadmin','',array('active_tab'=>$t));
 }
@@ -461,24 +380,20 @@ $funcs = new Booker\Shared();
 //$item = $funcs->GetItem($this,$item_id,FALSE);
 $sql = 'SELECT * FROM '.$this->ItemTable.' WHERE item_id=?';
 $row = $db->GetRow($sql,array($item_id));
-if ($row)
-{
+if ($row) {
 	$item = (object) $row;
 	//cleanups
 	$item->item_id = (int)$item_id;
-	if($item->stylesfile && !$funcs->GetStylesURL($this,$item->item_id,FALSE)) //styles file must be there
+	if ($item->stylesfile && !$funcs->GetStylesURL($this,$item->item_id,FALSE)) //styles file must be there
 		$item->stylesfile = '';
-	if($act == 'copy')
-	{
+	if ($act == 'copy') {
 		$item_id = ($is_group) ? -Booker::MINGRPID : -1;
 		$item->item_id = $item_id;
 		$item->name = $this->Lang('copied',$item->name);
 		$item->alias = '';
 		$item->owner = 0; //OR 'me' ?
 	}
-}
-else
-{
+} else {
 	//postgres supported pre-1.11
 	$stype = (preg_match('/mysql/i',$config['dbms'])) ? '=DATABASE()':' IN (SELECT current_database())';
 	$sql =<<<EOS
@@ -489,8 +404,9 @@ EOS;
 	$rows = $db->GetAll($sql);
 	$item = new stdClass();
 	//object-members which represent inheritable values are NULL'd, if allowed
-	foreach($rows as $one)
+	foreach ($rows as $one) {
 		$item->{$one['column_name']} = (stripos($one['is_nullable'],'Y') !== FALSE) ? NULL:'';
+	}
 	$item->item_id = $item_id; //-1 or -MINGRPID
 	$item->active = 1;
 }
@@ -514,8 +430,7 @@ $pmod = ($act == 'see') ? FALSE :
 || ($act == 'edit' && $this->_CheckAccess('modify'))
 || (($act == 'add' || $act == 'copy') && $this->_CheckAccess('add'));
 
-if(!$pmod)
-{
+if (!$pmod) {
 	//avoid empty strings in displayed text
 	$none = $this->Lang('none');
 	$nolimit = $this->Lang('nolimit');
@@ -569,9 +484,9 @@ $basic = array();
 $advanced = array();
 $formats = array();
 //------- active
-if($pmod)
+if ($pmod)
 	$i = $this->CreateInputCheckbox($id,'active','1',$item->active);
-elseif($item->active)
+elseif ($item->active)
 	$i = $yes;
 else
 	$i = $no;
@@ -582,11 +497,11 @@ $basic[] = array('ttl'=>$this->Lang('title_active'),
 );
 //------- name
 $t = $this->Lang('title_name');
-if($pmod)
+if ($pmod)
 	$t .= ' ('.$this->Lang('short_length').')';
-if($pmod)
+if ($pmod)
 	$i = $this->CreateInputText($id, 'name', $item->name, 40, 64);
-elseif($item->name)
+elseif ($item->name)
 	$i = $item->name;
 else
 	$i = $none;
@@ -599,9 +514,9 @@ $basic[] = array('ttl'=>$t,
 'hlp'=>$h
 );
 //------- description
-if($pmod)
+if ($pmod)
 	$i = $this->CreateTextArea(TRUE,$id,$item->description,'description','','','','',80,5,'','','style="height:12em;"');
-elseif($item->description)
+elseif ($item->description)
 	$i = $funcs->StripTags($item->description,$cleartypes);
 else
 	$i = $none;
@@ -611,48 +526,39 @@ $basic[] = array('ttl'=>$this->Lang('title_long_desc'),
 'hlp'=>$h
 );
 //------- image
-if($pmod)
-{
+if ($pmod) {
 	$i = $this->CreateInputText($id,'image',$item->image,60,128);
 	$files = $funcs->GetUploadedFiles($this,'jpg,jpeg,gif,png,svg');
-	if($files)
-	{
+	if ($files) {
 		$files = array_combine($files,$files); //keys match values
 		$files = array_merge(array($this->Lang('select')=>''),$files);
 		$i .= '<br />'.$this->CreateInputDropdown($id,'imgsel',$files,-1,-1,'onchange="imgfile_selected(this)"'); //TODO onchange set textinput if empty
 	}
 	$i .= '<br />'.$this->CreateInputFile($id,'imgfile','image/*',30,'id="'.$id.'imgfile" title="'.
 		$this->Lang('tip_upload').'" onchange="imgfile_selected(this)"');
-	if($item->image && $files)
+	if ($item->image && $files)
 		$i .= ' '.$this->CreateInputCheckbox($id,'imgdelete',1,-1).'&nbsp;'.$this->Lang('delete_upload',$item->image);
-}
-elseif($item->image)
-{
+} elseif ($item->image) {
 	$t = $funcs->GetImageURLs($this,$item->image,$item->name);
-	if($t)
-	{
+	if ($t) {
 		$i = '';
-		foreach($t as &$one)
-		{
+		foreach ($t as &$one) {
 			$i .= '  <img src="'.$one->url.'" style="width:50px;height:50px;" />';
 		}
 		unset($one);
-	}
-	else
+	} else
 		$i = $this->Lang('missing_type',$this->Lang('file'));
-}
-else
+} else
 	$i = $none;
 $basic[] = array('ttl'=>$cascade.$this->Lang('title_image'),
 'inp'=>$i,
 'hlp'=>$this->Lang('help_image')
 );
 //------- membersname
-if($is_group)
-{
-	if($pmod)
+if ($is_group) {
+	if ($pmod)
 		$i = $this->CreateInputText($id,'membersname',$item->membersname,25,32);
-	elseif($item->membersname)
+	elseif ($item->membersname)
 		$i = $item->membersname;
 	else
 		$i = $none;
@@ -663,14 +569,11 @@ if($is_group)
 }
 //------- slotcount, slottype (c.f. TimeIntervals())
 $alltypes = explode(',',$this->Lang('periods')); //'minute,hour,day,week,month,year'
-if($pmod)
-{
+if ($pmod) {
 	$alltypes = array_flip($alltypes);
 	$i = $this->CreateInputText($id,'slotcount',$item->slotcount,6,6).'&nbsp;'.
 		$this->CreateInputDropdown($id,'slottype',$alltypes,-1,$item->slottype);
-}
-else
-{
+} else {
 	$i = $item->slotcount.' '.$alltypes[$item->slottype];
 }
 $basic[] = array('ttl'=>$cascade.$this->Lang('title_slotlength'),
@@ -679,9 +582,9 @@ $basic[] = array('ttl'=>$cascade.$this->Lang('title_slotlength'),
 'hlp'=>NULL //$this->Lang('help_slotlength')
 );
 //------- max slots per booking
-if($pmod)
+if ($pmod)
 	$i = $this->CreateInputText($id,'bookcount',$item->bookcount,3,3);
-elseif($item->bookcount)
+elseif ($item->bookcount)
 	$i = $item->bookcount;
 else
 	$i = $nolimit;
@@ -692,16 +595,14 @@ $basic[] = array('ttl'=>$cascade.$this->Lang('title_bookcount'),
 //------- fees
 $sql = 'SELECT description,fee,feecondition FROM '.$this->PayTable.' WHERE item_id=? AND active=1 ORDER BY condorder';
 $sel = $db->GetAll($sql,array($item_id));
-if($sel)
-{
+if ($sel) {
 	$fees = array();
-	foreach($sel as &$one)
-	{
+	foreach ($sel as &$one) {
 		$oneset = new stdClass();
 		$oneset->desc = $one['description'];
 		$oneset->fee = $one['fee'];
 		$t = $one['feecondition'];
-		if(!$t)
+		if (!$t)
 			$t = $this->Lang('always');
 		$oneset->cond = $t;
 		$fees[] = $oneset;
@@ -711,14 +612,12 @@ if($sel)
 	$i = Booker\Shared::ProcessTemplate($this,'brieffees.tpl',$tplvars);
 	$t = $this->Lang('edit');
 	$h = $this->Lang('help_fee');
-}
-else
-{
+} else {
 	$i = $this->Lang('nofees').'<br />';
 	$t = $this->Lang('addfee');
 	$h = NULL;
 }
-if($pmod)
+if ($pmod)
 	$i .= '<br />'.$this->CreateInputSubmit($id,'modfee',$t,
 		'onclick="current_tab();return confirm(\''.$this->Lang('allsaved').'\');"');
 $basic[] = array('ttl'=>$cascade.$this->Lang('title_feeusage'),
@@ -727,13 +626,10 @@ $basic[] = array('ttl'=>$cascade.$this->Lang('title_feeusage'),
 );
 //============ ADVANCED TAB
 //------- alias
-if($pdev && $pmod)
-{
+if ($pdev && $pmod) {
 	$i = $this->CreateInputText($id,'alias',$item->alias,20,24);
 	$h = $this->Lang('help_alias',$s);
-}
-else
-{
+} else {
 	if ($item->alias)
 		$i = $item->alias;
 	else
@@ -745,15 +641,12 @@ $advanced[] = array('ttl'=>$this->Lang('title_alias',$s),
 'hlp'=>$h
 );
 //------- keywords
-if($pdev && $pmod)
-{
+if ($pdev && $pmod) {
 	$i = $this->CreateTextArea(FALSE,$id,$item->keywords,'keywords','','','','',50,4,'','','style="height:4em;"');
 	$t = ($is_group) ? $this->Lang('title_groups'):$this->Lang('title_items');
 	$t = mb_convert_case($t,MB_CASE_LOWER);
 	$h = $this->Lang('help_keywords',$t);
-}
-else
-{
+} else {
 	if ($item->keywords)
 		$i = $item->keywords;
 	else
@@ -765,54 +658,48 @@ $advanced[] = array('ttl'=>$cascade.$this->Lang('title_keywords'),
 'hlp'=>$h
 );
 //------- members
-if($is_group)
-{
+if ($is_group) {
 	//to keep things manageable, we allow non-member groups to be added to this one,
 	//but not so for non-groups. any current member (group or resouce) can be de-selected
 	$sql = 'SELECT item_id,name FROM '.$this->ItemTable.' WHERE item_id>='.Booker::MINGRPID.' AND item_id<>? ORDER BY name';
 	$allgrps = $db->GetAssoc($sql,array($item_id));
-	if($item_id > 0) //i.e. not new
-	{
+	if ($item_id > 0) { //i.e. not new
 		$sql = 'SELECT child FROM '.$this->GroupTable.' WHERE parent=? ORDER BY likeorder';
 		$relations = $db->GetCol($sql,array($item_id));
 		$rc = count($relations);
-		if($rc > 0)
-		{
+		if ($rc > 0) {
 			$t = implode(',',$relations);
 			$sql = 'SELECT item_id,name FROM '.$this->ItemTable.' WHERE item_id IN('.$t.')';
 			$sel = $db->GetAssoc($sql);
-			if ($pmod && $padm)
-			{
-				foreach($sel as $k=>$name)
+			if ($pmod && $padm) {
+				foreach ($sel as $k=>$name) {
 					unset($allgrps[$k]);
+				}
 				//rest are still alphabetic by name
 				$allgrps = $sel + $allgrps;
 				//TODO send 'active_tab' as a $param to action.swapgroups				
 				$i = groupstable($this,$tplvars,$id,'members',$returnid,$icondn,$iconup,
 					$item_id,$allgrps,$relations,TRUE,TRUE,'members');
-				if($rc > 1) //TODO send 'active_tab' as a $param to action.swapgroups
+				if ($rc > 1) //TODO send 'active_tab' as a $param to action.swapgroups
 					$i .= '  '.$this->CreateInputSubmit($id,'sortlike',$this->Lang('sort'),
 						'title="'.$this->Lang('tip_sortchilds').'" style="display:none;"'); //button shown by runtime js
-			}
-			elseif($sel)
+			} elseif ($sel)
 				$i = implode(', ',$sel);
 			else
 				$i = $none;
-		}
-		elseif($pmod && $padm) //editing old item
+		} elseif ($pmod && $padm) //editing old item
 			//create table, alphabetic by groupname, each row has name, unchecked checkbox
 			$i = groupstable($this,$tplvars,$id,'members',$returnid,$icondn,$iconup,
 				$item_id,$allgrps,FALSE,TRUE,TRUE,'members');
 		else //viewing old item
 			$i = $none;
-	}
-	elseif($pmod && $padm) //editing new item
+	} elseif ($pmod && $padm) //editing new item
 		//create table, alphabetic by groupname, each row has name, unchecked checkbox
 		$i = groupstable($this,$tplvars,$id,'members',$returnid,$icondn,$iconup,
 			$item_id,$allgrps,FALSE,TRUE,TRUE,'members');
 	else //viewing new item - should never happen
 		$i = $none;
-	if(count($allgrps) > 1)
+	if (count($allgrps) > 1)
 		$h = $this->Lang('help_members2').
 		'<span class="dndhelp">'.$this->Lang('help_dnd').'</span>'.
 		$this->Lang('help_members');
@@ -844,7 +731,7 @@ EOS;
 	$u = str_replace('&amp;','&',substr($u,$offs+1));
 
 	$jsloads[] = <<<EOS
- $('#{$id}sortlike').css('display','block').click(function(ev){
+ $('#{$id}sortlike').css('display','block').click(function(ev) {
   var first = $('#members').find('input:checkbox').eq(1).val();
   $.ajax({
    type: 'POST',
@@ -861,21 +748,17 @@ EOS;
 EOS;
 //}
 //------- cleargroup
-//if($is_group)
-//{
-	if($pmod && $padm)
-	{
+//if ($is_group) {
+	if ($pmod && $padm) {
 		$choices = array($inherit=>-1,$no=>0,$yes=>1);
 		$sel = is_null($item->cleargroup) ? -1:(int)$item->cleargroup;
 		$i = $this->CreateInputRadioGroup($id,'cleargroup',$choices,$sel,'','&nbsp;&nbsp;');
 		//override crappy default label-layout
 		$i = preg_replace('~label class="(.*)"~U','label class="\\1 radiolabel"',$i);
-	}
-	else
-	{
-		if($item->cleargroup)
+	} else {
+		if ($item->cleargroup)
 			$i = $yes;
-		elseif(is_null($item->cleargroup))
+		elseif (is_null($item->cleargroup))
 			$i = $inherit;
 		else
 			$i = $no;
@@ -888,54 +771,46 @@ EOS;
 //------- groups
 $sql = 'SELECT item_id,name FROM '.$this->ItemTable.' WHERE item_id>='.Booker::MINGRPID.' AND item_id<>? ORDER BY name';
 $allgrps = $db->GetAssoc($sql,array($item_id));
-if($allgrps)
-{
-	if($item_id > 0) //i.e. not new
-	{
+if ($allgrps) {
+	if ($item_id > 0) { //i.e. not new
 		$sql = 'SELECT parent FROM '.$this->GroupTable.' WHERE child=? ORDER BY proximity';
 		$relations = $db->GetCol($sql,array($item_id));
 		$rc = count($relations);
-		if($rc > 0)
-		{
+		if ($rc > 0) {
 			//get selected items 1st, in order
 			$sel = array();
-			foreach($relations as $k)
-			{
+			foreach ($relations as $k) {
 				$offset = array_search($k,array_keys($allgrps));
 				$sel += array_slice($allgrps,$offset,1,TRUE);
 				unset($allgrps[$k]);
 			}
 			//rest are still alphabetic by name
-			if($pmod && $padm)
-			{
+			if ($pmod && $padm) {
 				$allgrps = $sel + $allgrps;
 				 //TODO send 'active_tab' as a $param to action.swapgroups
  				$i = groupstable($this,$tplvars,$id,'ingroups',$returnid,$icondn,$iconup,
 					$item_id,$allgrps,$relations,TRUE,FALSE,'groups');
-				if($rc > 1)
+				if ($rc > 1)
 					$i .= '  '.$this->CreateInputSubmit($id,'sortlike',$this->Lang('sort'),
 						'title="'.$this->Lang('tip_sortparents').'" style="display:none;"'); //button shown by runtime js
-			}
-			elseif($sel)
+			} elseif ($sel)
 				$i = implode(', ',$sel);
 			else
 				$i = $none;
-		}
-		elseif($pmod && $padm) //editing old item
+		} elseif ($pmod && $padm) //editing old item
 			//create table, alphabetic by groupname, each row has name, unchecked checkbox
 			$i = groupstable($this,$tplvars,$id,'ingroups',$returnid,$icondn,$iconup,
 				$item_id,$allgrps,FALSE,TRUE,FALSE,'groups');
 		else //viewing old item
 			$i = $none;
-	}
-	elseif($pmod && $padm) //editing new item
+	} elseif ($pmod && $padm) //editing new item
 		//create table, alphabetic by groupname, each row has name, unchecked checkbox
 		$i = groupstable($this,$tplvars,$id,'ingroups',$returnid,$icondn,$iconup,
 			$item_id,$allgrps,FALSE,TRUE,FALSE,'groups');
 	else //viewing new item - should never happen
 		$i = $none;
 	$h = $this->Lang('help_groups',$s,$s,$s);
-	if($pmod && count($allgrps) > 1)
+	if ($pmod && count($allgrps) > 1)
 		$h .= '<span class="dndhelp">'.$this->Lang('help_dnd').'</span>';
 	$advanced[] = array('ttl'=>$this->Lang('title_groups2',$s),
 	'inp'=>$i,
@@ -956,7 +831,7 @@ EOS;
  $('p.help').hide();
  $('.dndhelp').css('display','block');
  $('.updown').hide();
- $('input[name^="{$id}sortlike"]').css('display','inline').click(function(ev){
+ $('input[name^="{$id}sortlike"]').css('display','inline').click(function(ev) {
   ev.stopImmediatePropagation();
   ev.preventDefault();
   var \$tbl = $(this).prev('table'),
@@ -966,7 +841,7 @@ EOS;
    url: 'moduleinterface.php',
    data: '{$u}'+what,
    dataType: 'html',
-   success: function(data,status){
+   success: function(data,status) {
     if (status=='success'){
      if (data != ''){
       \$tbl.find('tbody').html(data);
@@ -979,7 +854,7 @@ EOS;
   });
   return false;
  });
- $('img.tipper').css({'display':'inline','padding-left':'10px'}).click(function(){
+ $('img.tipper').css({'display':'inline','padding-left':'10px'}).click(function() {
    $(this).parent().next().next().slideToggle();
  });
  $('table.table_sort').SSsort({
@@ -993,13 +868,13 @@ EOS;
  });
  $('table.table_drag').tableDnD({
   onDragClass: 'row1hover',
-  onDrop: function(table, droprows){
+  onDrop: function(table, droprows) {
    var odd = false,
     oddclass = 'row1',
     evenclass = 'row2',
     droprow = $(droprows)[0],
     name, hname, fullname;
-   $(table).find('tbody tr').each(function(){
+   $(table).find('tbody tr').each(function() {
     name = (odd) ? oddclass : evenclass;
     if (this == droprow){
      name = name+'hover';
@@ -1017,18 +892,18 @@ EOS;
     var to = now.indexOf('hover');
     $(this).attr('class', now.substring(0,to));
  });
- $('#members th > input').click(function(){
+ $('#members th > input').click(function() {
    var chk = $(this).is(':checked');
    $('#members > tbody').find('input[type="checkbox"]').attr('checked',chk);
  });
- $('#members td > input').change(function(){
-  if($(this).is(':checked')){
+ $('#members td > input').change(function() {
+  if ($(this).is(':checked')){
    var v = $(this).val();
    $('#groups td > input[value='+v+']').removeAttr('checked');
   }
  });
- $('#groups td > input').change(function(){
-  if($(this).is(':checked')){
+ $('#groups td > input').change(function() {
+  if ($(this).is(':checked')){
    var v = $(this).val();
    $('#members td > input[value='+v+']').removeAttr('checked');
   }
@@ -1037,9 +912,9 @@ EOS;
 EOS;
 }
 //------- available
-if($pmod)
+if ($pmod)
 	$i = $this->CreateTextArea(FALSE,$id,$item->available,'available','','','','',40,3,'','','style="height:3em;"');
-elseif($item->available)
+elseif ($item->available)
 	$i = $item->available;
 else
 	$i = $this->Lang('always');
@@ -1047,8 +922,7 @@ $advanced[] = array('ttl'=>$cascade.$this->Lang('title_available'),
 'inp'=>$i,
 'hlp'=>$this->Lang('help_intervals')
 );
-if($is_group)
-{
+if ($is_group) {
 //-------- sub-group allocation mode
 	$choices = array(
 		$this->Lang('assignnone')=>Booker::ALLOCNONE,
@@ -1057,13 +931,10 @@ if($is_group)
 		$this->Lang('assignrotate')=>Booker::ALLOCROTE,
 		$this->Lang('assignchoose')=>Booker::ALLOCCHOOSE
 	);
-	if($pmod)
-	{
+	if ($pmod) {
 		$t = (int)$item->subgrpalloc;
 		$i = $this->CreateInputDropdown($id,'subgrpalloc',$choices,-1,$t);
-	}
-	else
-	{
+	} else {
 		$i = array_search($item->subgrpalloc,$choices);
 	}
 	$advanced[] = array('ttl'=>$cascade.$this->Lang('title_subgrpalloc'),
@@ -1080,14 +951,11 @@ unset($alltypes[4]);
 $alltypes[3] = $alltypes[1];
 unset($alltypes[2]);
 unset($alltypes[1]);
-if($pmod)
-{
+if ($pmod) {
 	$alltypes = array_flip($alltypes);
 	$i = $this->CreateInputText($id, 'leadcount', $item->leadcount, 6, 6).'&nbsp;'.
 		$this->CreateInputDropdown($id,'leadtype',$alltypes,-1,$item->leadtype);
-}
-else
-{
+} else {
 	$i = $item->leadcount.' '.$alltypes[$item->leadtype];
 }
 $advanced[] = array('ttl'=>$cascade.$this->Lang('title_lead'),
@@ -1098,14 +966,11 @@ $advanced[] = array('ttl'=>$cascade.$this->Lang('title_lead'),
 $alltypes = explode(',',$this->Lang('periods')); //'minute,hour,day,week,month,year'
 unset($alltypes[0]);
 unset($alltypes[1]);
-if($pmod && $padm)
-{
+if ($pmod && $padm) {
 	$alltypes = array_flip($alltypes);
 	$i = $this->CreateInputText($id,'keepcount',$item->keepcount,6,6).'&nbsp;'.
 		$this->CreateInputDropdown($id,'keeptype',$alltypes,-1,$item->keeptype);
-}
-else
-{
+} else {
 	$i = $item->keepcount.' '.$alltypes[$item->keeptype];
 }
 $advanced[] = array('ttl'=>$cascade.$this->Lang('title_keep'),
@@ -1121,9 +986,9 @@ $advanced[] = array('ttl'=>$cascade.$this->Lang('title_ration'),
 'hlp'=>$this->Lang('help_ration')
 );
 //------- approver
-if($pmod)
+if ($pmod)
 	$i = $this->CreateInputText($id,'approver',$item->approver,30,64);
-elseif($item->approver)
+elseif ($item->approver)
 	$i = $item->approver;
 else
 	$i = $none;
@@ -1132,9 +997,9 @@ $advanced[] = array('ttl'=>$cascade.$this->Lang('approver'),
 'hlp'=>NULL
 );
 //------- contact
-if($pmod)
+if ($pmod)
 	$i = $this->CreateInputText($id,'approvercontact',$item->approvercontact,40,128);
-elseif($item->approvercontact)
+elseif ($item->approvercontact)
 	$i = $item->approvercontact;
 else
 	$i = $none;
@@ -1145,23 +1010,21 @@ $advanced[] = array('ttl'=>$cascade.$this->Lang('approvercontact'),
 //------- owner
 $sql = 'SELECT user_id,first_name,last_name FROM '.$this->UserTable.' WHERE active=1 ORDER BY last_name,first_name';
 $allusers = $db->GetAssoc($sql);
-if($pmod)
-{
-	if($allusers)
-	{
-		foreach($allusers as $k=>&$t)
+if ($pmod) {
+	if ($allusers) {
+		foreach ($allusers as $k=>&$t) {
 			$t = trim($t['first_name'].' '.$t['last_name']);
+		}
 		unset($t);
 	}
 	$allusers = array_flip($allusers);
 	//prepend other choices NB something changes index 0 to '', even if done postflip()
 	$allusers = array(
-	$inherit=>-1,
-	$this->Lang('none')=>0
+		$inherit=>-1,
+		$this->Lang('none')=>0
 	) + $allusers;
 	$i = $this->CreateInputDropdown($id,'owner',$allusers,-1,$item->owner);
-}
-elseif($item->owner)
+} elseif ($item->owner)
 	$i = $allusers[$item->owner];
 else
 	$i = $none;
@@ -1171,14 +1034,12 @@ $advanced[] = array('ttl'=>$cascade.$this->Lang('title_owner2'),
 );
 //------- feugroup (savers)
 $ob = ModuleOperations::get_instance()->get_module_instance('FrontEndUsers');
-if(is_object($ob))
-{
+if (is_object($ob)) {
 	$allusers = $ob->GetGroupList(); //associative array with group names as keys, id's as values
 	unset($ob);
 	$rc = count($allusers);
-	if($pmod)
-	{
-		if($rc)
+	if ($pmod) {
+		if ($rc)
 			ksort($allusers, SORT_NATURAL | SORT_FLAG_CASE);
 /* TODO filter by permissions c.f. for admin users
 		$pref = cms_db_prefix();
@@ -1199,8 +1060,7 @@ EOS;
 */
 		$allusers = array($this->Lang('none')=>0) + $allusers; //prepend 'none'
 		$i = $this->CreateInputDropdown($id,'feugroup',$allusers,-1,$item->feugroup);
-	}
-	elseif($rc && $item->feugroup)
+	} elseif ($rc && $item->feugroup)
 		$i = array_search($item->feugroup,$allusers);
 	else
 		$i = $none;
@@ -1210,9 +1070,9 @@ EOS;
 	);
 }
 //------- payments interface
-if($pmod)
+if ($pmod)
 	$i = $this->CreateInputText($id,'paymentiface',$item->paymentiface,30,48);
-elseif($item->paymentiface)
+elseif ($item->paymentiface)
 	$i = $item->paymentiface;
 else
 	$i = $none;
@@ -1221,9 +1081,9 @@ $advanced[] = array('ttl'=>$cascade.$this->Lang('title_paymentiface').$notyet,
 'hlp'=>$this->Lang('help_paymentiface')
 );
 //------- custom-forms interface
-if($pmod)
+if ($pmod)
 	$i = $this->CreateInputText($id,'formiface',$item->formiface,30,48);
-elseif($item->formiface)
+elseif ($item->formiface)
 	$i = $item->formiface;
 else
 	$i = $none;
@@ -1233,9 +1093,9 @@ $advanced[] = array('ttl'=>$cascade.$this->Lang('title_formiface').$notyet,
 );
 //============ FORMATS TAB
 //------- timezone
-if($pmod)
+if ($pmod)
 	$i = $this->CreateInputText($id, 'timezone', $item->timezone,40,48);
-elseif($item->timezone)
+elseif ($item->timezone)
 	$i = $item->timezone;
 else
 	$i = $none;
@@ -1260,9 +1120,9 @@ $formats[] = array('ttl'=>$cascade.$this->Lang('longitude'),
 'hlp'=>$this->Lang('help_longitude')
 );
 //-------- SMS prefix, pattern
-if($pmod)
+if ($pmod)
 	$i = $this->CreateInputText($id,'smsprefix',$item->smsprefix,4,8);
-elseif($item->smsprefix)
+elseif ($item->smsprefix)
 	$i = $item->smsprefix;
 else
 	$i = $none;
@@ -1270,9 +1130,9 @@ $formats[] = array('ttl'=>$cascade.$this->Lang('title_smsprefix'),
 'inp'=>$i,
 'hlp'=>$this->Lang('help_smsprefix')
 );
-if($pmod)
+if ($pmod)
 	$i = $this->CreateInputText($id,'smspattern',$item->smspattern,20,32);
-elseif($item->smspattern)
+elseif ($item->smspattern)
 	$i = $item->smspattern;
 else
 	$i = $none;
@@ -1281,9 +1141,9 @@ $formats[] = array('ttl'=>$cascade.$this->Lang('title_smspattern'),
 'hlp'=>$this->Lang('help_smspattern')
 );
 //------- dateformat
-if($pmod)
+if ($pmod)
 	$i = $this->CreateInputText($id,'dateformat',$item->dateformat,10,12);
-elseif($item->dateformat)
+elseif ($item->dateformat)
 	$i = $item->dateformat;
 else
 	$i = $none;
@@ -1294,7 +1154,7 @@ $formats[] = array('ttl'=>$cascade.$this->Lang('title_dateformat'),
 //------- timeformat
 if ($pmod)
 	$i = $this->CreateInputText($id,'timeformat',$item->timeformat,8,12);
-elseif($item->timeformat)
+elseif ($item->timeformat)
 	$i = $item->timeformat;
 else
 	$i = $none;
@@ -1303,8 +1163,7 @@ $formats[] = array('ttl'=>$cascade.$this->Lang('title_timeformat'),
 'hlp'=>$this->Lang('help_time')
 );
 //------- listformat
-if($is_group)
-{
+if ($is_group) {
 	$choices = array(
 	$inherit=>-1,
 	$this->Lang('start+user')=>Booker::LISTSU,
@@ -1312,9 +1171,7 @@ if($is_group)
 	$this->Lang('resource+start')=>Booker::LISTRS,
 	$this->Lang('user+start')=>Booker::LISTUS
 	);
-}
-else
-{
+} else {
 	$choices = array(
 	$inherit=>-1,
 	$this->Lang('start+user')=>Booker::LISTSU,
@@ -1322,12 +1179,10 @@ else
 	);
 }
 
-if($pmod)
-{
+if ($pmod) {
 	$i = $this->CreateInputDropdown($id,'listformat',$choices,-1,$item->listformat,
 		'id="'.$id.'listformat" title="'.$this->Lang('tip_listtype').'"');
-}
-else
+} else
 	$i = array_search($item->listformat,$choices);
 $formats[] = array('ttl'=>$cascade.$this->Lang('listformat'),
 'inp'=>$i,
@@ -1337,22 +1192,19 @@ $formats[] = array('ttl'=>$cascade.$this->Lang('listformat'),
 //remember this, to support incremental change
 $hidden .= $this->CreateInputHidden($id,'oldstyles',$item->stylesfile);
 //set explicit id for file input, cuz CMSMS doesn't!
-if($pmod)
-{
+if ($pmod) {
 	$i = $this->CreateInputText($id,'stylesfile',$item->stylesfile,30,36);
 	$files = $funcs->GetUploadedFiles($this,'css');
-	if($files)
-	{
+	if ($files) {
 		$files = array_combine($files,$files); //keys match values
 		$files = array_merge(array($this->Lang('select')=>''),$files);
 		$i .= '<br />'.$this->CreateInputDropdown($id,'stylessel',$files,-1,-1,'onchange="stylefile_selected(this)"'); //TODO onchange set textinput if empty
 	}
 	$i .= '<br />'.$this->CreateInputFile($id,'stylesfile','text/css',36,'id="'.$id.'stylesfile" title="'.
 		$this->Lang('tip_upload').'" onchange="stylefile_selected(this)"');
-	if($item->stylesfile && $files)
+	if ($item->stylesfile && $files)
 		$i .= ' '.$this->CreateInputCheckbox($id,'stylesdelete',1,-1).'&nbsp;'.$this->Lang('delete_upload',$item->stylesfile);
-}
-elseif($item->stylesfile)
+} elseif ($item->stylesfile)
 	$i = $item->stylesfile;
 else
 	$i = $none;
@@ -1371,14 +1223,11 @@ $tplvars += array(
 	'showtip' => $iconinfo
 );
 
-if ($pmod)
-{
+if ($pmod) {
 	$tplvars['apply'] = $this->CreateInputSubmit($id, 'apply', $this->Lang('apply'),'onclick="current_tab()"');
 	$tplvars['submit'] = $this->CreateInputSubmit($id, 'submit', $this->Lang('submit'));
 	$tplvars['cancel'] = $this->CreateInputSubmit($id, 'cancel', $this->Lang('cancel'));
-}
-else
-{
+} else {
 	$tplvars['apply'] = '';
 	$tplvars['submit'] = '';
 	$tplvars['cancel'] = $this->CreateInputSubmit($id, 'cancel', $this->Lang('close'));
@@ -1394,9 +1243,9 @@ function current_tab() {
 }
 function imgfile_selected(el) {
  var sel = el.value;
- if(sel) {
+ if (sel) {
  	var now = $('#{$id}image').val();
-	if(now) {
+	if (now) {
 	  now = now+','+sel;
 	} else {
 	  now = sel;
@@ -1406,9 +1255,9 @@ function imgfile_selected(el) {
 }
 function stylefile_selected(el) {
  var sel = el.value;
- if(sel) {
+ if (sel) {
  	var now = $('#{$id}stylesfile').val();
-	if(now) {
+	if (now) {
 	  now = now+','+sel;
 	} else {
 	  now = sel;
@@ -1419,8 +1268,7 @@ function stylefile_selected(el) {
 
 EOS;
 
-if($jsloads)
-{
+if ($jsloads) {
 	$jsfuncs[] = '$(document).ready(function() {
 ';
 	$jsfuncs = array_merge($jsfuncs,$jsloads);
@@ -1431,4 +1279,3 @@ $tplvars['jsfuncs'] = $jsfuncs;
 $tplvars['jsincs'] = $jsincs;
 
 echo Booker\Shared::ProcessTemplate($this,'openitem.tpl',$tplvars);
-?>

@@ -9,9 +9,9 @@
 # FormBuilder. Copyright (C) 2005-2012 Samuel Goldstein <sjg@cmsmodules.com>
 # More info at http://dev.cmsmadesimple.org/projects/formbuilder
 
-class DispositionBookingRequest extends FieldBase {
-
-	function __construct(&$form_ptr, &$params)
+class DispositionBookingRequest extends FieldBase
+{
+	public function __construct(&$form_ptr, &$params)
 	{
 		parent::__construct($form_ptr, $params);
 //		$mod = $form_ptr->module_ptr;
@@ -25,10 +25,8 @@ class DispositionBookingRequest extends FieldBase {
 		$this->sortable = FALSE;
 	}
 
-	function DisposeForm($returnid)
+	public function DisposeForm($returnid)
 	{
 	}
 
 }
-
-?>

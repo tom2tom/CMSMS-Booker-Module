@@ -20,14 +20,12 @@ class Requestops
 	@mod: reference to current Booker module
 	@req_id: request identifier, or array of them
 	*/
-	private function GetReqData(&$mod,$req_id)
+	private function GetReqData(&$mod, $req_id)
 	{
-		if(is_array($req_id))
-		{
+		if (is_array($req_id)) {
 			$fillers = str_repeat('?,',count($req_id)-1);
 			return $mod->dbHandle->GetAssoc('SELECT * FROM '.$mod->RequestTable.' WHERE req_id IN ('.$fillers.'?)',$req_id);
-		}
-		else
+		} else
 			return $mod->dbHandle->GetAssoc('SELECT * FROM '.$mod->RequestTable.' WHERE req_id=?',array($req_id));
 	}
 
@@ -42,7 +40,7 @@ class Requestops
 	@extra: optional stuff for some types of message, default ''
 	Returns: TODO title & bodies for MessageSender::Send
 	*/
-/*	function SetupMessage(&$mod,&$shares,&$params,$mtype,$custommsg,$extra='')
+/*	public function SetupMessage(&$mod, &$shares, &$params, $mtype, $custommsg, $extra='')
 	{
 		//$mtype = $TODO; //what type of message
 		$idata = $TODO;
@@ -52,22 +50,17 @@ class Requestops
 		$dt = $TODO;
 		$dt->setTimestamp($params['slotstart']);
 		$on = $shares->IntervalFormat($mod,$dt,'D j M');
-		if($overday)
-		{
-			switch($mtype)
-			{
+		if ($overday) {
+			switch ($mtype) {
 			 default:
 				$approvecommon = $mod->Lang('email_approve',$what,$on);
 				$rejectcommon = $mod->Lang('email_reject',$what,$on);
 				$notifycommon = $mod->Lang('email_changed',$what,$on); //ETC
 				$askcommon = $mod->Lang('email_ask',$what,$on);
 			}
-		}
-		else
-		{
+		} else {
 			$at = $dt->format('g:i A');
-			switch($mtype)
-			{
+			switch ($mtype) {
 			 default:
 				$approvecommon = $mod->Lang('email_approveat',$what,$on,$at);
 				$rejectcommon = $mod->Lang('email_rejectat',$what,$on,$at);
@@ -91,72 +84,56 @@ class Requestops
 	@custommsg: text entered by user, to replace square-bracketed content of the message 'template'
 	@extra: optional stuff for some types of message, default ''
 	*/
-	private function MsgParms(&$mod,&$shares,&$bdata,&$idata,$mtype,$custommsg,$extra='')
+	private function MsgParms(&$mod, &$shares, &$bdata, &$idata, $mtype, $custommsg, $extra='')
 	{
 		$overday = ($shares->GetInterval($mod,$idata['item_id'],'slot') >= 84600);
-		switch($mtype)
-		{
+		switch ($mtype) {
 		 case self::MSGAPPROVE:
 			$ktitle = 'email_approve_title';
-			if($overday)
-			{
+			if ($overday) {
 				$kbody1 = 'email_approve';
 				$kbody2 = 'text_approve';
-			}
-			else
-			{
+			} else {
 				$kbody1 = 'email_approveat';
 				$kbody2 = 'text_approveat';
 			}
 			break;
 		 case self::MSGREJECT:
 			$ktitle = 'email_reject_title';
-			if($overday)
-			{
+			if ($overday) {
 				$kbody1 = 'email_reject';
 				$kbody2 = 'text_reject';
-			}
-			else
-			{
+			} else {
 				$kbody1 = 'email_rejectat';
 				$kbody2 = 'text_rejectat';
 			}
 			break;
 		 case self::MSGCHANGED:
 			$ktitle = 'email_changed_title';
-			if($overday)
-			{
+			if ($overday) {
 				$kbody1 = 'email_changed';
 				$kbody2 = 'text_change';
-			}
-			else
-			{
+			} else {
 				$kbody1 = 'email_changedat';
 				$kbody2 = 'text_changeat';
 			}
 		 	break;
 		 case self::MSGCANCELLED:
 			$ktitle = 'email_cancelled_title';
-			if($overday)
-			{
+			if ($overday) {
 				$kbody1 = 'email_cancel';
 				$kbody2 = 'text_cancel';
-			}
-			else
-			{
+			} else {
 				$kbody1 = 'email_cancelat';
 				$kbody2 = 'text_cancelat';
 			}
 			break;
 		 case self::MSGINFO:
 			$ktitle = 'email_ask_title';
-			if($overday)
-			{
+			if ($overday) {
 				$kbody1 = 'email_ask';
 				$kbody2 = 'text_ask';
-			}
-			else
-			{
+			} else {
 				$kbody1 = 'email_askat';
 				$kbody2 = 'text_askat';
 			}
@@ -177,8 +154,7 @@ class Requestops
 		$textparms = array('prefix'=>$idata['smsprefix'],'pattern'=>$idata['smspattern']);
 		$mailparms = array('subject'=>$mod->Lang($ktitle));
 		$tweetparms = array();
-		if($overday)
-		{
+		if ($overday) {
 			$msg = $mod->Lang($kbody1,$what,$on);
 			$msg = preg_replace('/\[.*\]/',$custommsg,$msg);
 			$mailparms['body'] = $msg;
@@ -186,9 +162,7 @@ class Requestops
 			$msg = preg_replace('/\[.*\]/',$custommsg,$msg);
 			$textparms['body'] = $msg;
 			$tweetparms['body'] = $msg;
-		}
-		else
-		{
+		} else {
 			$at = $dts->format('g:i A');
 			$msg = $mod->Lang($kbody1,$what,$on,$at);
 			$msg = preg_replace('/\[.*\]/',$custommsg,$msg);
@@ -210,11 +184,10 @@ class Requestops
 	@custommsg: text entered by user, to replace square-bracketed content of the approval-message 'template'
 	Returns: 2-member array, 1st is T/F indicating success, 2nd '' or error message
 	*/
-	public function ApproveReq(&$mod,$req_id,$custommsg)
+	public function ApproveReq(&$mod, $req_id, $custommsg)
 	{
 		$rows = self::GetReqData($mod,$req_id);
-		if($rows)
-		{
+		if ($rows) {
 			$db = $mod->dbHandle;
 			$shares = new Shared();
 			$sched = new Schedule();
@@ -222,10 +195,8 @@ class Requestops
 			krsort($rows,SORT_NUMERIC); //reverse, so groups-first
 			$m = -900; //unmatchable
 			$collect = array();
-			foreach($rows as $id=>&$one)
-			{
-				switch($one['status'])
-				{
+			foreach ($rows as $id=>&$one) {
+				switch ($one['status']) {
 				 case \Booker::STATDEL:
 				 case \Booker::STATCHG: //TODO setup replacement
 					 $sql = 'DELETE FROM '.$mod->RequestTable.' WHERE req_id=?';
@@ -242,11 +213,9 @@ class Requestops
 //				 case \Booker::STATERR: retry this
 					break;
 				 default:
-					if($id != $m)
-					{
-						if($collect)
-						{
-							if($m < \Booker::MINGRPID)
+					if ($id != $m) {
+						if ($collect) {
+							if ($m < \Booker::MINGRPID)
 								$sched->ScheduleResource($mod,$shares,$m,$collect);
 							else
 								$sched->ScheduleGroup($mod,$shares,$m,$collect);
@@ -259,9 +228,8 @@ class Requestops
 				}
 			}
 			unset($one);
-			if($collect)
-			{
-				if($m < \Booker::MINGRPID)
+			if ($collect) {
+				if ($m < \Booker::MINGRPID)
 					$sched->ScheduleResource($mod,$shares,$m,$collect);
 				else
 					$sched->ScheduleGroup($mod,$shares,$m,$collect);
@@ -269,28 +237,26 @@ class Requestops
 			//record updated status
 			$sql = 'UPDATE '.$mod->RequestTable.' SET status=? WHERE req_id=?';
 			$db->StartTrans();
-			foreach($rows as $id=>&$one)
+			foreach ($rows as $id=>&$one) {
 				$db->Execute($sql,array($one['status'],$id));
+			}
 			$db->CompleteTrans(); //ignore any problem e.g. deleted
 			unset($one);
 
 			$ob = cms_utils::get_module('Notifier');
-			if($ob)
-			{
+			if ($ob) {
 				unset($ob);
 				//notify lodger
 				$funcs = new \MessageSender();
 				$fails = array();
 
-				foreach($rows as $id=>&$one)
-				{
-					switch($one['status'])
-					{
+				foreach ($rows as $id=>&$one) {
+					switch ($one['status']) {
 					 case \Booker::STATNONE:
 						$idata = $shares->GetItemProperty($mod,$one['item_id'],'*');
 						list($from,$to,$textparms,$mailparms,$tweetparms) = self::MsgParms($mod,$shares,$one,$idata,self::MSGAPPROVE,$custommsg);
 						list($res,$msg) = $funcs->Send($from,$to,$textparms,$mailparms,$tweetparms);
-						if(!$res)
+						if (!$res)
 							$fails[] = $msg;
 						break;
 					 default:
@@ -315,16 +281,13 @@ class Requestops
 					}
 				}
 				unset($one);
-				if($fails)
+				if ($fails)
 					return array(FALSE,implode('<br />',$fails));
 				return aray(TRUE,'');
-			}
-			else
-			{
+			} else {
 				//TODO remind user to tell all, manually
 			}
-		}
-		else
+		} else
 			return array(FALSE,$mod->Lang('err_data'));
 	}
 
@@ -335,41 +298,35 @@ class Requestops
 	@custommsg: text entered by user, to replace square-bracketed content of the rejection-message 'template'
 	Returns: 2-member array, 1st is T/F indicating success, 2nd '' or error message
 	*/
-	public function RejectReq(&$mod,$req_id,$custommsg)
+	public function RejectReq(&$mod, $req_id, $custommsg)
 	{
 		$rows = self::GetReqData($mod,$req_id);
-		if($rows)
-		{
+		if ($rows) {
 			$ob = cms_utils::get_module('Notifier');
-			if($ob)
-			{
+			if ($ob) {
 				unset($ob);
 				$funcs = new \MessageSender();
 				$shares = new Shared();
 				$fails = array();
-			}
-			else
+			} else
 				$funcs = FALSE;
 			$db = $mod->dbHandle;
 			$sql = 'UPDATE '.$mod->RequestTable.' SET status='.\Booker::STATCANCEL.' WHERE req_id=?';
-			foreach($rows as $req_id=>$one)
-			{
-				if($funcs)
-				{
+			foreach ($rows as $req_id=>$one) {
+				if ($funcs) {
 					//notify lodger
 					$idata = $shares->GetItemProperty($mod,$one['item_id'],'*');
 					list($from,$to,$textparms,$mailparms,$tweetparms) = self::MsgParms($mod,$shares,$one,$idata,self::MSGREJECT,$custommsg);
 					list($res,$msg) = $funcs->Send($from,$to,$textparms,$mailparms,$tweetparms);
-					if(!$res)
+					if (!$res)
 						$fails[] = $msg;
 				}
 				$db->Execute($sql,array($req_id));//update status
 			}
-			if($fails)
+			if ($fails)
 				return array(FALSE,implode('<br />',$fails));
 			return array(TRUE,'');
-		}
-		else
+		} else
 			return array(FALSE,$mod->Lang('err_data'));
 	}
 
@@ -380,41 +337,35 @@ class Requestops
 	@custommsg: text entered by user, to replace square-bracketed content of the notify-message 'template'
 	Returns: 2-member array, 1st is T/F indicating success, 2nd '' or error message
 	*/
-	public function NotifyReq(&$mod,$req_id,$custommsg)
+	public function NotifyReq(&$mod, $req_id, $custommsg)
 	{
 		$rows = self::GetReqData($mod,$req_id);
-		if($rows)
-		{
+		if ($rows) {
 			$ob = cms_utils::get_module('Notifier');
-			if($ob)
-			{
+			if ($ob) {
 				unset($ob);
 				$funcs = new \MessageSender();
 				$shares = new Shared();
 				$fails = array();
-			}
-			else
+			} else
 				$funcs = FALSE;
 			$db = $mod->dbHandle;
 			$sql = 'UPDATE '.$mod->RequestTable.' SET status='.\Booker::STATASK.' WHERE req_id=?';
-			foreach($rows as $req_id=>$one)
-			{
-				if($funcs)
-				{
+			foreach ($rows as $req_id=>$one) {
+				if ($funcs) {
 					//notify lodger
 					$idata = $shares->GetItemProperty($mod,$one['item_id'],'*');
 					list($from,$to,$textparms,$mailparms,$tweetparms) = self::MsgParms($mod,$shares,$one,$idata,self::MSGINFO,$custommsg);
 					list($res,$msg) = $funcs->Send($from,$to,$textparms,$mailparms,$tweetparms);
-					if(!$res)
+					if (!$res)
 						$fails[] = $msg;
 				}
 				$db->Execute($sql,array($req_id));//update status
 			}
-			if($fails)
+			if ($fails)
 				return array(FALSE,implode('<br />',$fails));
 			return array(TRUE,'');
-		}
-		else
+		} else
 			return array(FALSE,$mod->Lang('err_data'));
 	}
 
@@ -425,41 +376,35 @@ class Requestops
 	@custommsg: text entered by user, to replace square-bracketed content of the delete-message 'template'
 	Returns: 2-member array, 1st is T/F indicating success, 2nd '' or error message
 	*/
-	public function DeleteReq(&$mod,$req_id,$custommsg)
+	public function DeleteReq(&$mod, $req_id, $custommsg)
 	{
 		$rows = self::GetReqData($mod,$req_id);
-		if($rows)
-		{
+		if ($rows) {
 			$ob = cms_utils::get_module('Notifier');
-			if($ob)
-			{
+			if ($ob) {
 				unset($ob);
 				$funcs = new \MessageSender();
 				$shares = new Shared();
 				$fails = array();
-			}
-			else
+			} else
 				$funcs = FALSE;
 			$db = $mod->dbHandle;
 			$sql = 'DELETE FROM '.$mod->RequestTable.' WHERE req_id=?';
-			foreach($rows as $req_id=>$one)
-			{
-				if($funcs && $one['status'] !== \Booker::STATOK)
-				{
+			foreach ($rows as $req_id=>$one) {
+				if ($funcs && $one['status'] !== \Booker::STATOK) {
 					//notify lodger
 					$idata = $shares->GetItemProperty($mod,$one['item_id'],'*');
 					list($from,$to,$textparms,$mailparms,$tweetparms) = self::MsgParms($mod,$shares,$one,$idata,self::MSGCANCELLED,$custommsg);
 					list($res,$msg) = $funcs->Send($from,$to,$textparms,$mailparms,$tweetparms);
-					if(!$res)
+					if (!$res)
 						$fails[] = $msg;
 				}
 				$db->Execute($sql,array($req_id));//remove it
 			}
-			if($fails)
+			if ($fails)
 				return array(FALSE,implode('<br />',$fails));
 			return array(TRUE,'');
-		}
-		else
+		} else
 			return array(FALSE,$mod->Lang('err_data'));
 	}
 
@@ -471,12 +416,11 @@ class Requestops
 	@is_new: boolean whether to insert or update
 	Returns: T/F indicating successful completion
 	*/
-	public function SaveReq(&$mod,&$params,&$rdata,$is_new)
+	public function SaveReq(&$mod, &$params, &$rdata, $is_new)
 	{
 		$db = $mod->dbHandle;
 		$tzone = new \DateTimeZone('UTC');
-		if($is_new)
-		{
+		if ($is_new) {
 			$rid = $db->GenID($mod->RequestTable.'_seq');
 			$args = array('req_id'=>$rid,'item_id'=>$params['item_id']);
 			$fillers = array('?','?');
@@ -485,7 +429,7 @@ class Requestops
 			'approved'
 			*/
 			//from $params[] key to table-field name
-			foreach(array(
+			foreach (array(
 			 'when'=>'slotstart',
 			 'until'=>'slotlen',
 			 'user'=>'sender',
@@ -494,28 +438,20 @@ class Requestops
 			 'subgrpcount'=>'subgrpcount',
 			 'requesttype'=>'status',
 			 'lodged'=>'lodged'
-			) as $k=>$field)
-			{
-				if(!empty($params[$k]))
-				{
-					if($k == 'when')
-					{
+			) as $k=>$field) {
+				if (!empty($params[$k])) {
+					if ($k == 'when') {
 						//to support better feedback to user, no period-cleanup until after approval
 						$dts = new \DateTime($params['when'],$tzone);
 						$params[$k] = $dts->getTimestamp();
-					}
-					elseif($k == 'until')
-					{
+					} elseif ($k == 'until') {
 						$dte = new \DateTime($params['until'],$tzone);
 						$params[$k] = $dte->getTimestamp() - $params['when'];
 					}
 					$args[$field] = $params[$k];
 					$fillers[] = '?';
-				}
-				else
-				{
-					if($k == 'requesttype')
-					{
+				} else {
+					if ($k == 'requesttype') {
 						$args[$field] = \Booker::STATNEW;
 						$fillers[] = '?';
 					}
@@ -524,14 +460,11 @@ class Requestops
 
 			$sql = 'INSERT INTO '.$mod->RequestTable.' ('.
 				implode(',',array_keys($args)).') VALUES ('.implode(',',$fillers).')';
-		}
-		else //update
-		{
+		} else { //update
 //TODO		X::ConformBookingData($mod,$params,$rdata); //general update where needed
 			$dts = new \DateTime($params['when'],$tzone);
 			$params['when'] = $dts->getTimestamp();
-			if(isset($params['until']))
-			{
+			if (isset($params['until'])) {
 				$dts->modify($params['until']);
 				$len = $dts->getTimestamp() - $params['when'];
 				$params['until'] = max($len,60);
@@ -544,10 +477,8 @@ class Requestops
 				$params['comment'],
 				empty($params['paid']) ? 0:1
 			);
-			foreach(array('subgrpcount','until') as $k)
-			{
-				if(isset($params[$k]))
-				{
+			foreach (array('subgrpcount','until') as $k) {
+				if (isset($params[$k])) {
 					$sql2 .= ",$k=?";
 					$args[] = (int)$params[$k];
 				}
@@ -560,4 +491,3 @@ class Requestops
 		return ($db->Execute($sql,$args)) != FALSE;
 	}
 }
-?>

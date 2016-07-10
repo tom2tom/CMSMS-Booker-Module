@@ -8,10 +8,7 @@
 
 if (! $this->CheckAccess('admin')) return;
 
-switch ($oldversion)
-{
+switch ($oldversion) {
 }
 // put mention into the admin log
 $this->Audit(0, $this->Lang('fullname'), $this->Lang('audit_upgraded',$newversion));
-
-?>

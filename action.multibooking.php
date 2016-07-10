@@ -17,10 +17,9 @@
   2 =>
 'export' => ETC
 */
-if(!$this->_CheckAccess()) exit;
+if (!$this->_CheckAccess()) exit;
 
-if(!isset($params['sel'])) //nothing selected
-{
+if (!isset($params['sel'])) { //nothing selected
 	$msg = $this->Lang('notypesel',$this->Lang('booking_multi'));
 	$this->Redirect($id,$params['resume'],'',array(
 	 'item_id'=>$params['item_id'],
@@ -29,46 +28,36 @@ if(!isset($params['sel'])) //nothing selected
 
 $funcs = new Booker\Bookingops();
 $msg = FALSE;
-if(isset($params['delete']))
-{
-	if(!($this->_CheckAccess('admin') || $this->_CheckAccess('book'))) exit;
+if (isset($params['delete'])) {
+	if (!($this->_CheckAccess('admin') || $this->_CheckAccess('book'))) exit;
 
-	if(!empty($params['repeat'])) //is repeat-booking
-	{
+	if (!empty($params['repeat'])) { //is repeat-booking
 		list($res,$msg) = $funcs->DeleteRepeat($this,$params['sel']);
-		if($res)
-		{
+		if ($res) {
 	//DO STUFF ?
 			$msg = $this->Lang('result_deleted',count($params['sel']));
 			$msg = $this->_PrettyMessage($msg,TRUE,FALSE);
 		}
-	}
-	else //onetime
-	{
+	} else { //onetime
 		list($res,$msg) = $funcs->DeleteBkg($this,$params['sel'],$params['custmsg']);
-		if($res)
-		{
+		if ($res) {
 	//TODO payment reconciliation, if enough notice is given
 			$msg = $this->Lang('result_deleted',count($params['sel']));
 			$msg = $this->_PrettyMessage($msg,TRUE,FALSE);
 		}
 	}
-}
-elseif(isset($params['notify']))
-{
-//	if(!($this->_CheckAccess('admin') || $this->_CheckAccess('book'))) exit;
+} elseif (isset($params['notify'])) {
+//	if (!($this->_CheckAccess('admin') || $this->_CheckAccess('book'))) exit;
 	list($res,$msg) = $funcs->NotifyBooker($this,$params['sel'],$params['custmsg']);
-}
-elseif(isset($params['export']))
-{
-	if(!($this->_CheckAccess('admin') || $this->_CheckAccess('view'))) exit;
+} elseif (isset($params['export'])) {
+	if (!($this->_CheckAccess('admin') || $this->_CheckAccess('view'))) exit;
 	list($res,$msg) = $funcs->ExportBkg($this,$params['sel']);
-	if($res)
+	if ($res)
 		exit;
 }
 
 $newparms = array('item_id'=>$params['item_id']);
-if($msg)
+if ($msg)
 	$newparms['message'] = $msg;
+
 $this->Redirect($id,'administer','',$newparms);
-?>

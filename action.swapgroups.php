@@ -22,7 +22,7 @@ elseif (isset($params['prev_item_id']))
 else
 	$this->Redirect($id,'openitem','',array('item_id'=>$item_id,'message'=>$this->Lang('err_parm')));
 
-if($params['change'] == 'parent')
+if ($params['change'] == 'parent')
 	$sql = 'SELECT gid,proximity FROM '.$this->GroupTable.' WHERE child=? AND parent=?';
 else //'child'
 	$sql = 'SELECT gid,likeorder FROM '.$this->GroupTable.' WHERE parent=? AND child=?';
@@ -38,9 +38,8 @@ if ($thisrow === FALSE)
 $thisargs = array(end($otherrow),$thisrow['gid']);
 $otherargs = array(end($thisrow),$otherrow['gid']);
 
-if($thisargs[0] && $otherargs[0])
-{
-	if($params['change'] == 'parent')
+if ($thisargs[0] && $otherargs[0]) {
+	if ($params['change'] == 'parent')
 		$sql = 'UPDATE '.$this->GroupTable.' SET proximity=? WHERE gid=?';
 	else
 		$sql = 'UPDATE '.$this->GroupTable.' SET likeorder=? WHERE gid=?';
@@ -50,5 +49,3 @@ if($thisargs[0] && $otherargs[0])
 }
 
 $this->Redirect($id,'openitem','',array('item_id'=>$item_id)); //TODO 'active_tab'=>$params['active_tab'] N/A here
-
-?>

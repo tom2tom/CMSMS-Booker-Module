@@ -16,7 +16,7 @@ class Cart
 
 	@var array of objects
 	*/
-	protected $_items = [];
+	protected $items = array();
 
 	/**
 	Something usable for in-cart determinations e.g. cart name
@@ -30,21 +30,21 @@ class Cart
 
 	@var bool
 	*/
-	protected $_pricesWithTax;
+	protected $pricesWithTax;
 
 	/**
 	Rounding decimal-places
 
 	@var int
 	*/
-	protected $_roundingDecimals;
+	protected $roundingDecimals;
 
 	/**
 	Totals
 
 	@var array
 	*/
-	protected $_totals = [];
+	protected $_totals = array();
 
 	/**
 	Constructor
@@ -53,7 +53,7 @@ class Cart
 	@param bool TRUE if prices are listed as gross
 	@param int number of decimals used for rounding
 	*/
-	public function __construct($context = NULL, $pricesWithTax = TRUE, $roundingDecimals = 2)
+	public function __construct($context=NULL, $pricesWithTax=TRUE, $roundingDecimals=2)
 	{
 		$this->setContext($context);
 		$this->setPricesWithTax($pricesWithTax);
@@ -69,7 +69,7 @@ class Cart
 	protected function decimal_format($number, $placesCount = FALSE)
 	{
 		if ($placesCount === FALSE) {
-			$placesCount = $this->_roundingDecimals;
+			$placesCount = $this->roundingDecimals;
 		}
 		return (float) number_format((float)$number, $placesCount, '.', '');
 	}
@@ -82,8 +82,8 @@ class Cart
 	*/
 	public function setContext($context)
 	{
-		$this->_context = $context;
-		$this->_cartModified();
+		$this->context = $context;
+		$this->cartModified();
 	}
 
 	/**
@@ -94,8 +94,8 @@ class Cart
 	*/
 	public function setPricesWithTax($pricesWithTax)
 	{
-		$this->_pricesWithTax = (bool) $pricesWithTax;
-		$this->_cartModified();
+		$this->pricesWithTax = (bool)$pricesWithTax;
+		$this->cartModified();
 	}
 
 	/**
@@ -112,8 +112,8 @@ class Cart
 			throw new \RangeException('Invalid value for rounding decimals.');
 		}
 
-		$this->_roundingDecimals = $roundingDecimals;
-		$this->_cartModified();
+		$this->roundingDecimals = $roundingDecimals;
+		$this->cartModified();
 	}
 
 	/**
@@ -126,7 +126,8 @@ class Cart
 	{
 		$sorting = array_flip($sorting);
 
-		uasort($this->_items, function (CartItemInterface $a, CartItemInterface $b) use ($sorting) {
+		uasort($this->items, function(CartItemInterface $a, CartItemInterface $b) use ($sorting)
+		{
 			$ta = $a->getCartType();
 			$aSort = isset($sorting[$ta]) ? (int)$sorting[$ta] : 1000;
 			$tb = $b->getCartType();
@@ -143,7 +144,7 @@ class Cart
 	*/
 	public function isEmpty()
 	{
-		return (count($this->_items) == 0);
+		return (count($this->items) == 0);
 	}
 
 	/**
@@ -164,7 +165,7 @@ class Cart
 	*/
 	public function countItems()
 	{
-		return count($this->_items);
+		return count($this->items);
 	}
 
 	/**
@@ -184,13 +185,13 @@ class Cart
 	@param NULL|callable filter, must NOT be end-user definable (injection-risk)
 	@return array
 	*/
-	public function getItems($filter = NULL)
+	public function getItems($filter=NULL)
 	{
 		if ($filter && !is_callable($filter)) {
 			throw new \InvalidArgumentException('Filter for getItems method must be callable.');
 		}
 
-		return $filter ? array_filter($this->_items, $filter) : $this->_items;
+		return $filter ? array_filter($this->items, $filter) : $this->items;
 	}
 
 	/**
@@ -201,7 +202,7 @@ class Cart
 	*/
 	public function getItemsByType($type)
 	{
-		return $this->getItems($this->_getTypeCondition($type));
+		return $this->getItems($this->getTypeCondition($type));
 	}
 
 	/**
@@ -211,7 +212,7 @@ class Cart
 	*/
 	public function hasItem($cartId)
 	{
-		return isset($this->_items[$cartId]);
+		return isset($this->items[$cartId]);
 	}
 
 	/**
@@ -225,7 +226,7 @@ class Cart
 			throw new \OutOfBoundsException('Requested cart item does not exist.');
 		}
 
-		return $this->_items[$cartId];
+		return $this->items[$cartId];
 	}
 
 	/**
@@ -235,18 +236,18 @@ class Cart
 	@param int quantity
 	@return void
 	*/
-	public function addItem(CartItemInterface $item, $quantity = 1)
+	public function addItem(CartItemInterface $item, $quantity=1)
 	{
 		$id = $item->getCartId();
-		if (isset($this->_items[$id])) {
-			$quantity += $this->_items[$id]->getCartQuantity();
+		if (isset($this->items[$id])) {
+			$quantity += $this->items[$id]->getCartQuantity();
 		}
 
 		$item->setCartQuantity($quantity);
-		$item->setCartContext($this->_context);
-		$this->_items[$id] = $item;
+		$item->setCartContext($this->context);
+		$this->items[$id] = $item;
 
-		$this->_cartModified();
+		$this->cartModified();
 	}
 
 	/**
@@ -284,8 +285,8 @@ class Cart
 			throw new \OutOfBoundsException('Requested cart item does not exist.');
 		}
 
-		unset($this->_items[$cartId]);
-		$this->_cartModified();
+		unset($this->items[$cartId]);
+		$this->cartModified();
 	}
 
 	/**
@@ -308,11 +309,11 @@ class Cart
 		} else {
 			$this->getItem($cartId)->setCartQuantity($quantity);
 		}
-		$this->_cartModified();
+		$this->cartModified();
 	}
 
 	/**
-	Get item price (with or without tax based on _pricesWithTax property)
+	Get item price (with or without tax based on pricesWithTax property)
 
 	@param CartItemInterface item
 	@param int quantity (NULL to use item quantity)
@@ -320,7 +321,7 @@ class Cart
 	*/
 	public function getItemPrice(CartItemInterface $item, $quantity = NULL)
 	{
-		$item->setCartContext($this->_context);
+		$item->setCartContext($this->context);
 
 		return $this->countPrice($item->getUnitPrice(), $item->getTaxRate(), $quantity ? : $item->getCartQuantity());
 	}
@@ -335,14 +336,14 @@ class Cart
 	@param int rounding decimals (NULL to use cart default)
 	@return formatted decimal
 	*/
-	public function countPrice($unitPrice, $taxRate, $quantity = 1, $pricesWithTax = NULL, $roundingDecimals = NULL)
+	public function countPrice($unitPrice, $taxRate, $quantity=1, $pricesWithTax=NULL, $roundingDecimals=NULL)
 	{
 		if ($pricesWithTax === NULL) {
-			$pricesWithTax = $this->_pricesWithTax;
+			$pricesWithTax = $this->pricesWithTax;
 		}
 
 		if ($roundingDecimals === NULL) {
-			$roundingDecimals = $this->_roundingDecimals;
+			$roundingDecimals = $this->roundingDecimals;
 		}
 
 		$price = $this->decimal_format($unitPrice,4);
@@ -361,29 +362,29 @@ class Cart
 	*/
 	public function clear()
 	{
-		$this->_items = [];
-		$this->_cartModified();
+		$this->items = array();
+		$this->cartModified();
 	}
 
 	/**
 	Get totals using filter
-	If filter is string, uses _getTypeCondition to build filter function.
+	If filter is string, uses getTypeCondition() to build filter function.
 
 	@param callable|string, if string  then maybe ','-separated, leading ~ to negate
 	@return array
 	*/
-	public function getTotals($filter = '~')
+	public function getTotals($filter='~')
 	{
 		$store = FALSE;
 
 		if (is_string($filter)) {
 
-			if (isset($this->_totals[$filter])) {
-				return $this->_totals[$filter];
+			if (isset($this->totals[$filter])) {
+				return $this->totals[$filter];
 			}
 
 			$store = $filter;
-			$filter = $this->_getTypeCondition($filter);
+			$filter = $this->getTypeCondition($filter);
 		}
 
 		if (!is_callable($filter)) {
@@ -393,7 +394,7 @@ class Cart
 		$totals = $this->_calculateTotals($filter);
 
 		if ($store) {
-			$this->_totals[$store] = $totals;
+			$this->totals[$store] = $totals;
 		}
 
 		return $totals;
@@ -405,7 +406,7 @@ class Cart
 	@param string type, maybe ','-separated, leading ~ to negate
 	@return formatted decimal
 	*/
-	public function getSubtotal($type = '~')
+	public function getSubtotal($type='~')
 	{
 		$subtotal = 0.0;
 
@@ -422,7 +423,7 @@ class Cart
 	@param string type, maybe ','-separated, leading ~ to negate
 	@return formatted decimal
 	*/
-	public function getTotal($type = '~')
+	public function getTotal($type='~')
 	{
 		$total = 0.0;
 
@@ -439,7 +440,7 @@ class Cart
 	@param string type, maybe ','-separated, leading ~ to negate
 	@return array
 	*/
-	public function getTaxes($type = '~')
+	public function getTaxes($type='~')
 	{
 		return $this->getTotals($type)['taxes'];
 	}
@@ -450,7 +451,7 @@ class Cart
 	@param string type, maybe ','-separated, leading ~ to negate
 	@return array
 	*/
-	public function getTaxBases($type = '~')
+	public function getTaxBases($type='~')
 	{
 		return $this->getTotals($type)['subtotals'];
 	}
@@ -472,7 +473,7 @@ class Cart
 	@param string type, maybe ','-separated, leading ~ to negate
 	@return array
 	*/
-	public function getWeight($type = '~')
+	public function getWeight($type='~')
 	{
 		return $this->getTotals($type)['weight'];
 	}
@@ -489,7 +490,7 @@ class Cart
 			throw new \InvalidArgumentException('Filter for _calculateTotals method must be callable.');
 		}
 
-		$taxTotals = [];
+		$taxTotals = array();
 		$weight = 0.0;
 
 		foreach ($this->getItems($filter) as $item) {
@@ -509,10 +510,10 @@ class Cart
 			}
 		}
 
-		$totals = ['subtotals' => [], 'taxes' => [], 'totals' => [], 'weight' => $weight];
+		$totals = array('subtotals' => array(), 'taxes' => array(), 'totals' => array(), 'weight' => $weight);
 
 		foreach ($taxTotals as $taxRate => $amount) {
-			if ($this->_pricesWithTax) {
+			if ($this->pricesWithTax) {
 				$totals['totals'][$taxRate] = $amount;
 				$raw = $amount * (1 - 1 / (1 + (float) $taxRate / 100));
 				$totals['taxes'][$taxRate] = $this->decimal_format($raw);
@@ -532,7 +533,7 @@ class Cart
 	@param string item type
 	@return Closure
 	*/
-	protected function _getTypeCondition($type)
+	protected function getTypeCondition($type)
 	{
 		$negative = ($type[0] == '~');
 		if ($negative) {
@@ -541,7 +542,8 @@ class Cart
 
 		$type = explode(',', $type);
 
-		return function (CartItemInterface $item) use ($type, $negative) {
+		return function(CartItemInterface $item) use ($type, $negative)
+		{
 			return $negative ? !in_array($item->getCartType(), $type) : in_array($item->getCartType(), $type);
 		};
 	}
@@ -551,9 +553,9 @@ class Cart
 
 	@return void
 	*/
-	protected function _cartModified()
+	protected function cartModified()
 	{
-		$this->_totals = NULL;
+		$this->totals = NULL;
 	}
 }
 ?>

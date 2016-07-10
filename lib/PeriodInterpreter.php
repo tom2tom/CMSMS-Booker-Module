@@ -27,7 +27,7 @@ class PeriodInterpreter
 	@dow: index of wanted day-of-week, 0 (for Sunday) .. 6 (for Saturday) c.f. date('w'...)
 	Returns: array of integers, each a day-of-year in @year
 	*/
-	private function MonthWeekDays($year,$month,$dmax,$dow)
+	private function MonthWeekDays($year, $month, $dmax, $dow)
 	{
 		//first day in $year/$month as day-of-year
 		$st = gmmktime(0,0,1,$month,1,$year);
@@ -36,11 +36,11 @@ class PeriodInterpreter
 		$firstdow = (int)date('w',$st);
 		//0-based offset to first wanted day
 		$d = $dow - $firstdow;
-		if($d < 0)
+		if ($d < 0)
 			$d += 7;
 
 		$days = array();
-		for($i = $d; $i < $dmax; $i += 7) //0-based, so NOT <= $dmax
+		for ($i = $d; $i < $dmax; $i += 7) //0-based, so NOT <= $dmax
 			$days[] = $base + $i;
 
 		return $days;
@@ -56,7 +56,7 @@ class PeriodInterpreter
 	@dow: index of wanted day-of-week, 0 (for Sunday) .. 6 (for Saturday) c.f. date('w'...)
 	Returns: array of integers, each a day-of-year in @year
 	*/
-	private function WeeksDays($year,$month,$week,$dmax,$dow)
+	private function WeeksDays($year, $month, $week, $dmax, $dow)
 	{
 		//first day in $year/$month as day-of-year
 		$st = gmmktime(0,0,1,$month,1,$year);
@@ -67,12 +67,9 @@ class PeriodInterpreter
 		$wmax = 0;
 		$days = array();
 
-		foreach($week as $w)
-		{
-			if($w < 0)
-			{
-				if($wmax == 0)
-				{
+		foreach ($week as $w) {
+			if ($w < 0) {
+				if ($wmax == 0) {
 					$d = 6 - $firstdow;	//offset to Saturday/end of 1st week
 					$wmax = 1 + ceil(($dmax-$d)/7);
 				}
@@ -80,7 +77,7 @@ class PeriodInterpreter
 			}
 
 			$d = $dow - $firstdow + ($w-1) * 7;
-			if($d >= 0 && $d < $dmax) //0-based, so NOT <= $dmax
+			if ($d >= 0 && $d < $dmax) //0-based, so NOT <= $dmax
 				$days[] = $base + $d;
 		}
 		return array_unique($days,SORT_NUMERIC);
@@ -96,29 +93,26 @@ class PeriodInterpreter
 	@dow: index of wanted day-of-week, 0 (for Sunday) .. 6 (for Saturday) c.f. date('w'...)
 	Returns: integer, a day-of-year in @year, or -1 upon error
 	*/
-	private function MonthDay($year,$month,$dmax,$count,$dow)
+	private function MonthDay($year, $month, $dmax, $count, $dow)
 	{
 		//first day in $year/$month as: 0 = Sunday .. 6 = Saturday
 		$st = gmmktime(0,0,1,$month,1,$year);
 		$firstdow = (int)date('w',$st);
 		//offset to 1st instance of the wanted day
 		$d = $dow - $firstdow;
-		if($d < 0)
+		if ($d < 0)
 			$d += 7;
-		if($count < 0)
-		{
+		if ($count < 0) {
 			$cmax = (int)(($dmax - $d)/7); //no. of wanted days in the month
 			$count += 1 + $cmax;
-			if($count < 0 || $count > $cmax)
+			if ($count < 0 || $count > $cmax)
 				return -1;
 		}
-		if($count > 0)
-		{
+		if ($count > 0) {
 			$d += ($count -1) * 7;
-			if($d >= $dmax)
+			if ($d >= $dmax)
 				return -1;
-		}
-		else
+		} else
 			return -1;
 		//first day in $year/$month as day-of-year
 		$base = (int)date('z',$st);
@@ -139,45 +133,38 @@ class PeriodInterpreter
 	 [0] the year (a validated, 4-digit integer)
 	 [1] array of integers, each a 0-based day-of-year in the year
 	*/
-	private function SuccessiveDays($interval,$styear,$stmonth,$stday,$ndyear=FALSE,$ndmonth=FALSE,$ndday=FALSE)
+	private function SuccessiveDays($interval, $styear, $stmonth, $stday,
+		$ndyear=FALSE, $ndmonth=FALSE, $ndday=FALSE)
 	{
-		if($ndyear == FALSE)
+		if ($ndyear == FALSE)
 			$ndyear = $styear;
-		if($ndmonth == FALSE)
+		if ($ndmonth == FALSE)
 			$ndmonth = $stmonth;
-		if($stday < 0)
-		{
+		if ($stday < 0) {
 			$st = gmmktime(0,0,0,$stmonth,1,$styear);
 			$stday += 1 + date('t',$st);
-		}
-		elseif(($p = strpos($stday,'D')) !== FALSE)
-		{
+		} elseif (($p = strpos($stday,'D')) !== FALSE) {
 			//TODO support e.g. D4(2(W))
 			$st = gmmktime(0,0,0,$stmonth,1,$styear);
 			$dmax = date('t',$st);
 			$c = ($p > 0) ? (int)substr($stday,0,$p) : 1;
-			if($c == 0) $c = 1;
+			if ($c == 0) $c = 1;
 			$dow = (int)substr($stday,$p+1) - 1; //D1 >> 0 etc
 			$t2 = self::MonthDay($styear,$stmonth,$dmax,$c,$dow);
 			$stday = ($t2 >= 0) ? $t2 : 1; //default to start
 		}
-		if($ndday == FALSE)
-		{
+		if ($ndday == FALSE) {
 			$st = gmmktime(0,0,0,$ndmonth,1,$ndyear); //days in month
 			$ndday = (int)date('t',$st);
-		}
-		elseif($ndday < 0)
-		{
+		} elseif ($ndday < 0) {
 			$st = gmmktime(0,0,0,$ndmonth,1,$ndyear);
 			$ndday  += 1 + date('t',$st);
-		}
-		elseif(($p = strpos($ndday,'D')) !== FALSE)
-		{
+		} elseif (($p = strpos($ndday,'D')) !== FALSE) {
 			//TODO support e.g. D4(2(W))
 			$st = gmmktime(0,0,0,$ndmonth,1,$ndyear);
 			$dmax = (int)date('t',$st);
 			$c = ($p > 0) ? (int)substr($ndday,0,$p) : 1;
-			if($c == 0) $c = 1;
+			if ($c == 0) $c = 1;
 			$dow = (int)substr($ndday,$p+1) - 1; //D1 >> 0 etc
 			$t2 = self::MonthDay($ndyear,$ndmonth,$dmax,$c,$dow);
 			$ndday = ($t2 >= 0) ? $t2 : $dmax; //default to end
@@ -191,12 +178,10 @@ class PeriodInterpreter
 		$yn = FALSE;
 		$doy = FALSE;
 		$ret = array();
-		while($stdt <= $nddt)
-		{
+		while ($stdt <= $nddt) {
 			$yt = (int)$stdt->format('Y');
-			if($yt != $yn)
-			{
-				if($doy)
+			if ($yt != $yn) {
+				if ($doy)
 					$ret[] = array($yn,$doy);
 				$yn = $yt;
 				$doy = array();
@@ -204,7 +189,7 @@ class PeriodInterpreter
 			$doy[] = (int)$stdt->format('z');
 			$stdt->modify($diff);
 		}
-		if($doy)
+		if ($doy)
 			$ret[] = array($yn,$doy);
 		return $ret;
 	}
@@ -227,32 +212,26 @@ class PeriodInterpreter
 	 [0] the year (a validated, 4-digit integer)
 	 [1] array of integers, each a 0-based day-of-year in the year
 	*/
-	private function YearDays($year,$month=FALSE,$week=FALSE,$day=FALSE)
+	private function YearDays($year, $month=FALSE, $week=FALSE, $day=FALSE)
 	{
 		//verify and interpret arguments
 		$now = FALSE;
-		if(!is_array($year) && strpos($year,',') !== FALSE)
+		if (!is_array($year) && strpos($year,',') !== FALSE)
 			$year = explode(',',$year);
 
-		if(is_array($year))
-		{
-			foreach($year as &$one)
-			{
+		if (is_array($year)) {
+			foreach ($year as &$one) {
 				$t = trim($one,' ,');
-				if(is_numeric($t))
-				{
+				if (is_numeric($t)) {
 					$one = (int)$t;
-					if($one < 100)
-					{
-						if($now == FALSE)
+					if ($one < 100) {
+						if ($now == FALSE)
 							$now = getdate();
 						$one += 100 * (int)($now['year']/100);
 					}
-				}
-				else
-				{
+				} else {
 					$t2 = date_parse($t); //PHP 5.2+
-					if($t2)
+					if ($t2)
 						$one = $t2['year'];
 					else
 						$one = FALSE;
@@ -261,40 +240,32 @@ class PeriodInterpreter
 			unset($one);
 			$year = array_unique(array_filter($year),SORT_NUMERIC);
 			$t = count($year);
-			if(t == 0 || ($t > 1 && !sort($year,SORT_NUMERIC)))
+			if (t == 0 || ($t > 1 && !sort($year,SORT_NUMERIC)))
 				return FALSE;
-		}
-		elseif(is_numeric($year))
-		{
+		} elseif (is_numeric($year)) {
 			$t = (int)$year;
-			if($t < 100)
-			{
-				if($now == FALSE)
+			if ($t < 100) {
+				if ($now == FALSE)
 					$now = getdate();
 				$t += 100 * (int)($now['year']/100);
 			}
 			$year = array($t);
-		}
-		else
-		{
+		} else {
 			$t = date_parse($year); //PHP 5.2+
-			if($t)
+			if ($t)
 				$year = array($t['year']);
 			else
 				return FALSE;
 		}
 
-		if($month)
-		{
-			if(!is_array($month) && strpos($month,',') !== FALSE)
+		if ($month) {
+			if (!is_array($month) && strpos($month,',') !== FALSE)
 					$month = explode(',',$month);
 
-			if(is_array($month))
-			{
-				foreach($month as &$one)
-				{
+			if (is_array($month)) {
+				foreach ($month as &$one) {
 					$t = trim($one,' M,');
-					if(is_numeric($t) && $t > 0 && $t < 13)
+					if (is_numeric($t) && $t > 0 && $t < 13)
 						$one = (int)$t;
 					else
 						$one = FALSE;
@@ -302,32 +273,26 @@ class PeriodInterpreter
 				unset($one);
 				$month = array_unique(array_filter($month),SORT_NUMERIC);
 				$t = count($month);
-				if($t == 0 || ($t > 1 && !sort($month,SORT_NUMERIC)))
+				if ($t == 0 || ($t > 1 && !sort($month,SORT_NUMERIC)))
 					return FALSE;
-			}
-			else
-			{
+			} else {
 				$t = trim($month,' M,');
-				if(is_numeric($t) && $t > 0 && $t < 13)
+				if (is_numeric($t) && $t > 0 && $t < 13)
 					$month = array((int)$t);
 				else
 					return FALSE;
 			}
-		}
-		else
+		} else
 			$month = range(1,12);
 
-		if($week)
-		{
-			if(!is_array($week) && strpos($week,',') !== FALSE)
+		if ($week) {
+			if (!is_array($week) && strpos($week,',') !== FALSE)
 					$week = explode(',',$week);
 
-			if(is_array($week))
-			{
-				foreach($week as &$one)
-				{
+			if (is_array($week)) {
+				foreach ($week as &$one) {
 					$t = trim($one,' W,');
-					if(is_numeric($t) && $t > -6 && $t != 0 && $t < 6)
+					if (is_numeric($t) && $t > -6 && $t != 0 && $t < 6)
 						$one = (int)$t;
 					else
 						$one = FALSE;
@@ -335,115 +300,90 @@ class PeriodInterpreter
 				unset($one);
 				$week = array_unique(array_filter($week),SORT_NUMERIC);
 				$t = count($week);
-				if($t == 0 || ($t > 1 && !sort($week,SORT_NUMERIC)))
+				if ($t == 0 || ($t > 1 && !sort($week,SORT_NUMERIC)))
 					return FALSE;
-				if($t > 1)
-				{
+				if ($t > 1) {
 					//rotate all -ve's to end
-					while(($t = reset($week)) < 0)
-					{
+					while (($t = reset($week)) < 0) {
 						array_shift($week);
 						$week[] = $t;
 					}
 				}
-			}
-			else
-			{
+			} else {
 				$t = trim($week,' W,');
-				if(is_numeric($t) && $t > -6 && $t != 0 && $t < 6)
+				if (is_numeric($t) && $t > -6 && $t != 0 && $t < 6)
 					$week = array((int)$t);
 				else
 					return FALSE;
 			}
-		}
-		else
+		} else
 			$week = array(); //default no-weeks i.e. use all specified days
 
-		if($day)
-		{
-			if(!is_array($day) && strpos($day,',') !== FALSE)
+		if ($day) {
+			if (!is_array($day) && strpos($day,',') !== FALSE)
 				$day = explode(',',$day);
 
-			if(is_array($day))
-			{
-				foreach($day as &$one)
-				{
+			if (is_array($day)) {
+				foreach ($day as &$one) {
 					$t = trim($one,' ,');
-					if(is_numeric($t) && $t > -32 && $t != 0 && $t < 32)
+					if (is_numeric($t) && $t > -32 && $t != 0 && $t < 32)
 						$one = (int)$t;
-					elseif(($p = strpos($t,'D')) !== FALSE)
-					{
+					elseif (($p = strpos($t,'D')) !== FALSE) {
 						$t2 = substr($t,$p+1);
-						if(is_numeric($t2) && $t2 > 0 && $t < 8) //SYNTAX FOR e.g. LAST Sunday: -1D1
+						if (is_numeric($t2) && $t2 > 0 && $t < 8) //SYNTAX FOR e.g. LAST Sunday: -1D1
 							$one = $t;
 						else
 							$one = FALSE;
-					}
-					else
+					} else
 						$one = FALSE;
 				}
 				unset($one);
 				$day = array_unique(array_filter($day));
-				if(!$day) //actual days-array sorted before reutrn || !sort($day,SORT_NUMERIC))
+				if (!$day) //actual days-array sorted before reutrn || !sort($day,SORT_NUMERIC))
 					return FALSE;
 				//rotate all -ve's to end
 /*				reset($day);
-				while(($t = $day[0]) < 0)
-				{
+				while (($t = $day[0]) < 0) {
 					array_shift($day);
 					$day[] = $t;
 				}
 */
-			}
-			else
-			{
+			} else {
 				$t = trim($day,' ,');
-				if(is_numeric($t) && $t > -32 && $t != 0 && $t < 32)
+				if (is_numeric($t) && $t > -32 && $t != 0 && $t < 32)
 					$day = array((int)$t);
-				elseif(($p = strpos($t,'D')) !== FALSE)
-				{
+				elseif (($p = strpos($t,'D')) !== FALSE) {
 					$t2 = substr($t,$p+1);
-					if(is_numeric($t2) && $t2 > 0 && $t < 8)
+					if (is_numeric($t2) && $t2 > 0 && $t < 8)
 						$day = array($t);
 					else
 						return FALSE;
-				}
-				else
+				} else
 					return FALSE;
 			}
-		}
-		elseif($week)
+		} elseif ($week)
 			$day = array('D1','D2','D3','D4','D5','D6','D7'); //all days of the week(s)
 		else
 			$day = range(1,31); //all days
 
 		$ret = array();
-		foreach($year as $y)
-		{
+		foreach ($year as $y) {
 			$yeardays = array();
-			foreach($month as $m)
-			{
+			foreach ($month as $m) {
 				$dmax = (int)date('t',gmmktime(0,0,1,$m,1,$y)); //days in month
-				foreach($day as $d)
-				{
-					if(($p = strpos($d,'D')) !== FALSE)
-					{
+				foreach ($day as $d) {
+					if (($p = strpos($d,'D')) !== FALSE) {
 						$t = (int)substr($d,$p+1) - 1; //D1 >> 0 etc
 						$c = ($p > 0) ? (int)substr($d,0,$p) : 0;
-						if($c != 0)
-						{
+						if ($c != 0) {
 							$t2 = self::MonthDay($y,$m,$dmax,$c,$t);
-							if($t2 >= 0)
+							if ($t2 >= 0)
 								$yeardays[] = $t2;
-						}
-						elseif($week)
-						{
+						} elseif ($week) {
 							$yeardays = array_merge($yeardays,self::WeeksDays($y,$m,$week,$dmax,$t));
 //							$dbg = self::WeeksDays($y,$m,$week,$dmax,$t);
 //							$yeardays = array_merge($yeardays,$dbg);
-						}
-						else
-						{
+						} else {
 							$yeardays = array_merge($yeardays,self::MonthWeekDays($y,$m,$dmax,$t));
 //							$dbg = self::MonthWeekDays($y,$m,$dmax,$t);
 //							$yeardays = array_merge($yeardays,$dbg);
@@ -451,15 +391,14 @@ class PeriodInterpreter
 						continue;
 					}
 
-					if(is_numeric($d) && $d < 0)
+					if (is_numeric($d) && $d < 0)
 						$d += $dmax + 1;
-					if($d <= $dmax)
-					{
+					if ($d <= $dmax) {
 						$st = gmmktime(0,0,1,$m,$d,$y);
 						$yeardays[] = (int)date('z',$st);
 					}
 				}
-				if($yeardays)
+				if ($yeardays)
 					sort($yeardays,SORT_NUMERIC);
 			}
 			$ret[] = array($y,$yeardays);
@@ -476,7 +415,7 @@ class PeriodInterpreter
 	 @dvalue must be 1-based
 	@dvalue: date-time string consistent with @dformat
 	*/
-	private function isodate_from_format($dformat,$dvalue)
+	private function isodate_from_format($dformat, $dvalue)
 	{
 		$sformat = str_replace(
 			array('Y' ,'M' ,'m' ,'d' ,'H' ,'h' ,'i' ,'s' ,'a' ,'A' ,'z'),
@@ -493,17 +432,15 @@ class PeriodInterpreter
 	/*
 	args as as for YearDays($year,$month=FALSE,$week=FALSE,$day=FALSE)
 	*/
-	function tester($year,$month,$week,$day)
+	public function tester($year, $month, $week, $day)
 	{
 		$ret = array();
 		$dt = new DateTime('1900-1-1',new DateTimeZone('UTC'));
 		$data = self::YearDays($year,$month,$week,$day);
-		foreach($data as $row)
-		{
+		foreach ($data as $row) {
 			$yr = $row[0];
 			$days = $row[1];
-			foreach($days as $doy)
-			{
+			foreach ($days as $doy) {
 				$d = sprintf('%03d',$doy+1);	//downstream strptime() expects padded, 1-based, day-of-year
 				$newdate = self::isodate_from_format('Y z',$yr.' '.$d);
 				$dt->modify($newdate);
@@ -515,17 +452,16 @@ class PeriodInterpreter
 	/*
 	args as as for SuccessiveDays($interval,$styear,$stmonth,$stday,$ndyear=FALSE,$ndmonth=FALSE,$ndday=FALSE)
 	*/
-	function tester2($interval,$styear,$stmonth,$stday,$ndyear=FALSE,$ndmonth=FALSE,$ndday=FALSE)
+	public function tester2($interval, $styear, $stmonth, $stday,
+		$ndyear=FALSE, $ndmonth=FALSE, $ndday=FALSE)
 	{
 		$ret = array();
 		$dt = new DateTime('1900-1-1',new DateTimeZone('UTC'));
 		$data = self::SuccessiveDays($interval,$styear,$stmonth,$stday,$ndyear,$ndmonth,$ndday);
-		foreach($data as $row)
-		{
+		foreach ($data as $row) {
 			$yr = $row[0];
 			$days = $row[1];
-			foreach($days as $doy)
-			{
+			foreach ($days as $doy) {
 				$d = sprintf('%03d',$doy+1);	//downstream strptime() expects padded, 1-based, day-of-year
 				$newdate = self::isodate_from_format('Y z',$yr.' '.$d);
 				$dt->modify($newdate);
@@ -536,5 +472,3 @@ class PeriodInterpreter
 	}
 
 }
-
-?>

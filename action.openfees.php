@@ -8,38 +8,34 @@
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
 
-if(!function_exists('getfeedata'))
-{
- function getfeedata(&$params,$item_id,&$mod)
+if (!function_exists('getfeedata')) {
+ function getfeedata(&$params, $item_id, &$mod)
  {
-	if(!isset($params['condition_id']))
-	{
+	if (!isset($params['condition_id'])) {
 		global $db;
 		$sql = 'SELECT * FROM '.$mod->PayTable.' WHERE item_id=? ORDER BY condorder';
 		return $db->GetAll($sql,array($item_id));
 	}
 	return mergefeedata($params,$item_id);
-  }
+ }
 
- function mergefeedata(&$params,$item_id)
+ function mergefeedata(&$params, $item_id)
  {
 	$fields = array('description','slottype','slotcount','fee','feecondition');
-	if(!isset($params['active']))
+	if (!isset($params['active']))
 		$params['active'] = array();
 	$o = 1;
  	$ret = array();
-	foreach($params['condition_id'] as $one)
-	{
+	foreach ($params['condition_id'] as $one) {
 		$cid = (int)$one;
 		$row = array('condition_id'=>$cid, 'item_id' => $item_id);
-		foreach($fields as $key) {
+		foreach ($fields as $key) {
 			$row[$key] = $params[$key][$cid]; }
 		$row['condorder'] = $o++;
 		$key = 'active';
-		if(!empty($params[$key][$cid]))
+		if (!empty($params[$key][$cid]))
 			$row[$key] = 1;
-		else
-		{
+		else {
 			$params[$key][$cid] = 0;
 			$row[$key] = 0;
 		}
@@ -48,10 +44,9 @@ if(!function_exists('getfeedata'))
  	return $ret;
  }
 
- function addfeedata(&$params,$item_id,&$pdata)
+ function addfeedata(&$params, $item_id, &$pdata)
  {
-	if(1) //$pdata || $params['action'] == 'update') //came direct from action.openitem button-click
-	{
+	if (1) { //$pdata || $params['action'] == 'update') //came direct from action.openitem button-click
 		$blank = array(
 		 'condition_id' => -1,	//signal for attention before saving
 		 'item_id' => $item_id,
@@ -68,41 +63,35 @@ if(!function_exists('getfeedata'))
 	}
  }
 
- function delfeedata(&$params,$ids)
+ function delfeedata(&$params, $ids)
  {
 	$fields = array('condition_id','item_id','description','slottype','slotcount','fee','feecondition');
-	if(!isset($params['active']))
+	if (!isset($params['active']))
 		$params['active'] = array();
-	if(!is_array($ids))
+	if (!is_array($ids))
 		$ids = array($ids);
-	foreach($ids as $one)
-	{
+	foreach ($ids as $one) {
 		$i = array_search($one,$params['condition_id']);
-		if($i !== FALSE)
-		{
-			foreach($fields as $key)
-			{
-				if(is_array($params[$key])) {
+		if ($i !== FALSE) {
+			foreach ($fields as $key) {
+				if (is_array($params[$key])) {
 					unset($params[$key][$i]); }
 			}
 			$key = 'active';
-			if(isset($params[$key][$i]))
+			if (isset($params[$key][$i]))
 				unset($params[$key][$i]);
 		}
 	}
  }
 
  //swap member of $pdata, which has member 'condition_id' == $cid, with next member, if possible
- function swapfeedata(&$pdata,$cid)
+ function swapfeedata(&$pdata, $cid)
  {
 	$key = 'condition_id';
-	foreach ($pdata as $i=>$sub)
-	{ 
-		if(isset($sub[$key]) && $sub[$key] == $cid)
-		{
+	foreach ($pdata as $i=>$sub) {
+		if (isset($sub[$key]) && $sub[$key] == $cid) {
 			$tmp = current($pdata);
-			if($tmp !== FALSE)
-			{
+			if ($tmp !== FALSE) {
 				$t = key($pdata);
 				$pdata[$t] = $pdata[$i];
 				$pdata[$i] = $tmp;
@@ -113,16 +102,13 @@ if(!function_exists('getfeedata'))
  }
 }
 
-if(isset($params['cancel']))
-{
-	if(isset($params['sel'])) {
-		$this->Redirect($id,'defaultadmin','',array('active_tab'=>$params['active_tab'])); }
-	else {
+if (isset($params['cancel'])) {
+	if (isset($params['sel'])) {
+		$this->Redirect($id,'defaultadmin','',array('active_tab'=>$params['active_tab'])); } else {
 		$this->Redirect($id,'openitem','',array('item_id'=>$params['item_id'],'active_tab'=>$params['active_tab'])); }
 }
 
-if(isset($params['selitems']))
-{
+if (isset($params['selitems'])) {
 /*came from defaultadmin action 'Fees' button-click, set fees for all
 $params = array
 'selitems' OR 'selgroups' => array
@@ -133,21 +119,15 @@ $params = array
 */
 	$item_id = array_unshift($params['selitems']); //use 1st-selected for editing
 	$sel = $params['selitems']; //maybe empty now
-}
-elseif(isset($params['selgroups']))
-{
+} elseif (isset($params['selgroups'])) {
 	$item_id = array_unshift($params['selgroups']);
 	$sel = $params['selgroups'];
-}
-elseif(!empty($params['sel']))
-{
+} elseif (!empty($params['sel'])) {
 	//TODO came back
 $this->Crash();
 	$item_id = $params['item_id'];
 	$sel = json_decode($params['sel']);
-}
-else
-{
+} else {
 /*came from openitem add/edit fees button-click
 $params = array of all item/group properties, including 'active_tab'
 */
@@ -157,8 +137,7 @@ $params = array of all item/group properties, including 'active_tab'
 
 $funcs = new Booker\Shared();
 
-if(isset($params['submit']))
-{
+if (isset($params['submit'])) {
 /*$params = array
  'item_id' => string '2'
  'active_tab' => string 'basic' OR 'groups' etc
@@ -175,8 +154,7 @@ if(isset($params['submit']))
 	$sql0 = 'DELETE FROM '.$mod->PayTable.' WHERE item_id IN(';
 
 	$pdata = mergefeedata($params,$item_id);
-	if($pdata)
-	{
+	if ($pdata) {
 		$sql1 = 'INSERT INTO '.$mod->PayTable.' (
 condition_id,
 item_id,
@@ -203,16 +181,14 @@ WHERE condition_id=?';
 		$allargs = array();
 		//accumulate all remaining and tabled condition-id's in array data
 		$allids = array();
-		foreach($pdata as $one)
-		{
-			if($one['condition_id'] >= 0)
+		foreach ($pdata as $one) {
+			if ($one['condition_id'] >= 0)
 				$allids[] = (int)$one;
 		}
 		//remove non-continuing conditions for $item_id
 		$t = 'DELETE FROM '.$mod->PayTable.' WHERE item_id=?';
 		$args = array($item_id);
-		if($allids)
-		{
+		if ($allids) {
 			$fillers = str_repeat('?,',count($allids)-1);
 			$t .= ' AND condition_id NOT IN('.$fillers.'?)';
 			$args = $args + $allids;
@@ -220,19 +196,17 @@ WHERE condition_id=?';
 		$allsql[] = $t;
 		$allargs[] = $args;
 		//next, cleanup and accumulate new+retained data
-		foreach($pdata as &$one)
-		{
-			if($one['slottype'] == -1)
+		foreach ($pdata as &$one) {
+			if ($one['slottype'] == -1)
 				$one['slotcount'] = NULL; //no count for fixed fee
 			$relfee = preg_match('/^ *[+-]/', $one['fee']);
-			if($relfee)
+			if ($relfee)
 				$lp = $this->Lang('percent');
 			$one['active'] = (bool)$one['active'];
-			if($one['condition_id'] < 0) //new fee-item
-			{
+			if ($one['condition_id'] < 0) { //new fee-item
 				$allsql[] = $sql1;
 				$cid = $db->GenID($this->PayTable.'_seq');
-				if($relfee)
+				if ($relfee)
 					$one['fee'] = NULL; //no basis for relative fee in new conditions
 				$sig = $funcs->GetFeeSignature($one);
 				$allargs[] = array(
@@ -247,27 +221,19 @@ WHERE condition_id=?';
 				 $one['condorder'],
 				 $one['active'],
 				);
-			}
-			else //existing fee-item
-			{
+			} else { //existing fee-item
 				$allsql[] = $sql2;
-				if($relfee)
-				{
+				if ($relfee) {
 					$now = $funcs->GetItemFee($this,$item_id,TRUE,'ID<:>'.$one['condition_id']);//re-get current fee, inherited if needed
-					if($now !== FALSE)
-					{
+					if ($now !== FALSE) {
 						$t = trim($one['fee']);
 						$r = preg_replace('/(%|'.$lp.')$/','',$t);
-						if($t != $r)
-						{
+						if ($t != $r) {
 							$one['fee'] = $now + ($now*(float)$r)/100; //maybe 0
-						}
-						else
-						{
+						} else {
 							$one['fee'] = $now + (float)$t; //ditto
 						}
-					}
-					else
+					} else
 						$one['fee'] = NULL;
 				}
 				$sig = $funcs->GetFeeSignature($one);
@@ -286,18 +252,15 @@ WHERE condition_id=?';
 		}
 		unset($one);
 
-		if(!empty($params['sel']))
-		{
+		if (!empty($params['sel'])) {
 			//no basis for incremental update of other resources, so we start them afresh
 			//TODO scan for matching signature-field values, update those, otherwise add/delete rows
 			$sel = json_decode($params['sel']); //array
 			$fillers = str_repeat('?,',count($sel)-1);
 			$allsql[] = $sql0.$fillers.'?)';
 			$allargs[] = $sel;
-			foreach($sel as $thisid)
-			{
-				foreach($pdata as $one)
-				{
+			foreach ($sel as $thisid) {
+				foreach ($pdata as $one) {
 					$allsql[] = $sql1;
 					$cid = $db->GenID($this->PayTable.'_seq');
 					$allargs[] = array(
@@ -315,48 +278,35 @@ WHERE condition_id=?';
 			}
 		}
 		Booker\Shared::SafeExec($allsql,$allargs);
-	}
-	else //no fee-data now, clear from table
-	{
-		if(isset($params['sel']))
-		{
+	} else { //no fee-data now, clear from table
+		if (isset($params['sel'])) {
 			$sel = json_decode($params['sel']); //array
 			$fillers = str_repeat('?,',count($sel)-1);
 			$sql = $sql0.$fillers.'?)';
 			$db->Execute($sql,$sel);
-		}
-		else
-		{
+		} else {
 			$sql = $sql0.'?)';
 			$db->Execute($sql,array($item_id));
 		}
 	}
-	if(isset($params['sel'])) {
-		$this->Redirect($id,'defaultadmin','',array('active_tab'=>$params['active_tab'])); }
-	else {
+	if (isset($params['sel'])) {
+		$this->Redirect($id,'defaultadmin','',array('active_tab'=>$params['active_tab'])); } else {
 		$this->Redirect($id,'openitem','',array('item_id'=>$item_id,'active_tab'=>$params['active_tab'])); }
-}
-elseif(isset($params['delete'])) //delete selected fees(s)
-{
-	if(isset($params['selfees']))
-	{
+} elseif (isset($params['delete'])) { //delete selected fees(s)
+	if (isset($params['selfees'])) {
 		$ids = array_keys($params['selfees']);
 		//basic sanity check
-		foreach($ids as &$one)
-		{
-			if(!is_numeric($one))
+		foreach ($ids as &$one) {
+			if (!is_numeric($one))
 				unset($one);
 		}
 		unset($one);
-		if($ids)
-		{
+		if ($ids) {
 			delfeedata($params,$ids);
 		}
 		//TODO if $params['sel'] == multi-resources upon submit
 	}
-}
-elseif(isset($params['delfee'])) //delete single fee
-{
+} elseif (isset($params['delfee'])) { //delete single fee
 	$cid = key($params['delfee']);
 	delfeedata($params,$cid);
 	//TODO if $params['sel'] == multi-resources upon submit
@@ -367,19 +317,16 @@ $typestr = ($is_group) ? $this->Lang('group') : $this->Lang('item');
 $pmod = $this->_CheckAccess('admin');
 $pdata = getfeedata($params,$item_id,$this);
 
-if($pmod)
-{
-	if(isset($params['addfee']) || (!$pdata && $params['action'] == 'update')) {
-		addfeedata($params,$item_id,$pdata); }
-	elseif(isset($params['move'])) {
+if ($pmod) {
+	if (isset($params['addfee']) || (!$pdata && $params['action'] == 'update')) {
+		addfeedata($params,$item_id,$pdata); } elseif (isset($params['move'])) {
 		swapfeedata($pdata,key($params['move'])); }
 	//TODO if $params['sel'] == multi-resources upon submit
 }
 
 $hidden = $this->CreateInputHidden($id,'item_id',$item_id).
  $this->CreateInputHidden($id,'active_tab',$params['active_tab']);
-if($sel)
-{
+if ($sel) {
 	$t = json_encode($sel);
 	$hidden .= $this->CreateInputHidden($id,'sel',$t);
 }
@@ -391,18 +338,15 @@ $tplvars = array(
 	'hidden' => $hidden
 );
 
-if(isset($params['message']))
+if (isset($params['message']))
 	$tplvars['message'] = $params['message'];
 
-if ($pmod)
-{
-	if($sel)
+if ($pmod) {
+	if ($sel)
 		$key = ($is_group) ? 'feemodtitle3' : 'feemodtitle1';
 	else
 		$key = ($is_group) ? 'feemodtitle2' : 'feemodtitle';
-}
-else
-{
+} else {
 	$key = ($is_group) ? 'feeseetitle2' : 'feeseetitle';
 }
 
@@ -416,24 +360,19 @@ $baseurl = $this->GetModuleURLPath();
 $theme = ($this->before20) ? cmsms()->get_variable('admintheme'):
 	cms_utils::get_theme_object();
 
-if($pdata)
-{
+if ($pdata) {
 	$count = count($pdata);
 	$choices = array($this->Lang('anytime')=>-1) + array_flip(explode(',',$this->Lang('periods'))); //'minute,hour,day,week,month,year'
-	if($pmod)
-	{
+	if ($pmod) {
 		$tip_del = $this->Lang('tip_delfeetype',$typestr);
 		$icondel = 'delete.gif';
-		if($count > 1)
-		{
+		if ($count > 1) {
 			$tip_up = $this->Lang('tip_up');
 			$iconup = 'arrow-u.gif';
 			$tip_dn = $this->Lang('tip_down');
 			$icondn = 'arrow-d.gif';
 		}
-	}
-	else
-	{
+	} else {
 		$yes = $this->Lang('yes');
 		$no = $this->Lang('no');
 	}
@@ -441,11 +380,9 @@ if($pdata)
 	$rc = $count - 1;
 
 	$items = array();
-	foreach($pdata as $one)
-	{
+	foreach ($pdata as $one) {
 		$oneset = new stdClass();
-		if($pmod)
-		{
+		if ($pmod) {
 			$cid = $one['condition_id'];
 			$oneset->hidden = $this->CreateInputHidden($id,'condition_id[]',$cid);
 			$oneset->desc = $this->CreateInputText($id,'description['.$cid.']',$one['description'],20,64);
@@ -456,33 +393,26 @@ if($pdata)
 				'feecondition['.$cid.']','','','','',20,2,'','','style="height:2em;width:20em;"');
 			$oneset->active = $this->CreateInputCheckbox($id,'active['.$cid.']',1,$one['active']);
 			$cid = (int)$cid;
-			if($r == 0)
-			{
+			if ($r == 0) {
 				$oneset->uplink = '';
-				if($count > 1)
-				{
+				if ($count > 1) {
 					$oneset->dnlink = $this->_CreateInputLinks($id,'move['.$cid.']',$icondn,FALSE,$tip_dn);
 					$previd = $cid;
-				}
-				else
+				} else
 					$oneset->dnlink = '';
-			}
-			else
-			{
+			} else {
 				$oneset->uplink = $this->_CreateInputLinks($id,'move['.$previd.']',$iconup,FALSE,$tip_up);
-				if($r < $rc)
-				{
+				if ($r < $rc) {
 					$oneset->dnlink = $this->_CreateInputLinks($id,'move['.$cid.']',$icondn,FALSE,$tip_dn);
 					$previd = $cid;
-				}
-				else
+				} else
 					$oneset->dnlink = '';
 			}
 			$r++;
 
 			$t = ($one['description']) ? $one['description'] : $one['fee'].
 				(($one['feecondition']) ? '::'.$one['feecondition']:'');
-			if($t)
+			if ($t)
 				$t = '\\\''.$t.'\\\''; //surrounding escaped quotes go inside js string inside double-quoted html
 			else
 				$t = $this->Lang('fee_multi');
@@ -491,9 +421,7 @@ if($pdata)
 				$icondel,FALSE,$tip_del,'onclick="return confirm(\''.$t.'\');"');
 			//NOT selitems or selgroups - those may be supplied from elsewhere
 			$oneset->selected = ($count > 1) ? $this->CreateInputCheckbox($id,'selfees['.$cid.']',1,-1):NULL;
-		}
-		else
-		{
+		} else {
 			$oneset->desc = $one['description'];
 			$oneset->count = ($one['slottype'] != -1) ? $one['slotcount']:'';
 			$oneset->type = $choices[$one['slottype']];
@@ -515,17 +443,14 @@ if($pdata)
 	'activetext' => $this->Lang('title_active'),
 	'movetext' => $this->Lang('move')
 	);
-}
-else
-{
+} else {
 	$count = 0;
 	$tplvars['nofees'] = $this->Lang('nofees');
 }
 
 $tplvars['count'] = $count;
 
-if($pmod)
-{
+if ($pmod) {
 	$t = $this->Lang('addfee');
 	$tplvars['addlink'] = $this->_CreateInputLinks($id,'addfee','newobject.gif',TRUE,$t);
 	$tplvars['submit'] = $this->CreateInputSubmit($id,'submit',$this->Lang('submit'));
@@ -535,17 +460,15 @@ if($pmod)
 		'title="'.$this->Lang('tip_delseltype',$t)
 		.'" onclick="return confirm_delete_item();"');
 
-	if($count > 0)
-	{
-		if($count > 1)
-		{
+	if ($count > 0) {
+		if ($count > 1) {
 			$tplvars['selectall'] = $this->CreateInputCheckbox($id,'item',1,-1,
 			'title="'.$this->Lang('selectall').'" onclick="select_all_items(this)"');
 			$jsfuncs[] = <<<EOS
 function select_all_items(b)
 {
  var st = $(b).attr('checked');
- if(!st) st = false;
+ if (!st) st = false;
  $('input[name^="{$id}selfees"][type="checkbox"]').attr('checked', st);
 }
 
@@ -583,13 +506,13 @@ EOS;
  $('.fakelink').css({'color':color,'font-size':size});
  $('.table_drag').tableDnD({
   onDragClass: 'row1hover',
-  onDrop: function(table, droprows){
+  onDrop: function(table, droprows) {
    var odd = false,
     oddclass = 'row1',
     evenclass = 'row2',
     droprow = $(droprows)[0],
     name;
-   $(table).find('tbody tr').each(function(){
+   $(table).find('tbody tr').each(function() {
     name = (odd) ? oddclass : evenclass;
     if (this === droprow){
       name = name+'hover';
@@ -599,7 +522,7 @@ EOS;
    });
   }
  }).find('tbody tr').removeAttr('onmouseover').removeAttr('onmouseout')
-   .mouseover(function(){
+   .mouseover(function() {
   var now = $(this).attr('class');
   $(this).attr('class', now+'hover');
  }).mouseout(function() {
@@ -610,16 +533,13 @@ EOS;
  
 EOS;
 	}//$count > 0
-}
-else
-{
+} else {
 	$tplvars['submit'] = NULL;
 	$tplvars['cancel'] =  $this->CreateInputSubmit($id,'cancel',$this->Lang('close'));
 }
 
 $tplvars['jsincs'] = $jsincs;
-if($jsloads)
-{
+if ($jsloads) {
 	$jsfuncs[] = '$(document).ready(function() {
 ';
 	$jsfuncs = array_merge($jsfuncs,$jsloads);
@@ -629,4 +549,3 @@ if($jsloads)
 $tplvars['jsfuncs'] = $jsfuncs;
 
 echo Booker\Shared::ProcessTemplate($this,'fullfees.tpl',$tplvars);
-?>

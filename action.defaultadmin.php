@@ -9,16 +9,13 @@
 $pdev = $this->CheckPermission('Modify Any Page');
 $pset = $this->_CheckAccess('module');
 $padm = $pset || $this->_CheckAccess('admin');
-if ($padm)
-{
+if ($padm) {
 //	$psee = TRUE;
 	$padd = TRUE;
 	$pdel = TRUE;
 	$pmod = TRUE;
 	$pbkg = TRUE;
-}
-else
-{
+} else {
 //	$psee = $this->_CheckAccess('view');
 	$padd = $this->_CheckAccess('add');
 	$pdel = $this->_CheckAccess('delete');
@@ -41,12 +38,10 @@ $tplvars = array(
 );
 
 $ob = cms_utils::get_module('Notifier');
-if($ob)
-{
+if ($ob) {
 	unset($ob);
 	$tell = TRUE;
-}
-else
+} else
 	$tell = FALSE;
 $tplvars['tell'] = $tell;
 
@@ -60,8 +55,7 @@ $iconno = $theme->DisplayImage('icons/system/false.gif',$this->Lang('false'),'',
 $baseurl = $this->GetModuleURLPath();
 $bseetip = $this->Lang('tip_seetype','%s');
 $iconbsee = '<img src="'.$baseurl.'/images/calendar.png" alt="%s" title="%s" border="0" />';
-if($bmod)
-{
+if ($bmod) {
 	$bedittip = $this->Lang('tip_admintype','%s');
 	$iconbedit = '<img src="'.$baseurl.'/images/calendar-edit.png" alt="%s" title="%s" border="0" />';
 	$iconbdel = $theme->DisplayImage('icons/system/delete.gif','%s','','','systemicon');
@@ -70,27 +64,24 @@ $exporttip = $this->Lang('exporttype','%s');
 $iconexport = $theme->DisplayImage('icons/system/export.gif','%s','','','systemicon');
 $seetip = $this->Lang('tip_viewtype','%s');
 $iconsee = $theme->DisplayImage('icons/system/view.gif','%s','','','systemicon');
-if($mod)
-{
+if ($mod) {
 	$edittip= $this->Lang('tip_edittype','%s');
 	$iconedit = $theme->DisplayImage('icons/system/edit.gif','%s','','','systemicon');
 }
-if($padd)
-{
+if ($padd) {
 	$copytip = $this->Lang('tip_copytype','%s');
 	$iconcopy = $theme->DisplayImage('icons/system/copy.gif','%s','','','systemicon');
 }
-if($pdel)
-{
+if ($pdel) {
 	$deltip = $this->Lang('tip_deletetype','%s');
 	$icondel = $theme->DisplayImage('icons/system/delete.gif','%s','','','systemicon');
 }
 $seltip = $this->Lang('tip_selecttype','%s');
 
-if(isset($params['message']))
+if (isset($params['message']))
 	$tplvars['message'] = $params['message'];
 
-if(isset($params['active_tab']))
+if (isset($params['active_tab']))
 	$showtab = $params['active_tab'];
 else
 	$showtab = 'data'; //default
@@ -132,15 +123,13 @@ $tplvars['start_data_tab'] = $this->StartTab('data');
 
 $sql = 'SELECT * FROM '.$this->RequestTable.' ORDER BY lodged';
 $data = $db->GetAll($sql);
-if($data)
-{
+if ($data) {
 	$t = $this->Lang('request');
 	$rtip = $this->Lang('tip_seereq');
 	$iconrsee = '<img src="'.$baseurl.'/images/request.png" alt="'.$rtip.'" title="'.$rtip.'" border="0" />';
 	$rtip = $this->Lang('tip_notifylodger');
 	$icontell = '<img src="'.$baseurl.'/images/notice.png" alt="'.$rtip.'" title="'.$rtip.'" border="0" />';
-	if($bmod)
-	{
+	if ($bmod) {
 		$rtip = $this->Lang('tip_edittype',$t);
 		$iconredit = '<img src="'.$baseurl.'/images/request-edit.png" alt="'.$rtip.'" title="'.$rtip.'" border="0" />';
 		$rtip = $this->Lang('tip_deletetype',$t);
@@ -166,14 +155,12 @@ if($data)
 	$statCANCEL = $this->Lang('stat_cancel');
 
 	$pending = array();
-	foreach($data as &$row)
-	{
+	foreach ($data as &$row) {
 		$one = new stdClass();
 		$one->sender = $row['sender'];
 		$one->contact = $row['contact'];
 		$one->paid = ($row['paid']) ? $yes:$no;
-		switch($row['status'])
-		{
+		switch ($row['status']) {
 		 case Booker::STATNONE:
 			$t = $statNONE;
 			break;
@@ -212,9 +199,8 @@ if($data)
 		$dt->setTimestamp($row['lodged']);
 		$one->lodged = $dt->format($fmt);
 		$t = $funcs->GetItemNameForID($this,$row['item_id']);
-		if($row['item_id'] >= Booker::MINGRPID)
-		{
-			if($row['subgrpcount'])
+		if ($row['item_id'] >= Booker::MINGRPID) {
+			if ($row['subgrpcount'])
 				$t .= ','.$row['subgrpcount'];
 		}
 		$one->name = $t;
@@ -222,36 +208,29 @@ if($data)
 		$dt->setTimestamp($row['slotstart']);
 		$one->start = $dt->format($fmt);
 		$t = $row['comment'];
-		if($t && strlen($t) > 5)
+		if ($t && strlen($t) > 5)
 			$t = substr($t,0,5).'...';
 		$one->comment = $t;
 		$thisid = (int)$row['req_id'];
 		$one->see = $this->CreateLink($id,'rsee',$returnid,$iconrsee,array('req_id'=>$thisid));
-		if($bmod)
-		{
+		if ($bmod) {
 			$one->edit = $this->CreateLink($id,'redit',$returnid,$iconredit,array('req_id'=>$thisid));
-			if(1)	//TODO if e.g. not an info-request
-			{
-				if(empty($row['approved']))
-				{
+			if (1) { //TODO if e.g. not an info-request
+				if (empty($row['approved'])) {
 					$one->approve = $this->CreateLink($id,'rapprove',$returnid,$iconryes,array('req_id'=>$thisid));
 					$one->reject = $this->CreateLink($id,'rreject',$returnid,$iconrno,array('req_id'=>$thisid));
-				}
-				else
-				{
+				} else {
 					$one->approve = ''; //$yes;
 					$one->reject = $this->CreateLink($id,'rreject',$returnid,$iconrno,array('req_id'=>$thisid)); //TODO 'tip_reject2'
 				}
-			}
-			else
-			{
+			} else {
 				$one->approve = '';
 				$one->reject = '';
 			}
 		}
-		if($tell)
+		if ($tell)
 			$one->notice = $this->CreateLink($id,'rnotify',$returnid,$icontell,array('req_id'=>$thisid));
-		if($pdel)
+		if ($pdel)
 			$one->delete = $this->CreateLink($id,'rdelete',$returnid,$iconrdel,array('req_id'=>$thisid));
 		$one->selected = $this->CreateInputCheckbox($id,'selreq[]',$thisid,-1,'title="'.$rtip.'"');
 		$pending[] = $one;
@@ -261,14 +240,13 @@ if($data)
 	$tplvars['title_pending'] = $this->Lang('pending');
 	$dcount = count($data);
 	$tplvars['dcount'] = $dcount;
-	if($dcount > 1)
-	{
+	if ($dcount > 1) {
 		$tplvars['selectall_req'] = $this->CreateInputCheckbox($id,'req',TRUE,FALSE,'title="'.$this->Lang('selectall').'" onclick="select_all_req(this)"');
 		$jsfuncs[] = <<<EOS
 function select_all_req(b)
 {
  var st = $(b).attr('checked');
- if(! st) st = false;
+ if (! st) st = false;
  $('input[name="{$id}selreq[]"][type="checkbox"]').attr('checked',st);
 }
 
@@ -283,8 +261,7 @@ function confirm_reqcount() {
 
 EOS;
 
-	if($tell)
-	{
+	if ($tell) {
 		$tplvars['modaltitle'] = $this->Lang('title_feedback2');
 		$tplvars['customentry'] = $this->CreateInputText($id,'customentry','',20,30);
 		$tplvars['prompttitle'] = $this->Lang('title_prompt');
@@ -298,12 +275,12 @@ EOS;
 		$jsfuncs[] =<<<EOS
 function modalsetup(tg,\$d) {
  var msg,action,id = $(this).attr('id');
- if(id) {
+ if (id) {
   action = id.replace('{$id}','');
  } else {
   action = $(this).attr('href').replace(/^.+,{$id},(\w+),.+/,'$1');
  }
- switch(action) {
+ switch (action) {
   case 'rapprove':
   case 'approve':
    msg = "$approve";
@@ -356,8 +333,7 @@ EOS;
  });
 
 EOS;
-		if($bmod)
-		{
+		if ($bmod) {
 			$jsloads[] =<<<EOS
  $('#data .bkrapp > a').modalconfirm({
   overlayID: 'confirm',
@@ -399,16 +375,13 @@ EOS;
 
 EOS;
 		} //endif $bmod
-	}
-	else //Notifier module N/A
-	{
-		if($bmod)
-		{
+	} else { //Notifier module N/A
+		if ($bmod) {
 			$jsloads[] =<<<EOS
  $('#data .bkrapp > a').modalconfirm({
   overlayID: 'confirm',
   popupID: 'confgeneral',
-  preShow: function(tg,\$d){
+  preShow: function(tg,\$d) {
    var para = \$d.children('p:first')[0];
    para.innerHTML = '{$this->Lang('reminder')}';
   }
@@ -417,7 +390,7 @@ EOS;
   overlayID: 'confirm',
   popupID: 'confgeneral',
   doCheck: confirm_reqcount,
-  preShow: function(tg,\$d){
+  preShow: function(tg,\$d) {
    var para = \$d.children('p:first')[0];
    para.innerHTML = '{$this->Lang('reminder')}';
   }
@@ -428,7 +401,7 @@ EOS;
  $('#data .bkrrej > a').modalconfirm({
   overlayID: 'confirm',
   popupID: 'confgeneral',
-  preShow: function(tg,\$d){
+  preShow: function(tg,\$d) {
    var para = \$d.children('p:first')[0];
    para.innerHTML = '{$this->Lang('reminder')}';
   }
@@ -437,7 +410,7 @@ EOS;
   overlayID: 'confirm',
   popupID: 'confgeneral',
   doCheck: confirm_reqcount,
-  preShow: function(tg,\$d){
+  preShow: function(tg,\$d) {
    var para = \$d.children('p:first')[0];
    para.innerHTML = '{$this->Lang('reminder')}';
   }
@@ -447,13 +420,11 @@ EOS;
 		} //endif $bmod
 	} //endif Notifier module N/A
 
-	if($tell)
-	{
+	if ($tell) {
 		$tplvars['notifybtn'] = $this->CreateInputSubmit($id,'notify',
 			$this->Lang('notify'),'title="'.$this->Lang('tip_notify_selected_requests').'"');
 	}
-	if($bmod)
-	{
+	if ($bmod) {
 		$tplvars['approvbtn'] = $this->CreateInputSubmit($id,'approve',
 			$this->Lang('approve'),'title="'.$this->Lang('tip_approve_sel').'"');
 		$tplvars['rejectbtn'] = $this->CreateInputSubmit($id,'reject',
@@ -467,7 +438,7 @@ EOS;
   overlayID: 'confirm',
   popupID: 'confgeneral',
   doCheck: confirm_reqcount,
-  preShow: function(tg,\$d){
+  preShow: function(tg,\$d) {
    var para = \$d.children('p:first')[0];
    para.innerHTML = '{$this->Lang('delsel_confirm',$this->Lang('request_multi'))}';
   }
@@ -475,7 +446,7 @@ EOS;
  $('#data .bkrdel > a').modalconfirm({
   overlayID: 'confirm',
   popupID: 'confgeneral',
-  preShow: function(tg,\$d){
+  preShow: function(tg,\$d) {
     var n = $(this.parentNode).siblings(':first').text(),
     t = "{$t}",
     m = t.replace('%s',n),
@@ -498,13 +469,11 @@ EOS;
 		'title_start' => $this->Lang('start'),
 		'title_comment' => $this->Lang('title_comment')
 	);
-}
-else
-{
+} else {
 	$tplvars['dcount'] = 0;
 	$tplvars['nodata'] = $this->Lang('nonew');
 }
-if($bmod)
+if ($bmod)
 	$tplvars['importbbtn'] = $this->CreateInputSubmit($id,'importbkg',$this->Lang('import'),
 		'title="'.$this->Lang('tip_importbkg').'"');
 $tplvars['findbtn'] = $this->CreateInputSubmit($id,'find',$this->Lang('find'),
@@ -516,7 +485,7 @@ $groups = array();
 $gcount	= 0;
 
 $relations = $db->GetAssoc('SELECT * FROM '.$this->GroupTable.' ORDER BY child,proximity');
-if($relations)
+if ($relations)
 	$relkeys = array_keys($relations);
 $memcounts = $db->GetAssoc('SELECT parent,COUNT(gid) AS num FROM '.$this->GroupTable.' GROUP BY parent');
 $grpnames = $db->GetAssoc('SELECT item_id,name FROM '.$this->ItemTable.' WHERE item_id>='.Booker::MINGRPID.' ORDER BY item_id');
@@ -529,11 +498,9 @@ LEFT JOIN {$this->UserTable} U ON I.owner = U.user_id
 ORDER BY I.name
 EOS;
 $rs = $db->Execute($sql);
-if ($rs)
-{
+if ($rs) {
 	$uid = ($owned) ? get_userid(FALSE) : 0; //current user
-	while ($row = $rs->FetchRow())
-	{
+	while ($row = $rs->FetchRow()) {
 		//omit some choices when editing,but current user hasn't admin permission and doesn't own the item
 		$skip = $owned && $mod && !$padm && $row['owner'] > 0 && $row['owner'] != $uid;
 		$thisid	= (int)$row['item_id'];
@@ -550,8 +517,7 @@ if ($rs)
 		//for group-name lookups
 		$gotnames[$thisid] = $one->name;
 
-		if ($pdev)
-		{
+		if ($pdev) {
 			if ($row['alias'])
 				$one->tag = '\''.$row['alias'].'\'';
 			else
@@ -559,34 +525,28 @@ if ($rs)
 		}
 
 		$one->group = '';
-		if($relations)
-		{
-			foreach($relations as $k=>$gdata)
-			{
-				if($gdata['child'] == $thisid)
-				{
+		if ($relations) {
+			foreach ($relations as $k=>$gdata) {
+				if ($gdata['child'] == $thisid) {
 					$p = (int)$gdata['parent'];
-					if(isset($grpnames[$p]))
+					if (isset($grpnames[$p]))
 						$one->group = $grpnames[$p];
 					else
 						$one->group = '<'.$this->Lang('noname').'>';
 					$p = array_search($k,$relkeys) + 1;
-					if(isset($relkeys[$p]) && $relations[$relkeys[$p]]['child'] == $thisid)
+					if (isset($relkeys[$p]) && $relations[$relkeys[$p]]['child'] == $thisid)
 						$one->group .= ' +';
 					break;
 				}
 			}
 		}
 
-		if($owned)
-		{
-			if($row['owner'])
-			{
+		if ($owned) {
+			if ($row['owner']) {
 				$name = trim($row['first_name'].' '.$row['last_name']);
 				if ($name == '') $name = '<'.$this->Lang('noowner').'>';
 				$one->ownername = $name;
-			}
-			else
+			} else
 				$one->ownername = '';
 		}
 
@@ -594,14 +554,12 @@ if ($rs)
 		$t = sprintf($iconbsee,$t,$t);
 		$one->bsee = $this->CreateLink($id,'inspect','',$t,array('item_id'=>$thisid));
 
-//	if($isitem && $bmod && !$skip)
-		if($mod && !$skip)
-		{
+//	if ($isitem && $bmod && !$skip)
+		if ($mod && !$skip) {
 			$t = sprintf($bedittip,($isitem)?$si:$sg);
 			$t = sprintf($iconbedit,$t,$t);
 			$one->bedit = $this->CreateLink($id,'administer','',$t,array('item_id'=>$thisid));
-		}
-		else
+		} else
 			$one->bedit = '';
 
 		$t = sprintf($exporttip,($isitem)?$si:$sg);
@@ -612,12 +570,11 @@ if ($rs)
 		$t = sprintf($iconsee,$t,$t);
 		$one->see = $this->CreateLink($id,'see','',$t,array('item_id'=>$thisid));
 
-		if($mod && !$skip)
-		{
-			if($row['active'] > 0) //it's active so create a deactivate-link
+		if ($mod && !$skip) {
+			if ($row['active'] > 0) //it's active so create a deactivate-link
 				$one->active = $this->CreateLink($id,'toggle',$returnid,$iconyes,
 					array('item_id'=>$thisid,'active'=>TRUE));
-			elseif($row['active'] == 0) //it's inactive so create an activate-link
+			elseif ($row['active'] == 0) //it's inactive so create an activate-link
 				$one->active = $this->CreateLink($id,'toggle',$returnid,$iconno,
 					array('item_id'=>$thisid,'active'=>FALSE));
 			else
@@ -626,51 +583,40 @@ if ($rs)
 			$t = sprintf($edittip,($isitem)?$si:$sg);
 			$t = sprintf($iconedit,$t,$t);
 			$one->edit = $this->CreateLink($id,'edit',$returnid,$t,array('item_id'=>$thisid));
-		}
-		else
-		{
-			if($row['active'] > 0)
+		} else {
+			if ($row['active'] > 0)
 				$one->active = $yes;
-			elseif($row['active'] == 0)
+			elseif ($row['active'] == 0)
 				$one->active = $no;
 			else
 				$one->active = '';
 			$one->edit = '';
 		}
 
-		if ($padd)
-		{
+		if ($padd) {
 			$t = sprintf($copytip,($isitem)?$si:$sg);
 			$t = sprintf($iconcopy,$t,$t);
 			$one->copy = $this->CreateLink($id,'copy','',$t,array('item_id'=>$thisid));
-		}
-		else
-		{
+		} else {
 			$one->copy = '';
 		}
 
-		if ($pdel  && !$skip)
-		{
+		if ($pdel  && !$skip) {
 			$s = ($isitem)?$si:$sg;
 			$t = sprintf($deltip,$s);
 			$t = sprintf($icondel,$t,$t);
 			$one->delete = $this->CreateLink($id,'delete',$returnid,$t,array('item_id'=>$thisid));
-		}
-		else
-		{
+		} else {
 			$one->delete = '';
 		}
 
 		$t = sprintf($seltip,($isitem)?$si:$sg);
-		if ($isitem)
-		{
+		if ($isitem) {
 			$one->selected = $this->CreateInputCheckbox($id,'selitems[]',$thisid,-1,'title="'.$t.'"');
 			$items[] = $one;
 			$icount++;
-		}
-		else
-		{
-			if(!empty($memcounts[$thisid]))
+		} else {
+			if (!empty($memcounts[$thisid]))
 				$one->count = (int)$memcounts[$thisid];
 			else
 				$one->count = 0;
@@ -682,8 +628,7 @@ if ($rs)
 	$rs->Close();
 }
 
-if ($icount > 0 || $gcount > 0)
-{
+if ($icount > 0 || $gcount > 0) {
 	$tplvars['own'] = $owned;
 	if ($pdev)
 		$tplvars['title_tag'] = $this->Lang('title_pagetag');
@@ -698,8 +643,7 @@ $tplvars['endform'] = $this->CreateFormEnd(); //used for all forms
 $tplvars['start_items_tab'] = $this->StartTab('items');
 
 $tplvars['icount'] = $icount;
-if ($icount > 0)
-{
+if ($icount > 0) {
 	$tplvars['items'] = $items;
 	$tplvars['inametext'] = $this->Lang('title_name');
 	if ($icount > 1)
@@ -714,8 +658,7 @@ if ($icount > 0)
 	$tplvars['feebtn1'] =
 		$this->CreateInputSubmit($id,'setfees',$this->Lang('title_fees'),
 		'title="'.$this->Lang('feesel',$t,$this->Lang('item_multi')).'" onclick="return confirm_itmcount();"');
-	if ($mod)
-	{
+	if ($mod) {
 		if ($icount > 1)
 			$tplvars['sortbtn1'] =
 				$this->CreateInputSubmit($id,'sort',$this->Lang('sort'),
@@ -733,7 +676,7 @@ if ($icount > 0)
 function select_all_items(b)
 {
  var st = $(b).attr('checked');
- if(! st) st = false;
+ if (! st) st = false;
  $('input[name="{$id}selitems[]"][type="checkbox"]').attr('checked',st);
 }
 function confirm_itmcount()
@@ -743,15 +686,14 @@ function confirm_itmcount()
 }
 
 EOS;
-	if($pdel)
-	{
+	if ($pdel) {
 		$t = $this->Lang('confirm_delete_type',$this->Lang('item'),'%s');
 		$jsloads[] = <<<EOS
  $('#{$id}moduleform_2 #{$id}delete').modalconfirm({
   overlayID: 'confirm',
   popupID: 'confgeneral',
   doCheck: confirm_itmcount,
-  preShow: function(tg,\$d){
+  preShow: function(tg,\$d) {
    var para = \$d.children('p:first')[0];
    para.innerHTML = '{$this->Lang('delsel_confirm',$this->Lang('item_multi'))}';
   }
@@ -759,7 +701,7 @@ EOS;
  $('#items .bkrdel > a').modalconfirm({
   overlayID: 'confirm',
   popupID: 'confgeneral',
-  preShow: function(tg,\$d){
+  preShow: function(tg,\$d) {
     var n = $(this.parentNode).siblings(':first').children(':first').text(),
     t = "{$t}",
     m = t.replace('%s',n),
@@ -770,12 +712,10 @@ EOS;
 
 EOS;
 	}
-}
-else
+} else
 	$tplvars['noitems'] = $this->Lang('noitems');
 
-if ($padd)
-{
+if ($padd) {
 	$tplvars['additem'] =
 	 $this->CreateLink($id,'add',$returnid,
 		 $theme->DisplayImage('icons/system/newobject.gif',$this->Lang('additem'),'','','systemicon'),
@@ -794,8 +734,7 @@ $tplvars['start_grps_tab'] = $this->StartTab('groups');
 $tplvars['startform3'] = $this->CreateFormStart($id,'process',$returnid);
 
 $tplvars['gcount'] = $gcount;
-if($gcount > 0)
-{
+if ($gcount > 0) {
 	$tplvars['groups'] = $groups;
 	$tplvars['title_gname'] = $this->Lang('title_name');
 	$tplvars['title_gcount'] = $this->Lang('title_gcount');
@@ -811,8 +750,7 @@ if($gcount > 0)
 	$tplvars['feebtn2'] =
 		$this->CreateInputSubmit($id,'setfees',$this->Lang('title_fees'),
 		'title="'.$this->Lang('feesel',$t,$this->Lang('group_multi')).'" onclick="return confirm_grpcount();"');
-	if ($mod)
-	{
+	if ($mod) {
 		if ($gcount > 1)
 			$tplvars['sortbtn2'] =
 				$this->CreateInputSubmit($id,'sort',$this->Lang('sort'),
@@ -831,7 +769,7 @@ if($gcount > 0)
 function select_all_groups(b)
 {
  var st = $(b).attr('checked');
- if(! st) st = false;
+ if (! st) st = false;
  $('input[name="{$id}selgroups[]"][type="checkbox"]').attr('checked',st);
 }
 function confirm_grpcount()
@@ -841,14 +779,13 @@ function confirm_grpcount()
 }
 
 EOS;
-	if ($pdel)
-	{
+	if ($pdel) {
 		$jsloads[] = <<<EOS
  $('#{$id}moduleform_3 #{$id}delete').modalconfirm({
   overlayID: 'confirm',
   popupID: 'confgeneral',
   doCheck: confirm_grpcount,
-  preShow: function(tg,\$d){
+  preShow: function(tg,\$d) {
    var para = \$d.children('p:first')[0];
    para.innerHTML = '{$this->Lang('delsel_confirm',$this->Lang('group_multi'))}';
   }
@@ -856,7 +793,7 @@ EOS;
  $('#groups .bkrdel > a').modalconfirm({
   overlayID: 'confirm',
   popupID: 'confgeneral',
-  preShow: function(tg,\$d){
+  preShow: function(tg,\$d) {
     var n = $(this.parentNode).siblings(':first').children(':first').text(),
     t = "{$t}",
     m = t.replace('%s',n),
@@ -867,12 +804,10 @@ EOS;
 
 EOS;
 	}
-}
-else
+} else
 	$tplvars['nogroups'] = $this->Lang('nogroups');
 
-if ($mod)
-{
+if ($mod) {
 	$tplvars['addgrp'] =
 	 $this->CreateLink($id,'add',$returnid,
 		 $theme->DisplayImage('icons/system/newobject.gif',$this->Lang('addgroup'),'','','systemicon'),
@@ -886,8 +821,7 @@ if ($mod)
 //SETTINGS TAB
 $tplvars['startform4'] = $this->CreateFormStart($id,'setprefs',$returnid);
 $tplvars['start_settings_tab'] = $this->StartTab('settings');
-if($pset)
-{
+if ($pset) {
 	$settings = array();
 
 	$one = new stdClass();
@@ -899,12 +833,12 @@ if($pset)
 
 	$sql = 'SELECT user_id,first_name,last_name FROM '.$this->UserTable.' WHERE active=1 ORDER BY last_name,first_name';
 	$allusers = $db->GetAssoc($sql);
-	if($allusers)
-	{
+	if ($allusers) {
 		$one = new stdClass();
 		$one->title = $this->Lang('title_owner');
-		foreach($allusers as $k=>&$t)
+		foreach ($allusers as $k=>&$t) {
 			$t = trim($t['first_name'].' '.$t['last_name']);
+		}
 		unset($t);
 		$allusers = array_flip($allusers);
 		$allusers = array($this->Lang('none')=>0) + $allusers; //prepend 'none'
@@ -1004,12 +938,11 @@ if($pset)
 	$settings[] = $one;
 
 	$ob = ModuleOperations::get_instance()->get_module_instance('FrontEndUsers');
-	if(is_object($ob))
-	{
+	if (is_object($ob)) {
 		$allusers = $ob->GetGroupList(); //associative array with group names as keys,id's as values
 		unset($ob);
 		$rc = count($allusers);
-		if($rc)
+		if ($rc)
 			ksort($allusers,SORT_NATURAL | SORT_FLAG_CASE);
 /* TODO filter by permissions c.f. for admin users
 			$pref = cms_db_prefix();
@@ -1134,8 +1067,7 @@ EOS;
 	$one->help = $this->Lang('help_time');
 	$settings[] = $one;
 
-	if(ini_get('mbstring.internal_encoding') !== FALSE) //PHP's encoding-conversion capability is installed
-	{
+	if (ini_get('mbstring.internal_encoding') !== FALSE) { //PHP's encoding-conversion capability is installed
 		$one = new stdClass();
 		$one->title = $this->Lang('title_exportencoding');
 		$encodings = array('utf-8'=>'UTF-8','windows-1252'=>'Windows-1252','iso-8859-1'=>'ISO-8859-1');
@@ -1172,7 +1104,7 @@ EOS;
 	$one->input = $this->CreateInputFile($id,'pref_stylesfile','text/css',36,'id="'.$id.'pref_stylesfile" title="'.
 		$this->Lang('tip_upload').'" onchange="file_selected()"');
 	$t = $this->GetPreference('pref_stylesfile');
-	if($t)
+	if ($t)
 		$one->input .= ' '.$this->CreateInputCheckbox($id,'stylesdelete',1,-1).'&nbsp;'.$this->Lang('delete_upload',$t);
 	$one->help = $this->Lang('help_cssfile');
 	$settings[] = $one;
@@ -1182,15 +1114,12 @@ EOS;
 	//buttons
 	$tplvars['submitbtn4'] = $this->CreateInputSubmit($id,'submit',$this->Lang('apply'));
 	$tplvars['cancel'] = $this->CreateInputSubmit($id,'cancel',$this->Lang('cancel'));
-}
-else
-{
+} else {
 	$tplvars['nopermission'] = $this->Lang('accessdenied3');
 }
 
 //js
-if ($icount > 0 || $gcount > 0)
-{
+if ($icount > 0 || $gcount > 0) {
 	$jsincs[] = <<<EOS
 <script type="text/javascript" src="{$baseurl}/include/jquery.SSsort.min.js"></script>
 
@@ -1229,5 +1158,3 @@ $tplvars['jsincs'] = $jsincs;
 $tplvars['jsfuncs'] = $jsfuncs;
 
 echo Booker\Shared::ProcessTemplate($this,'adminpanel.tpl',$tplvars);
-
-?>

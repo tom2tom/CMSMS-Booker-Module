@@ -28,14 +28,11 @@ OR admin action
 'action' => string 'adminbooking'
 */
 
-if(isset($params['cancel']))	//user cancelled
-{
-	if(!(is_numeric($params['startat']) || strtotime($params['startat'])))
-	{
+if (isset($params['cancel'])) { //user cancelled
+	if (!(is_numeric($params['startat']) || strtotime($params['startat']))) {
 		$params['message'] = $this->Lang('err_system').' '.$params['startat'];
 		$params['startat'] = (int)(time()/86400);
-	}
-	elseif(!isset($params['message']))
+	} elseif (!isset($params['message']))
 		$params['message'] = '';
 
 	$parms = array(
@@ -48,13 +45,10 @@ if(isset($params['cancel']))	//user cancelled
 	$this->Redirect($id,'default',$returnid,$parms);
 }
 
-if(isset($params['item_id']))
-{
+if (isset($params['item_id'])) {
 	$item_id = (int)$params['item_id'];
 	$is_group = ($item_id >= Booker::MINGRPID);
-}
-else
-{
+} else {
 //TODO support any item
 	$this->Crash();
 }
@@ -64,35 +58,28 @@ $funcs = new Booker\Shared();
 $idata = $funcs->GetItemProperty($this,$item_id,'*');
 $tzone = new DateTimeZone('UTC');
 
-if(isset($params['submit']))
-{
-	if (!empty($params['sender']))
-	{
-		if ($valid) //STILL
-		{
-				try {
-					$dts = new DateTime($params['when'],$tzone);
-				} catch(Exception $e) {
-					$key = 'err_badstart';
-				}
-				if($params['until'])
-				{
-					try {
-						$dte = new DateTime($params['until'],$tzone);
-					} catch(Exception $e) {
-						$key = 'err_badend';
-					}
-				}
-				else
-				{
-					$slen = $funcs->GetInterval($this,$item_id,'slot');
-					$dte = clone $dts;
-					$dte->modify('+'.$slen.' seconds');
-				}
+if (isset($params['submit'])) {
+	if (!empty($params['sender'])) {
+		if ($valid) { //STILL
+			try {
+				$dts = new DateTime($params['when'],$tzone);
+			} catch(Exception $e) {
+				$key = 'err_badstart';
 			}
-			$this->Redirect($id,'default',$returnid,$parms);
-	}
-	else
+			if ($params['until']) {
+				try {
+					$dte = new DateTime($params['until'],$tzone);
+				} catch(Exception $e) {
+					$key = 'err_badend';
+				}
+			} else {
+				$slen = $funcs->GetInterval($this,$item_id,'slot');
+				$dte = clone $dts;
+				$dte->modify('+'.$slen.' seconds');
+			}
+		}
+		$this->Redirect($id,'default',$returnid,$parms);
+	} else
 		$key = 'err_nosender';
 
 	$tplvars['message'] = $this->Lang($key);
@@ -117,7 +104,7 @@ $baseurl = $this->GetModuleURLPath();
 
 //TODO STUFF
 $bdata = array();
-if(isset($params['bookat']))
+if (isset($params['bookat']))
 	$bdata['slotstart'] = $params['bookat'];
 else
 	$bdata['slotstart'] = $params['startat'];
@@ -140,7 +127,7 @@ function validate(ev) {
      e = $('input[name="{$id}until"]').val();
  var ok = !isNaN(Date.parse(s));
  ok = ok && !isNaN(Date.parse(e));
- if(ok) {
+ if (ok) {
   var ds = new Date(s),
       de = new Date(e),
       dn = new Date();
@@ -194,9 +181,9 @@ $jsloads[] = <<<EOS
    weekdays: [{$dnames}],
    weekdaysShort: [{$sdnames}]
   },
-  onClose: function(){
+  onClose: function() {
    var sel = $('#calendar').val();
-   if(sel !== '') { //not cancelled
+   if (sel !== '') { //not cancelled
     var d = new Date(sel);
     var f = '{$momentfmt}';
     var d2 = moment(d).format(f);
@@ -214,7 +201,7 @@ $stylers = <<<EOS
 <link rel="stylesheet" type="text/css" href="{$baseurl}/css/pikaday.css" />
 EOS;
 $customcss = $funcs->GetStylesURL($this,$item_id);
-if($customcss)
+if ($customcss)
 	$stylers .= <<<EOS
 <link rel="stylesheet" type="text/css" href="{$customcss}" />
 EOS;
@@ -236,8 +223,7 @@ $jsincs[] = <<<EOS
 <script type="text/javascript" src="{$baseurl}/include/pikaday.min.js"></script>
 EOS;
 
-if($jsloads)
-{
+if ($jsloads) {
 	$jsfuncs[] = '$(document).ready(function() {
 ';
 	$jsfuncs = array_merge($jsfuncs,$jsloads);
@@ -248,5 +234,3 @@ $tplvars['jsfuncs'] = $jsfuncs;
 $tplvars['jsincs'] = $jsincs;
 
 echo Booker\Shared::ProcessTemplate($this,'find.tpl',$tplvars);
-?>
-

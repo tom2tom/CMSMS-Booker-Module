@@ -11,14 +11,13 @@ namespace Booker;
 
 class Repeats extends RepeatLexer
 {
-	function __construct(&$mod)
+	public function __construct(&$mod)
 	{
 		parent::__construct($mod);
 	}
 
 	/*
-	_AllBlocks:
-
+	AllBlocks:
 	Append to @starts[] and @ends[] pair(s) of timestamps consistent with @cond
 		and @ss and @se
 
@@ -32,7 +31,7 @@ class Repeats extends RepeatLexer
 	@starts: reference to array of block-start timestamps to be updated
 	@ends: reference to array of block-end timestamps to be updated
 	*/
-	private function _AllBlocks($cond,$dtbase,$ss,$se,&$sunparms,&$starts,&$ends)
+	private function AllBlocks($cond, $dtbase, $ss, $se, &$sunparms, &$starts, &$ends)
 	{
 /*TODO convert $cond e.g.
  array
@@ -51,8 +50,7 @@ to blocks in $ss..$se
 'T' may be FALSE
 no FALSE in $ends[]
 */
-		switch($cond['F'])
-		{
+		switch ($cond['F']) {
 /*		case 1:
 				break;
 			case 2:
@@ -82,12 +80,12 @@ no FALSE in $ends[]
 	}
 
 	/*
-	_GetSlotHours:
+	GetSlotHours:
 	Get float in {0.0..24.0} representing the actual or notional slot-length for
 	@item_id, to assist interpretation of ambiguous hour-of-day or day-of-month values
 	@item_id: resource or group identifier
 	*/
-/*	private function _GetSlotHours($item_id)
+/*	private function GetSlotHours($item_id)
 	{
 		$funcs = new Shared();
 		$len = $funcs->GetInterval($this->mod,$item_id,'slot');
@@ -95,19 +93,17 @@ no FALSE in $ends[]
 	}
 */
 	/*
-	_timecheck:
+	timecheck:
 	@times: reference to array of ...
 	@sameday: whether ...
 	*/
-/*	private function _timecheck(&$times,$sameday)
+/*	private function timecheck(&$times, $sameday)
 	{
-		foreach($times as &$range)
-		{
+		foreach ($times as &$range) {
 			//TODO interpet any sun-related times
 			$s = ($sameday) ? max($range[0],$tstart) : $range[0];
 			//TODO support roll-over to contiguous day(s) & time(s)
-			if($range[1] >= $s+$length)
-			{
+			if ($range[1] >= $s+$length) {
 				unset($range);
 				return $s;
 			}
@@ -118,28 +114,27 @@ no FALSE in $ends[]
 */
 
 	/*
-	_RelTime:
+	RelTime:
 	Get stamp for adjusted value of @dtbase consistent with @timestr. @dtbase changed
 	@timestr: relative time descriptor like [+1][H]H:[M]M
 	@dtbase: resource-local DateTime object
 	Returns: stamp of (probably modified) @dtbase
 	*/
-	private function _RelTime($timestr,$dtbase)
+	private function RelTime($timestr, $dtbase)
 	{
 		$str = '';
 		$nums = explode(':',$timestr,3);
-		if(!empty($nums[0]) && $nums[0] != '00')
+		if (!empty($nums[0]) && $nums[0] != '00')
 			$str .= ' '.$nums[0].' hours';
-		if(!empty($nums[1]) && $nums[1] != '00')
+		if (!empty($nums[1]) && $nums[1] != '00')
 			$str .= ' '.$nums[1].' minutes';
-		if(!empty($str))
+		if (!empty($str))
 			$dtbase->modify('+'.$str);
 		return $dtbase->getTimestamp();
 	}
 
 	/*
-	_TimeBlocks:
-
+	TimeBlocks:
 	Append to @starts[] and @ends[] pair(s) of timestamps consistent with @timedata
 		and @ss and @se
 
@@ -155,76 +150,68 @@ no FALSE in $ends[]
 	@starts: reference to array of block-start timestamps to be updated
 	@ends: reference to array of block-end timestamps to be updated
 	*/
-	private function _TimeBlocks($timedata,$dtbase,$ss,$se,&$sunparms,&$starts,&$ends)
+	private function TimeBlocks($timedata, $dtbase, $ss, $se, &$sunparms, &$starts, &$ends)
 	{
 		$dtw = clone $dtbase;
-		if(is_array($timedata))
+		if (is_array($timedata))
 			$parts = array($timedata[0][0],$timedata[0][2]); //TODO CHECKME
-		elseif(strpos($timedata,'..') !== FALSE)
+		elseif (strpos($timedata,'..') !== FALSE)
 			$parts = explode('..',$timedata,2);
-		else
-		{
+		else {
 			$dtw->setTime(0,0,0);
-			$st = self::_RelTime($timedata,$dtw);
+			$st = self::RelTime($timedata,$dtw);
 			$dtw->setTimestamp($st);
 			$dtw->modify('+1 hour');
 			$parts = array($timedata,$dtw->format('G:i'));
 		}
 		$tbase = $dtbase->getTimestamp();
 		//block-start
-		if(strpos($parts[0],'R') !== FALSE)
-		{
+		if (strpos($parts[0],'R') !== FALSE) {
 			$revert = $tbase;
 			//we use zenith for 'civilian twilight'
 			$tbase = date_sunrise($tbase,SUNFUNCS_RET_TIMESTAMP,$sunparms['lat'],$sunparms['long'],96.0,$sunparms['gmtoff']);
 			$parts[0] = str_replace('R','',$parts[0]);
-			if($parts[0] == '')
+			if ($parts[0] == '')
 				$parts[0] = '0:0';
-		}
-		elseif(strpos($parts[0],'S') !== FALSE)
-		{
+		} elseif (strpos($parts[0],'S') !== FALSE) {
 			$revert = $tbase;
 			$tbase = date_sunset($tbase,SUNFUNCS_RET_TIMESTAMP,$sunparms['lat'],$sunparms['long'],96.0,$sunparms['gmtoff']);
 			$parts[0] = str_replace('S','',$parts[0]);
-			if($parts[0] == '')
+			if ($parts[0] == '')
 				$parts[0] = '0:0';
-		}
-		else
+		} else
 			$revert = FALSE;
 
 		$dtw->setTimestamp($tbase);
-		$st = self::_RelTime($parts[0],$dtw);
-		if($st >= $ss && $st < $se)
+		$st = self::RelTime($parts[0],$dtw);
+		if ($st >= $ss && $st < $se)
 			$starts[] = $st;
 		else
 			$starts[] = $ss;
 		//block-end
-		if($revert !== FALSE)
+		if ($revert !== FALSE)
 			$tbase = $revert;
-		if(strpos($parts[1],'R') !== FALSE)
-		{
+		if (strpos($parts[1],'R') !== FALSE) {
 			$tbase = date_sunrise($tbase,SUNFUNCS_RET_TIMESTAMP,$sunparms['lat'],$sunparms['long'],96.0,$sunparms['gmtoff']);
 			$parts[1] = str_replace('R','',$parts[1]);
-			if($parts[1] == '')
+			if ($parts[1] == '')
 				$parts[1] = '0:0';
-		}
-		elseif(strpos($parts[1],'S') !== FALSE)
-		{
+		} elseif (strpos($parts[1],'S') !== FALSE) {
 			$tbase = date_sunset($tbase,SUNFUNCS_RET_TIMESTAMP,$sunparms['lat'],$sunparms['long'],96.0,$sunparms['gmtoff']);
 			$parts[1] = str_replace('S','',$parts[1]);
-			if($parts[1] == '')
+			if ($parts[1] == '')
 				$parts[1] = '+0:0';
 		}
 		$dtw->setTimestamp($tbase);
-		$st = self::_RelTime($parts[1],$dtw);
-		if($st >= $ss && $st < $se)
+		$st = self::RelTime($parts[1],$dtw);
+		if ($st >= $ss && $st < $se)
 			$ends[] = $st;
 		else
 			$ends[] = $se;
 	}
 
 	/*
-	_GetBlocks:
+	GetBlocks:
 	Interpret $this->conds into 2 arrays of timestamps, representing starts and
 	corresponding ends of datetime-blocks conforming to parent::conds[] and
 	in interval from @dtstart to immediately before @dtend
@@ -234,11 +221,11 @@ no FALSE in $ends[]
 		not necessarily a midnight
 	@sunparms: reference to array of parameters for sun-related time calcs
 	*/
-	private function _GetBlocks($dtstart,$dtend,&$sunparms)
+	private function GetBlocks($dtstart, $dtend, &$sunparms)
 	{
 		$starts = array();
 		$ends = array();
-		if($dtstart >= $dtend)
+		if ($dtstart >= $dtend)
 			return array($starts,$ends);
 		//assuming there may be specific time(s) involved, we use day-wise interrogation
 		//day-walker
@@ -247,7 +234,7 @@ no FALSE in $ends[]
 		//end-checker
 		$dwe = clone $dtend;
 		$dwe->SetTime(0,0,0);
-		if($dwe != $dtend) //ensure next-day-start
+		if ($dwe != $dtend) //ensure next-day-start
 			$dwe->modify('+1 day');
 		//worker
 		$dtw = clone $dws;
@@ -255,18 +242,15 @@ no FALSE in $ends[]
 		$ss = $dtstart->getTimestamp();
 		$se = $dtend->getTimestamp();
 		//get parameters for time interpretation
-//	$maxhours = self::_GetSlotHours($item_id); TODO $item_id
-		while($dws < $dwe)
-		{
+//	$maxhours = self::GetSlotHours($item_id); TODO $item_id
+		while ($dws < $dwe) {
 			//update scratchpad for offsets from $dws
 			$dtw->setTimestamp($dws->getTimestamp());
-			foreach($this->conds as &$one)
-			{
-				if($one['T'] && !$one['P']) {
+			foreach ($this->conds as &$one) {
+				if ($one['T'] && !$one['P']) {
 					//time only, any period (BUT maybe day-specific due to sun-related times)
-					self::_TimeBlocks($one['T'],$dtw,$ss,$se,$sunparms,$starts,$ends); }
-				else {
-					self::_AllBlocks($one,$dtw,$ss,$se,$sunparms,$starts,$ends); }
+					self::TimeBlocks($one['T'],$dtw,$ss,$se,$sunparms,$starts,$ends); } else {
+					self::AllBlocks($one,$dtw,$ss,$se,$sunparms,$starts,$ends); }
 			}
 			unset($one);
 			$dws->modify('+1 day'); //CHECKME longer interval in some cases?
@@ -284,61 +268,48 @@ no FALSE in $ends[]
 	@starts: reference to array of block-start stamps, any order
 	@ends: reference to array of corresponding block-end stamps, no FALSE value(s)
 	*/
-	public function MergeBlocks(&$starts,&$ends)
+	public function MergeBlocks(&$starts, &$ends)
 	{
 		$c = count($starts);
-		if($c > 1)
-		{
+		if ($c > 1) {
 			$p = 0;
 			$q = 1;
-			while(1)
-			{
-				if($q >= $c)
+			while (1) {
+				if ($q >= $c)
 					return;
-				if($starts[$q] >= $starts[$p])
-				{
-					if($ends[$q] <= $ends[$p])
-					{
+				if ($starts[$q] >= $starts[$p]) {
+					if ($ends[$q] <= $ends[$p]) {
 						unset($starts[$q]);
 						unset($ends[$q]);
-					}
-					elseif($starts[$q] <= $ends[$p])
-					{
+					} elseif ($starts[$q] <= $ends[$p]) {
 						$ends[$p] = $ends[$q];
 						unset($starts[$q]);
 						unset($ends[$q]);
-					}
-					else
-					{
+					} else {
 						//next base
-						while($p < $c)
-						{
+						while ($p < $c) {
 							$p++;
-							if(array_key_exists($p,$starts))
+							if (array_key_exists($p,$starts))
 								break;
 						}
 					}
-				}
-				else //swap & resume (if possible from previous index)
-				{
+				} else { //swap & resume (if possible from previous index)
 					list($starts[$p],$starts[$q],$ends[$p],$ends[$q]) = array($starts[$q],$starts[$p],$ends[$q],$ends[$p]);
 					$t = $p;
-					while($t > -1) //base back if possible
-					{
+					while ($t > -1) { //base back if possible
 						$t--;
-						if(array_key_exists($t,$starts))
+						if (array_key_exists($t,$starts))
 							break;
 					}
-					if($t > -1)
+					if ($t > -1)
 						$p = $t;
 					//for new comparator
 					$q = $p;
 				}
 				//next comparator
-				while($q < $c)
-				{
+				while ($q < $c) {
 					$q++;
-					if(array_key_exists($q,$starts))
+					if (array_key_exists($q,$starts))
 						break;
 				}
 			}
@@ -358,24 +329,23 @@ no FALSE in $ends[]
 	public function SunParms(&$idata,$at='now')
 	{
 		$zone = $idata['timezone'];
-		if(!$zone)
+		if (!$zone)
 			$zone = $this->mod->GetPreference('pref_timezone','UTC');
-		switch($zone)
-		{
-			case FALSE:
-			case 'UTC':
-			case 'GMT':
+		switch ($zone) {
+		 case FALSE:
+		 case 'UTC':
+		 case 'GMT':
+			$offs = 0;
+			break;
+		 default:
+			try {
+				$tz = new \DateTimeZone($zone);
+				$dt = new \DateTime($at,$tz);
+				$offs = $dt->format('Z')/3600;
+			} catch (Exception $e) {
 				$offs = 0;
-				break;
-			default:
-				try {
-					$tz = new \DateTimeZone($zone);
-					$dt = new \DateTime($at,$tz);
-					$offs = $dt->format('Z')/3600;
-				} catch (Exception $e) {
-					$offs = 0;
-				}
-				break;
+			}
+			break;
 		}
 		return array (
 		 'lat'=>(float)$idata['latitude'], //maybe 0.0
@@ -404,18 +374,17 @@ Astronomical twilight $zenith=108.0;
 	@dtend: optional, datetime object resource-local preferred/first end time, default FALSE
 	@length: optional length (seconds) of time period to be checked, default 0
 	*/
-/*	public function IntervalComplies(&$idata,$dtstart,$dtend=FALSE,$length=0)
+/*	public function IntervalComplies(&$idata, $dtstart, $dtend=FALSE, $length=0)
 	{
-		if($this->conds == FALSE)
+		if ($this->conds == FALSE)
 			return FALSE;
 / *
 		$sunparms = self::SunParms($idata);
-		$maxhours = self::_GetSlotHours($idata['item_id']);
+		$maxhours = self::GetSlotHours($idata['item_id']);
 		$dstart = floor($start/86400);
 		$dend = $dstart + $laterdays;
 		$tstart = $start - $dstart;
-		foreach($this->conds as &$cond)
-		{
+		foreach ($this->conds as &$cond) {
 			//TODO
 		}
 		unset($cond);
@@ -438,48 +407,40 @@ Astronomical twilight $zenith=108.0;
 	@dtend: optional, datetime object resource-local preferred/first start time, default FALSE
 	@length: optional length (seconds) of time period to be discovered, default 0
 	*/
-/*	public function NextInterval(&$idata,$dtstart,$dtend=FALSE,$length=0)
+/*	public function NextInterval(&$idata, $dtstart, $dtend=FALSE, $length=0)
 	{
-		if($this->conds == FALSE)
+		if ($this->conds == FALSE)
 			return FALSE;
-/ *	$sunparms = self::SunParms($idata);
-		$maxhours = self::_GetSlotHours($idata['item_id']);
+/ *		$sunparms = self::SunParms($idata);
+		$maxhours = self::GetSlotHours($idata['item_id']);
 		$dstart = floor($start/86400);
 		$dend = $dstart + $laterdays;
 		$tstart = $start - $dstart;
-		foreach($this->conds as &$cond)
-		{
+		foreach ($this->conds as &$cond) {
 			$times = $cond[2];
-			if(!$times)
+			if (!$times)
 				$times = array(0=>array(0,86399)); //whole day's worth of seconds
-			if($cond[1] == FALSE) //time(s) on any day
-			{
-				$X = self::_timecheck($times,TRUE);
-				if($X !== FALSE)
-				{
+			if ($cond[1] == FALSE) { //time(s) on any day
+				$X = self::timecheck($times,TRUE);
+				if ($X !== FALSE) {
 					uset($cond);
 					return $X; //TODO + $cond[1]>day-index * 86400 + zone offset seconds
 				}
-				if($laterdays > 0)
-				{
-					$X = self::_timecheck($times,FALSE);
-					if($X !== FALSE)
-					{
+				if ($laterdays > 0) {
+					$X = self::timecheck($times,FALSE);
+					if ($X !== FALSE) {
 						uset($cond);
 						return $X; //TODO + $cond[1]>day-index * 86400 + zone offset seconds
 					}
 				}
-			}
-			else
-			{
+			} else {
 				/*interpret $cond[1]
 				  foreach day of interpreted
 				    get day-index
 						if IN $dstart to $dend inclusive
 							$sameday = (day-index == $dstart);
-							$X = self::_timecheck($times,$sameday);
-							if($X !== FALSE)
-							{
+							$X = self::timecheck($times,$sameday);
+							if ($X !== FALSE) {
 								uset($cond);
 								return $X; //TODO + $cond[1]>day-index * 86400 + zone offset seconds
 							}
@@ -508,23 +469,20 @@ Astronomical twilight $zenith=108.0;
 	 OR OPTIONALLY
 	 empty array if no descriptor, or parsing fails
 	*/
-	public function AllIntervals($descriptor,$dtstart,$dtend,&$sunparms,$defaultall=FALSE)
+	public function AllIntervals($descriptor, $dtstart, $dtend, &$sunparms, $defaultall=FALSE)
 	{
 		//limiting timestamps
 		$st = $dtstart->getTimestamp();
 		$nd = $dtend->getTimestamp();
-		if($descriptor)
-		{
-			if(parent::ParseCondition($descriptor/*,$locale*/))
-			{
+		if ($descriptor) {
+			if (parent::ParseCondition($descriptor/*,$locale*/)) {
 				//get block-ends timestamps for $descriptor and over time-interval
-				list($starts,$ends) = self::_GetBlocks($dtstart,$dtend,$sunparms); //TODO sunparms offset may change during interval
+				list($starts,$ends) = self::GetBlocks($dtstart,$dtend,$sunparms); //TODO sunparms offset may change during interval
 				//sort block-pairs, merge when needed
 				self::MergeBlocks($starts,$ends);
 				//migrate
 				$stamps = array();
-				foreach($starts as $i=>$one)
-				{
+				foreach ($starts as $i=>$one) {
 					$stamps[] = $one;
 					$stamps[] = $ends[$i];
 				}
@@ -532,7 +490,7 @@ Astronomical twilight $zenith=108.0;
 			}
 		}
 		//nothing to report
-		if($defaultall)
+		if ($defaultall)
 			return array((int)$st,(int)$nd-1);
 		return array();
 	}
@@ -548,20 +506,18 @@ Astronomical twilight $zenith=108.0;
 	@sunparms: reference to array of parameters from self::SunParms, used in sun-related time calcs
 	Returns: array with 2 timestamps, or FALSE
 	*/
-	public function NextInterval($descriptor,$slotlen,$dtstart,$dtend,&$sunparms)
+	public function NextInterval($descriptor, $slotlen, $dtstart, $dtend, &$sunparms)
 	{
 		//limiting timestamps
 		$st = $dtstart->getTimestamp();
 		$nd = $dtend->getTimestamp();
-		if($descriptor)
-		{
-			if(parent::ParseCondition($descriptor/*,$locale*/))
-			{
+		if ($descriptor) {
+			if (parent::ParseCondition($descriptor/*,$locale*/)) {
 			//TODO
 			}
 			return FALSE;
 		}
-		if($st+$slotlen <= $nd)
+		if ($st+$slotlen <= $nd)
 			return array($st,$st+$slotlen);
 		return FALSE;
 	}
@@ -576,12 +532,10 @@ Astronomical twilight $zenith=108.0;
 	@sunparms: reference to array of parameters from self::SunParms, used in sun-related time calcs
 	Returns: boolean
 	*/
-	public function IntervalComplies($descriptor,$dtstart,$dtend,&$sunparms)
+	public function IntervalComplies($descriptor, $dtstart, $dtend, &$sunparms)
 	{
-		if($descriptor)
-		{
-			if(parent::ParseCondition($descriptor/*,$locale*/))
-			{
+		if ($descriptor) {
+			if (parent::ParseCondition($descriptor/*,$locale*/)) {
 			//TODO
 			}
 			return FALSE;
@@ -589,5 +543,3 @@ Astronomical twilight $zenith=108.0;
 		return TRUE;
 	}
 }
-
-?>

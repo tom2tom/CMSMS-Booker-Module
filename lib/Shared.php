@@ -10,11 +10,12 @@ namespace Booker;
 class bkritem_namecmp
 {
 	var $coll;
-	function __contruct($collator)
+
+	public function __contruct($collator)
 	{
 		$this->coll = $collator;
 	}
-	function namecmp($a,$b)
+	public function namecmp($a, $b)
 	{
 		return $this->coll->compare($a,$b);
 	}
@@ -23,21 +24,20 @@ class bkritem_namecmp
 //comparer to sort fee-condition array rows, each with members including item_id,condorder
 class bkrfee_cmp
 {
-	var $ids;
-	function __contruct($allids)
+	private $ids;
+
+	public function __contruct($allids)
 	{
 		$this->ids = $allids;
 	}
-	function feecmp($a,$b)
+	public function feecmp($a, $b)
 	{
 		$ta = $a['item_id'];
 		$tb = $b['item_id'];
-		if($ta != $tb)
-		{
+		if ($ta != $tb) {
 			$ka = array_search($ta,$this->ids);
 			$kb = array_search($tb,$this->ids);
-			if($ka != $kb)
-			{
+			if ($ka != $kb) {
 				return ($ka-$kb); //should always happen!
 			}
 		}
@@ -55,27 +55,21 @@ class Shared
 	@cache: optional boolean, default TRUE
 	Returns: string, processed template
 	*/
-	public static function ProcessTemplate(&$mod,$tplname,$tplvars,$cache=TRUE)
+	public static function ProcessTemplate(&$mod, $tplname, $tplvars, $cache=TRUE)
 	{
 		global $smarty;
-		if($mod->before20)
-		{
+		if ($mod->before20) {
 			$smarty->assign($tplvars);
 			return $mod->ProcessTemplate($tplname);
-		}
-		else
-		{
-			if($cache)
-			{
+		} else {
+			if ($cache) {
 				$cache_id = md5('bkr'.$tplname.serialize(array_keys($tplvars)));
 				$lang = CmsNlsOperations::get_current_language();
 				$compile_id = md5('bkr'.$tplname.$lang);
 				$tpl = $smarty->CreateTemplate($mod->GetFileResource($tplname),$cache_id,$compile_id,$smarty);
-				if(!$tpl->isCached())
+				if (!$tpl->isCached())
 					$tpl->assign($tplvars);
-			}
-			else
-			{
+			} else {
 				$tpl = $smarty->CreateTemplate($mod->GetFileResource($tplname),NULL,NULL,$smarty,$tplvars);
 			}
 			return $tpl->fetch();
@@ -90,16 +84,13 @@ class Shared
 	No cacheing.
 	Returns: string, processed template
 	*/
-	public static function ProcessTemplateFromData(&$mod,$data,$tplvars)
+	public static function ProcessTemplateFromData(&$mod, $data, $tplvars)
 	{
 		global $smarty;
-		if($mod->before20)
-		{
+		if ($mod->before20) {
 			$smarty->assign($tplvars);
 			return $mod->ProcessTemplateFromData($data);
-		}
-		else
-		{
+		} else {
 			$tpl = $smarty->CreateTemplate('eval:'.$data,NULL,NULL,$smarty,$tplvars);
 			return $tpl->fetch();
 		}
@@ -113,16 +104,14 @@ class Shared
 	@mode: optional type of get - 'one','row','col','assoc' or 'all', default 'all'
 	Returns: boolean indicating successful completion
 	*/
-	public function SafeGet($sql,$args,$mode='all')
+	public function SafeGet($sql, $args, $mode='all')
 	{
 		$db = cmsms()->GetDb();
 		$nt = 10;
-		while($nt > 0)
-		{
+		while ($nt > 0) {
 			$db->Execute('SET TRANSACTION ISOLATION LEVEL SERIALIZABLE');
 			$db->StartTrans();
-			switch($mode)
-			{
+			switch ($mode) {
 			 case 'one':
 				$ret = $db->GetOne($sql,$args);
 				break;
@@ -139,10 +128,9 @@ class Shared
 				$ret = $db->GetAll($sql,$args);
 				break;
 			}
-			if($db->CompleteTrans())
+			if ($db->CompleteTrans())
 				return $ret;
-			else
-			{
+			else {
 				$nt--;
 				usleep(50000);
 			}
@@ -157,25 +145,22 @@ class Shared
 	@args: array of arguments for @sql, or array of them
 	Returns: boolean indicating successful completion
 	*/
-	public function SafeExec($sql,$args)
+	public function SafeExec($sql, $args)
 	{
 		$db = cmsms()->GetDb();
 		$nt = 10;
-		while($nt > 0)
-		{
+		while ($nt > 0) {
 			$db->Execute('SET TRANSACTION ISOLATION LEVEL SERIALIZABLE'); //this isn't perfect!
 			$db->StartTrans();
-			if(is_array($sql))
-			{
-				foreach($sql as $i=>$cmd)
+			if (is_array($sql)) {
+				foreach ($sql as $i=>$cmd) {
 					$db->Execute($cmd,$args[$i]);
-			}
-			else
+				}
+			} else
 				$db->Execute($sql,$args);
-			if($db->CompleteTrans())
+			if ($db->CompleteTrans())
 				return TRUE;
-			else
-			{
+			else {
 				$nt--;
 				usleep(50000);
 			}
@@ -189,19 +174,18 @@ class Shared
 	@mod reference to current module-object
 	@clue: identifier of some sort (item id number|alias|name)
 	*/
-	public function GetItemID(&$mod,$clue)
+	public function GetItemID(&$mod, $clue)
 	{
 		$db = $mod->dbHandle;
-		if(is_numeric($clue))
-		{
-			if($db->GetOne('SELECT 1 FROM '.$mod->ItemTable.' WHERE item_id=?',array($clue)))
+		if (is_numeric($clue)) {
+			if ($db->GetOne('SELECT 1 FROM '.$mod->ItemTable.' WHERE item_id=?',array($clue)))
 				return (int)$clue;
 		}
 		$t = $db->GetOne('SELECT item_id FROM '.$mod->ItemTable.' WHERE alias=?',array($clue));
-		if($t)
+		if ($t)
 			return (int)$t;
 		$t = $db->GetOne('SELECT item_id FROM '.$mod->ItemTable.' WHERE name=?',array($clue));
-		if($t)
+		if ($t)
 			return (int)$t;
 		return FALSE;
 	}
@@ -212,11 +196,11 @@ class Shared
 	@mod: reference to Booker module object
 	@bkg_id: identfier of booking
 	*/
-	public function GetBookingItemID(&$mod,$bkg_id)
+	public function GetBookingItemID(&$mod, $bkg_id)
 	{
 		$sql = 'SELECT item_id FROM '.$mod->DataTable.' WHERE bkg_id=?';
 		$t = self::SafeGet($sql,array($bkg_id),'one');
-		if($t)
+		if ($t)
 			return (int)$t;
 		return FALSE;
 	}
@@ -234,32 +218,26 @@ class Shared
 	@anyowner TRUE return all groups
 	@anyowner FALSE return groups whose owner is 0 or matches the current user
 	*/
-/*	function GetGroups(&$mod,$id=0,$returnid=0,$full=FALSE,$anyowner=TRUE)
+/*	public function GetGroups(&$mod,$id=0, $returnid=0, $full=FALSE, $anyowner=TRUE)
 	{
 		$grparray = array();
 
 		$db = $mod->dbHandle;
-		if ($anyowner)
-		{
+		if ($anyowner) {
 			$sql = "SELECT group_id,name,likeorder FROM $mod->GroupTable ORDER BY likeorder ASC";
 			$rows = $db->GetAssoc($sql);
-		}
-		else
-		{
+		} else {
 			$sql = "SELECT group_id,name,likeorder FROM $mod->GroupTable WHERE owner IN (0,?) ORDER BY likeorder ASC";
 			$uid = get_userid(FALSE);
 			$rows = $db->GetAssoc($sql,array($uid));
 		}
 
-		if ($rows)
-		{
-			foreach ($rows as $cid=>$row)
-			{
+		if ($rows) {
+			foreach ($rows as $cid=>$row) {
 				$one = new \stdClass();
 				$one->group_id = $cid;
 				$one->name = $row['name'];
-				if ($full)
-				{
+				if ($full) {
 					$one->order = $row['likeorder'];
 					$one->group_link = self::GetLink($mod,$id,$returnid,$one->name,$one->name);
 				}
@@ -282,14 +260,13 @@ class Shared
 		partitioned between groups (if any) and non-groups (if any), either or both
 		such partition(s) sorted (if the system supports the locale) by name
 	*/
-	public function GetItemFamily(&$mod,&$db,$item_id)
+	public function GetItemFamily(&$mod, &$db, $item_id)
 	{
 		$sql = 'SELECT DISTINCT parent FROM '.$mod->GroupTable.' WHERE child=?';
 		$grps = $db->GetCol($sql,array($item_id));
-		if($item_id >= \Booker::MINGRPID)
+		if ($item_id >= \Booker::MINGRPID)
 			$grps[] = $item_id;
-		if(!$grps)
-		{
+		if (!$grps) {
 			//nothing extra to report
 			$sql = 'SELECT name FROM '.$mod->ItemTable.' WHERE item_id=? AND active>0';
 			$name = $db->GetOne($sql,array($item_id));
@@ -301,48 +278,37 @@ class Shared
 		//name-n-sort em
 		$sql = 'SELECT item_id,name FROM '.$mod->ItemTable.' WHERE item_id IN ('.$getters.') AND active>0';
 		$grps = $db->GetAssoc($sql);
-		if(count($grps) > 1)
-		{
-			if(class_exists('Collator'))
-			{
-				try
-				{
+		if (count($grps) > 1) {
+			if (class_exists('Collator')) {
+				try {
 					$col = new \Collator(self::GetLocale());
 					uasort($grps,array(new bkritem_namecmp($col),'namecmp'));
 				} catch (Exception $e) {
 					asort($grps,SORT_LOCALE_STRING);
 				}
-			}
-			else
+			} else
 				asort($grps,SORT_LOCALE_STRING);
 		}
 		$sql = 'SELECT DISTINCT child FROM '.$mod->GroupTable.' WHERE parent IN ('.
 			$getters.') AND child<'.\Booker::MINGRPID;
 		$mems = $db->GetCol($sql);
-		if($mems)
-		{
+		if ($mems) {
 			$getters = implode(',',$mems);
 			//name-n-sort em
 			$sql = 'SELECT item_id,name FROM '.$mod->ItemTable.' WHERE item_id IN ('.$getters.')';
 			$mems = $db->GetAssoc($sql);
-			if(count($mems) > 1)
-			{
-				if(!$col)
-				{
-					if(class_exists('Collator'))
-					{
-						try
-						{
+			if (count($mems) > 1) {
+				if (!$col) {
+					if (class_exists('Collator')) {
+						try {
 							$col = new \Collator(self::GetLocale());
 							uasort($mems,array(new bkritem_namecmp($col),'namecmp'));
 						} catch (Exception $e) {
 							asort($mems,SORT_LOCALE_STRING);
 						}
-					}
-					else
+					} else
 						asort($mems,SORT_LOCALE_STRING);
-				}
-				else
+				} else
 					uasort($grps,array(new bkritem_namecmp($collator),'namecmp'));
 			}
 			return $grps + $mems;
@@ -358,18 +324,17 @@ class Shared
 	Returns: array of unique item_id's, sorted on closest-ancestor-first basis,
 	 or empty array
 	*/
-	public function GetItemGroups(&$mod,&$db,$item_id)
+	public function GetItemGroups(&$mod, &$db, $item_id)
 	{
 		$ret = array();
 		$sql = 'SELECT DISTINCT parent FROM '.$mod->GroupTable.' WHERE child=? ORDER BY parent,proximity,likeorder';
 		$all = $db->GetCol($sql,array($item_id));
-		while($all)
-		{
+		while ($all) {
 			$ret = array_merge($ret,$all);
 			$fillers = str_repeat('?,',count($all)-1).'?';
 			$sql = 'SELECT DISTINCT parent FROM '.$mod->GroupTable.' WHERE child IN ('.$fillers.') ORDER BY parent,child,proximity,likeorder';
 			$all = $db->GetCol($sql,$all);
-			if($all)
+			if ($all)
 				$all = array_diff($all,$ret);
 		}
 		return $ret;
@@ -382,41 +347,34 @@ class Shared
 	@withgrps: optional boolean, whether to include group-ids in the result, default FALSE
 	Returns: array of item-ids from depth-first scan, proximity-ordered
 	*/
-	public function GetGroupItems(&$mod,$gid,$withgrps=FALSE,$down=0)
+	public function GetGroupItems(&$mod, $gid, $withgrps=FALSE, $down=0)
 	{
 		$ids = array();
-		if($gid >= \Booker::MINGRPID)
-		{
+		if ($gid >= \Booker::MINGRPID) {
 			$db = $mod->dbHandle;
 			$members = $db->GetCol('SELECT DISTINCT child FROM '.$mod->GroupTable.
 				' WHERE parent=? ORDER BY proximity DESC',array($gid));
-			if($members)
-			{
-				foreach($members as $mid)
-				{
-					if($mid >= \Booker::MINGRPID)
-					{
+			if ($members) {
+				foreach ($members as $mid) {
+					if ($mid >= \Booker::MINGRPID) {
 						$downers = self::GetGroupItems($mod,$mid,$withgrps,$down+1); //recurse
-						if($downers)
+						if ($downers)
 							$ids = array_merge($ids,$downers);
-						if($withgrps && !in_array($mid,$ids))
+						if ($withgrps && !in_array($mid,$ids))
 							array_unshift($ids,(int)$mid);
-					}
-					else
+					} else
 						$ids[] = (int)$mid;
 				}
 			}
-			if($withgrps && !in_array($mid,$ids))
+			if ($withgrps && !in_array($mid,$ids))
 				array_unshift($ids,(int)$gid);
-		}
-		else
+		} else
 			$ids[] = (int)$gid;
 
-		if($down == 0)
-		{
-			if($withgrps && !in_array($gid,$ids))
+		if ($down == 0) {
+			if ($withgrps && !in_array($gid,$ids))
 					array_unshift($ids,(int)$gid);
-			if(count($ids) > 1)
+			if (count($ids) > 1)
 				$ids = array_unique($ids);
 		}
 		return $ids;
@@ -429,29 +387,25 @@ class Shared
 	@mod reference to current module-object
 	@db reference to current database-connection-object
 	*/
-	public function OrderGroups(&$mod,&$db)
+	public function OrderGroups(&$mod, &$db)
 	{
 		$rows = $db->GetAssoc('SELECT gid,parent FROM '.$mod->GroupTable.' ORDER BY parent,likeorder,proximity');
-		if($rows)
-		{
+		if ($rows) {
 			//for each distinct parent, renumber likeorder ascending from 1
 			$nt = 10;
-			while($nt > 0)
-			{
+			while ($nt > 0) {
 				$m = '-999'; //unmatchable
 				$db->Execute('SET TRANSACTION ISOLATION LEVEL SERIALIZABLE'); //mysql or postgres
 				$db->StartTrans();
-				foreach($rows as $gid=>$id)
-				{
-					if($id != $m)
-					{
+				foreach ($rows as $gid=>$id) {
+					if ($id != $m) {
 						$m = $id;
 						$o = 1;
 					}
 					$db->Execute("UPDATE $mod->GroupTable SET likeorder=$o WHERE gid=$gid");
 					$o++;
 				}
-				if($db->CompleteTrans())
+				if ($db->CompleteTrans())
 					break;
 				else
 					$nt--;
@@ -460,22 +414,19 @@ class Shared
 			$rows = $db->GetAssoc('SELECT gid,child FROM '.$mod->GroupTable.' ORDER BY child,proximity,likeorder');
 			//for each distinct child, renumber proximity ascending from 1
 			$nt = 10;
-			while($nt > 0)
-			{
+			while ($nt > 0) {
 				$m = '-999'; //unmatchable
 				$db->Execute('SET TRANSACTION ISOLATION LEVEL SERIALIZABLE');
 				$db->StartTrans();
-				foreach($rows as $gid=>$id)
-				{
-					if($id != $m)
-					{
+				foreach ($rows as $gid=>$id) {
+					if ($id != $m) {
 						$m = $id;
 						$o = 1;
 					}
 					$db->Execute("UPDATE $mod->GroupTable SET proximity=$o WHERE gid=$gid");
 					$o++;
 				}
-				if($db->CompleteTrans())
+				if ($db->CompleteTrans())
 					break;
 				else
 					$nt--;
@@ -489,33 +440,28 @@ class Shared
 	@rels: reference to array of 'processed' relations for $id
 	@id: item enumerator
 	*/
-	private function collapse_links(&$rows,&$rels,$id)
+	private function collapse_links(&$rows, &$rels, $id)
 	{
-		if(!array_key_exists($id,$rels) || $rels[$id] == FALSE)
-		{
+		if (!array_key_exists($id,$rels) || $rels[$id] == FALSE) {
 			$links = array();
-			foreach($rows as &$row)
-			{
-				if($row['child'] == $id)
-				{
+			foreach ($rows as &$row) {
+				if ($row['child'] == $id) {
 					$links[] = (int)$row['parent'];
 					$row['child'] = -1; //prevent duplication
 				}
 			}
 			unset($row);
 
-			if($links)
-			{
+			if ($links) {
 				$rels[$id] = $links;
-				foreach($links as $r)
-				{
-					if(!array_key_exists($r,$rels))
+				foreach ($links as $r) {
+					if (!array_key_exists($r,$rels))
 						$rels[$r] = array(); //placeholder for breadth-first scan
 				}
-				foreach($links as $r)
+				foreach ($links as $r) {
 					self::collapse_links($rows,$rels,$r); //recurse
-			}
-			else
+				}
+			} else
 				$rels[$id] = array();
 		}
 	}
@@ -528,28 +474,26 @@ class Shared
 	@start: start-identifier, should be a key in @relations
 	Returns: array with ordered sequence of item identifiers, or empty array
 	*/
-	private function breadth_first(&$relations,$start)
+	private function breadth_first(&$relations, $start)
 	{
 		//init
 		$lookup = array_keys($relations);
-		if(!in_array($start,$lookup))
+		if (!in_array($start,$lookup))
 			return array();
 
 		$visited = array();
-		foreach($lookup as $key)
+		foreach ($lookup as $key) {
 			$visited[$key] = 0;
+		}
 		$visited[$start] = 1;
 		//enqueue starting vertex
 		$q = array($start);
 		$path = array($start);
 
-		while (count($q))
-		{
+		while (count($q)) {
 			$t = array_shift($q);
-			foreach($relations[$t] as $vertex)
-			{
-				if(!$visited[$vertex])
-				{
+			foreach ($relations[$t] as $vertex) {
+				if (!$visited[$vertex]) {
 					$visited[$vertex] = 1;
 					$q[] = $vertex;
 					$path[] = $vertex;
@@ -570,10 +514,10 @@ class Shared
 	Returns: array with key(s) = $propnames, value(s) = corresponding property value(s) if available,
 		or empty array upon error
 	*/
-	public function GetItemProperty(&$mod,$item_id,$propname,$same=FALSE,$search=TRUE)
+	public function GetItemProperty(&$mod, $item_id, $propname, $same=FALSE, $search=TRUE)
 	{
 		$multi = is_array($propname);
-		if($multi)
+		if ($multi)
 			$getcols = implode(',',$propname);
 		else
 			$getcols = $propname;
@@ -583,48 +527,38 @@ class Shared
 		//first try for the requested data specific to the item
 		$sql = "SELECT $getcols FROM $mod->ItemTable WHERE item_id=? AND active=1";
 		$rs = $db->Execute($sql,array($item_id));
-		if($rs)
-		{
-			while ($row = $rs->FetchRow())
-			{
-				if($multi)
-				{
-					foreach($propname as $one)
+		if ($rs) {
+			while ($row = $rs->FetchRow()) {
+				if ($multi) {
+					foreach ($propname as $one) {
 						$ret[$one] = NULL;
-					foreach($propname as $one)
-					{
+					}
+					foreach ($propname as $one) {
 						$t = $row[$one];
-						if($same && is_null($t)) //this one not supplied
+						if ($same && is_null($t)) //this one not supplied
 							break 2; //abort
-						elseif(!is_null($t))
+						elseif (!is_null($t))
 							$ret[$one] = $t;  //record it
 					}
 					$rs->Close();
-					if(!in_array(NULL,$ret,TRUE))
+					if (!in_array(NULL,$ret,TRUE))
 						return $ret;
-				}
-				elseif($getcols == '*')
-				{
-					foreach($row as $one=>$t)
+				} elseif ($getcols == '*') {
+					foreach ($row as $one=>$t)
 						$ret[$one] = NULL;
-					foreach($row as $one=>$t)
-					{
-						if($same && is_null($t)) //this one not supplied
+					foreach ($row as $one=>$t) {
+						if ($same && is_null($t)) //this one not supplied
 							break 2; //abort
-						elseif(!is_null($t))
+						elseif (!is_null($t))
 							$ret[$one] = $t;  //record it
 					}
-					if(!in_array(NULL,$ret,TRUE))
-					{
+					if (!in_array(NULL,$ret,TRUE)) {
 						$rs->Close();
 						return $ret;
 					}
-				}
-				else //single property
-				{
+				} else { //single property
 					$t = $row[$propname];
-					if(!is_null($t))
-					{
+					if (!is_null($t)) {
 						$ret[$propname] = $t;
 						$rs->Close();
 						return $ret;
@@ -633,14 +567,12 @@ class Shared
 				}
 			}
 			$rs->Close();
-		}
-		else
-		{
+		} else {
 			//TODO error
 			return $ret; //empty
 		}
 
-		if(!$search)
+		if (!$search)
 			return $ret; //empty or part-filled with values
 
 		//revert to data for closest group in which $item_id is an [in]direct member
@@ -648,14 +580,11 @@ class Shared
 		$finds = array($item_id);
 		$sql = 'SELECT child,parent FROM '.$mod->GroupTable.' WHERE child=? ORDER BY proximity ASC';
 		//sluggish one-by-one queries to preserve relations-order
-		while($finds)
-		{
+		while ($finds) {
 			$parents = array();
-			foreach($finds as $one)
-			{
+			foreach ($finds as $one) {
 				$rows = $db->GetAll($sql,array($one));
-				if($rows)
-				{
+				if ($rows) {
 					$family = array_merge($family,$rows);
 					$t = array_map(function($item)
 					{
@@ -666,41 +595,32 @@ class Shared
 			}
 			$finds = $parents;
 		}
-		if($family)
-		{
+		if ($family) {
 			$relations = array();
 			self::collapse_links($family,$relations,$item_id);
-			if($relations)
-			{
+			if ($relations) {
 				$path = self::breadth_first($relations,$item_id);
 				array_shift($path); //current item has already been checked
 				$what = ($getcols == '*') ? '*' : 'item_id,'.$getcols;
 				$sql = "SELECT $what FROM $mod->ItemTable WHERE item_id IN(".implode(',',$path).') AND active>0';
 				$rows = $db->GetAll($sql);
-				if($rows)
-				{
-					foreach($path as $id)
-					{
-						if(!empty($rows[$id]))
-						{
+				if ($rows) {
+					foreach ($path as $id) {
+						if (!empty($rows[$id])) {
 							$nc = 0;
 							$row = $rows[$id];
-							if($same)
-							{
-								foreach($row as $one=>$t)
-								{
-									if(is_null($ret[$one]) && is_null($t))
+							if ($same) {
+								foreach ($row as $one=>$t) {
+									if (is_null($ret[$one]) && is_null($t))
 										$nc++; //force this row to be skipped
 								}
 							}
-							if($nc == 0)
-							{
-								foreach($row as $one=>$t)
-								{
-									if(is_null($ret[$one]) && !is_null($t))
+							if ($nc == 0) {
+								foreach ($row as $one=>$t) {
+									if (is_null($ret[$one]) && !is_null($t))
 										$ret[$one] = $t;
 								}
-								if(!in_array(NULL,$ret,TRUE))
+								if (!in_array(NULL,$ret,TRUE))
 									return $ret;
 							}
 						}
@@ -709,9 +629,8 @@ class Shared
 			}
 		}
 		//revert to global preference value(s)
-		foreach($ret as $one=>$t)
-		{
-			if(is_null($t))
+		foreach ($ret as $one=>$t) {
+			if (is_null($t))
 				$ret[$one] = $mod->GetPreference('pref_'.$one,NULL);
 		}
 		return $ret;
@@ -726,8 +645,7 @@ class Shared
 	public function GetFeeSignature($row)
 	{
 		$sig = '';
-		foreach(array('slottype','slotcount','fee','feecondition') as $k)
-		{
+		foreach (array('slottype','slotcount','fee','feecondition') as $k) {
 			$sig .= (isset($row[$k]) && $row[$k] !== NULL) ? $row[$k] : 'NULL';
 		}
 		return crc32($sig);
@@ -746,60 +664,46 @@ class Shared
 	 the first-found non-NULL fee whose condition matches @conditional !== FALSE, or
 	 boolean FALSE if there are no relevant fee-data (conditional or otherwise)
 	*/
-	public function GetItemFee(&$mod,$item_id,$search=FALSE,$conditional=FALSE)
+	public function GetItemFee(&$mod, $item_id, $search=FALSE, $conditional=FALSE)
 	{
 		$db = $mod->dbHandle;
-		if($search)
-		{
+		if ($search) {
 			$args = self::GetItemGroups($mod,$db,$item_id);
 			array_unshift($args, $item_id); //priority-ordered for checking
 			$fillers = str_repeat('?,',count($args)-1);
 			$sql = 'SELECT item_id,fee,feecondition,condorder FROM '.$mod->PayTable.
 			' WHERE item_id IN ('.$fillers.'?) AND active=1 ORDER BY item_id,condorder'; //a bit of downstream sorting might help ...
 			$fees = $db->GetAll($sql,$args); //NB ordered by item_id prob not what we want: $args has it
-			if($fees)
-			{
+			if ($fees) {
 				usort($fees,array(new bkrfee_cmp($args),'feecmp'));
 			}
-		}
-		else
-		{
+		} else {
 			$sql = 'SELECT fee,feecondition FROM '.$mod->PayTable.
 			' WHERE item_id=? AND active=1 ORDER BY condorder';
 			$fees = $db->GetAll($sql,array($item_id));
 		}
 
-		if($fees)
-		{
-			if(strpos($conditional,'ID<:>') === 0)
-			{
+		if ($fees) {
+			if (strpos($conditional,'ID<:>') === 0) {
 				$cid = substr($conditional,5);
 				$conditional = $db->GetOne('SELECT feecondition FROM '.
 					$mod->PayTable.' WHERE item_id=? AND condition_id=?',array($item_id,$cid));
-				if($conditional === FALSE)
+				if ($conditional === FALSE)
 					return FALSE; //error
-				elseif(!$conditional)
+				elseif (!$conditional)
 					$conditional = '';
 			}
 	
-			foreach($fees as $one)
-			{
-				if($one['fee'] != NULL)
-				{
-					if($conditional === FALSE)
-					{
+			foreach ($fees as $one) {
+				if ($one['fee'] != NULL) {
+					if ($conditional === FALSE) {
 						return $one['fee']; //CHECKME
-					}
-					elseif($one['feecondition'])
-					{
+					} elseif ($one['feecondition']) {
 	//TODO $this->PayTable stuff
-						if(0)//TODO check for conforming condition
-						{
+						if (0) {//TODO check for conforming condition
 							return $one['fee'];
 						}
-					}
-					elseif($conditional === '')
-					{
+					} elseif ($conditional === '') {
 						return $one['fee'];
 					}
 				}
@@ -822,7 +726,7 @@ class Shared
 	 TRUE if @conditional !== FALSE and there's a fee > 0 for a condition that matches it
 	 or FALSE
 	*/
-	public function GetItemPayable(&$mod,$item_id,$search=FALSE,$conditional=FALSE)
+	public function GetItemPayable(&$mod, $item_id, $search=FALSE, $conditional=FALSE)
 	{
 		$fee = self::GetItemFee($mod,$item_id,$search,$conditional);
 		return ($fee !== FALSE && $fee > 0);
@@ -831,12 +735,11 @@ class Shared
 	/**
 	Get name for an item, with fallback
 	*/
-	public function GetItemName(&$mod,&$idata)
+	public function GetItemName(&$mod, &$idata)
 	{
-		if(!empty($idata['name']))
+		if (!empty($idata['name']))
 			return $idata['name'];
-		else
-		{
+		else {
 			$type = ($idata['item_id'] >= \Booker::MINGRPID) ? $mod->Lang('group'):$mod->Lang('item');
 			return $mod->Lang('title_noname',$type,$idata['item_id']);
 		}
@@ -845,16 +748,16 @@ class Shared
 	/**
 	Get name for an item_id, with fallback
 	*/
-	public function GetItemNameForID(&$mod,$item_id)
+	public function GetItemNameForID(&$mod, $item_id)
 	{
 		$idata = self::GetItemProperty($mod,$item_id,'name',FALSE,FALSE);
-		if(!empty($idata['name']))
+		if (!empty($idata['name']))
 			return $idata['name'];
 		$idata = array('name'=>FALSE,'item_id'=>$item_id);
 		return self::GetItemName($mod,$idata);
 	}
 
-/*	public function GetBookingItemName(&$mod,$bkg_id)
+/*	public function GetBookingItemName(&$mod, $bkg_id)
 	{
 		$sql =<<<EOS
 	SELECT I.item_id,I.name FROM {$mod->ItemTable} I
@@ -862,7 +765,7 @@ class Shared
 	WHERE I.active>0 AND B.bkg_id=?
 	EOS;
 		$idata = self::SafeGet($sql,array($bkg_id),'row');
-		if($idata)
+		if ($idata)
 			return self::GetItemName($mod,$idata);
 		return FALSE;
 	}
@@ -876,39 +779,38 @@ class Shared
 	@default: optional value to return if all else fails, default=3600
 	Returns: interval in seconds
 	*/
-	public function GetInterval(&$mod,$item_id,$prefix,$default=3600)
+	public function GetInterval(&$mod, $item_id ,$prefix, $default=3600)
 	{
 		$idata = self::GetItemProperty($mod,$item_id,array($prefix.'type',$prefix.'count'),TRUE);
-		if($idata && isset($idata[$prefix.'type']) && !is_null($idata[$prefix.'type'])
+		if ($idata && isset($idata[$prefix.'type']) && !is_null($idata[$prefix.'type'])
 		 && isset($idata[$prefix.'count']) && !is_null($idata[$prefix.'count']))
 		{
 			$c = (int)$idata[$prefix.'count'];
-			if($c < 1)
+			if ($c < 1)
 				$c = 1;
 			$t = (int)$idata[$prefix.'type']; //enum 0..5 consistent with TimeIntervals()
-			switch($t)
-			{
-				case 0:
-					if($c > 60)
-						$c = ceil($c/15) * 15; //round largish minutes up to qtr-hrs
-					$c *= 60;
-					break;
-				case 1:
-					$c *= 3600;
-					break;
-				case 2:
-					$v = 'day';
-				case 3:
-					if($t == 3) $v = 'week';
-				case 4:
-					if($t == 4) $v = 'month';
-				case 5:
-					if($t == 5) $v = 'year';
-					if($c > 1) $v .= 's';
-					$s = time();
-					$e = strtotime('+'.$c.' '.$v,$s); //not localised, but near enough in this context
-					$c = $e - $s;
-					break;
+			switch ($t) {
+			 case 0:
+				if ($c > 60)
+					$c = ceil($c/15) * 15; //round largish minutes up to qtr-hrs
+				$c *= 60;
+				break;
+			 case 1:
+				$c *= 3600;
+				break;
+			 case 2:
+				$v = 'day';
+			 case 3:
+				if ($t == 3) $v = 'week';
+			 case 4:
+				if ($t == 4) $v = 'month';
+			 case 5:
+				if ($t == 5) $v = 'year';
+				if ($c > 1) $v .= 's';
+				$s = time();
+				$e = strtotime('+'.$c.' '.$v,$s); //not localised, but near enough in this context
+				$c = $e - $s;
+				break;
 			}
 			return $c;
 		}
@@ -922,47 +824,45 @@ class Shared
 	@item_id: resource or group identifier
 	Returns: display-interval enum 0..3 consistent with DisplayIntervals()
 	*/
-	public function GetDefaultRange(&$mod,$item_id)
+	public function GetDefaultRange(&$mod, $item_id)
 	{
 		$idata = self::GetItemProperty($mod,$item_id,array('leadtype','leadcount'),TRUE);
-		if($idata && !is_null($idata['leadtype']) && !is_null($idata['leadcount']))
-		{
+		if ($idata && !is_null($idata['leadtype']) && !is_null($idata['leadcount'])) {
 			$c = (int)$idata['leadcount'];
-			switch($idata['leadtype']) //enum 0..5 consistent with TimeIntervals()
-			{
-				case 0: //minutes
-					$c = (int)$c/15; //to qtr-hrs
-				case 1: //hours
-					if($c > 672) //28*24
-						return 3;	//year-range
-					elseif($c > 168) //7*24
-						return 2;	//month-range
-					elseif($c > 24) //1*24
-						return 1; //week-range
-					else
-						return 0; //day-range
-				case 2: //days
-					if($c > 28)
-						return 3;	//year-range
-					elseif($c > 7)
-						return 2;	//month-range
-					elseif($c > 1)
-						return 1; //week-range
-					else
-						return 0; //day-range
-				case 3: //weeks
-					if($c > 4)
-						return 3;	//year-range
-					elseif($c > 1)
-						return 2;	//month-range
-					else
-						return 1; //week-range
-				case 4: //months
-					if($c > 1)
-						return 3;
-					return 2;
-				case 5: //years
+			switch ($idata['leadtype']) { //enum 0..5 consistent with TimeIntervals()
+			 case 0: //minutes
+				$c = (int)$c/15; //to qtr-hrs
+			 case 1: //hours
+				if ($c > 672) //28*24
+					return 3;	//year-range
+				elseif ($c > 168) //7*24
+					return 2;	//month-range
+				elseif ($c > 24) //1*24
+					return 1; //week-range
+				else
+					return 0; //day-range
+			 case 2: //days
+				if ($c > 28)
+					return 3;	//year-range
+				elseif ($c > 7)
+					return 2;	//month-range
+				elseif ($c > 1)
+					return 1; //week-range
+				else
+					return 0; //day-range
+			 case 3: //weeks
+				if ($c > 4)
+					return 3;	//year-range
+				elseif ($c > 1)
+					return 2;	//month-range
+				else
+					return 1; //week-range
+			 case 4: //months
+				if ($c > 1)
 					return 3;
+				return 2;
+			 case 5: //years
+				return 3;
 			}
 		}
 		//default
@@ -982,56 +882,48 @@ class Shared
 	@slen: slot length, in seconds
 	@part: optional boolean, whether to accept intra-slot times for @slen >= 3600, default FALSE
 	*/
-	public function TrimRange($dtstart,$dtend,$slen,$part=FALSE)
+	public function TrimRange($dtstart, $dtend, $slen, $part=FALSE)
 	{
-		if($slen >= 3600 && $part)
-		{
-			if($slen <= 86400)
-			{
+		if ($slen >= 3600 && $part) {
+			if ($slen <= 86400) {
 				$slop = $slen * 0.25;
 				$rounder = 3600;
-			}
-			else
-			{
+			} else {
 				$slop = 84600;
 				$rounder = 84600;
 			}
-		}
-		else
-		{
+		} else {
 			$slop = (int)($slen/2);
 			$rounder = 1; //unused
 		}
 
 		$st = $dtstart->getTimestamp();
 		$nd = $dtend->getTimestamp();
-		if($st > $nd)
-		{
+		if ($st > $nd) {
 			$t = $nd;
 			$nd = $st;
 			$st = $t;
-		}
-		elseif($st == $nd)
+		} elseif ($st == $nd)
 			$nd = $st + 60; //this will change
 
 		$t = $st % $slen;
-		if($t < $slop)
+		if ($t < $slop)
 			$st -= $t;
-		elseif($t > $slen - $slop)
+		elseif ($t > $slen - $slop)
 			$st = $st + $slen - $t;
 		else
 			$st = ceil($nd/$rounder) * $rounder;
 		$dtstart->setTimestamp($st);
 
 		$t = ($nd-$st) % $slen;
-		if($t < $slop)
+		if ($t < $slop)
 			$nd = $nd - $t - 1;
-		elseif($t > $slen - $slop)
+		elseif ($t > $slen - $slop)
 			$nd = $nd + $slen - $t - 1;
 		else
 			$nd = floor($nd/$rounder) * $rounder;
 
-		if($nd-$st < $slen-1)
+		if ($nd-$st < $slen-1)
 			$nd = $st + $slen - 1;
 
 		$dtend->setTimestamp($nd);
@@ -1047,13 +939,11 @@ class Shared
 	{
 		$config = cmsms()->GetConfig();
 		$fp = $config['uploads_path'];
-		if($fp && is_dir($fp))
-		{
+		if ($fp && is_dir($fp)) {
 			$ud = $mod->GetPreference('pref_uploadsdir','');
-			if($ud)
-			{
+			if ($ud) {
 				$fp = $fp.DIRECTORY_SEPARATOR.$ud;
-				if(!is_dir($fp))
+				if (!is_dir($fp))
 					return FALSE;
 			}
 			return $fp;
@@ -1070,19 +960,15 @@ class Shared
 		array of them, default '*'
 	Returns: array or FALSE
 	*/
-	public function GetUploadedFiles(&$mod,$ext='*')
+	public function GetUploadedFiles(&$mod, $ext='*')
 	{
 		$fp = self::GetUploadsPath($mod);
-		if($fp)
-		{
+		if ($fp) {
 			$flags = GLOB_NOSORT;
-			if(is_array($ext))
-			{
+			if (is_array($ext)) {
 				$ext = '{'.implode(',',$ext).'}';
 				$flags |= GLOB_BRACE;
-			}
-			elseif(strpos($ext,',') !== FALSE)
-			{
+			} elseif (strpos($ext,',') !== FALSE) {
 				$ext = '{'.$ext.'}';
 				$flags |= GLOB_BRACE;
 			}
@@ -1091,11 +977,9 @@ class Shared
 			$pattern = $fp.DIRECTORY_SEPARATOR.'*'.DIRECTORY_SEPARATOR.'*.'.$ext;
 			$names2 = glob($pattern,$flags);
 			$names = array_merge($names,$names2);
-			if($names)
-			{
+			if ($names) {
 				$len = strlen($fp)+1; //omit leading path+sep
-				foreach($names as &$one)
-				{
+				foreach ($names as &$one) {
 					$one = substr($one,$len);
 				}
 				unset($one);
@@ -1109,7 +993,7 @@ class Shared
 	/*
 	@file: name, or relative path, of uploaded or to-be-uploaded file
 	*/
-	private function PathURL(&$mod,$file)
+	private function PathURL(&$mod, $file)
 	{
 		$config = cmsms()->GetConfig();
 		$rooturl = (empty($_SERVER['HTTPS'])) ? $config['uploads_url']:$config['ssl_uploads_url'];
@@ -1128,15 +1012,13 @@ class Shared
 	@exists: optional boolean, whether to check existence of @file, default TRUE
 	Returns: string or FALSE
 	*/
-	public function GetUploadURL(&$mod,$file,$exists=TRUE)
+	public function GetUploadURL(&$mod, $file, $exists=TRUE)
 	{
 		$fp = self::GetUploadsPath($mod);
-		if($fp)
-		{
-			if($exists)
-			{
+		if ($fp) {
+			if ($exists) {
 				$fp = $fp.DIRECTORY_SEPARATOR.$file;
-				if(!file_exists($fp))
+				if (!file_exists($fp))
 					return FALSE;
 			}
 			return self::PathURL($mod,$file);
@@ -1154,21 +1036,19 @@ class Shared
 	@name: optional string to construct image 'alt', default FALSE
 	Returns: array or FALSE
 	*/
-	public function GetImageURLs(&$mod,$image,$name=FALSE)
+	public function GetImageURLs(&$mod, $image, $name=FALSE)
 	{
-		if(!$image)
+		if (!$image)
 			return FALSE;
-		if(!$name)
+		if (!$name)
 			$name = '<'.$mod->Lang('noname').'>';
 		$name = htmlentities($name,ENT_QUOTES | ENT_XHTML,FALSE);
 		$title = $mod->Lang('imagetitle',$name);
 		$all = array();
 		$parts = explode(',',$image);
-		foreach($parts as &$one)
-		{
+		foreach ($parts as &$one) {
 			$url = self::GetUploadURL($mod,$one);
-			if($url)
-			{
+			if ($url) {
 				$oneset = new \stdClass();
 				$oneset->url = $url;
 				$oneset->title = $title;
@@ -1188,16 +1068,14 @@ class Shared
 	@search optional flag for inherited search, default TRUE
 	Returns: string or FALSE
 	*/
-	public function GetStylesURL(&$mod,$item_id,$search=TRUE)
+	public function GetStylesURL(&$mod, $item_id, $search=TRUE)
 	{
 		$fp = self::GetUploadsPath($mod);
-		if($fp)
-		{
+		if ($fp) {
 			$idata = self::GetItemProperty($mod,$item_id,'stylesfile',TRUE,$search);
-			if($idata && !empty($idata['stylesfile']))
-			{
+			if ($idata && !empty($idata['stylesfile'])) {
 				$fp = $fp.DIRECTORY_SEPARATOR.$idata['stylesfile'];
-				if(file_exists($fp))
+				if (file_exists($fp))
 					return self::PathURL($mod,$idata['stylesfile']);
 			}
 		}
@@ -1209,15 +1087,14 @@ class Shared
 
 	Get array of hour-strings midnight..11pm, suitable for admin selector
 	*/
-/*	function AllHours(&$mod)
+/*	public function AllHours(&$mod)
 	{
 		$hours = array($mod->Lang('title_anytime')=>24,$mod->Lang('midnight')=>0);
 		//don't need times relative to localised DateTime object
 		$tStart = strtotime('01:00');
 		$tEnd = strtotime('23:00');
 		$h = 1;
-		for ($tNow = $tStart; $tNow <= $tEnd; $tNow += 3600)
-		{
+		for ($tNow = $tStart; $tNow <= $tEnd; $tNow += 3600) {
 			if ($h != 12)
 				$key = gmdate('g a',$tNow);
 			else
@@ -1235,14 +1112,13 @@ class Shared
 	@local_zone: a timezone identifier like 'Europe/London' (or 'UTC','GMT','')
 	@local_time: optional date/time string parsable by PHP strtotime(), default 'now'
 	*/
-	public function GetTimeOffset($local_zone,$local_time='now')
+	public function GetTimeOffset($local_zone, $local_time='now')
 	{
-		switch($local_zone)
-		{
-			case FALSE:
-			case 'UTC':
-			case 'GMT':
-				return 0;
+		switch ($local_zone) {
+		 case FALSE:
+		 case 'UTC':
+		 case 'GMT':
+			return 0;
 		}
 		try {
 			$tz = new \DateTimeZone($local_zone);
@@ -1266,19 +1142,16 @@ class Shared
 	@when: optional, absolute or relative date/time descriptor, or a timestamp, or FALSE (='now'), default 'now'
 	Returns: timestamp
 	*/
-	public function GetZoneTime($zonename,$when='now')
+	public function GetZoneTime($zonename, $when='now')
 	{
 		$tz = new \DateTimeZone('UTC');
-		if($when === FALSE)
+		if ($when === FALSE)
 			$when = 'now';
-		if(is_numeric($when))
-		{
+		if (is_numeric($when)) {
 			$stamp = $when;
 			$dt = new \DateTime('1900-1-1',$tz);
 			$dt->setTimestamp($stamp);
-		}
-		else
-		{
+		} else {
 			try {
 				$dt = new \DateTime($when,$tz);
 			} catch (Exception $e) {
@@ -1306,7 +1179,7 @@ class Shared
 	 [Pacific/Honolulu] => (UTC-10:00) Pacific/Honolulu
 	 [Pacific/Fakaofo] => (UTC-10:00) Pacific/Fakaofo
 	*/
-	public function GetTimeZones(&$mod,$withtime=FALSE)
+	public function GetTimeZones(&$mod, $withtime=FALSE)
 	{
 		static $regions = array(
 			DateTimeZone::AFRICA,
@@ -1321,31 +1194,26 @@ class Shared
 		);
 
 		$timezones = array();
-		foreach($regions as $region)
-		{
+		foreach ($regions as $region) {
 			$timezones = array_merge($timezones, DateTimeZone::listIdentifiers($region));
 		}
 		ksort($timezones);
 
 		$current = new \DateTime();
 		$timezone_offsets = array();
-		foreach($timezones as $timezone)
-		{
+		foreach ($timezones as $timezone) {
 			$tz = new \DateTimeZone($timezone);
 			$timezone_offsets[$timezone] = $tz->getOffset($current);
 		}
 
 		$timezone_list = array();
-		foreach($timezone_offsets as $timezone => $offset)
-		{
-			if($withtime)
-			{
+		foreach ($timezone_offsets as $timezone => $offset) {
+			if ($withtime) {
 				$offset_prefix = $offset < 0 ? '-' : '+';
 				$offset_formatted = gmdate('H:i', abs($offset));
 				$pretty_offset = "GMT${offset_prefix}${offset_formatted}";
 				$timezone_list[$timezone] = "(${pretty_offset}) $timezone";
-			}
-			else
+			} else
 				$timezone_list[$timezone] = $timezone;
 		}
 
@@ -1360,7 +1228,7 @@ class Shared
 	{
 		$cfg = cmsms()->GetConfig();
 		$loc = $cfg['locale'];
-		if(!$loc)
+		if (!$loc)
 			$loc = 'en_US';
 		return $loc;
 	}
@@ -1372,7 +1240,7 @@ class Shared
 	Returns: pair of UTC DateTime objects, first represents start of
 	  day including @start, second is for start of day one-past end of range
 	*/
-	public function RangeStamps($start,$range)
+	public function RangeStamps($start, $range)
 	{
 		$sdt = new \DateTime('1900-1-1 0:0:0',new \DateTimeZone('UTC'));
 		//start of day including start
@@ -1380,20 +1248,19 @@ class Shared
 		$sdt->setTime(0,0,0); //in case
 		//start of day after end
 		$ndt = clone $sdt;
-		switch($range)
-		{
-			case \Booker::RANGEDAY:
-				$ndt->modify('+1 day');
-				break;
-			case \Booker::RANGEWEEK:
-				$ndt->modify('+7 days');
-				break;
-			case \Booker::RANGEMTH:
-				$ndt->modify('+1 month');
-				break;
-			case \Booker::RANGEYR:
-				$ndt->modify('+1 year');
-				break;
+		switch ($range) {
+		 case \Booker::RANGEDAY:
+			$ndt->modify('+1 day');
+			break;
+		 case \Booker::RANGEWEEK:
+			$ndt->modify('+7 days');
+			break;
+		 case \Booker::RANGEMTH:
+			$ndt->modify('+1 month');
+			break;
+		 case \Booker::RANGEYR:
+			$ndt->modify('+1 year');
+			break;
 		}
 		return array($sdt,$ndt);
 	}
@@ -1427,48 +1294,42 @@ class Shared
 	@format: date-format string recognised by PHP date(), or empty
 	Returns: string
 	*/
-	public function IntervalFormat(&$mod,$dt,$format)
+	public function IntervalFormat(&$mod, $dt, $format)
 	{
-		if(!$format)
+		if (!$format)
 			$format = 'j M Y';
 		$finds = array();
 		$placers = array();
 		$repls = array();
-		if(strpos($format,'D') !== FALSE) //short dayname
-		{
+		if (strpos($format,'D') !== FALSE) { //short dayname
 			$finds[] = '/(?<!\\\)D/';
 			$indx = $dt->format('w'); //0..6
 			$placers[] = '1Q1';
 			$repls[] = self::DayNames($mod,$indx,TRUE);
 		}
-		if(strpos($format,'l') !== FALSE) //long dayname
-		{
+		if (strpos($format,'l') !== FALSE) { //long dayname
 			$finds[] = '/(?<!\\\)l/';
 			$indx = $dt->format('w');
 			$placers[] = '2Q2';
 			$repls[] = self::DayNames($mod,$indx);
 		}
-		if(strpos($format,'M') !== FALSE) //short monthname
-		{
+		if (strpos($format,'M') !== FALSE) { //short monthname
 			$finds[] = '/(?<!\\\)M/';
 			$indx = $dt->format('n'); //1..12
 			$placers[] = '3Q3';
 			$repls[] = self::MonthNames($mod,$indx,TRUE);
 		}
-		if(strpos($format,'F') !== FALSE) //long monthname
-		{
+		if (strpos($format,'F') !== FALSE) { //long monthname
 			$finds[] = '/(?<!\\\)F/';
 			$indx = $dt->format('n');
 			$placers[] = '4Q4';
 			$repls[] = self::MonthNames($mod,$indx);
 		}
-		if($finds)
-		{
+		if ($finds) {
 			$format = preg_replace($finds,$placers,$format);
 			$interval = $dt->format($format);
 			return str_replace($placers,$repls,$interval);
-		}
-		else
+		} else
 			return $dt->format($format);
 	}
 
@@ -1484,18 +1345,16 @@ class Shared
 	@plural: optional, whether to get plural form of the interval name(s), default FALSE
 	@cap: optional, whether to capitalise the first character of the name(s), default FALSE
 	*/
-	public function IntervalNames(&$mod,$which,$plural=FALSE,$cap=FALSE)
+	public function IntervalNames(&$mod, $which, $plural=FALSE, $cap=FALSE)
 	{
 		$k = ($plural) ? 'multiperiods' : 'periods';
 		$all = explode(',',$mod->Lang($k));
 		array_unshift($all,$mod->Lang('none'));
 		$c = count($all);
 
-		if(!is_array($which))
-		{
-			if($which >= 0 && $which < $c)
-			{
-				if($cap)
+		if (!is_array($which)) {
+			if ($which >= 0 && $which < $c) {
+				if ($cap)
 					return ucfirst($all[$which]);
 				else
 					return $all[$which];
@@ -1503,10 +1362,8 @@ class Shared
 			return '';
 		}
 		$ret = array();
-		foreach($which as $period)
-		{
-			if($period >= 0 && $period < $c)
-			{
+		foreach ($which as $period) {
+			if ($period >= 0 && $period < $c) {
 				$ret[$period] = ($cap) ? ucfirst($all[$period]): //for current locale
 					$all[$period];
 			}
@@ -1524,19 +1381,17 @@ class Shared
 	@which: 1 (for January) .. 12 (for December), or array of such indices
 	@short: optional, whether to get short-form name, default FALSE
 	*/
-	public function MonthNames(&$mod,$which,$short=FALSE)
+	public function MonthNames(&$mod, $which, $short=FALSE)
 	{
 		$k = ($short) ? 'shortmonths' : 'longmonths';
 		$all = explode(',',$mod->Lang($k));
-		if (!is_array($which))
-		{
+		if (!is_array($which)) {
 			if ($which > 0 && $which < 13)
 				return $all[$which-1];
 			return '';
 		}
 		$ret = array();
-		foreach ($which as $month)
-		{
+		foreach ($which as $month) {
 			if ($month > 0 && $month < 13)
 				$ret[$month] = $all[$month-1];
 		}
@@ -1552,21 +1407,19 @@ class Shared
 	@which: 0 (for Sunday) .. 6 (for Saturday), or array of such indices
 	@short: optional, whether to get short-form name, default FALSE
 	*/
-	public function DayNames(&$mod,$which,$short=FALSE)
+	public function DayNames(&$mod,$which, $short=FALSE)
 	{
 		$k = ($short) ? 'shortdays' : 'longdays';
 		$all = explode(',',$mod->Lang($k));
 		$c = count($all);
 
-		if (!is_array($which))
-		{
+		if (!is_array($which)) {
 			if ($which >= 0 && $which < $c)
 				return $all[$which];
 			return '';
 		}
 		$ret = array();
-		foreach ($which as $day)
-		{
+		foreach ($which as $day) {
 			if ($day >= 0 && $day < $c)
 				$ret[$day] = $all[$day];
 		}
@@ -1585,7 +1438,7 @@ class Shared
 	@plural: optional, whether to get plural form of the interval name(s), default FALSE
 	@cap: optional, whether to capitalise the first character of the name(s), default FALSE
 	*/
-	public function RangeNames(&$mod,$which,$plural=FALSE,$cap=FALSE)
+	public function RangeNames(&$mod, $which, $plural=FALSE, $cap=FALSE)
 	{
 		$k = ($plural) ? 'multiperiods' : 'periods';
 		$all = explode(',',$mod->Lang($k));
@@ -1593,11 +1446,9 @@ class Shared
 		array_shift($all);
 		$c = count($all);
 
-		if (!is_array($which))
-		{
-			if ($which >= 0 && $which < $c)
-			{
-				if($cap)
+		if (!is_array($which)) {
+			if ($which >= 0 && $which < $c) {
+				if ($cap)
 					return ucfirst($all[$which]);
 				else
 					return $all[$which];
@@ -1605,10 +1456,8 @@ class Shared
 			return '';
 		}
 		$ret = array();
-		foreach($which as $period)
-		{
-			if ($period >= 0 && $period < $c)
-			{
+		foreach ($which as $period) {
+			if ($period >= 0 && $period < $c) {
 				$ret[$period] = ($cap) ? ucfirst($all[$period]): //for current locale TODO mbstring func
 					$all[$period];
 			}
@@ -1625,15 +1474,12 @@ class Shared
 	@tags: array of html tag(s), each without surrounding <>
 	Returns: cleaned string
 	*/
-	public function StripTags($str,&$tags)
+	public function StripTags($str, &$tags)
 	{
-		foreach($tags as $tag)
-		{
+		foreach ($tags as $tag) {
 			$str = preg_replace('#<'.$tag.'(>|\s[^>]*>)#is','',$str);
 			$str = preg_replace('#</'.$tag.'(>|\s[^>]*>)#is','<br />',$str);
 		}
 		return $str;
 	}
 }
-
-?>

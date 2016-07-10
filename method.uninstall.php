@@ -10,17 +10,13 @@
 function delTree($dir)
 {
 	$files = array_diff(scandir($dir),array('.','..'));
-	if($files)
-	{
-		foreach($files as $file)
-		{
+	if ($files) {
+		foreach ($files as $file) {
 			$fp = cms_join_path($dir,$file);
-			if(is_dir($fp))
-			{
-			 	if(!delTree($fp))
+			if (is_dir($fp)) {
+			 	if (!delTree($fp))
 					return FALSE;
-			}
-			else
+			} else
 				unlink($fp);
 		}
 		unset($files);
@@ -69,24 +65,18 @@ $this->RemovePermission($this->PermDelName);
 $this->RemovePermission($this->PermModName);
 
 $fp = $config['uploads_path'];
-if($fp && is_dir($fp))
-{
+if ($fp && is_dir($fp)) {
 	$ud = $this->GetPreference('pref_uploadsdir','');
-	if($ud)
-	{
+	if ($ud) {
 		$fp = cms_join_path($fp,$ud);
-		if($fp && is_dir($fp))
+		if ($fp && is_dir($fp))
 			delTree($fp);
-	}
-	else
-	{
+	} else {
 		$files = $db->GetCol("SELECT DISTINCT stylesfile FROM $this->ItemTable WHERE stylesfile IS NOT NULL AND stylesfile<>''");
-		if($files)
-		{
-			foreach($files as $fn)
-			{
+		if ($files) {
+			foreach ($files as $fn) {
 				$fn = cms_join_path($fp,$fn);
-				if(is_file($fn))
+				if (is_file($fn))
 					unlink($fn);
 			}
 		}
@@ -97,11 +87,9 @@ if($fp && is_dir($fp))
 $this->RemovePreference();
 // remove FormBuilder-module custom processing
 $ob = ModuleOperations::get_instance()->get_module_instance('FormBuilder');
-if(is_object($ob))
-{
+if (is_object($ob)) {
 	$fp = cms_join_path($ob->GetModulePath,'classes');
-	if($fp && is_dir($fp))
-	{
+	if ($fp && is_dir($fp)) {
 		$fp = cms_join_path($fp,'DispositionBookingRequest.class.php');
 		unlink($fn);
 	}
@@ -110,5 +98,3 @@ if(is_object($ob))
 
 // put mention into the admin log
 $this->Audit(0, $this->Lang('fullname'), $this->Lang('audit_uninstalled'));
-
-?>

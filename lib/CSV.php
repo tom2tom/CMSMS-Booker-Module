@@ -18,27 +18,23 @@ class CSV
 	@bkg_id: enumerator of the booking to process, or array of such, or FALSE if @item_id is provided
 	Returns: string
 	*/
-	public function ExportName(&$mod,$item_id=FALSE,$bkg_id=FALSE)
+	public function ExportName(&$mod, $item_id=FALSE, $bkg_id=FALSE)
 	{
 		$funcs = new Shared();
 		$multi = FALSE;
-		if($item_id)
-		{
-			if(is_array($item_id))
-			{
+		if ($item_id) {
+			if (is_array($item_id)) {
 				$item_id = reset($item_id);
 				$multi = TRUE;
 			}
-		}
-		else
-		{
-			if(is_array($bkg_id))
+		} else {
+			if (is_array($bkg_id))
 				$bkg_id = reset($bkg_id);
 			$item_id = $funcs->GetBookingItemID($mod,$bkg_id);
 		}
 		$iname = $funcs->GetItemNameForID($mod,$item_id);
 		$sname = preg_replace('/\W/','_',$iname);
-		if($multi)
+		if ($multi)
 			$sname .= '_plus';
 		$datestr = date('Y-m-d-H-i'); //server time
 		return $mod->GetName().$mod->Lang('export').'-'.$sname.'-'.$datestr.'.csv';
@@ -61,49 +57,39 @@ class CSV
 	@$sep: field-separator in output data, assumed single-byte ASCII, default = ','
 	Returns: TRUE/string, or FALSE on error
 	*/
-	private function BookingCSV(&$mod,$item_id=FALSE,$bkg_id=FALSE,$fh=FALSE,$sep=',')
+	private function BookingCSV(&$mod, $item_id=FALSE, $bkg_id=FALSE, $fh=FALSE, $sep=',')
 	{
 		$funcs = new Shared();
-		if($item_id)
-		{
-			if(is_array($item_id))
-			{
+		if ($item_id) {
+			if (is_array($item_id)) {
 				$fillers = str_repeat('?,',count($item_id)-1);
 				$sql = 'SELECT bkg_id FROM '.$mod->DataTable.' WHERE item_id IN ('.$fillers.'?) ORDER BY item_id,slotstart';
 				$all = $funcs->SafeGet($sql,$item_id,'col');
-			}
-			else
-			{
+			} else {
 				$sql = 'SELECT bkg_id FROM '.$mod->DataTable.' WHERE item_id=? ORDER BY slotstart';
 				$all = $funcs->SafeGet($sql,array($item_id),'col');
 			}
-		}
-		elseif($bkg_id)
-		{
-			if(is_array($bkg_id))
+		} elseif ($bkg_id) {
+			if (is_array($bkg_id))
 				$all = $bkg_id;
 			else
 				$all = array($bkg_id);
 		}
 
-		if($all)
-		{
-			if($fh && ini_get('mbstring.internal_encoding') !== FALSE) //send to file, and conversion is possible
-			{
+		if ($all) {
+			if ($fh && ini_get('mbstring.internal_encoding') !== FALSE)  { //send to file, and conversion is possible
 				$config = cmsms()->GetConfig();
-				if(!empty($config['default_encoding']))
+				if (!empty($config['default_encoding']))
 					$defchars = trim($config['default_encoding']);
 				else
 					$defchars = 'UTF-8';
 				$expchars = $mod->GetPreference('pref_exportencoding','UTF-8');
 				$convert = (strcasecmp($expchars,$defchars) != 0);
-			}
-			else
+			} else
 				$convert = FALSE;
 
 			$sep2 = ($sep != ' ')?' ':',';
-			switch ($sep)
-			{
+			switch ($sep) {
 			 case '&':
 				$r = '%38%';
 				break;
@@ -140,17 +126,14 @@ class CSV
 
 			$sql = 'SELECT * FROM '.$mod->DataTable.' WHERE bkg_id=?';
 			//data lines(s)
-			foreach($all as $one)
-			{
+			foreach ($all as $one) {
 				$data = $funcs->SafeGet($sql,array($one),'row');
-				foreach($translates as &$one)
-				{
+				foreach ($translates as &$one) {
 					$fv = $data[$one];
-					switch($one)
-					{
+					switch ($one) {
 					 case 'item_id':
 					  $fv = $funcs->GetItemNameForID($mod,$fv);
-						if($strip)
+						if ($strip)
 							$fv = strip_tags($fv);
 						$fv = str_replace($sep,$r,$fv);
 					 	break;
@@ -167,7 +150,7 @@ class CSV
 					 	break;
 					 case 'user':
 					 case 'contact':
-						if($strip)
+						if ($strip)
 							$fv = strip_tags($fv);
 						$fv = str_replace($sep,$r,$fv);
 					 	break;
@@ -179,22 +162,18 @@ class CSV
 				}
 				unset($one);
 				$outstr .= "\n";
-				if($fh)
-				{
-					if($convert)
-					{
+				if ($fh) {
+					if ($convert) {
 						$conv = mb_convert_encoding($outstr, $expchars, $defchars);
 						fwrite($fh, $conv);
 						unset($conv);
-					}
-					else
-					{
+					} else {
 						fwrite($fh, $outstr);
 					}
 					$outstr = '';
 				}
 			}
-			if($fh)
+			if ($fh)
 				return TRUE;
 			else
 				return $outstr; //encoding conversion upstream
@@ -210,7 +189,7 @@ class CSV
 	@sep: optional field-separator for exported content default ','
 	Returns: 2-member array, 1st is T/F indicating success, 2nd '' or lang key for message
 	*/
-/*	public function ExportItems(&$mod,$item_id,$sep=',')
+/*	public function ExportItems(&$mod, $item_id, $sep=',')
 	{
 		$fname = self::ExportName($mod,$item_id,FALSE);
 
@@ -227,59 +206,46 @@ class CSV
 	@sep: optional field-separator for exported content default ','
 	Returns: 2-member array, 1st is T/F indicating success, 2nd '' or lang key for message
 	*/
-	public function ExportBookings(&$mod,$item_id=FALSE,$bkg_id=FALSE,$sep=',')
+	public function ExportBookings(&$mod, $item_id=FALSE, $bkg_id=FALSE, $sep=',')
 	{
 		if (!($item_id || $bkg_id))
 			return array(FALSE,'err_system');
 		$fname = self::ExportName($mod,$item_id,$bkg_id);
 
-		if($mod->GetPreference('pref_exportfile'))
-		{
+		if ($mod->GetPreference('pref_exportfile')) {
 			$funcs = new Shared();
 			$updir = $funcs->GetUploadsPath($mod);
-			if($updir)
-			{
+			if ($updir) {
 				$filepath = $updir.DIRECTORY_SEPARATOR.$fname;
 				$fh = fopen($filepath,'w');
-				if($fh)
-				{
+				if ($fh) {
 					$success = self::BookingCSV($mod,$item_id,$bkg_id,$fh,$sep);
 					fclose($fh);
-					if($success)
-					{
+					if ($success) {
 						$url = $funcs->GetUploadURL($mod,$fname,FALSE); //must succeed, in this context
 						@ob_clean();
 						@ob_clean();
 						header('Location: '.$url);
 						return array(TRUE,'');
-					}
-					else
+					} else
 						return array(FALSE,'error'); //TODO
-				}
-				else
+				} else
 					return array(FALSE,'err_perm');
-			}
-			else
+			} else
 				return array(FALSE,'err_system');
-		}
-		else
-		{
+		} else {
 			$csv = self::BookingCSV($mod,$item_id,$bkg_id,FALSE,$sep);
-			if($csv)
-			{
+			if ($csv) {
 				$config = cmsms()->GetConfig();
-				if(!empty($config['default_encoding']))
+				if (!empty($config['default_encoding']))
 					$defchars = trim($config['default_encoding']);
 				else
 					$defchars = 'UTF-8';
 
-				if(ini_get('mbstring.internal_encoding') !== FALSE) //conversion is possible
-				{
+				if (ini_get('mbstring.internal_encoding') !== FALSE) { //conversion is possible
 					$expchars = $mod->GetPreference('pref_exportencoding','UTF-8');
 					$convert = (strcasecmp ($expchars,$defchars) != 0);
-				}
-				else
-				{
+				} else {
 					$expchars = $defchars;
 					$convert = FALSE;
 				}
@@ -295,7 +261,7 @@ class CSV
 				header('Content-Type: text/csv; charset='.$expchars);
 				header('Content-Length: '.strlen($csv));
 				header('Content-Disposition: attachment; filename='.$fname);
-				if($convert)
+				if ($convert)
 					echo mb_convert_encoding($csv,$expchars,$defchars);
 				else
 					echo $csv;
@@ -319,25 +285,22 @@ class CSV
 	*/
 	private function GetSplitLine(&$fh)
 	{
-		do
-		{
+		do {
 			$fields = fgetcsv($fh,4096);
-			if(is_null($fields) || $fields == FALSE)
+			if (is_null($fields) || $fields == FALSE)
 				return FALSE;
-		} while(!isset($fields[1]) && is_null($fields[0])); //blank line
+		} while (!isset($fields[1]) && is_null($fields[0])); //blank line
 		$some = FALSE;
 		//convert any separator supported by exporter
-		foreach ($fields as &$one)
-		{
-			if($one)
-			{
+		foreach ($fields as &$one) {
+			if ($one) {
 				$some = TRUE;
 				$one = trim(preg_replace_callback(
 					array('/&#\d\d;/','/%\d\d%/'),array($this,'ToChr'),$one));
 			}
 		}
 		unset($one);
-		if($some)
+		if ($some)
 			return $fields;
 		return FALSE; //ignore lines with all fields empty
 	}
@@ -350,28 +313,25 @@ class CSV
 	@item_id: optional resource|group id which must be matched
 	Returns: 2-member array, 1st is T/F indicating success, 2nd is count of imports or lang key for message
 	*/
-	public function ImportBookings(&$mod,$id,$item_id=FALSE)
+	public function ImportBookings(&$mod, $id, $item_id=FALSE)
 	{
 		$filekey = $id.'csvfile';
-		if(isset($_FILES) && isset($_FILES[$filekey]))
-		{
+		if (isset($_FILES) && isset($_FILES[$filekey])) {
 			$file_data = $_FILES[$filekey];
 			$parts = explode('.',$file_data['name']);
 			$ext = end($parts);
-			if($file_data['type'] != 'text/csv'
+			if ($file_data['type'] != 'text/csv'
 			 || !($ext == 'csv' || $ext == 'CSV')
 				 || $file_data['size'] <= 0 || $file_data['size'] > 25600 //$max*1000
-				 || $file_data['error'] != 0)
-			{
+				 || $file_data['error'] != 0) {
 				return array(FALSE,'err_file');
 			}
 			$handle = fopen($file_data['tmp_name'],'r');
-			if(!$handle)
+			if (!$handle)
 				return array(FALSE,'err_perm');
 			//basic validation of file-content
 			$firstline = self::GetSplitLine($handle);
-			if($firstline == FALSE)
-			{
+			if ($firstline == FALSE) {
 				return array(FALSE,'err_file');
 			}
 			//file-column-name to fieldname translation
@@ -389,19 +349,16 @@ class CSV
 			=>'status'
 			*/
 			$t = count($firstline);
-			if($t < 1 || $t > count($translates))
-			{
+			if ($t < 1 || $t > count($translates)) {
 				return array(FALSE,'err_file');
 			}
 			//setup for interpretation
 			$offers = array(); //column-index to fieldname translator
-			foreach($translates as $pub=>$priv)
-			{
+			foreach ($translates as $pub=>$priv) {
 				$col = array_search($pub,$firstline);
-				if($col !== FALSE)
+				if ($col !== FALSE)
 					$offers[$col] = $priv;
-				elseif($pub[0] == '#')
-				{
+				elseif ($pub[0] == '#') {
 					//name of compulsory fields has '#' prefix
 					return array(FALSE,'err_file');
 				}
@@ -412,42 +369,34 @@ class CSV
 			$skip = FALSE;
 			$icount = 0;
 			$db = $mod->dbHandle;
-			while(!feof($handle))
-			{
+			while (!feof($handle)) {
 				$imports = self::GetSplitLine($handle);
-				if($imports)
-				{
+				if ($imports) {
 					$data = array();
 					$save = FALSE;
 					$dts = FALSE;
 					$dte = FALSE;
-					foreach($imports as $i=>$one)
-					{
+					foreach ($imports as $i=>$one) {
 						$k = $offers[$i];
-						if($one)
-						{
-							switch($k)
-							{
+						if ($one) {
+							switch ($k) {
 							 case 'item_id':
 								$t = $funcs->GetItemID($mod,$one);
-								if($t === FALSE)
-								{
+								if ($t === FALSE) {
 									return array(FALSE,'err_file');
 								}
-								if($item_id && $t !== $item_id)
+								if ($item_id && $t !== $item_id)
 									continue;
 								$data[$k] = $t;
 								$save = TRUE;
-								if(!array_key_exists($t,$item_lens))
-								{
+								if (!array_key_exists($t,$item_lens)) {
 									$item_lens[$t] = $funcs->GetInterval($mod,$t,'slot');
-									if(!$item_lens[$t])
+									if (!$item_lens[$t])
 										return array(FALSE,'err_system');
 								}
 								break;
 							 case 'slotstart':
-								if(empty($data['item_id']))
-								{
+								if (empty($data['item_id'])) {
 									return array(FALSE,'err_file');
 								}
 								try {
@@ -458,8 +407,7 @@ class CSV
 								$data['slotstart'] = $dts->getTimestamp(); //store UTC timestamp
 								break;
 							 case 'slotlen': //proxy for #End
-								if(empty($data['item_id']))
-								{
+								if (empty($data['item_id'])) {
 									return array(FALSE,'err_file');
 								}
 								try {
@@ -467,7 +415,7 @@ class CSV
 								} catch (Exception $e) {
 									return array(FALSE,'err_badend');
 								}
-								if(isset($data['slotstart']))
+								if (isset($data['slotstart']))
 									$data['slotlen'] = $dte->getTimestamp() - $data['slotstart'];
 								else
 									$data['slotlen'] = $dte->getTimestamp(); //interim value cached
@@ -478,26 +426,22 @@ class CSV
 								$save = TRUE;
 								break;
 							 case 'userclass':
-								if(!is_numeric($one))
-								{
+								if (!is_numeric($one)) {
 									return array(FALSE,'err_file');
 								}
 								$data[$k] = (int)$one;
 								$save = TRUE;
 								break;
 							 case 'paid':
-								if(!($one == 'no' || $one == 'NO'))
+								if (!($one == 'no' || $one == 'NO'))
 									$data[$k] = 1;
 								$save = TRUE;
 								break;
 							default:
 								return array(FALSE,'err_file');
 							}
-						}
-						else
-						{
-							switch($k)
-							{
+						} else {
+							switch ($k) {
 							 case 'slotstart':
 							 case 'slotlen':
 							 case 'userclass':
@@ -509,9 +453,8 @@ class CSV
 							}
 						}
 					}
-					if($dts)
-					{
-						if(!$dte)
+					if ($dts) {
+						if (!$dte)
 							$dte = clone $dts;
 						$slen = $item_lens[$data['item_id']];
 						$funcs->TrimRange($dts,$dte,$slen);
@@ -520,36 +463,30 @@ class CSV
 						$funcs2 = new Schedule();
 						$save = !$funcs2->ItemBooked($mod,$data['item_id'],$dts,$dte)
 							&& $funcs2->ItemAvailable($mod,$funcs,$data['item_id'],$dts,$dte);
-					}
-					else
-					{
+					} else {
 						return array(FALSE,'err_badstart');
 					}
-					if($save)
-					{
+					if ($save) {
 						$namers = implode(',',array_keys($data));
 						$fillers = str_repeat('?,',count($data)-1);
 						$sql = 'INSERT INTO '.$mod->DataTable.' (bkg_id,'.$namers.') VALUES (?,'.$fillers.'?)';
 						$args = array_values($data);
 						$bid = $db->GenID($mod->DataTable.'_seq');
 						array_unshift($args,$bid);
-						if($funcs->SafeExec($sql,$args))
+						if ($funcs->SafeExec($sql,$args))
 							$icount++;
-						else
-						{
+						else {
 							return array(FALSE,'err_system');
 						}
-					}
-					else
-					{
+					} else {
 						$skip = TRUE;
 					}
 				}
 			}
 			fclose($handle);
-			if($skip)
+			if ($skip)
 				return array(FALSE,'warn_duplicate');
-			elseif($icount)
+			elseif ($icount)
 				return array(TRUE,$icount);
 			return array(FALSE,'none');
 		}
@@ -564,27 +501,25 @@ class CSV
 	@id: module identifier
 	Returns: 2-member array, 1st is T/F indicating success, 2nd is count of imports or lang key for message
 	*/
-	public function ImportItems(&$mod,$id)
+	public function ImportItems(&$mod, $id)
 	{
 		$filekey = $id.'csvfile';
-		if(isset($_FILES) && isset($_FILES[$filekey]))
-		{
+		if (isset($_FILES) && isset($_FILES[$filekey])) {
 			$file_data = $_FILES[$filekey];
 			$parts = explode('.',$file_data['name']);
 			$ext = end($parts);
-			if($file_data['type'] != 'text/csv'
+			if ($file_data['type'] != 'text/csv'
 			 || !($ext == 'csv' || $ext == 'CSV')
 				 || $file_data['size'] <= 0 || $file_data['size'] > 25600 //$max*1000
-				 || $file_data['error'] != 0)
-			{
+				 || $file_data['error'] != 0) {
 				return array(FALSE,'err_file');
 			}
 			$handle = fopen($file_data['tmp_name'],'r');
-			if(!$handle)
+			if (!$handle)
 				return array(FALSE,'err_perm');
 			//basic validation of file-content
 			$firstline = self::GetSplitLine($handle);
-			if($firstline == FALSE)
+			if ($firstline == FALSE)
 				return array(FALSE,'err_file');
 			//file-column-name to fieldname translation
 			$translates = array(
@@ -635,19 +570,16 @@ class CSV
 			'active'
 			*/
 			$t = count($firstline);
-			if($t < 1 || $t > count($translates))
-			{
+			if ($t < 1 || $t > count($translates)) {
 				return array(FALSE,'err_file');
 			}
 			//setup for interpretation
 			$offers = array(); //column-index to fieldname translator
-			foreach($translates as $pub=>$priv)
-			{
+			foreach ($translates as $pub=>$priv) {
 				$col = array_search($pub,$firstline);
-				if($col !== FALSE)
+				if ($col !== FALSE)
 					$offers[$col] = $priv;
-				elseif($pub[0] == '#')
-				{
+				elseif ($pub[0] == '#') {
 					//name of compulsory fields has '#' prefix
 					return array(FALSE,'err_file');
 				}
@@ -658,22 +590,17 @@ class CSV
 			$icount = 0;
 			$db = $mod->dbHandle;
 			$sqlg = 'INSERT INTO '.$mod->GroupTable.' (child,parent,likeorder,proximity) VALUES (?,?,?,?)';
-			while(!feof($handle))
-			{
+			while (!feof($handle)) {
 				$imports = self::GetSplitLine($handle);
-				if($imports)
-				{
+				if ($imports) {
 					$data = array();
 					$save = FALSE;
 					$is_group = FALSE;
 					$in_grps = FALSE;
-					foreach($imports as $i=>$one)
-					{
+					foreach ($imports as $i=>$one) {
 						$k = $offers[$i];
-						if($one)
-						{
-							switch($k)
-							{
+						if ($one) {
+							switch ($k) {
 							 case 'isgroup':
 								$is_group = !($one == 'no' || $one == 'NO');
 								break;
@@ -742,11 +669,8 @@ class CSV
 							 default:
 								return array(FALSE,'err_file');
 							}
-						}
-						else
-						{
-							switch($k)
-							{
+						} else {
+							switch ($k) {
 							 case 'listformat':
 								$data[$k] = ($is_group) ? \Booker::LISTSR:\Booker::LISTSU;
 								break;
@@ -761,8 +685,7 @@ class CSV
 						}
 					}
 
-					if($save) //process
-					{
+					if ($save) { //process
 						$namers = implode(',',array_keys($data));
 						$fillers = str_repeat('?,',count($data)-1);
 						$sql = 'INSERT INTO '.$mod->ItemTable.' (item_id,'.$namers.',active) VALUES (?,'.$fillers.'?,1)';
@@ -770,25 +693,19 @@ class CSV
 						$t = ($is_group) ? $mod->ItemTable.'_gseq':$mod->ItemTable.'_seq';
 						$item_id = $db->GenID($t);
 						array_unshift($args,$item_id);
-						if($db->Execute($sql,$args))
+						if ($db->Execute($sql,$args)) {
 							$icount++;
-						else
-						{
+						} else {
 							return array(FALSE,'err_system');
 						}
-						if($in_grps)
-						{
-							foreach($in_grps as $i=>$one)
-							{
+						if ($in_grps) {
+							foreach ($in_grps as $i=>$one) {
 								//find id of this name
 								$t = $funcs->GetItemID($mod,$one);
-								if($t !== FALSE)
-								{
+								if ($t !== FALSE) {
 									//setup groups table
 									$db->Execute($sqlg,array($item_id,$t,-1,$i+1)); //likeorder unknowable in this context, proximity assumes blank canvas!
-								}
-								else
-								{
+								} else {
 									return array(FALSE,'err_file');
 								}
 							}
@@ -797,7 +714,7 @@ class CSV
 				}
 			}
 			fclose($handle);
-			if($icount)
+			if ($icount)
 				return array(TRUE,$icount);
 			return array(FALSE,'none');
 		}
@@ -806,4 +723,3 @@ class CSV
 
 }
 
-?>

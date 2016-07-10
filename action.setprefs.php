@@ -10,25 +10,22 @@ if (isset($params['cancel']))
 	$this->Redirect($id,'defaultadmin');
 
 //maybe-missing checkboxes
-if(!isset($params['pref_cleargroup']))
+if (!isset($params['pref_cleargroup']))
 	$params['pref_cleargroup'] = 0;
 //$params['pref_exportfile']
 //$params['pref_striponexport]
 
-if(isset($params['stylesdelete']))
-{
+if (isset($params['stylesdelete'])) {
 	$fn = $params['pref_stylesfile'];
-	if($fn)
-	{
+	if ($fn) {
 		$fp = $config['uploads_path'];
-		if($fp && is_dir($fp))
-		{
+		if ($fp && is_dir($fp)) {
 			$ud = $this->GetPreference('pref_uploadsdir','');
-			if($ud)
+			if ($ud)
 				$fp = cms_join_path($fp,$ud,$fn);
 			else
 				$fp = cms_join_path($fp,$fn);
-			if(is_file($fp))
+			if (is_file($fp))
 				unlink($fp);
 		}
 		$params['pref_stylesfile'] = '';
@@ -36,16 +33,14 @@ if(isset($params['stylesdelete']))
 }
 
 $updates = preg_grep('/^pref_.*/',array_keys($params));
-foreach($updates as $k)
-{
+foreach ($updates as $k) {
 	$val = $params[$k];
-	switch($k)
-	{
+	switch ($k) {
 	 case 'pref_cleargroup':
 		$this->SetPreference($k,(int)$val);
 		break;
 	 case 'pref_timezone':
-		if($val == FALSE)
+		if ($val == FALSE)
 			$val = 'UTC';
 		$this->SetPreference($k,trim($val));
 		break;
@@ -76,5 +71,3 @@ foreach($updates as $k)
 }
 
 $this->Redirect($id,'defaultadmin','',array('active_tab'=>'settings'));
-
-?>

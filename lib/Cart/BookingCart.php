@@ -144,14 +144,14 @@ class BookingCart extends Cart implements \Serializable
 	/**
 	Overloaded cache-properties
 	*/
-	private $_xtraprops = [];
+	private $xtraprops = array();
 
 	/**
 	Recognised properties of cache-items
 
 	@var array, members each an array propname=>additive, additive = FALSE returns mere count when totalled
 	*/
-	protected $_properties = ['price'=>TRUE, 'tax'=>TRUE, 'weight'=>TRUE, 'count'=>FALSE];
+	protected $properties = array('price'=>TRUE, 'tax'=>TRUE, 'weight'=>TRUE, 'count'=>FALSE);
 
 	/**
 	Constructor
@@ -160,7 +160,7 @@ class BookingCart extends Cart implements \Serializable
 	@param bool TRUE if prices are listed as gross
 	@param int number of decimals used for rounding
 	*/
-	public function __construct($context = NULL, $pricesWithTax = TRUE, $roundingDecimals = 2)
+	public function __construct($context=NULL, $pricesWithTax=TRUE, $roundingDecimals=2)
 	{
 		parent::__construct($context, $pricesWithTax, $roundingDecimals);
 	}
@@ -170,24 +170,24 @@ class BookingCart extends Cart implements \Serializable
 	*/
 	public function __set($name, $value)
 	{
-		$this->_xtraprops[$name] = $value;
-		$this->_cartModified();
+		$this->xtraprops[$name] = $value;
+		$this->cartModified();
 	}
 
 	public function __get($name)
 	{
-		return (array_key_exists($name, $this->_xtraprops)) ? $this->_xtraprops[$name] : NULL;
+		return (array_key_exists($name, $this->xtraprops)) ? $this->xtraprops[$name] : NULL;
 	}
 
 	public function __isset($name)
 	{
-		return (array_key_exists($name, $this->_xtraprops));
+		return (array_key_exists($name, $this->xtraprops));
 	}
 
 	public function __unset($name)
 	{
-		unset($this->_xtraprops[$name]);
-		$this->_cartModified();
+		unset($this->xtraprops[$name]);
+		$this->cartModified();
 	}
 
 	/**
@@ -199,9 +199,9 @@ class BookingCart extends Cart implements \Serializable
 	@param CartItemInterface | callable filter | NULL
 	@return void
 	*/
-	public function setProperty($propname, $value, $type = '~', $item = NULL)
+	public function setProperty($propname, $value, $type='~', $item=NULL)
 	{
-//CHECKME $this->_properties relevance, if totalling wanted
+//CHECKME $this->properties relevance, if totalling wanted
 		$items = $this->getItemsByType($type);
 		if ($items) {
 			if ($item && $item instanceof CartItemInterface) {
@@ -228,9 +228,9 @@ class BookingCart extends Cart implements \Serializable
 	@param CartItemInterface | callable filter | NULL
 	@return void
 	*/
-	public function deleteProperty($propname, $type = '~', $item = NULL)
+	public function deleteProperty($propname, $type='~', $item=NULL)
 	{
-//CHECKME $this->_properties relevance, if totalling wanted
+//CHECKME $this->properties relevance, if totalling wanted
 		$items = $this->getItemsByType($type);
 		if ($items) {
 			if ($item && $item instanceof CartItemInterface) {
@@ -257,7 +257,7 @@ class BookingCart extends Cart implements \Serializable
 	@param BookingCartItemInterface item
 	@return mixed
 	*/
-	public function getProperty($propname, $type = '~', BookingCartItemInterface $item)
+	public function getProperty($propname, $type='~', BookingCartItemInterface $item)
 	{
 		$items = $this->getItemsByType($type);
    		if ($items) {
@@ -278,7 +278,7 @@ class BookingCart extends Cart implements \Serializable
 	@param BookingCartItemInterface item
 	@return boolean
 	*/
-	public function hasProperty($propname, $type = '~', BookingCartItemInterface $item)
+	public function hasProperty($propname, $type='~', BookingCartItemInterface $item)
 	{
 		$items = $this->getItemsByType($type);
    		if ($items) {
@@ -307,17 +307,15 @@ class BookingCart extends Cart implements \Serializable
 			$props = json_decode($json);
 			if ($props !== NULL) {
 				$arr = (array)$props;
-				foreach($arr as $key=>$one)
-				{
-					if($key != '_items')
+				foreach ($arr as $key=>$one) {
+					if ($key != 'items')
 						$this->$key = (is_object($one)) ? (array)$one : $one;
-					else
-					{
+					else {
 						$one = (array)$one;
-						foreach($one as $itmdata) {
+						foreach ($one as $itmdata) {
 							$item = new BookingCartItem();
-							foreach($itmdata as $key=>$itmval) {
-								switch($key) {
+							foreach ($itmdata as $key=>$itmval) {
+								switch ($key) {
 									case 'name': $item->setCartName($itmval); break;
 									case 'type': $item->setCartType($itmval); break;
 									case 'price':  $item->setUnitPrice($itmval); break;
@@ -328,16 +326,16 @@ class BookingCart extends Cart implements \Serializable
 								}
 							}
 							$id = $item->getCartId();
-							$this->_items[$id] = $item;
+							$this->items[$id] = $item;
 						}
 					}
 				}
                 return;
 			}
-			if($except)
+			if ($except)
 				throw new \Exception('Invalid property data for inflateCart');
 		}
-		if($except)
+		if ($except)
 			throw new \BadMethodCallException('Missing property data for inflateCart');
 	}
 

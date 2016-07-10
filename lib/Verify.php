@@ -18,7 +18,7 @@ class Verify
 	@is_new: boolean whether processing a new booking
 	Returns: 2-member array, 1st is T/F indicating success, 2nd '' or array of error messages
 	*/
-	function VerifyAdmin(&$mod,&$shares,&$params,$item_id,$is_new)
+	public function VerifyAdmin(&$mod, &$shares, &$params, $item_id, $is_new)
 	{
 		$msg = array();
 		$tz = new \DateTimeZone('UTC');
@@ -31,100 +31,74 @@ TODO support 'past' data without both date/time $params[]
 		//always want these $params[] keys: 'user','contact'
 		//maybe-present keys
 		//'subgrpcount','when','until'(maybe empty),
-		if(isset($params['when']))
-		{
+		if (isset($params['when'])) {
 			$fv = $params['when'];
-			if($fv)
-			{
-				try
-				{
+			if ($fv) {
+				try {
 					$dts = new \DateTime($fv,$tz);
 				}
-				catch (Exception $e)
-				{
+				catch (Exception $e) {
 					$msg[] = $mod->Lang('err_badstart');
 				}
-			}
-			elseif($is_new) //must be provided for new booking
+			} elseif ($is_new) //must be provided for new booking
 				$msg[] = $mod->Lang('err_badstart');
 		}
 
-		if(isset($params['until']))
-		{
+		if (isset($params['until'])) {
 			$fv = $params['until'];
-			if($fv)
-			{
-				try
-				{
+			if ($fv) {
+				try {
 					$dte = new \DateTime($fv,$tz);
 				}
-				catch (Exception $e)
-				{
+				catch (Exception $e) {
 					$msg[] = $mod->Lang('err_badend');
 				}
-			}
-			elseif(isset($dts))
-			{
+			} elseif (isset($dts)) {
 				$dte = clone $dts;
 				$dte->modify('+'.($slen-1).' seconds');
-			}
-			else
+			} else
 				$msg[] = $mod->Lang('err_badend');
 		}
 
-		if(isset($dts) && isset($dte))
-		{
-			if($dte > $dts)
-			{
+		if (isset($dts) && isset($dte)) {
+			if ($dte > $dts) {
 				$funcs = new Schedule();
 				//rationalise specified times relative to slot length
 				$shares->TrimRange($dts,$dte,$slen);
 				$params['when'] = $dts->getTimestamp();
 				$params['until'] = $dte->getTimestamp();
-				if($is_new)
-				{
-					if($funcs->ItemBooked($mod,$item_id,$dts,$dte))
-					{
+				if ($is_new) {
+					if ($funcs->ItemBooked($mod,$item_id,$dts,$dte)) {
 						$msg[] = $mod->Lang('err_dup');
-					}
-					elseif(!$funcs->ItemAvailable($mod,$shares,$item_id,$dts,$dte))
-					{
+					} elseif (!$funcs->ItemAvailable($mod,$shares,$item_id,$dts,$dte)) {
 						$msg[] = $mod->Lang('err_na');
 					}
-				}
-				else //update
-				{
+				} else { //update
 					$excl = (isset($params['bkg_id'])) ? $params['bkg_id'] : FALSE;
-					if($funcs->ItemBooked($mod,$item_id,$dts,$dte,$excl))
-					{
+					if ($funcs->ItemBooked($mod,$item_id,$dts,$dte,$excl)) {
 						$msg[] = $mod->Lang('err_dup');
-					}
-					elseif(!$funcs->ItemAvailable($mod,$shares,$item_id,$dts,$dte))
-					{
+					} elseif (!$funcs->ItemAvailable($mod,$shares,$item_id,$dts,$dte)) {
 						$msg[] = $mod->Lang('err_na');
 					}
 				}
-			}
-			else
-			{
+			} else {
 				$msg[] = $mod->Lang('err_badtime');
 			}
 		}
 
-		if(!$params['user'])
+		if (!$params['user'])
 			$msg[] = $mod->Lang('err_nosender');
 
-		if(!$params['contact'])
+		if (!$params['contact'])
 			$msg[] = $mod->Lang('err_nocontact');
 
-		if(isset($params['subgrpcount']))
-		{
+		if (isset($params['subgrpcount'])) {
 			$fv = $params['subgrpcount'];
-			if(!$fv) //TODO or too big
+			if (!$fv) //TODO or too big
 				$msg[] = $mod->Lang('err_parm');
 		}
 
-		if(!$msg)
+		if (!$msg)
 			return array(TRUE,'');
 		return array(FALSE,$msg);
 	}
@@ -138,7 +112,7 @@ TODO support 'past' data without both date/time $params[]
 	@is_new: boolean whether processing a new booking-request
 	Returns: 2-member array, 1st is T/F indicating success, 2nd '' or array of error messages
 	*/
-	function VerifyPublic(&$mod,&$shares,&$params,$is_new)
+	public function VerifyPublic(&$mod, &$shares, &$params, $is_new)
 	{
 		$msg = array();
 		$tz = new \DateTimeZone('UTC');
@@ -149,55 +123,39 @@ TODO support 'past' data without both date/time $params[]
 		//always want these $params keys: 'user','contact'
 		//maybe-present keys
 		//'requesttype','subgrpcount','when','until'(maybe empty),'captcha'
-		if(isset($params['when']))
-		{
+		if (isset($params['when'])) {
 			$item_id = $params['item_id'];
 			$fv = $params['when'];
-			if($fv)
-			{
-				try
-				{
+			if ($fv) {
+				try {
 					$dts = new \DateTime($fv,$tz);
-				}
-				catch(Exception $e)
-				{
+				} catch(Exception $e) {
 					$msg[] = $mod->Lang('err_badstart');
 				}
-			}
-			elseif($is_new) //must be provided for new booking
+			} elseif ($is_new) //must be provided for new booking
 				$msg[] = $mod->Lang('err_badstart');
 		}
 
-		if(isset($params['until']))
-		{
+		if (isset($params['until'])) {
 			$fv = $params['until'];
-			if($fv)
-			{
-				try
-				{
+			if ($fv) {
+				try {
 					$dte = new \DateTime($fv,$tz);
-				}
-				catch(Exception $e)
-				{
+				} catch(Exception $e) {
 					$msg[] = $mod->Lang('err_badend');
 				}
-			}
-			elseif(isset($dts))
-			{
+			} elseif (isset($dts)) {
 				//set default
 				$dte = clone $dts;
 				$slen = $shares->GetInterval($mod,$item_id,'slot');
 				$dte->modify('+'.$slen.' seconds');
-			}
-			else
+			} else
 				$msg[] = $mod->Lang('err_badend');
 		}
 
-		if(isset($dts) && isset($dte))
-		{
+		if (isset($dts) && isset($dte)) {
 			$timely = ($dte > $dts);
-			if($timely && isset($params['item_id']))
-			{
+			if ($timely && isset($params['item_id'])) {
 				$idata = $shares->GetItemProperty($mod,$params['item_id'],'timezone');
 				$t = $shares->GetZoneTime($idata['timezone']);
 				$dtn = clone $dts;
@@ -205,71 +163,55 @@ TODO support 'past' data without both date/time $params[]
 				$timely = ($dts >= $dtn);
 			}
 
-			if($timely)
-			{
+			if ($timely) {
 				$funcs = new Schedule();
 				//rationalise specified times relative to slot length
-				if($is_new)
-				{
-					if($funcs->ItemBooked($mod,$item_id,$dts,$dte))
-					{
+				if ($is_new) {
+					if ($funcs->ItemBooked($mod,$item_id,$dts,$dte)) {
 						$msg[] = $mod->Lang('err_dup');
+					} elseif (!$funcs->ItemAvailable($mod,$shares,$item_id,$dts,$dte)) {
+						$msg[] = $mod->Lang('err_na');
 					}
-					elseif(!$funcs->ItemAvailable($mod,$shares,$item_id,$dts,$dte))
-					{
+				} else { //update
+					if ($funcs->ItemBooked($mod,$item_id,$dts,$dte,$params['slotid'])) {
+						$msg[] = $mod->Lang('err_dup');
+					} elseif (!$funcs->ItemAvailable($mod,$shares,$item_id,$dts,$dte)) {
 						$msg[] = $mod->Lang('err_na');
 					}
 				}
-				else //update
-				{
-					if($funcs->ItemBooked($mod,$item_id,$dts,$dte,$params['slotid']))
-					{
-						$msg[] = $mod->Lang('err_dup');
-					}
-					elseif(!$funcs->ItemAvailable($mod,$shares,$item_id,$dts,$dte))
-					{
-						$msg[] = $mod->Lang('err_na');
-					}
-				}
-			}
-			else
-			{
+			} else {
 				$msg[] = $mod->Lang('err_badtime');
 			}
 		}
 
-		if(!$params['user'])
+		if (!$params['user'])
 			$msg[] = $mod->Lang('err_nosender');
 
-		if(!$params['contact'])
+		if (!$params['contact'])
 			$msg[] = $mod->Lang('err_nocontact');
 
-		if(isset($params['subgrpcount']))
-		{
+		if (isset($params['subgrpcount'])) {
 			$fv = $params['subgrpcount'];
-			if(!$fv) //TODO or too big
+			if (!$fv) //TODO or too big
 				$msg[] = $mod->Lang('err_parm');
 		}
 
-		if(isset($params['requesttype']))
-		{
-			if(!$params['requesttype'])
+		if (isset($params['requesttype'])) {
+			if (!$params['requesttype'])
 				$msg[] = $mod->Lang('err_system'); //radio-group value shouldn't be missing
 		}
 
-		if(isset($params['captcha']))
-		{
+		if (isset($params['captcha'])) {
 			$ob = cms_utils::get_module('Captcha');
-			if($ob)
-			{
+			if ($ob) {
 				$valid = $ob->checkCaptcha($params['captcha']);
 				unset($ob);
-				if(!$valid)
+				if (!$valid)
 					$msg[] = $mod->Lang('err_captcha');
 			}
 		}
 
-		if(!$msg)
+		if (!$msg)
 			return array(TRUE,'');
 		return array(FALSE,$msg);
 	}
@@ -283,8 +225,7 @@ TODO support 'past' data without both date/time $params[]
 	private function LocalDomains($countrycode)
 	{
 		$str = strtolower($countrycode);
-		switch($str)
-		{
+		switch ($str) {
 		 case '':
 		 case 'us':
 			$d = '';
@@ -303,16 +244,14 @@ TODO support 'past' data without both date/time $params[]
 
 	private function ConvertDomains($pref)
 	{
-		if(!$pref)
+		if (!$pref)
 			return FALSE; //'""';
 		$parts = explode(',',$pref);
-		if(isset($parts[1])) //>1 array-member
-		{
+		if (isset($parts[1])) { //>1 array-member
 			$parts = array_unique($parts);
 			ksort($parts);
 		}
-		foreach($parts as &$one)
-		{
+		foreach ($parts as &$one) {
 			$one = '\''.trim($one).'\'';
 		}
 		unset($one);
@@ -327,29 +266,29 @@ TODO support 'past' data without both date/time $params[]
 	Returns: js string for inclusion in mailcheck.js code, potentially including:
 		topLevelDomains,domains,secondLevelDomains
 	*/
-	private function EmailDomains(&$mod,$countrycode='')
+	private function EmailDomains(&$mod, $countrycode='')
 	{
 		$pref = $mod->GetPreference('pref_topdomains','co,com,net,org');
 		$tops = self::LocalDomains($countrycode);
-		if($pref)
+		if ($pref)
 			$pref .= ','.$tops;
 		else
 			$pref = $tops;
 		$parts = array();
 		$topdomains = self::ConvertDomains($pref);
 		//mailcheck requires domain-arrays, even if single-membered
-		if($topdomains)
+		if ($topdomains)
 			$parts[] = "   topLevelDomains: [$topdomains]";
 		$pref = $mod->GetPreference('pref_domains');
 		$domains = self::ConvertDomains($pref);
-		if($domains)
+		if ($domains)
 			$parts[] = "   domains: [$domains]";
 		$pref = $mod->GetPreference('pref_subdomains');
 		$subdomains = self::ConvertDomains($pref);
-		if($subdomains)
+		if ($subdomains)
 			$parts[] = "   secondLevelDomains: [$subdomains]";
 
-		if($parts)
+		if ($parts)
 			return implode(",\n",$parts).",";
 		return '';
 	}
@@ -367,24 +306,23 @@ TODO support 'past' data without both date/time $params[]
 	@zonename: timezone identifier like 'europe/paris'
 	Returns: js string
 	*/
-	public function VerifyScript(&$mod,$id,$admin,$withdates,$nopast,$zonename)
+	public function VerifyScript(&$mod, $id, $admin, $withdates, $nopast, $zonename)
 	{
-		if($admin)
-		{
+		if ($admin) {
 			$js1 = <<<EOS
-function showerr(message,target){
+function showerr(message,target) {
  $.modalconfirm.show({
   overlayID: 'confirm',
   popupID: 'confgeneral',
   seeButtons: 'deny',
   showTarget: target,
-  preShow: function(tg,\$d){
+  preShow: function(tg,\$d) {
    var para = \$d.children('p:first')[0];
    para.innerHTML = message;
    \$d.find('#mc_deny').val('{$mod->Lang('close')}');
   },
-  onDeny: function(tg){
-   setTimeout(function(){
+  onDeny: function(tg) {
+   setTimeout(function() {
      tg.focus();
    },10);
   }
@@ -392,13 +330,11 @@ function showerr(message,target){
 }
 
 EOS;
-		}
-		else //frontend
-		{
+		} else { //frontend
 			$js1 = <<<EOS
-function showerr(message,target){
+function showerr(message,target) {
  alert(message);
- setTimeout(function(){
+ setTimeout(function() {
   tg.focus();
  },10);
 }
@@ -410,11 +346,10 @@ EOS;
 		 $mod->Lang('missing_type',$mod->Lang('name')):
 		 $mod->Lang('err_nosender');
 
-		if($withdates)
-		{
+		if ($withdates) {
 			$js2 = <<<EOS
 var clicker = null;
-function validate(ev){
+function validate(ev) {
  var ok = true,
    f = 'D M YYYY h:mm',
    ds = null,
@@ -427,9 +362,9 @@ function validate(ev){
    ds = new Date(fs);
    ok = ds instanceof Date && isFinite(ds);
  }
- if (ok){
+ if (ok) {
   tg = document.getElementById('{$id}until');
-  if (tg !== null){
+  if (tg !== null) {
    str = tg.value;
    if (typeof me.trim === "function") str = str.trim();
    fs = moment(str).format(f);
@@ -439,25 +374,22 @@ function validate(ev){
  }
 
 EOS;
-			if($nopast)
-			{
+			if ($nopast) {
 				$js2 .= <<<EOS
- if (ok){
+ if (ok) {
   dn = new Date();
   ok = (ds === null || (ds > dn && (de === null || de > ds)));
  }
 
 EOS;
-			}
-			else
-			{
+			} else {
 				$js2 .= <<<EOS
  ok = ok && (ds === null || de === null || de > ds);
 
 EOS;
 			}
 			$js2 .= <<<EOS
- if (!ok){
+ if (!ok) {
   showerr('{$mod->Lang('err_badtime')}',tg);
  } else {
   tg = document.getElementById('{$id}user');
@@ -470,11 +402,9 @@ EOS;
  }
 
 EOS;
-		}
-		else //no date checks
-		{
+		} else { //no date checks
  			$js2 = <<<EOS
-function validate(ev){
+function validate(ev) {
  var ok = true,
    tg = document.getElementById('{$id}user'),
    str = tg.value;
@@ -487,73 +417,67 @@ function validate(ev){
 EOS;
 		}
 
-		try
-		{
+		try {
 			$lzone = new \DateTimeZone($zonename);
 			$t = $lzone->getLocation();
 			$t = $t['country_code'];
-		}
-		catch (Exception $e)
-		{
+		} catch (Exception $e) {
 			$t = '';
 		}
 		$domains = self::EmailDomains($mod,$t);
  		$js3 = <<<EOS
- if (ok){
+ if (ok) {
   clicker = this;
   $('#{$id}contact').mailcheck({
 {$domains}
-   distanceFunction: function(str1,str2){
+   distanceFunction: function(str1,str2) {
     var lv = Levenshtein;
     return lv.get(str1,str2);
    },
-   suggested: function(tg,suggest){
+   suggested: function(tg,suggest) {
 
 EOS;
-		if($admin)
-		{
+		if ($admin) {
 			$js4 = <<<EOS
     $.modalconfirm.show({
      overlayID: 'confirm',
      popupID: 'confgeneral',
      showTarget: tg,
-     preShow: function(tg,\$d){
+     preShow: function(tg,\$d) {
       var para = \$d.children('p:first')[0],
        prompt = '{$mod->Lang('meaning','%s')}'.replace('%s','<strong>'+suggest.full+'</strong>');
       para.innerHTML = prompt;
       \$d.find('#mc_conf').val('{$mod->Lang('yes')}');
       \$d.find('#mc_deny').val('{$mod->Lang('no')}');
      },
-     onConfirm: function(tg,\$d){
+     onConfirm: function(tg,\$d) {
       tg.value = suggest.full;
-      setTimeout(function(){
+      setTimeout(function() {
        $(clicker).unbind('click',validate);
        clicker.click();
        $(clicker).bind('click',validate);
       },10);
      },
-     onDeny: function(tg){
-      setTimeout(function(){
+     onDeny: function(tg) {
+      setTimeout(function() {
        tg.focus();
       },10);
      }
     });
 
 EOS;
-		}
-		else //frontend
-		{
+		} else { //frontend
 			$js4 = <<<EOS
     var prompt = '{$mod->Lang('meaning','%s')}'.replace('%s',suggest.full);
     if (confirm(prompt)){
      tg.value = suggest.full;
-     setTimeout(function(){
+     setTimeout(function() {
       $(clicker).unbind('click',validate);
       clicker.click();
       $(clicker).bind('click',validate);
      },10);
     } else {
-     setTimeout(function(){
+     setTimeout(function() {
       tg.focus();
      },10);
     }
@@ -562,7 +486,7 @@ EOS;
 		}
 		$js5 = <<<EOS
    },
-   empty: function(tg){
+   empty: function(tg) {
     showerr('{$mod->Lang('err_nocontact')}',tg);
     return false;
    }
@@ -571,12 +495,11 @@ EOS;
  }
 
 EOS;
-		if($admin)
+		if ($admin)
 			$js6 = '';
-		else
-		{
+		else {
 			$js6 = <<<EOS
- if (ok){
+ if (ok) {
   tg = document.getElementById('{$id}captcha');
   if (tg !== null){
    str = tg.value;
@@ -591,7 +514,7 @@ EOS;
 EOS;
 		}
 		$js7 = <<<EOS
- if (ok){
+ if (ok) {
   return true;
  }
  ev.stopImmediatePropagation();
@@ -604,5 +527,3 @@ EOS;
 	}
 
 }
-
-?>

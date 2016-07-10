@@ -51,42 +51,42 @@ $dict = NewDataDictionary($db);
 	active: enum: 0 never; 1 always; 2 inherit (see also: available); -1 deletion pending while historical data needed
 */
 $fields = "
-	item_id I(4) KEY,
-	alias C(24),
-	name C(64),
-	description X,
-	keywords C(256),
-	membersname C(32),
-	image C(128),
-	available C(128),
-	slottype I(1),
-	slotcount I(1),
-	bookcount I(1),
-	leadtype I(1),
-	leadcount I(1),
-	rationcount I(1),
-	keeptype I(1),
-	keepcount I(1),
-	latitude N(8.3),
-	longitude N(8.3),
-	timezone C(48),
-	dateformat C(12),
-	timeformat C(12),
-	listformat I(1),
-	stylesfile C(36),
-	approver C(64),
-	approvercontact C(128),
-	smsprefix C(8),
-	smspattern C(32),
-	formiface C(48),
-	paymentiface C(48),
-	feugroup I4,
-	owner I4,
-	cleargroup I(1),
-	subgrpalloc I(1),
-	repeatsuntil I DEFAULT 0,
-	subgrpdata I(1) DEFAULT 0,
-	active I(1) NOTNULL DEFAULT 1
+ item_id I(4) KEY,
+ alias C(24),
+ name C(64),
+ description X,
+ keywords C(256),
+ membersname C(32),
+ image C(128),
+ available C(128),
+ slottype I(1),
+ slotcount I(1),
+ bookcount I(1),
+ leadtype I(1),
+ leadcount I(1),
+ rationcount I(1),
+ keeptype I(1),
+ keepcount I(1),
+ latitude N(8.3),
+ longitude N(8.3),
+ timezone C(48),
+ dateformat C(12),
+ timeformat C(12),
+ listformat I(1),
+ stylesfile C(36),
+ approver C(64),
+ approvercontact C(128),
+ smsprefix C(8),
+ smspattern C(32),
+ formiface C(48),
+ paymentiface C(48),
+ feugroup I4,
+ owner I4,
+ cleargroup I(1),
+ subgrpalloc I(1),
+ repeatsuntil I DEFAULT 0,
+ subgrpdata I(1) DEFAULT 0,
+ active I(1) NOTNULL DEFAULT 1
 ";
 $sqlarray = $dict->CreateTableSQL($this->ItemTable, $fields, $taboptarray);
 if ($sqlarray == FALSE)
@@ -113,11 +113,11 @@ $db->Execute($sql,array($bid,$this->Lang('groupdefault')));
  proximity: order of multi-parents in all of which child is a member
 */
 $fields = "
-	gid I AUTO KEY,
-	child I(2) NOTNULL DEFAULT 0,
-	parent I(2) NOTNULL DEFAULT 0,
-	likeorder I(2) NOTNULL DEFAULT 1,
-	proximity I(2) NOTNULL DEFAULT 1
+ gid I AUTO KEY,
+ child I(2) NOTNULL DEFAULT 0,
+ parent I(2) NOTNULL DEFAULT 0,
+ likeorder I(2) NOTNULL DEFAULT 1,
+ proximity I(2) NOTNULL DEFAULT 1
 ";
 $sqlarray = $dict->CreateTableSQL($this->GroupTable, $fields, $taboptarray);
 if ($sqlarray == FALSE)
@@ -143,15 +143,15 @@ non-repeated bookings-data table schema:
 bkrcsv::ImportBookings must conform to this
 */
 $fields = "
-	bkg_id I(4),
-	item_id I(4),
-	slotstart I,
-	slotlen I,
-	user C(64),
-	contact C(128),
-	userclass I(1) NOTNULL DEFAULT 0,
-	status I(1) NOTNULL DEFAULT ".Booker::STATNONE.",
-	paid I(1) NOTNULL DEFAULT 0
+ bkg_id I(4),
+ item_id I(4),
+ slotstart I,
+ slotlen I,
+ user C(64),
+ contact C(128),
+ userclass I(1) NOTNULL DEFAULT 0,
+ status I(1) NOTNULL DEFAULT ".Booker::STATNONE.",
+ paid I(1) NOTNULL DEFAULT 0
 ";
 $sqlarray = $dict->CreateTableSQL($this->DataTable, $fields, $taboptarray);
 if ($sqlarray == FALSE)
@@ -178,15 +178,15 @@ repeated bookings-data table schema:
  active: enum/boolean 1, or 0 if booking has been deleted but historic data remain
 */
 $fields = "
-	bkg_id I(4) KEY,
-	item_id I(4),
-	formula C(256),
-	user C(64),
-	contact C(128),
-	userclass I(1) DEFAULT 0,
-	subgrpcount I(1) DEFAULT 0,
-	paid I(1) DEFAULT 0,
-	active I(1) DEFAULT 1
+ bkg_id I(4) KEY,
+ item_id I(4),
+ formula C(256),
+ user C(64),
+ contact C(128),
+ userclass I(1) DEFAULT 0,
+ subgrpcount I(1) DEFAULT 0,
+ paid I(1) DEFAULT 0,
+ active I(1) DEFAULT 1
 ";
 $sqlarray = $dict->CreateTableSQL($this->RepeatTable,$fields,$taboptarray);
 if ($sqlarray == FALSE)
@@ -213,19 +213,19 @@ submitted booking requests table schema
  approved: UTC timestamp
 */
 $fields = "
-	req_id I(4) KEY,
-	item_id I(4),
-	slotstart I,
-	slotlen I,
-	sender C(64),
-	contact C(128),
-	comment C(256),
-	userclass I(1) DEFAULT 0,
-	subgrpcount I(1) DEFAULT 1,
-	status I(1) NOTNULL DEFAULT ".Booker::STATNONE.",
-	paid I(1) DEFAULT 0,
-	lodged I,
-	approved I
+ req_id I(4) KEY,
+ item_id I(4),
+ slotstart I,
+ slotlen I,
+ sender C(64),
+ contact C(128),
+ comment C(256),
+ userclass I(1) DEFAULT 0,
+ subgrpcount I(1) DEFAULT 1,
+ status I(1) NOTNULL DEFAULT ".Booker::STATNONE.",
+ paid I(1) DEFAULT 0,
+ lodged I,
+ approved I
 ";
 $sqlarray = $dict->CreateTableSQL($this->RequestTable,$fields,$taboptarray);
 if ($sqlarray == FALSE)
@@ -275,19 +275,18 @@ $db->CreateSequence($this->PayTable.'_seq');
 Data cache
 */
 $fields = "
-	cache_id I(2) AUTO KEY,
-	keyword C(48),
-	value B,
-	savetime I,
-	lifetime I";
+ cache_id I(2) AUTO KEY,
+ keyword C(48),
+ value B,
+ savetime I,
+ lifetime I";
 $pre = cms_db_prefix();
 $sqlarray = $dict->CreateTableSQL($pre.'module_bkr_cache',$fields,$taboptarray);
 $dict->ExecuteSQLArray($sqlarray);
 //this is not for table-data content
 $db->CreateSequence($pre.'module_bkr_cache_seq');
 
-if(DBGBKG)
-{
+if (DBGBKG) {
 	$data = array(
 array(10001,'allcourts','All courts',NULL,NULL,'courts','6:00..21:00',1,1,3,1,5,1,'-37.814','144.963','Australia/Melbourne','j M Y','G:i',2,'P Cook','tpgww@onepost.net','61','^04\\d{8}$',NULL),
 array(10002,'ontocar','Entoutcas courts',NULL,'front','courts',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,2,NULL,NULL,NULL,NULL,3),
@@ -307,8 +306,7 @@ array(10,'court10','Court 10',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
 		$sql = 'INSERT INTO '.$this->ItemTable.
 ' (item_id,alias,name,description,keywords,membersname,available,slottype,slotcount,leadtype,leadcount,keeptype,keepcount,latitude,longitude,timezone,dateformat,timeformat,listformat,approver,approvercontact,smsprefix,smspattern,subgrpalloc)
 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)';
-	foreach($data as $dummy)
-	{
+	foreach ($data as $dummy) {
 		$db->Execute($sql,$dummy);
 	}
 
@@ -353,14 +351,13 @@ array(10,10001,-1,2)
 );
 	$sql = 'INSERT INTO '.$this->GroupTable.
 ' (child,parent,likeorder,proximity) VALUES (?,?,?,?)';
-	foreach($data as $dummy)
-	{
+	foreach ($data as $dummy) {
 		$db->Execute($sql,$dummy);
 	}
 
 	$dt = new DateTime('now',new DateTimeZone('UTC'));
 	$i = $dt->format('w');
-	if($i > 0)
+	if ($i > 0)
 		$dt->modify('-'.$i.' days'); //to current-week Sunday
 	$daygroup = 5;
 
@@ -398,10 +395,8 @@ array(2,9,1,'Fred','me@here.com',1,0,0)
 	$sql = 'INSERT INTO '.$this->DataTable.
 ' (bkg_id,item_id,slotstart,slotlen,user,contact,userclass,status,paid) VALUES (?,?,?,?,?,?,?,?,?)';
 	$i = $daygroup;
-	foreach($data as $dummy)
-	{
-		if($i == $daygroup)
-		{
+	foreach ($data as $dummy) {
+		if ($i == $daygroup) {
 			$dt->modify('+1 day');
 			$i = 0;
 		}
@@ -436,11 +431,9 @@ array(10004,'Nightplay fee',1,1,'10.00','0..sunrise,sunset..23:59'),
 	$sql = 'INSERT INTO '.$this->PayTable.
 ' (condition_id,item_id,signature,description,slottype,slotcount,fee,feecondition,condorder) VALUES (?,?,?,?,?,?,?,?,?)';
 	$i = 0;
-	foreach($data as $dummy)
-	{
+	foreach ($data as $dummy) {
 		$sig = '';
-		foreach(array(2,3,4,5) as $k)
-		{
+		foreach (array(2,3,4,5) as $k) {
 			$sig .= ($dummy[$k] !== NULL) ? $dummy[$k] : 'NULL';
 		}
 		$sig = crc32($sig);
@@ -502,8 +495,7 @@ $this->SetPreference('pref_subdomains',''); //for secondary check
 $this->SetPreference('pref_topdomains','biz,co,com,edu,gov,info,mil,name,net,org'); //for final check
 
 $format = get_site_preference('defaultdateformat');
-if ($format)
-{
+if ($format) {
 	$strftokens = array(
 	// Day - no strf eq : S
 	'a' => 'D', 'A' => 'l', 'd' => 'd', 'e' => 'j', 'j' => 'z', 'u' => 'N', 'w' => 'w',
@@ -518,42 +510,36 @@ if ($format)
  	);
 	$format = str_replace('%','',$format);
 	$parts = explode(' ',$format);
-	foreach ($parts as $i => $fmt)
-	{
-		if(array_key_exists($fmt, $strftokens))
+	foreach ($parts as $i => $fmt) {
+		if (array_key_exists($fmt, $strftokens))
 			$parts[$i] = $strftokens[$fmt];
 		else
 			unset($parts[$i]);
 	}
 	$format = implode(' ', $parts);
-}
-else
+} else
 	$format = 'd F y';
 
 $this->SetPreference('pref_dateformat',$format); //default date/time format string
 
-if(date_default_timezone_get())
+if (date_default_timezone_get())
 	$zone = date_default_timezone_get();
-elseif(!empty($config['timezone']))
+elseif (!empty($config['timezone']))
 	$zone = $config['timezone'];
-else
-{
+else {
 	$zone = ini_get('date.timezone');
-	if($zone == FALSE)
+	if ($zone == FALSE)
 		$zone = 'Europe/London';//default to GMT
 }
 $this->SetPreference('pref_timezone',$zone);	//default zone for time calcs
 
 $ud = $this->GetName();
-if($ud)
-{
+if ($ud) {
 	$fp = $config['uploads_path'];
-	if($fp && is_dir($fp))
-	{
+	if ($fp && is_dir($fp)) {
 		$fp = cms_join_path($fp,$ud);
-		if($fp && !is_dir($fp))
-		{
-			if(!mkdir($fp,0777,TRUE)) //don't know how server is running!
+		if ($fp && !is_dir($fp)) {
+			if (!mkdir($fp,0777,TRUE)) //don't know how server is running!
 				$ud = '';
 		}
 	}
@@ -562,27 +548,19 @@ $this->SetPreference('pref_uploadsdir',$ud); //place for file uploads, preferenc
 
 // enable FormBuilder-module custom processing
 $ob = ModuleOperations::get_instance()->get_module_instance('FormBuilder');
-if(is_object($ob))
-{
+if (is_object($ob)) {
 	$fp = $config['root_path'];
-	if($fp && is_dir($fp))
-	{
+	if ($fp && is_dir($fp)) {
 		//this->GetModulePath() N/A prior to installation
 		$src = cms_join_path($fp,'modules','Booker','lib','DispositionBookingRequest.class.php');
-		if(is_file($src))
-		{
+		if (is_file($src)) {
 			$dest = cms_join_path($ob->GetModulePath,'classes');
-			if(copy($src,$dest))
-			{
+			if (copy($src,$dest)) {
 //TODO remember
-			}
-			else
-			{
+			} else {
 //TODO handle error - NO FRONTEND BOOKINGS
 			}
-		}
-		else
-		{
+		} else {
 			echo "File path error";
 //TODO handle error - NO FRONTEND BOOKINGS
 		}
@@ -592,5 +570,3 @@ if(is_object($ob))
 
 // put mention into the admin log
 $this->Audit(0, $this->Lang('fullname'), $this->Lang('audit_installed',$this->GetVersion()));
-
-?>

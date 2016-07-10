@@ -14,7 +14,7 @@ class Crypter
 
 	public function __construct(&$mod=NULL)
 	{
-		if($mod)
+		if ($mod)
 			$this->mod = $mod;
 		else
 			$this->mod = cms_utils::get_module(self::MODNAME);
@@ -22,8 +22,7 @@ class Crypter
 
 	public function fusc($str)
 	{
-		if($str)
-		{
+		if ($str) {
 			$s = substr(base64_encode(md5(microtime())),0,5);
 			return $s.base64_encode($s.$str);
 		}
@@ -32,28 +31,23 @@ class Crypter
 
 	public function unfusc($str)
 	{
-		if($str)
-		{
+		if ($str) {
 			$s = base64_decode(substr($str,5));
 			return substr($s,5);
 		}
 		return '';
 	}
 
-	public function encrypt_value($value,$passwd = FALSE)
+	public function encrypt_value($value, $passwd=FALSE)
 	{
-		if($value)
-		{
-			if($this->mod->havemcrypt)
-			{
-				if(!$passwd)
-				{
+		if ($value) {
+			if ($this->mod->havemcrypt) {
+				if (!$passwd) {
 					$passwd = $this->mod->GetPreference('pref_masterpass');
-					if($passwd)
+					if ($passwd)
 						$passwd = self::unfusc($passwd);
 				}
-				if($passwd)
-				{
+				if ($passwd) {
 					$e = new Encryption(\MCRYPT_BLOWFISH,\MCRYPT_MODE_CBC,10);
 					$value = $e->encrypt($value,$passwd);
 				}
@@ -62,20 +56,16 @@ class Crypter
 		return $value;
 	}
 
-	public function decrypt_value($value,$passwd = FALSE)
+	public function decrypt_value($value, $passwd=FALSE)
 	{
-		if($value)
-		{
-			if($this->mod->havemcrypt)
-			{
-				if(!$passwd)
-				{
+		if ($value) {
+			if ($this->mod->havemcrypt) {
+				if (!$passwd) {
 					$passwd = $this->mod->GetPreference('pref_masterpass');
-					if($passwd)
+					if ($passwd)
 						$passwd = self::unfusc($passwd);
 				}
-				if($passwd)
-				{
+				if ($passwd) {
 					$e = new Encryption(\MCRYPT_BLOWFISH,\MCRYPT_MODE_CBC,10);
 					$value = $e->decrypt($value,$passwd);
 				}
@@ -84,5 +74,3 @@ class Crypter
 		return $value;
 	}
 }
-
-?>

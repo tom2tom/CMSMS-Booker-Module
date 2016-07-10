@@ -6,8 +6,7 @@
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
 
-if(!function_exists('array_like'))
-{
+if (!function_exists('array_like')) {
 	/*
 	simple_diff:
 	Paul's simple diff algorithm, similar to Ratcliff/Obershelp, v 0.1
@@ -16,28 +15,24 @@ if(!function_exists('array_like'))
 	@b: array
 	Returns: array of the changes between @a and @b
 	*/
-	function simple_diff($a,$b)
+	function simple_diff($a, $b)
 	{
 		$matrix = array();
 		$maxlen = 0;
-		foreach($a as $oindex=>$ovalue)
-		{
+		foreach ($a as $oindex=>$ovalue) {
 			$nkeys = array_keys($b,$ovalue);
-			foreach($nkeys as $nindex)
-			{
+			foreach ($nkeys as $nindex) {
 				$matrix[$oindex][$nindex] = isset($matrix[$oindex - 1][$nindex - 1]) ?
 						$matrix[$oindex - 1][$nindex - 1] + 1 : 1;
-				if($matrix[$oindex][$nindex] > $maxlen)
-				{
+				if ($matrix[$oindex][$nindex] > $maxlen) {
 					$maxlen = $matrix[$oindex][$nindex];
 					$omax = $oindex + 1 - $maxlen;
 					$nmax = $nindex + 1 - $maxlen;
 				}
 			}
 		}
-		if($maxlen == 0) //arrays are completely different
-		{
-			if($a || $b)
+		if ($maxlen == 0) { //arrays are completely different
+			if ($a || $b)
 				return array(array('d'=>$a,'i'=>$b));
 			return array();
 		}
@@ -54,43 +49,35 @@ if(!function_exists('array_like'))
 	@b: array
 	Returns: float 0.0 .. 1.0, higher = @a,@b more similar
 	*/
-	function array_like($a,$b)
+	function array_like($a, $b)
 	{
-		if(!$a || !$b)
+		if (!$a || !$b)
 			return 0.0;
 		$m = 0;
 		$ins = array();
 		$outs = array();
 		$parts = simple_diff($a,$b);
-		foreach($parts as $i=>$one)
-		{
-			if(is_array($one)) //difference
-			{
-				if($one['d']) //something missing
-				{
+		foreach ($parts as $i=>$one) {
+			if (is_array($one)) { //difference
+				if ($one['d']) { //something missing
 					$f = array_search($one['d'],$ins);
-					if($f === FALSE)
+					if ($f === FALSE)
 						$outs[$i] = $one['d'];
-					else
-					{
+					else {
 						unset($ins[$f]);
 						$m += 0.75 / abs($f-$i);
 					}
 				}
-				if($one['i']) //something extra
-				{
+				if ($one['i']) { //something extra
 					$f = array_search($one['i'],$outs);
-					if($f === FALSE)
+					if ($f === FALSE) {
 						$ins[$i] = $one['i'];
-					else
-					{
+                    } else {
 						unset($outs[$f]);
 						$m += 0.75 / abs($f-$i);
 					}
 				}
-			}
-			else //matching part
-			{
+			} else { //matching part
 				$m++;
 			}
 		}
@@ -98,11 +85,11 @@ if(!function_exists('array_like'))
 		return $m / $mc;
 	}
 
-	function cmp_like($a,$b)
+	function cmp_like($a, $b)
 	{
 		$d = $a['score'] - $b['score'];
-		if($d > 0) return -1;
-		if($d < 0) return 1;
+		if ($d > 0) return -1;
+		if ($d < 0) return 1;
 		return strnatcasecmp($a['name'],$b['name']);
 	}
 
@@ -116,21 +103,18 @@ $funcs = new Booker\Shared();
 $item_id = (int)$params['item_id'];
 $havegroups = array($item_id);
 $type = $params['sort'];
-if($type == 'members')
+if ($type == 'members')
 	$members = $funcs->GetGroupItems($this,$item_id,TRUE);
 else
 	$members = $funcs->GetItemGroups($this,$db,$item_id);
-if($members)
-{
-	if(count($members) > 1)
-	{
+if ($members) {
+	if (count($members) > 1) {
 		$data = array();
-		foreach($members as $i)
-		{
+		foreach ($members as $i) {
 			$data[$i] = $funcs->GetItemProperty($this,$i,array('name','description','keywords'));
-			if(empty($data[$i]['name']))
+			if (empty($data[$i]['name']))
 				$data[$i]['name'] = $funcs->GetItemNameForID($this,$i);
-			if($i >= Booker::MINGRPID)
+			if ($i >= Booker::MINGRPID)
 				$havegroups[] = $i;
 		}
 
@@ -139,38 +123,30 @@ if($members)
 		$fdesc = !empty($data[$first]['description']) ? str_split($data[$first]['description']) : FALSE;
 		$fkeys = !empty($data[$first]['keywords']) ? explode(',',$data[$first]['keywords']) : FALSE;
 		$cmps = array();
-		foreach($data as $i=>$one)
-		{
-			if(!($i == $first || $i == $item_id))
-			{
+		foreach ($data as $i=>$one) {
+			if (!($i == $first || $i == $item_id)) {
 				$cmps[$i] = array('score'=>0.0,'name'=>'');
-				if($fname && !empty($data[$i]['name']))
-				{
+				if ($fname && !empty($data[$i]['name'])) {
 					$ref = str_split($data[$i]['name']);
 					$cmps[$i]['score'] += 1.0 - array_like($fname,$ref);
 					$cmps[$i]['name'] = $data[$i]['name'];
 				}
-				if($fdesc && !empty($data[$i]['description']))
-				{
+				if ($fdesc && !empty($data[$i]['description'])) {
 					$ref = str_split($data[$i]['description']);
 					$cmps[$i]['score'] += 1.0 - array_like($fdesc,$ref);
 				}
-				if($fkeys && !empty($data[$i]['keywords']))
-				{
+				if ($fkeys && !empty($data[$i]['keywords'])) {
 					$ref = explode(',',$data[$i]['description']);
 					$cmps[$i]['score'] += 1.0 - array_like($fkeys,$ref);
 				}
 			}
 		}
 		uasort($cmps,'cmp_like');
-	}
-	else
-	{
+	} else {
 		$i = key($members);
-		if($i != $first)
-		{
+		if ($i != $first) {
 			$cmps = array($i=>array('score'=>30.0,'name'=>''));
-			if($i >= Booker::MINGRPID)
+			if ($i >= Booker::MINGRPID)
 				$havegroups[] = $i;
 		}
 	}
@@ -180,10 +156,8 @@ if($members)
 	$sorted = array();
 	//NOTE must conform with action.openitem.php table-data creation, except -
 	//cuz' js & ajax are available, the up/down links will be hidden/irrelevant
-	foreach($all as $i=>$one)
-	{
-		if(isset($data[$i]))
-		{
+	foreach ($all as $i=>$one) {
+		if (isset($data[$i])) {
 			$oneset = new stdClass();
 			$oneset->name = $data[$i]['name'];
 			$oneset->uplink = '';
@@ -196,8 +170,7 @@ if($members)
 	$moregroups = $db->GetAssoc('SELECT item_id,name FROM '.$this->ItemTable.
 	' WHERE item_id >= '.Booker::MINGRPID.' AND item_id NOT IN ('.
 	implode(',',$havegroups).') ORDER BY name');
-	foreach($moregroups as $i=>$one)
-	{
+	foreach ($moregroups as $i=>$one) {
 		$oneset = new stdClass();
 		$oneset->name = $one; //too bad if name empty!
 		$oneset->uplink = '';
@@ -210,7 +183,5 @@ if($members)
 		'cellclass' => $type
 	);
 	echo Booker\Shared::ProcessTemplate($this,'membersbody.tpl',$tplvars);
-}
-else
+} else
 	echo 0;
-?>

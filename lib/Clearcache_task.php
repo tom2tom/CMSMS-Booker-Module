@@ -24,17 +24,17 @@ class Clearcache_task implements CmsRegularTask
 		return $mod->Lang('task_clearcache');
 	}
 
-	public function test($time = '')
+	public function test($time='')
 	{
 /* TODO
 		$mod = cms_utils::get_module(self::MODNAME);
-		if(!($mod->GetPreference('logsends')
+		if (!($mod->GetPreference('logsends')
 		  || $mod->GetPreference('logdeliveries')))
 			return FALSE;
 		$days = (int)$mod->GetPreference('logdays');
-		if($days <= 0)
+		if ($days <= 0)
 			return FALSE;
-		if(!$time)
+		if (!$time)
 			$time = time();
 		$last_cleared = $mod->GetPreference('cachelastclear');
 		return ($time >= $last_cleared + $days*86400);
@@ -42,25 +42,23 @@ class Clearcache_task implements CmsRegularTask
 		return FALSE;
 	}
 
-	public function execute($time = '')
+	public function execute($time='')
 	{
-		if(!$time)
+		if (!$time)
 			$time = time();
 //TODO	smsg_utils::clean_log(NULL,$time);
 		return TRUE;
 	}
 
-	public function on_success($time = '')
+	public function on_success($time='')
 	{
-		if(!$time)
+		if (!$time)
 			$time = time();
 		$mod = cms_utils::get_module(self::MODNAME);
 		$mod->SetPreference('cachelastclear',$time);
 	}
 
-	public function on_failure($time = '')
+	public function on_failure($time='')
 	{
 	}
 }
-
-?>

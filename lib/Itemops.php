@@ -15,7 +15,7 @@ class Itemops
 	@mod: reference to current module-object
 	@item_id: identifier of item to be processed
 	*/
-	private function ClearItem(&$mod,&$shares,$item_id)
+	private function ClearItem(&$mod, &$shares, $item_id)
 	{
 		$db = $mod->dbHandle;
 		//resource-localize 'now'
@@ -23,15 +23,12 @@ class Itemops
 		$limit = $shares->GetZoneTime($idata['timezone']);
 		$sql = 'SELECT * FROM '.$mod->DataTable.' WHERE item_id=? AND slotstart>=?';
 		$rows = $shares->SafeGet($sql,array($item_id,$limit));
-		if($rows)
-		{
-			foreach($rows as $one)
-			{
+		if ($rows) {
+			foreach ($rows as $one) {
 			//TODO divert resource booking if possible & notify user
 			}
 		}
-		if($shares->GetInterval($mod,$item_id,'keep') > 0) //past data still needed
-		{
+		if ($shares->GetInterval($mod,$item_id,'keep') > 0) { //past data still needed
 			$sql = array(
 				'DELETE FROM '.$mod->DataTable.' WHERE item_id=? AND slotstart>=?',
 				'UPDATE '.$mod->DataTable.' SET status='.\Booker::STATGONE.' WHERE item_id=? AND slotstart<?',
@@ -42,9 +39,7 @@ class Itemops
 				array($item_id,$limit),
 				array($item_id)
 			);
-		}
-		else
-		{
+		} else {
 			$sql = array(
 				'DELETE FROM '.$mod->DataTable.' WHERE item_id=?',
 				'DELETE FROM '.$mod->ItemTable.' WHERE item_id=?'
@@ -63,23 +58,19 @@ class Itemops
 	@shares reference to bkrshared-object
 	@gid identifier of group to be cleared
 	*/
-	private function ClearRecursive(&$mod,&$shares,$gid)
+	private function ClearRecursive(&$mod, &$shares, $gid)
 	{
 		$db = $mod->dbHandle;
 		$members = $db->GetCol('SELECT child FROM '.$mod->GroupTable.' WHERE parent=? ORDER BY proximity DESC',array($gid));
-		if($members)
-		{
-			foreach($members as $mid)
-			{
-				if($mid >= \Booker::MINGRPID)
-				{
+		if ($members) {
+			foreach ($members as $mid) {
+				if ($mid >= \Booker::MINGRPID) {
 					$idata = $shares->GetItemProperty($mod,$mid,'cleargroup');
-					if(!empty($idata['cleargroup']))
+					if (!empty($idata['cleargroup']))
 						self::ClearRecursive($mod,$shares,$mid); //recurse
 					else
 						self::ClearItem($mod,$shares,$mid); //just clear the group itself
-				}
-				else
+				} else
 					self::ClearItem($mod,$shares,$mid);
 
 				$db->Execute('DELETE FROM '.$mod->GroupTable.' WHERE child=? AND parent=?',array($mid,$gid));
@@ -93,24 +84,20 @@ class Itemops
 	@mod: reference to current module-object
 	@item_id: identifier of resource or group to be cleared, or array of them
 	*/
-	public function DeleteItem(&$mod,$item_id)
+	public function DeleteItem(&$mod, $item_id)
 	{
-		if(!is_array($item_id))
+		if (!is_array($item_id))
 			$item_id = array($item_id);
 		$funcs = new Shared();
-		foreach($item_id as $one)
-		{
-			if($one >= \Booker::MINGRPID)
-			{
+		foreach ($item_id as $one) {
+			if ($one >= \Booker::MINGRPID) {
 				$idata = $funcs->GetItemProperty($mod,$one,'cleargroup');
-				if(!empty($idata['cleargroup']))
+				if (!empty($idata['cleargroup']))
 					self::ClearRecursive($mod,$funcs,$one);
 				else
 					self::ClearItem($mod,$funcs,$one);
 				$funcs->OrderGroups($mod,$db); //cleanup remaining ordinals
-			}
-			else
-			{
+			} else {
 				self::ClearItem($mod,$funcs,$one);
 			}
 		}
@@ -123,33 +110,27 @@ class Itemops
 	@item_id: identifier of resource or group to be processed, or array of them
 	@members: optional boolean, whether to also export data for members of each group, default TRUE
 	*/
-/*	public function ExportItem(&$mod,$item_id,$members=TRUE)
+/*	public function ExportItem(&$mod, $item_id, $members=TRUE)
 	{
 		$funcs = new CSV();
-		if(!is_array($item_id))
+		if (!is_array($item_id))
 			$item_id = array($item_id);
-		foreach($item_id as $one)
-		{
+		foreach ($item_id as $one) {
 //TODO merge multi-items into a single exported file
 			list($res,$key) = $funcs->ExportItems($mod,$one);
-//			if(!$res)
-			{
+//			if (!$res) {
 //			handle error TODO
-			}
-			if($members)
-			{
+//			}
+			if ($members) {
 				$onemore = array(); //lazy recursion!!
-				while($one >= \Booker::MINGRPID)
-				{
+				while ($one >= \Booker::MINGRPID) {
 					$rows = $mod->dbHandle->GetCol('SELECT child FROM '.$mod->GroupTable.
 					' WHERE parent=? ORDER BY proximity',array($one));
-					foreach($rows as $one)
-					{
-						if($one >= \Booker::MINGRPID)
+					foreach ($rows as $one) {
+						if ($one >= \Booker::MINGRPID)
 							$onemore[] = $one;
 						list($res,$key) = $funcs->ExportItems($mod,$one);
-						if(!$res)
-						{
+						if (!$res) {
 //						handle error TODO
 						}
 					}
@@ -166,17 +147,14 @@ class Itemops
 	@item_id: identifier of resource or group to be [de]activated, or array of them
 	See also: Booker::_ActivateItem()
 	*/
-	public function ToggleItemActive(&$mod,$item_id)
+	public function ToggleItemActive(&$mod, $item_id)
 	{
 		$args = array();
-		if(!is_array($item_id))
-		{
+		if (!is_array($item_id)) {
 			$args[] = (int)$item_id;
 			$fillers = '?';
-		}
-		else
-		{
-			foreach($item_id as $one)
+		} else {
+			foreach ($item_id as $one)
 				$args[] = (int)$one;
 			$fillers = str_repeat('?,',count(item_id)-1).'?';
 		}
@@ -187,4 +165,3 @@ class Itemops
 		$db->Execute($sql,$args);
 	}
 }
-?>

@@ -1,6 +1,10 @@
 <?php
+#----------------------------------------------------------------------
+# Module: Booker - a resource booking module
+#----------------------------------------------------------------------
+# See file Booker.module.php for full details of copyright, licence, etc.
+#----------------------------------------------------------------------
 //NOTE Any ' inside these strings which is js-processed must be double-escaped
-
 $lang['accessdenied'] = 'Access denied. You don\'t have %s permission.';
 $lang['accessdenied3'] = 'You don\'t have permission.';
 $lang['activate'] = 'Activate';
@@ -655,4 +659,3 @@ Any group may be assigned to an authorized admin user.</p>
 <p>Copyright &copy; 2015 Tom Phane. All rights reserved.</p>
 <p>This module has been released under version 3 of the <a href="http://www.gnu.org/licenses/licenses.html#AGPL">GNU Affero General Public License</a>. You must agree to that license before using the module.</p>
 EOS;
-?>

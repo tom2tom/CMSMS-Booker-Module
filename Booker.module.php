@@ -86,7 +86,7 @@ class Booker extends CMSModule
 	protected $PermModName = 'Booker Resource Modify';
 	protected $PermDelName = 'Booker Resource Delete';
 
-	function __construct()
+	public function __construct()
 	{
 		parent::__construct();
 
@@ -106,7 +106,7 @@ class Booker extends CMSModule
 		$this->before20 = (version_compare($CMS_VERSION,'2.0') < 0);
 		$this->havemcrypt = function_exists('mcrypt_encrypt');
 
-		spl_autoload_register(function ($class)
+		spl_autoload_register(function($class)
 		{
 			$prefix = self::GetName().'\\'; //specific namespace prefix
 			// does the class use the namespace prefix?
@@ -122,67 +122,65 @@ class Booker extends CMSModule
 		});
 	}
 
-	function GetName()
+	public function GetName()
 	{
 		return 'Booker';
 	}
 
-	function GetFriendlyName()
+	public function GetFriendlyName()
 	{
 		return $this->Lang('friendlyname');
 	}
 
-	function GetVersion()
+	public function GetVersion()
 	{
 		return '0.1';
 	}
 
-	function MinimumCMSVersion()
+	public function MinimumCMSVersion()
 	{
 		return '1.9'; //CHECKME
 	}
 
-	function MaximumCMSVersion()
+	public function MaximumCMSVersion()
 	{
 		return '1.19.99';
 	}
 
-	function GetHelp()
+	public function GetHelp()
 	{
 		$fn = cms_join_path(__DIR__,'css','public.css');
 		$cont = @file_get_contents($fn);
-		if ($cont)
-		{
+		if ($cont) {
 			$example = preg_replace(array('~\s?/\*(.*)?\*/~Usm','~\s?//.*$~m'),array('',''),$cont);
 			$example = str_replace(array("\n\n","\n","\t"),array('<br />','<br />',' '),trim($example));
-		}
-		else
+		} else
 			$example = $this->Lang('missing');
 		return $this->Lang('help',$example);
 	}
 
-	function GetAuthor()
+	public function GetAuthor()
 	{
 		return 'tomphantoo';
 	}
 
-	function GetAuthorEmail()
+	public function GetAuthorEmail()
 	{
 		return 'tpgww@onepost.net';
 	}
 
-	function GetChangeLog()
+	public function GetChangeLog()
 	{
 		$fn = cms_join_path(__DIR__,'include','changelog.inc');
 		return @file_get_contents($fn);
 	}
 
-	function IsPluginModule()
+	public function IsPluginModule()
 	{
 		return TRUE;
 	}
 
-	function HasAdmin()
+	public function HasAdmin()
 	{
 		return TRUE;
 	}
@@ -190,50 +188,49 @@ class Booker extends CMSModule
 	/*
 	LazyLoadAdmin() for 1.10 and later
 	*/
-	function LazyLoadAdmin()
+	public function LazyLoadAdmin()
 	{
 		return FALSE;
 	}
 
-	function GetAdminSection()
+	public function GetAdminSection()
 	{
 		return 'content';
 	}
 
-	function GetAdminDescription()
+	public function GetAdminDescription()
 	{
 		return $this->Lang('moddescription');
 	}
 
-	function VisibleToAdminUser()
+	public function VisibleToAdminUser()
 	{
 		return $this->_CheckAccess();
 	}
 
-/*	function AdminStyle()
+/*public function AdminStyle()
 	{
 	}
 */
-	function GetHeaderHTML()
+	public function GetHeaderHTML()
 	{
 		return '<link rel="stylesheet" type="text/css" id="adminstyler" href="'.$this->GetModuleURLPath().'/css/admin.css" />';
 	}
 
-	function SuppressAdminOutput(&$request)
+	public function SuppressAdminOutput(&$request)
 	{
 		//prevent output of general admin content when doing an export,
 		//and when processing an ajax call
-		if (isset($request['mact']))
-		{
-			if(strpos($request['mact'],'exportbooking',6)) return TRUE;
-			if(strpos($request['mact'],'multibooking',6)
+		if (isset($request['mact'])) {
+			if (strpos($request['mact'],'exportbooking',6)) return TRUE;
+			if (strpos($request['mact'],'multibooking',6)
 				&& isset($request['m1_export'])) return TRUE;
-			if(strpos($request['mact'],'sortlike',6)) return TRUE;
+			if (strpos($request['mact'],'sortlike',6)) return TRUE;
 		}
 		return FALSE;
 	}
 
-	function GetDependencies()
+	public function GetDependencies()
 	{
 		return array();
 	}
@@ -241,22 +238,22 @@ class Booker extends CMSModule
 	/*
 	LazyLoadFrontend() for 1.10 and later
 	*/
-	function LazyLoadFrontend()
+	public function LazyLoadFrontend()
 	{
 		return TRUE;
 	}
 
-	function InstallPostMessage()
+	public function InstallPostMessage()
 	{
 		return $this->Lang('postinstall');
 	}
 
-	function UninstallPreMessage()
+	public function UninstallPreMessage()
 	{
 		return $this->Lang('really_uninstall');
 	}
 
-	function UninstallPostMessage()
+	public function UninstallPostMessage()
 	{
 		return $this->Lang('postuninstall');
 	}
@@ -264,7 +261,7 @@ class Booker extends CMSModule
 	/*
 	SetParameters() for pre-1.10
 	*/
-	function SetParameters()
+	public function SetParameters()
 	{
 		$this->InitializeAdmin();
 		$this->InitializeFrontend();
@@ -273,7 +270,7 @@ class Booker extends CMSModule
 	/*
 	InitializeFrontend() partial setup for 1.10
 	*/
-	function InitializeFrontend()
+	public function InitializeFrontend()
 	{
 		$this->RestrictUnknownParams();
 		//TODO parameter types
@@ -317,17 +314,17 @@ class Booker extends CMSModule
 		See also: Booker\Shared::GetLink() which needs to conform to this.
 		*/
 		// for showing the contents of a specific group
-		$this->RegisterRoute('/[Bb]ookings?\/group(?P<group>.*?)\/(?P<returnid>[0-9]+)$/',array('action'=>'default'));
+		$this->RegisterRoute('/[Bb]ookings?\/group(?P<group>.*?)\/(?P<returnid>[0-9]+)$/',array('action' => 'default'));
 		// for showing all the details for a specific item
-		$this->RegisterRoute('/[Bb]ookings?\/item(?P<item>.*?)\/(?P<returnid>[0-9]+)$/',array('action'=>'default'));
+		$this->RegisterRoute('/[Bb]ookings?\/item(?P<item>.*?)\/(?P<returnid>[0-9]+)$/',array('action' => 'default'));
 		// for doing nothing i.e. ignored links
-		$this->RegisterRoute('/[Bb]ookings?\/(?P<returnid>[0-9]+)$/',array('action'=>'default'));
+		$this->RegisterRoute('/[Bb]ookings?\/(?P<returnid>[0-9]+)$/',array('action' => 'default'));
 	}
 
 	/*
 	InitializeAdmin() partial setup for 1.10
 	*/
-	function InitializeAdmin()
+	public function InitializeAdmin()
 	{
 		$this->CreateParameter('item','',$this->Lang('help_item'));
 		$this->CreateParameter('startat','',$this->Lang('help_startat'));
@@ -340,7 +337,7 @@ class Booker extends CMSModule
 	Specify the tasks that this module uses
 	Returns: CmsRegularTask-compliant object, or array of them
 	*/
-	function get_tasks()
+	public function get_tasks()
 	{
 		return array(
 			new Booker\Cleanold_task(),
@@ -358,18 +355,17 @@ class Booker extends CMSModule
 	are governed by which actionable widgets are displayed
 	- and those are permission-checked before creation
 	*/
-	function DoAction($action,$id,$params,$returnid=-1)
+	public function DoAction($action, $id, $params, $returnid=-1)
 	{
-		switch ($action)
-		{
+		switch ($action) {
 		 case 'add':
 		 case 'copy':
 		 case 'edit':
 		 case 'see':
 		 case 'update': //apply/submit item/group changes
- 			if(isset($params['modfee'])) //in-page edit-fees button clicked
+ 			if (isset($params['modfee'])) //in-page edit-fees button clicked
 				$action = 'openfees';
-			elseif(isset($params['sortlike']))
+			elseif (isset($params['sortlike']))
 				$action = 'sortlike';
 			else
 				$action = 'openitem';
@@ -400,21 +396,21 @@ class Booker extends CMSModule
 		 case 'sortlike':
 			break;
 		 case 'adminbooking':
-			if(isset($params['importbkg']))
+			if (isset($params['importbkg']))
 				$action = 'import';
-			elseif(isset($params['find']))
+			elseif (isset($params['find']))
 				$action = 'findbooking'; //TODO admin, not frontend
 			else
 				$action = 'processrequest';
 			break;
 		 case 'process': //multiple/selected/?export?/delete etc
-			if(isset($params['setfees']))
+			if (isset($params['setfees']))
 				$action = 'openfees';
-			elseif(isset($params['importitm']))
+			elseif (isset($params['importitm']))
 				$action = 'import';
 			break;
 		 case 'multibooking':
-			if(isset($params['importbkg']))
+			if (isset($params['importbkg']))
 				$action = 'import';
 			break;
 		 case 'approve':
@@ -434,7 +430,7 @@ class Booker extends CMSModule
 			$action = 'openfees';
 			break;
 		 default:
-			if(isset($params['active_tab'])) //TODO if backend
+			if (isset($params['active_tab'])) //TODO if backend
 				$action = 'defaultadmin';
 			else
 				return;
@@ -446,11 +442,10 @@ class Booker extends CMSModule
 	_CheckAccess($permission='',$warn=FALSE)
 		NOT PART OF THE MODULE API
 	*/
-	function _CheckAccess($permission='',$warn=FALSE)
+	public function _CheckAccess($permission='', $warn=FALSE)
 	{
-		switch ($permission)
-		{
-		case '': //anything relevant
+		switch ($permission) {
+		 case '': //anything relevant
 			$name = '';
 			$ok = $this->CheckPermission($this->PermAdminName);
 			if (!$ok) $ok = $this->CheckPermission($this->PermSeeName);
@@ -461,42 +456,41 @@ class Booker extends CMSModule
 			if (!$ok) $ok = $this->CheckPermission($this->PermStructName);
 			break;
 			//bookings
-		case 'view':
+		 case 'view':
 			$name = $this->PermSeeName;
 			$ok = $this->CheckPermission($name);
 			break;
-		case 'book':
+		 case 'book':
 			$name = $this->PermEditName;
 			$ok = $this->CheckPermission($name);
 			break;
-		case 'admin':
+		 case 'admin':
 			$name = $this->PermAdminName;
 			$ok = $this->CheckPermission($name);
 			break;
 		//resources
-		case 'add':
+		 case 'add':
 			$name = $this->PermAddName;
 			$ok = $this->CheckPermission($name);
 			break;
-		case 'modify':
+		 case 'modify':
 			$name = $this->PermModName;
 			$ok = $this->CheckPermission($name);
 			break;
-		case 'delete':
+		 case 'delete':
 			$name = $this->PermDelName;
 			$ok = $this->CheckPermission($name);
 			break;
 		//module
-		case 'module':
+		 case 'module':
 			$name = $this->PermStructName;
 			$ok = $this->CheckPermission($name);
 			break;
-		default:
+		 default:
 			$name = '';
 			$ok = FALSE;
 		}
-		if (!$ok && $warn)
-		{
+		if (!$ok && $warn) {
 			if ($name == '') $name = $this->Lang('perm_some');
 			echo '<p class="error">'.$this->Lang('accessdenied',$name).'</p>';
 		}
@@ -510,15 +504,14 @@ class Booker extends CMSModule
 	@returnid:
 	@tplvars: reference to array of template variables
 	*/
-	function _BuildNav($id,&$params,$returnid,&$tplvars)
+	public function _BuildNav($id, &$params, $returnid, &$tplvars)
 	{
 		$navstr = $this->CreateLink($id,'defaultadmin',$returnid,
 			'&#171; '.$this->Lang('back_module'));
-		if(isset($params['bkg_id']))
-		{
+		if (isset($params['bkg_id'])) {
 			$navstr .= ' '.$this->CreateLink($id,$params['resume'],$returnid,
 				'&#171; '.$this->Lang('title_bookings'),array(
-				'item_id'=>$params['item_id']));
+				'item_id' => $params['item_id']));
 		}
 		$tplvars['back_nav'] = $navstr;
 	}
@@ -527,7 +520,7 @@ class Booker extends CMSModule
 	_GetActiveTab(&$params)
 	Get name of active tab (in a multi-tab page)
 	*/
-/*	function _GetActiveTab(&$params)
+/*public function _GetActiveTab(&$params)
 	{
 		if (empty($params['active_tab']))
 			return 'data';
@@ -541,16 +534,14 @@ class Booker extends CMSModule
 	@success: optional default TRUE whether to style message as positive
 	@key: optional default TRUE whether @text is a lang key or raw
 	*/
-	function _PrettyMessage($text,$success=TRUE,$key=TRUE)
+	public function _PrettyMessage($text, $success=TRUE, $key=TRUE)
 	{
 		$base = ($key) ? $this->Lang($text) : $text;
 		if ($success)
 			return $this->ShowMessage($base);
-		else
-		{
+		else {
 			$msg = $this->ShowErrors($base);
-//			if ($faillink == FALSE)
-//			{
+//			if ($faillink == FALSE) {
 				//strip the link
 				$pos = strpos($msg,'<a href=');
 				$part1 = ($pos !== FALSE) ? substr($msg,0,$pos) : '';
@@ -577,35 +568,28 @@ class Booker extends CMSModule
 	@text: optional title and tip for an image, or mandatory displayed text for a link, default ''
 	@extra: optional additional text that should be added into the object, default ''
 	*/
-	function _CreateInputLinks($id, $name, $iconfile=FALSE, $link=FALSE, $text='', $extra='')
+	public function _CreateInputLinks($id, $name, $iconfile=FALSE, $link=FALSE, $text='', $extra='')
 	{
-		if($iconfile)
-		{
+		if ($iconfile) {
 			$p = strpos($iconfile,'/'); 
-			if($p === FALSE)
-			{
+			if ($p === FALSE) {
 				$theme = ($this->before20) ? cmsms()->get_variable('admintheme'):
 					cms_utils::get_theme_object();
 				$imgstr = $theme->DisplayImage('icons/system/'.$iconfile,$text,'','','fakeicon systemicon');
 				//trim string like <img src="..." class="fakeicon systemicon" alt="$text" title="$text" />
 				$imgstr = str_replace(array('<img','/>'),array('',''),$imgstr);
-			}
-			elseif($p == 0) {
-				$imgstr = $this->GetModuleURLPath().$iconfile; }
-			elseif(strpos($iconfile,'://',$p-1) === $p-1) {
-				$imgstr = $iconfile; }
-			else {
+			} elseif ($p == 0) {
+				$imgstr = $this->GetModuleURLPath().$iconfile; } elseif (strpos($iconfile,'://',$p-1) === $p-1) {
+				$imgstr = $iconfile; } else {
 				$imgstr = $this->GetModuleURLPath().'/'.$iconfile; }
 			$ret = '<input type="image" '.$imgstr.' name="'.$id.$name.'"'; //conservative assumption about spaces
-			if($extra)
+			if ($extra)
 				$ret .= ' '.$extra;
 			$ret .= ' />';
-		}
-		else
+		} else
 			$ret = '';
-		if ($link && $text)
-		{
-			if($ret)
+		if ($link && $text) {
+			if ($ret)
 				$ret .=' ';
 			$ret .='<input type="submit" value="'.$text.'" name="'.$id.$name.'" class="fakelink"';
 			if ($extra)
@@ -623,33 +607,27 @@ class Booker extends CMSModule
 	[de]activate the item passed in @params
 	See also: bkritemops::ToggleItemActive()
 	*/
-	function _ActivateItem($id,&$params,$returnid)
+	public function _ActivateItem($id, &$params, $returnid)
 	{
-		if(isset($params['item_id']))
-		{
+		if (isset($params['item_id'])) {
 			$qdata = array();
-			if(isset($params['active']))
-			{
-				if($params['active'])
+			if (isset($params['active'])) {
+				if ($params['active'])
 					$qdata[] = 0;
 				else
 					$qdata[] = 1;
-			}
-			else
+			} else
 				$qdata[] = 0;
 			$qdata[] = $params['item_id'];
 
 			$sql = 'UPDATE '.$this->ItemTable.' SET active=? WHERE item_id=?';
 	    	$this->dbHandle->Execute($sql,$qdata);
 
-			if($params['item_id'] < Booker::MINGRPID)
-				$params = array('active_tab'=>'items');
+			if ($params['item_id'] < Booker::MINGRPID)
+				$params = array('active_tab' => 'items');
 			else
-				$params = array('active_tab'=>'groups');
-		}
-		else
-			$params = array('active_tab'=>'items');
+				$params = array('active_tab' => 'groups');
+		} else
+			$params = array('active_tab' => 'items');
 	}
 }
-
-?>

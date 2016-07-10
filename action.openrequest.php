@@ -9,10 +9,9 @@
 'req_id'=>identifier
 'mode'=>'inspect' OR 'edit'
 */
-if(!$this->_CheckAccess()) exit;
+if (!$this->_CheckAccess()) exit;
 
-if(isset($params['cancel']))
-{
+if (isset($params['cancel'])) {
 	$this->Redirect($id,'defaultadmin');
 }
 
@@ -24,31 +23,25 @@ $is_new = ($rdata['status'] == Booker::STATNEW); //ETC?
 $viewmode = ($params['mode'] == 'inspect');
 $funcs = new Booker\Shared();
 
-if(isset($params['submit']) || isset($params['apply']))
-{
-	if(!($this->_CheckAccess('admin') || $this->_CheckAccess('book'))) exit;
+if (isset($params['submit']) || isset($params['apply'])) {
+	if (!($this->_CheckAccess('admin') || $this->_CheckAccess('book'))) exit;
 	//validate
 	$funcs2 = new Booker\Verify();
 	list($res,$msg) = $funcs2->VerifyAdmin($this,$funcs,$params,$rdata['item_id'],$is_new);
-	if($res)
-	{
+	if ($res) {
 		$funcs2 = new Booker\Requestops();
 		$funcs2->SaveReq($this,$params,$rdata,FALSE);
 		//TODO message to lodger
-		if(isset($params['submit']))
+		if (isset($params['submit']))
 			$this->Redirect($id,'defaultadmin');
-	}
-	else
-	{
+	} else {
 		//handle error message(s)
-//		if(!empty($params['message'])
+//		if (!empty($params['message'])
 //
 //		else
 //			$params['message'] = ;
 	}
-}
-elseif(isset($params['approve']))
-{
+} elseif (isset($params['approve'])) {
 /*supplied $params[]
 'req_id' => string '6'
 'mode' => string 'edit'
@@ -66,23 +59,13 @@ elseif(isset($params['approve']))
 	//send
 	//
 }
-if(isset($params['reject']))
-{
+if (isset($params['reject'])) {
+} elseif (isset($params['ask'])) {
+} elseif (isset($params['notify'])) {
 }
-elseif(isset($params['ask']))
-{
-}
-elseif(isset($params['notify']))
-{
-}
-if(isset($params['find']))
-{
-}
-elseif(isset($params['table']))
-{
-}
-elseif(isset($params['list']))
-{
+if (isset($params['find'])) {
+} elseif (isset($params['table'])) {
+} elseif (isset($params['list'])) {
 }
 
 $tplvars = array();
@@ -92,27 +75,24 @@ $tplvars['startform'] =
 $tplvars['endform'] = $this->CreateFormEnd();
 
 $this->_BuildNav($id,$params,$returnid,$tplvars);
-if(!empty($params['message']))
+if (!empty($params['message']))
 	$tplvars['message'] = $params['message'];
 
-if(!$viewmode)
+if (!$viewmode)
 	$tplvars['compulsory'] = $this->Lang('help_compulsory');
 
 $idata = $funcs->GetItemProperty($this,$rdata['item_id'],"*");
 
 $key = ($is_new) ? 'title_booknewfor':'title_bookfor';
-if(!empty($idata['name']))
-{
+if (!empty($idata['name'])) {
 	$tplvars['title'] = $this->Lang($key,$type,$idata['name']);
-}
-else
-{
+} else {
 	$t = $this->Lang('title_noname',$type,$idata['item_id']);
 	$tplvars['title'] = $this->Lang($key,$t,'');
 }
 
 $t = '';
-if(!empty($idata['description']))
+if (!empty($idata['description']))
 	$t .= Booker\Shared::ProcessTemplateFromData($this,$idata['description'],$tplvars);
 $tplvars['desc'] = $t;
 //in this context, ignore any image
@@ -131,22 +111,18 @@ $dt = new DateTime('1900-1-1',new DateTimeZone('UTC'));
 $dt->setTimestamp($rdata['slotstart']);
 $fmt = $idata['dateformat'].' '.$idata['timeformat'];
 $t = $dt->format($fmt);
-if($rdata['item_id'])
+if ($rdata['item_id'])
 	$overday = ($funcs->GetInterval($this,$rdata['item_id'],'slot') >= 84600);
-else
-{
+else {
 //TODO support 'un-targeted' bookings - preference?
 	$overday = FALSE;
 }
 
 $one = new stdClass();
 $one->title = $this->Lang('title_when');
-if($viewmode)
-{
+if ($viewmode) {
 	$one->input = ($t) ? $t:'&lt;'.$this->Lang('missing').'&gt;';
-}
-else
-{
+} else {
 	$one->must = 1;
 	$one->input = $this->CreateInputText($id,'when',$t,20,30);
 
@@ -159,17 +135,14 @@ else
 	$dnames = "'".str_replace(",","','",$t)."'";
 	$t = $this->Lang('shortdays');
 	$sdnames = "'".str_replace(",","','",$t)."'";
-	if($choosend)
-	{
+	if ($choosend) {
 		$sl = (int)$rdata['slotlen'];
 		$t2 = <<<EOS
     d2 = moment(d).add($sl,'s').format(f);
     $('#{$id}until').val(d2);
 
 EOS;
-	}
-	else
-	{
+	} else {
 		$t2 = '';
 	}
 	$momentfmt = ($overday) ? 'YYYY-MM-DD':'YYYY-MM-DD h:mm';
@@ -186,9 +159,9 @@ EOS;
    weekdays: [{$dnames}],
    weekdaysShort: [{$sdnames}]
   },
-  onClose: function(){
+  onClose: function() {
    var sel = $('#calendar').val();
-   if(sel !== '') { //not cancelled
+   if (sel !== '') { //not cancelled
     var d = new Date(sel);
     var f = '{$momentfmt}';
     var d2 = moment(d).format(f);
@@ -203,19 +176,15 @@ EOS;
 $one->help = NULL; //$this->Lang('help_book_start');
 $vars[] = $one;
 //==
-if($choosend)
-{
+if ($choosend) {
 	$dt->setTimestamp($rdata['slotstart'] + $rdata['slotlen']);
 	$t = $dt->format($fmt);
 
 	$one = new stdClass();
 	$one->title = $this->Lang('title_until');
-	if($viewmode)
-	{
+	if ($viewmode) {
 		$one->input = ($t) ? $t:'&lt;'.$this->Lang('missing').'&gt;';
-	}
-	else
-	{
+	} else {
 		$one->must = 1;
 		$one->input = $this->CreateInputText($id,'until',$t,20,30);
 	}
@@ -226,20 +195,16 @@ if($choosend)
 $one = new stdClass();
 $one->title = $this->Lang('title_sender2');
 $t = $rdata['sender'];
-if($viewmode)
-{
+if ($viewmode) {
 	$one->input = ($t) ? $t:'&lt;'.$this->Lang('missing').'&gt;';
-}
-else
-{
+} else {
 	$one->must = 1;
 	$one->input = $this->CreateInputText($id,'user',$t,20,64);
 }
 $one->help = $this->Lang('help_lodger');
 $vars[] = $one;
 //==
-if(!$viewmode)
-{
+if (!$viewmode) {
 	$one = new stdClass();
 	$one->title = $this->Lang('title_conformuser');
 	$one->input = $this->CreateInputCheckbox($id,'conformuser',1,-1);
@@ -247,8 +212,7 @@ if(!$viewmode)
 	$vars[] = $one;
 }
 //==
-if(!$viewmode)
-{
+if (!$viewmode) {
 	$one = new stdClass();
 	$one->title = $this->Lang('userclass');
 	$t = 1;
@@ -268,20 +232,16 @@ if(!$viewmode)
 $one = new stdClass();
 $one->title = $this->Lang('title_contact');
 $t = $rdata['contact'];
-if($viewmode)
-{
+if ($viewmode) {
 	$one->input = ($t) ? $t:'&lt;'.$this->Lang('missing').'&gt;';
-}
-else
-{
+} else {
 	$one->must = 1;
 	$one->input = $this->CreateInputText($id,'contact',$t,30,128);
 }
 $one->help = $this->Lang('help_book_contact');
 $vars[] = $one;
 //==
-if(!$viewmode)
-{
+if (!$viewmode) {
 	$one = new stdClass();
 	$one->title = $this->Lang('title_conformcontact');
 	$one->input = $this->CreateInputCheckbox($id,'conformcontact',1,-1);
@@ -293,31 +253,23 @@ $one = new stdClass();
 $one->title = $this->Lang('title_comment');
 $one->must = 0;
 $t = $rdata['comment'];
-if($viewmode)
-{
+if ($viewmode) {
 	$one->input = $t;
-}
-else
-{
+} else {
 	$one->must = 0;
 	$one->input = $this->CreateTextArea(FALSE,$id,$t,'comment','','','','',50,5,'','','style="height:5em;"');
 }
 $vars[] = $one;
 //==
-if($is_group)
-{
+if ($is_group) {
 	$n = $funcs->GetGroupItems($this,$rdata['item_id']);
-	if($n && count($n) > 1)
-	{
+	if ($n && count($n) > 1) {
 		$one = new stdClass();
 		$one->title = $this->Lang('title_howmany',$idata['membersname']);
 		$t = $rdata['subgrpcount'];
-		if($viewmode)
-		{
+		if ($viewmode) {
 			$one->input = $t;
-		}
-		else
-		{
+		} else {
 			$one->must = 1;
 			$one->input = $this->CreateInputText($id,'subgrpcount',$t,3,5);
 		}
@@ -328,25 +280,20 @@ if($is_group)
 //==
 $condition = NULL; //TODO payable-condition time,requestor etc
 $payable = $funcs->GetItemPayable($this,$item_id,FALSE,$condition);
-if($payable)
-{
+if ($payable) {
 	$one = new stdClass();
 	$one->title = $this->Lang('title_paid');
 	$t = (int)$rdata['paid'];
-	if($viewmode)
-	{
+	if ($viewmode) {
 		$one->input = ($t) ? $this->Lang('yes'):$this->Lang('no');
-	}
-	else
-	{
+	} else {
 		$one->must = 0;
 		$one->input = $this->CreateInputCheckbox($id,'paid',1,$t);
 	}
 	$vars[] = $one;
 }
 //==
-switch($rdata['status'])
-{
+switch ($rdata['status']) {
  case Booker::STATNONE:
 	$t = $this->Lang('stat_none');
 	break;
@@ -391,8 +338,7 @@ $one->title = $this->Lang('lodged');
 $one->input = $dt->format($fmt);
 $vars[] = $one;
 //==
-if($rdata['approved'] > 0)
-{
+if ($rdata['approved'] > 0) {
 	$dt->setTimestamp($rdata['approved']);
 	$one = new stdClass();
 	$one->title = $this->Lang('approved');
@@ -403,17 +349,13 @@ if($rdata['approved'] > 0)
 $tplvars['data'] = $vars;
 
 //buttons
-if($viewmode)
-{
+if ($viewmode) {
 	$tplvars['cancel'] = $this->CreateInputSubmit($id,'cancel',$this->Lang('close'));
-}
-else //edit mode
-{
+} else { //edit mode
 	$tplvars['submit'] = $this->CreateInputSubmit($id,'submit',$this->Lang('submit'));
 	$tplvars['apply'] = $this->CreateInputSubmit($id,'apply',$this->Lang('apply'));
 	$tplvars['cancel'] = $this->CreateInputSubmit($id,'cancel',$this->Lang('cancel'));
-	if(1) //e.g. not an info-request
-	{
+	if (1) { //TODO e.g. not an info-request
 		$tplvars['approve'] = $this->CreateInputSubmit($id,'approve',$this->Lang('approve'));
 		$tplvars['reject'] = $this->CreateInputSubmit($id,'reject',$this->Lang('reject'));
 	}
@@ -434,8 +376,7 @@ $tplvars['find'] = $this->CreateInputSubmit($id,'find',$this->Lang('find'),
 $tplvars['table'] = $this->CreateInputSubmit($id,'tableview',$this->Lang('table'));
 $tplvars['list'] = $this->CreateInputSubmit($id,'listview',$this->Lang('list'));
 $ob = cms_utils::get_module('Notifier');
-if($ob)
-{
+if ($ob) {
 	//can-send-messages
 	$tplvars['pmsg'] = 1;
 	//buttons
@@ -447,15 +388,12 @@ if($ob)
 		$funcs->GetItemName($this,$idata);
 	$dt->setTimestamp($rdata['slotstart']);
 	$on = $funcs->IntervalFormat($this,$dt,'D j M');
-	if($overday)
-	{
+	if ($overday) {
 		$approve = $this->Lang('email_approve',$what,$on);
 		$reject = $this->Lang('email_reject',$what,$on);
 		$notify = $this->Lang('email_changed',$what,$on); //ETC
 		$ask = $this->Lang('email_ask',$what,$on);
-	}
-	else
-	{
+	} else {
 		$at = $dt->format('g:i A');
 		$approve = $this->Lang('email_approveat',$what,$on,$at);
 		$reject = $this->Lang('email_rejectat',$what,$on,$at);
@@ -472,7 +410,7 @@ function modalsetup(tg,\$d) {
  var msg,
   id = $(this).attr('id'),
   action = id.replace('{$id}','');
- switch(action) {
+ switch (action) {
   case 'approve':
    msg = "$approve";
    break;
@@ -513,9 +451,7 @@ EOS;
  });
 
 EOS;
-}
-else //can't-send-messages
-{
+} else { //can't-send-messages
 	$tplvars['pmsg'] = 0;
 }
 //modal dialog button names
@@ -526,8 +462,7 @@ $tplvars['abort'] = $this->Lang('cancel');
 
 $tplvars['mod'] = !$viewmode;
 
-if(!$viewmode)
-{
+if (!$viewmode) {
 	//for picker & mail-validation & confirmation
 	$jsincs[] = <<<EOS
 <script type="text/javascript" src="{$baseurl}/include/moment.min.js"></script>
@@ -559,8 +494,7 @@ if (\$linklast.length) {
 }
 EOS;
 
-if($jsloads)
-{
+if ($jsloads) {
 	$jsfuncs[] = '$(document).ready(function() {
 ';
 	$jsfuncs = array_merge($jsfuncs,$jsloads);
@@ -570,4 +504,3 @@ if($jsloads)
 $tplvars['jsfuncs'] = $jsfuncs;
 
 echo Booker\Shared::ProcessTemplate($this,'openrequest.tpl',$tplvars);
-?>

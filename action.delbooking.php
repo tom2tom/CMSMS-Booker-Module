@@ -6,31 +6,24 @@
 #----------------------------------------------------------------------
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
-if(!($this->_CheckAccess('admin') || $this->_CheckAccess('book'))) exit;
+if (!($this->_CheckAccess('admin') || $this->_CheckAccess('book'))) exit;
 
 $msg = FALSE;
 $funcs = new Booker\Bookingops();
-if(!empty($params['repeat'])) //doing a repeat-booking
-{
+if (!empty($params['repeat'])) { //doing a repeat-booking
 	$msg = $funcs->DeleteRepeat($this,$params['bkg_id']);
-	if($msg === TRUE)
-	{
+	if ($msg === TRUE) {
 //DO RELATED STUFF ?
 	}
-}
-else //onetime
-{
+} else { //onetime
 	$msg = $funcs->DeleteBkg($this,$params['bkg_id'],$params['custmsg']);
-	if($msg === TRUE)
-	{
+	if ($msg === TRUE) {
 //TODO payment reconciliation, if enough notice is given
 	}
 }
 
 $newparms = array('item_id'=>$params['item_id']);
-if($msg)
+if ($msg)
 	$newparms['message'] = $msg;
 
 $this->Redirect($id,'administer','',$newparms);
-
-?>
