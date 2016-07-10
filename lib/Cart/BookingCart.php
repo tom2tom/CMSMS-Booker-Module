@@ -142,12 +142,12 @@ class BookingCartItem implements BookingCartItemInterface
 class BookingCart extends Cart implements \Serializable
 {
 	/**
-	Overloaded cache-properties
+	Overloaded cart-properties
 	*/
 	private $xtraprops = array();
 
 	/**
-	Recognised properties of cache-items
+	Recognised properties of cart-items
 
 	@var array, members each an array propname=>additive, additive = FALSE returns mere count when totalled
 	*/

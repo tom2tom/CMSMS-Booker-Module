@@ -385,11 +385,11 @@ EOS;
 			$fillers = str_repeat('?,',count($args)-1);
 			$sql .= ' IN('.$fillers.'?)';
 		} elseif ($item_id >= \Booker::MINGRPID) {
-			$funcs = new Shared();
-			$args = $funcs->GetGroupItems($mod,$item_id);
+			$shares = new Shared();
+			$args = $shares->GetGroupItems($mod,$item_id);
 			if (!$args)
 				return array();
-			unset($funcs);
+			unset($shares);
 			$fillers = str_repeat('?,',count($args)-1);
 			$sql .= ' IN('.$fillers.'?)';
 		} else {
