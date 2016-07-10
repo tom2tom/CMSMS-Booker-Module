@@ -1,11 +1,11 @@
 <?php
-namespace Riesenia\Cart;
-
 /**
-Iterface for items in cart with weight
+Iterface for cart-items whose weight is relevant to the commerce
 
 @author Tomas Saghy <segy@riesenia.com>
 */
+namespace Booker\Cart;
+
 interface WeightedCartItemInterface extends CartItemInterface
 {
 	/**
