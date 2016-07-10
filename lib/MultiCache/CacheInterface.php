@@ -1,59 +1,60 @@
 <?php
 namespace MultiCache;
 
-interface CacheInterface {
-
-	function __construct($config = []);
+interface CacheInterface
+{
+	public function __construct($config=array());
 
 	/*
 	 * Check whether this cache driver can be used
 	 */
-	function use_driver();
+	public function use_driver();
 
 	/*
 	 * Set
 	 * Upsert an item in cache
 	 */
-	function _newsert($keyword, $value, $lifetime = FALSE);
-	function _upsert($keyword, $value, $lifetime = FALSE);
+	public function _newsert($keyword, $value, $lifetime = FALSE);
+	public function _upsert($keyword, $value, $lifetime = FALSE);
 
 	/*
 	 * Get
 	 * Return cached value or NULL
 	 */
-	function _get($keyword);
+	public function _get($keyword);
 	/*
 	 * Getall
 	 * Return array of cached key::value or NULL, optionally filtered
 	 * $filter may be:
-	 *  a regex to match against cache keywords, must NOT be end-user definable (injection-risk)
-	 *  the prefix of wanted keywords or a whole keyword
-	 *  a callable with keyword as argument and returning TRUE if the keyword
-     *  is wanted, must NOT be end-user definable (injection-risk)
+	 *  - FALSE
+	 *  - a regex to match against cache keywords, must NOT be end-user supplied (injection-risk)
+	 *  - the prefix of wanted keywords or a whole keyword
+	 *  - a callable with arguments (keyword,value), and returning boolean representing wanted,
+	 *      must NOT be end-user supplied (due to injection-risk)
 	 */
-	function _getall($filter);
+	public function _getall($filter);
 
 	/*
 	 * Has
 	 * Check whether an item is cached
 	 */
-	function _has($keyword);
+	public function _has($keyword);
 
 	/*
 	 * Delete
 	 * Delete a cached value
 	 */
-	function _delete($keyword);
+	public function _delete($keyword);
 
 	/*
 	 * Clean
 	 * Clean up whole cache, optionally filtered
 	 * $filter may be:
-	 *  a regex to match against cache keywords, must NOT be end-user definable (injection-risk)
-	 *  the prefix of wanted keywords or a whole keyword
-	 *  a callable with keyword as argument and returning TRUE if the keyword
-     *  is wanted, must NOT be end-user definable (injection-risk)
+	 *  - FALSE
+	 *  - a regex to match against cache keywords, must NOT be end-user supplied (injection-risk)
+	 *  - the prefix of wanted keywords or a whole keyword
+	 *  - a callable with arguments (keyword,value), and returning boolean representing wanted,
+	 *      must NOT be end-user supplied (due to injection-risk)
 	 */
-	function _clean($filter);
+	public function _clean($filter);
 }
-?>

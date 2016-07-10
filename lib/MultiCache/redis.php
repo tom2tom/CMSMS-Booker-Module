@@ -5,9 +5,10 @@
  */
 namespace MultiCache;
 
-class Cache_redis extends CacheBase implements CacheInterface {
+class Cache_redis extends CacheBase implements CacheInterface
+{
+	protected $client;
 
-	protected $instance;
 	/*
 	$config members: any of
 	'host' => string
@@ -16,22 +17,25 @@ class Cache_redis extends CacheBase implements CacheInterface {
 	'database' => int
 	'timeout' => float seconds
 	*/
-	function __construct($config = []) {
-		if($this->use_driver()) {
+	public function __construct($config=array())
+	{
+		if ($this->use_driver()) {
 			parent::__construct($config);
-			if($this->connectServer()) {
+			if ($this->connectServer()) {
 				return;
 			}
-			unset($this->instance);
+			unset($this->client);
 		}
 		throw new \Exception('no redis storage');
 	}
 
-	function use_driver() {
+	public function use_driver()
+	{
 		return class_exists('Redis');
 	}
 
-	function connectServer() {
+	public function connectServer()
+	{
 		$params = array_merge(array(
 			'host' => '127.0.0.1',
 			'port'  => 6379,
@@ -40,60 +44,66 @@ class Cache_redis extends CacheBase implements CacheInterface {
 			'timeout' => 0.0,
 			), $this->config);
 
-		$this->instance = new \Redis();
-		if(!$this->instance->connect($params['host'],(int)$params['port'],(float)$params['timeout'])) {
+		$this->client = new \Redis();
+		if (!$this->client->connect($params['host'],(int)$params['port'],(float)$params['timeout'])) {
 			return FALSE;
-		} elseif ($params['password'] && !$this->instance->auth($params['password'])) {
+		} elseif ($params['password'] && !$this->client->auth($params['password'])) {
 			return FALSE;
 		}
-		if($params['database']) {
-			return $this->instance->select((int)$params['database']);
+		if ($params['database']) {
+			return $this->client->select((int)$params['database']);
 		}
 		return TRUE;
 	}
 
-	function _newsert($keyword, $value, $lifetime = FALSE) {
-		if(!$this->_has($keyword)) {
-			$ret = $this->instance->set($keyword, $value, array('xx', 'ex' => $lifetime));
+	public function _newsert($keyword, $value, $lifetime=FALSE)
+	{
+		if (!$this->_has($keyword)) {
+			$ret = $this->client->set($keyword, $value, array('xx', 'ex' => $lifetime));
 			return $ret;
 		}
 		return FALSE;
 	}
 
-	function _upsert($keyword, $value, $lifetime = FALSE) {
-		$ret = $this->instance->set($keyword, $value, array('xx', 'ex' => $lifetime));
+	public function _upsert($keyword, $value, $lifetime=FALSE)
+	{
+		$ret = $this->client->set($keyword, $value, array('xx', 'ex' => $lifetime));
 		if ($ret === FALSE) {
-			$ret = $this->instance->set($keyword, $value, $lifetime);
+			$ret = $this->client->set($keyword, $value, $lifetime);
 		}
 		return $ret;
 	}
 
-	// return cached value or null
-	function _get($keyword) {
-		$data = $this->instance->get($keyword);
-		if($data !== FALSE) {
-			return $data;
+	public function _get($keyword)
+	{
+		$value = $this->client->get($keyword);
+		if ($value !== FALSE) {
+			return $value;
 		}
 		return NULL;
 	}
 
-	function _getall() {
+	public function _getall($filter)
+	{
+//TODO filtering
 		return NULL; //TODO allitems;
 	}
 
-	function _has($keyword) {
-		return ($this->instance->exists($keyword) != NULL);
+	public function _has($keyword)
+	{
+		return ($this->client->exists($keyword) != NULL);
 	}
 
-	function _delete($keyword) {
-		$this->instance->delete($keyword);
+	public function _delete($keyword)
+	{
+		$this->client->delete($keyword);
 		return TRUE;
 	}
 
-	function _clean() {
-		$this->instance->flushDB();
+	public function _clean($filter)
+	{
+//TODO filtering
+		$this->client->flushDB();
 	}
 
 }
-
-?>
