@@ -101,7 +101,7 @@ $tplvars['tab_headers'] = $this->StartTabHeaders().
 $tplvars['tab_footers'] = $this->EndTabContent();
 $tplvars['end_tab'] = $this->EndTab();
 
-$funcs = new Booker\Shared();
+$funcs = new Booker\Utils();
 $jsfuncs = array(); //script accumulators
 $jsloads = array();
 $jsincs = array();
@@ -1157,4 +1157,4 @@ $jsfuncs[] = '});
 $tplvars['jsincs'] = $jsincs;
 $tplvars['jsfuncs'] = $jsfuncs;
 
-echo Booker\Shared::ProcessTemplate($this,'adminpanel.tpl',$tplvars);
+echo Booker\Utils::ProcessTemplate($this,'adminpanel.tpl',$tplvars);

@@ -53,8 +53,8 @@ $this->_BuildNav($id,$params,$returnid,$tplvars);
 if (!empty($params['message']))
 	$tplvars['message'] = $params['message'];
 
-$funcs = new Booker\Shared();
-$idata = $funcs->GetItemProperty($this,$item_id,'*',FALSE);
+$utils = new Booker\Utils();
+$idata = $utils->GetItemProperty($this,$item_id,'*',FALSE);
 
 $type = ($is_group) ? $this->Lang('group'):$this->Lang('item');
 if (!empty($idata['name'])) {
@@ -67,10 +67,10 @@ if (!empty($idata['name'])) {
 	$tplvars['item_title'] = $this->Lang('title_booksfor',$t,'');
 }
 if (!empty($idata['description']))
-	$tplvars['desc'] = Booker\Shared::ProcessTemplateFromData($this,$idata['description'],$tplvars);
+	$tplvars['desc'] = Booker\Utils::ProcessTemplateFromData($this,$idata['description'],$tplvars);
 //in this context, ignore $idata['image']
 
-$payable = $funcs->GetItemPayable($this,$item_id); //any payment condition
+$payable = $utils->GetItemPayable($this,$item_id); //any payment condition
 $yes = $this->Lang('yes');
 $no = $this->Lang('no');
 $from_group = FALSE;
@@ -108,13 +108,13 @@ $jsincs = array();
 //========== NON-REPEAT BOOKINGS ===========
 //TODO support limit to date-range, changing such date-range
 $sql = 'SELECT item_id,bkg_id,slotstart,slotlen,user,paid FROM '.$this->DataTable.' WHERE item_id=? ORDER BY slotstart';
-$data = $funcs->SafeGet($sql,array($item_id));
+$data = $utils->SafeGet($sql,array($item_id));
 
-$groups = $funcs->GetItemGroups($this,$db,$item_id);
+$groups = $utils->GetItemGroups($this,$db,$item_id);
 if ($groups) {
 	$fillers = str_repeat('?,',count($groups)-1).'?';
 	$sql = 'SELECT bkg_id,item_id,slotstart,slotlen,user,paid FROM '.$this->DataTable.' WHERE item_id IN('.$fillers.') ORDER BY slotstart';
-	$data2 = $funcs->SafeGet($sql,$groups);
+	$data2 = $utils->SafeGet($sql,$groups);
 	if ($data2) {
 		$data = array_merge($data,$data2);
 		usort($data,'cmp_blockstarts');
@@ -175,7 +175,7 @@ if ($data) {
 	$tplvars['colnames'] = $titles;
 	$tplvars['colsorts'] = $titles;
 
-	$dfmt = $idata['dateformat']; //translation via Booker\Shared::IntervalFormat() not relevant here
+	$dfmt = $idata['dateformat']; //translation via Booker\Utils->IntervalFormat() not relevant here
 	$tfmt = $idata['timeformat'];
 	$bfmt = $dfmt.' '.$tfmt;
 	$rfmt = $this->Lang('showrange');
@@ -620,4 +620,4 @@ if ($pmod)
 EOS;
 $tplvars['jsincs'] = $jsincs;
 
-echo Booker\Shared::ProcessTemplate($this,'administer.tpl',$tplvars);
+echo Booker\Utils::ProcessTemplate($this,'administer.tpl',$tplvars);

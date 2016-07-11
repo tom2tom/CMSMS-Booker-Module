@@ -85,4 +85,4 @@ $tplvars['cancel'] = $this->CreateInputSubmit($id,'cancel',$this->Lang('cancel')
 $k = ($imbkg) ? 'help_importbooking':'help_importitem';
 $tplvars['help'] = $this->Lang($k);
 
-echo Booker\Shared::ProcessTemplate($this,'chooser.tpl',$tplvars);
+echo Booker\Utils::ProcessTemplate($this,'chooser.tpl',$tplvars);

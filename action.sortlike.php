@@ -99,7 +99,7 @@ if (!function_exists('array_like')) {
 'sort' => 'groups' or 'members'
 )
 */
-$funcs = new Booker\Shared();
+$funcs = new Booker\Utils();
 $item_id = (int)$params['item_id'];
 $havegroups = array($item_id);
 $type = $params['sort'];
@@ -182,6 +182,6 @@ if ($members) {
 		'entries' => $sorted,
 		'cellclass' => $type
 	);
-	echo Booker\Shared::ProcessTemplate($this,'membersbody.tpl',$tplvars);
+	echo Booker\Utils::ProcessTemplate($this,'membersbody.tpl',$tplvars);
 } else
 	echo 0;

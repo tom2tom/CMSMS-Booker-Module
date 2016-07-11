@@ -32,16 +32,16 @@ class Bookingops
 	see also - bkrrequestops::MsgParms
 	Construct arguments for MessageSender::Send()
 	@mod: reference to current Booker module object
-	@shares: reference to bkrshared object
+	@utils: reference to Utils-class object
 	@bdata: reference to array of booking data
 	@idata: reference to array of booked-item data
 	@mtype: MSG* enum
 	@custommsg: text entered by user, to replace square-bracketed content of the message 'template'
 	@extra: optional stuff for some types of message, default ''
 	*/
-	private function MsgParms(&$mod, &$shares, &$bdata, &$idata, $mtype, $custommsg, $extra='')
+	private function MsgParms(&$mod, &$utils, &$bdata, &$idata, $mtype, $custommsg, $extra='')
 	{
-		$overday = ($shares->GetInterval($mod,$idata['item_id'],'slot') >= 84600);
+		$overday = ($utils->GetInterval($mod,$idata['item_id'],'slot') >= 84600);
 		switch ($mtype) {
 		 case self::MSGCHANGED:
 			$ktitle = 'email_changed_title';
@@ -71,10 +71,10 @@ class Bookingops
 		$to = array($bdata['sender']=>$bdata['contact']);
 		$what = ($bdata['subgrpcount'] > 1) ?
 			sprintf('%d %s',$bdata['subgrpcount'],$idata['membersname']):
-			$shares->GetItemName($mod,$idata);
+			$utils->GetItemName($mod,$idata);
 		$dts = new \DateTime('1900-1-1',new \DateTimeZone('UTC'));
 		$dts->setTimestamp($bdata['slotstart']);
-		$on = $shares->IntervalFormat($mod,$dts,'D j M');
+		$on = $utils->IntervalFormat($mod,$dts,'D j M');
 
 		$textparms = array('prefix'=>$idata['smsprefix'],'pattern'=>$idata['smspattern']);
 		$mailparms = array('subject'=>$mod->Lang($ktitle));
@@ -116,11 +116,11 @@ class Bookingops
 			if ($ob) {
 				unset($ob);
 				$funcs = new \MessageSender();
-				$shares = new Shared();
+				$utils = new Utils();
 				$fails = array();
 				foreach ($rows as $bid=>$one) {
-					$idata = $shares->GetItemProperty($mod,$one['item_id'],'*');
-					list($from,$to,$textparms,$mailparms,$tweetparms) = self::MsgParms($mod,$shares,$one,$idata,self::MSGCHANGED,$custommsg);
+					$idata = $utils->GetItemProperty($mod,$one['item_id'],'*');
+					list($from,$to,$textparms,$mailparms,$tweetparms) = self::MsgParms($mod,$utils,$one,$idata,self::MSGCHANGED,$custommsg);
 					list($res,$msg) = $funcs->Send($from,$to,$textparms,$mailparms,$tweetparms);
 					if (!$res)
 						$fails[] = $msg;
@@ -173,19 +173,19 @@ class Bookingops
 			} else
 				$funcs = FALSE;
 
-			$shares = new Shared();
+			$utils = new Utils();
 			$sql = 'DELETE FROM '.$mod->DataTable.' WHERE bkg_id=?';
 
 			foreach ($rows as $bid=>$one) {
 				if ($funcs && $one['status'] !== \Booker::STATOK) {
 					//notify user
-					$idata = $shares->GetItemProperty($mod,$one['item_id'],'*');
-					list($from,$to,$textparms,$mailparms,$tweetparms) = self::MsgParms($mod,$shares,$one,$idata,self::MSGCANCELLED,$custommsg);
+					$idata = $utils->GetItemProperty($mod,$one['item_id'],'*');
+					list($from,$to,$textparms,$mailparms,$tweetparms) = self::MsgParms($mod,$utils,$one,$idata,self::MSGCANCELLED,$custommsg);
 					list($res,$msg) = $funcs->Send($from,$to,$textparms,$mailparms,$tweetparms);
 					if (!$res)
 						$fails[] = $msg;
 				}
-				if (!$shares->SafeExec($sql,array($bid))) //remove it
+				if (!$utils->SafeExec($sql,array($bid))) //remove it
 					return array(FALSE,$mod->Lang('err_data'));
 			}
 			if ($fails)
@@ -205,14 +205,14 @@ class Bookingops
 	*/
 	public function DeleteRepeat(&$mod, $bkg_id)
 	{
-		$shares = new Shared();
+		$utils = new Utils();
 		if (is_array($bkg_id)) {
 			$fillers = str_repeat('?,',count($bkg_id)-1);
 			$sql = 'SELECT * FROM '.$mod->RepeatTable.' WHERE bkg_id IN ('.$fillers.'?)';
-			$rows = $shares->SafeGet($sql,$bkg_id,'assoc');
+			$rows = $utils->SafeGet($sql,$bkg_id,'assoc');
 		} else {
 			$sql = 'SELECT * FROM '.$mod->RepeatTable.' WHERE bkg_id=?';
-			$rows = $shares->SafeGet($sql,array($bkg_id),'assoc');
+			$rows = $utils->SafeGet($sql,array($bkg_id),'assoc');
 		}
 
 		if ($rows) {
@@ -229,16 +229,16 @@ class Bookingops
 			$sql3 = 'UPDATE '.$mod->RepeatTable.' SET active=0 WHERE bkg_id=?';
 			$sql4 = 'DELETE FROM '.$mod->RepeatTable.' WHERE bkg_id=?';
 			foreach ($rows as $bid=>$one) {
-				$idata = $shares->GetItemProperty($mod,$one['item_id'],'timezone');
-				$st = $shares->GetZoneTime($idata['timezone']); //TODO cache this
+				$idata = $utils->GetItemProperty($mod,$one['item_id'],'timezone');
+				$st = $utils->GetZoneTime($idata['timezone']); //TODO cache this
 				$args = array($bid,$st);
 				//delete interpreted bookings from now foward
-				$count = $shares->SafeGet($sql2,$args,'one');
+				$count = $utils->SafeGet($sql2,$args,'one');
  				//if historic bookings exist, just flag stuff, don't delete yet
 				$qry = ($count > 0) ? $sql3 : $sql4;
 				$allsql = array($sql,$qry);
 				$allargs = array($args,array($bid));
-				if (!$shares->SafeExec($allsql,$allargs))
+				if (!$utils->SafeExec($allsql,$allargs))
 					return array(FALSE,$mod->Lang('err_data'));
 			}
 			return array(TRUE,'');
@@ -264,7 +264,7 @@ class Bookingops
 	*/
 	public function ConformBookingData(&$mod, &$params)
 	{
-		$shares = new Shared();
+		$utils = new Utils();
 		$old = FALSE;
 		$ret = TRUE;
 		if (!empty($params['conformcontact'])) {
@@ -274,7 +274,7 @@ class Bookingops
 			'UPDATE '.$mod->DataTable.' SET contact=? WHERE user=?',
 			'UPDATE '.$mod->RepeatTable.' SET contact=? WHERE user=?');
 			$args = array($params['contact'],$old);
-			if (!$shares->SafeExec($allsql,array($args,$args)))
+			if (!$utils->SafeExec($allsql,array($args,$args)))
 				$ret = FALSE;
 		}
 
@@ -286,7 +286,7 @@ class Bookingops
 			'UPDATE '.$mod->DataTable.' SET userclass=? WHERE user=?',
 			'UPDATE '.$mod->RepeatTable.' SET userclass=? WHERE user=?');
 			$args = array((int)$params['userclass'],$old);
-			if (!$shares->SafeExec($allsql,array($args,$args)))
+			if (!$utils->SafeExec($allsql,array($args,$args)))
 				$ret = FALSE;
 		}
 
@@ -298,7 +298,7 @@ class Bookingops
 			'UPDATE '.$mod->DataTable.' SET user=? WHERE user=?',
 			'UPDATE '.$mod->RepeatTable.' SET user=? WHERE user=?');
 			$args = array($params['user'],$old);
-			if (!$shares->SafeExec($allsql,array($args,$args)))
+			if (!$utils->SafeExec($allsql,array($args,$args)))
 				$ret = FALSE;
 		}
 		return $ret;
@@ -359,8 +359,8 @@ class Bookingops
 			$args[] = (int)$params['bkg_id'];
 			$sql = 'UPDATE '.$mod->DataTable.' SET '.$sql2.' WHERE bkg_id=?';
 		}
-		$shares = new Shared();
-		return $shares->SafeExec($sql,$args);
+		$utils = new Utils();
+		return $utils->SafeExec($sql,$args);
 	}
 
 	/**
@@ -385,11 +385,11 @@ EOS;
 			$fillers = str_repeat('?,',count($args)-1);
 			$sql .= ' IN('.$fillers.'?)';
 		} elseif ($item_id >= \Booker::MINGRPID) {
-			$shares = new Shared();
-			$args = $shares->GetGroupItems($mod,$item_id);
+			$utils = new Utils();
+			$args = $utils->GetGroupItems($mod,$item_id);
 			if (!$args)
 				return array();
-			unset($shares);
+			unset($utils);
 			$fillers = str_repeat('?,',count($args)-1);
 			$sql .= ' IN('.$fillers.'?)';
 		} else {
@@ -399,8 +399,8 @@ EOS;
 		$args[] = $endstamp;
 		$args[] = $startstamp;
 		$sql .= ' AND B.slotstart <= ? AND (B.slotstart+B.slotlen) >= ? ORDER BY I.name,B.slotstart';
-		$shares = new Shared();
-		return $shares->SafeGet($sql,$args);
+		$utils = new Utils();
+		return $utils->SafeGet($sql,$args);
 	}
 
 	/**
@@ -428,8 +428,8 @@ ORDER BY B.slotstart,I.name
 EOS;
 		$args[] = $endstamp;
 		$args[] = $startstamp;
-		$shares = new Shared();
-		return $shares->SafeGet($sql,$args);
+		$utils = new Utils();
+		return $utils->SafeGet($sql,$args);
 	}
 
 	/**
@@ -477,7 +477,7 @@ EOS;
 		}
 		$args[] = $endstamp;
 		$args[] = $startstamp;
-		$shares = new Shared();
-		return $shares->SafeGet($sql,$args);
+		$utils = new Utils();
+		return $utils->SafeGet($sql,$args);
 	}
 }

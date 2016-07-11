@@ -21,7 +21,7 @@ $is_group = ($rdata['item_id'] >= Booker::MINGRPID);
 $type = ($is_group) ? $this->Lang('group'):$this->Lang('item');
 $is_new = ($rdata['status'] == Booker::STATNEW); //ETC?
 $viewmode = ($params['mode'] == 'inspect');
-$funcs = new Booker\Shared();
+$funcs = new Booker\Utils();
 
 if (isset($params['submit']) || isset($params['apply'])) {
 	if (!($this->_CheckAccess('admin') || $this->_CheckAccess('book'))) exit;
@@ -93,7 +93,7 @@ if (!empty($idata['name'])) {
 
 $t = '';
 if (!empty($idata['description']))
-	$t .= Booker\Shared::ProcessTemplateFromData($this,$idata['description'],$tplvars);
+	$t .= Booker\Utils::ProcessTemplateFromData($this,$idata['description'],$tplvars);
 $tplvars['desc'] = $t;
 //in this context, ignore any image
 
@@ -503,4 +503,4 @@ if ($jsloads) {
 }
 $tplvars['jsfuncs'] = $jsfuncs;
 
-echo Booker\Shared::ProcessTemplate($this,'openrequest.tpl',$tplvars);
+echo Booker\Utils::ProcessTemplate($this,'openrequest.tpl',$tplvars);

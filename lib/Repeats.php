@@ -1,12 +1,10 @@
 <?php
-/*
-This file is part of CMS Made Simple module: Booker.
-Copyright(C) 2014-2015 Tom Phane <tpgww@onepost.net>
-Refer to licence and other details at the top of file Booker.module.php
-More info at http://dev.cmsmadesimple.org/projects/booker
-
-Class: Repeats
-*/
+#----------------------------------------------------------------------
+# Module: Booker - a resource booking module
+# Library file: Repeats
+#----------------------------------------------------------------------
+# See file Booker.module.php for full details of copyright, licence, etc.
+#----------------------------------------------------------------------
 namespace Booker;
 
 class Repeats extends RepeatLexer
@@ -87,8 +85,8 @@ no FALSE in $ends[]
 	*/
 /*	private function GetSlotHours($item_id)
 	{
-		$funcs = new Shared();
-		$len = $funcs->GetInterval($this->mod,$item_id,'slot');
+		$utils = new Utils();
+		$len = $utils->GetInterval($this->mod,$item_id,'slot');
 		return min($len/3600,24.0);
 	}
 */

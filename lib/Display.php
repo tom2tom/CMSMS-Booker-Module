@@ -10,14 +10,14 @@ namespace Booker;
 class Display
 {
 	private $mod; //Booker module-object reference
-	private $shares; //bkrshared object
+	private $utils; //bkrshared object
 	private $reps; //bkrrepeats object
 	private $rangefmt; //cache for translated string used in cell-tips
 
 	public function __construct(&$mod)
 	{
 		$this->mod = $mod;
-		$this->shares = new Shared();
+		$this->utils = new Utils();
 		$this->reps = new Repeats($mod);
 	}
 
@@ -124,7 +124,7 @@ class Display
 			$dtw->modify($base.' +7 days'); //segment limit
 			$fmt = $idata['dateformat'] ? $idata['dateformat'] : 'j M';
 			$shortday = (strpos($fmt,'D') !== FALSE);
-			$daynames = $this->shares->DayNames($this->mod,range(0,6),$shortday);
+			$daynames = $this->utils->DayNames($this->mod,range(0,6),$shortday);
 			break;
 		 case \Booker::SEGMTH: //month-per-column
 			$t = $dtstart->format('Y-m');
@@ -186,7 +186,7 @@ class Display
 		switch ($range) {
 		 case \Booker::RANGEDAY: //single-day-view
 			$t = $dtstart->format('w'); //0 (for Sunday) .. 6 (for Saturday)
-			$d = $this->shares->DayNames($this->mod,$t,$shortday);
+			$d = $this->utils->DayNames($this->mod,$t,$shortday);
 			if ($shortday)
 				$fmt = preg_replace('/(?<!\\\)D,?\w*/','',$fmt);
 			if ($longday)
@@ -194,7 +194,7 @@ class Display
 			$titles[] = $d.'<br />'.$dtstart->format($fmt);
 			break;
 		 case \Booker::RANGEWEEK: //week-view
-			$names = $this->shares->DayNames($this->mod,range(0,6),$shortday);
+			$names = $this->utils->DayNames($this->mod,range(0,6),$shortday);
 			if ($shortday)
 				$fmt = preg_replace('/(?<!\\\)D,?\w*/','',$fmt);
 			if ($longday)
@@ -215,7 +215,7 @@ class Display
 			$dt2 = clone $dtstart; //preserve $dtstart
 			if ($seglen == \Booker::SEGDAY) { //day-per-column
 				//show individual days
-				$names = $this->shares->DayNames($this->mod,range(0,6),TRUE); //for 30-ish cols, force short name
+				$names = $this->utils->DayNames($this->mod,range(0,6),TRUE); //for 30-ish cols, force short name
 				if ($shortday)
 					$fmt = preg_replace('/(?<!\\\)D,?\w*/','',$fmt);
 				if ($longday)
@@ -279,7 +279,7 @@ class Display
 			} else { //$seglen == \Booker::SEGMTH, month-per-column
 				$shortmonth = (strpos($fmt,'M') !== FALSE);
 				//$longmonth = (strpos($fmt,'F') !== FALSE);
-				$names = $this->shares->MonthNames($this->mod,range(1,12),$shortmonth);
+				$names = $this->utils->MonthNames($this->mod,range(1,12),$shortmonth);
 				$t = $dt2->format('n'); //1 to 12
 				$t1 = $t;
 				do {
@@ -460,7 +460,7 @@ class Display
 //TODO	$one->bid = (int)$row['bkg_id'];
 			} else { //single-user
 				$dtw->setTimestamp($bslots[0][0]);
-				$d = $this->shares->IntervalFormat($this->mod,$dtw,$idata['dateformat']);
+				$d = $this->utils->IntervalFormat($this->mod,$dtw,$idata['dateformat']);
 				$fmt = $idata['timeformat'];
 				if (!$fmt)
 					$fmt = 'G:i';
@@ -508,8 +508,8 @@ class Display
 	*/
 	private function TableFill(&$idata, $start, $range)
 	{
-		$slotlen = $this->shares->GetInterval($this->mod,$idata['item_id'],'slot');
-		list($dt,$ndt) = $this->shares->RangeStamps($start,$range);
+		$slotlen = $this->utils->GetInterval($this->mod,$idata['item_id'],'slot');
+		list($dt,$ndt) = $this->utils->RangeStamps($start,$range);
 		switch ($range) {
 		 case \Booker::RANGEDAY:
 		 case \Booker::RANGEWEEK:
@@ -547,7 +547,7 @@ class Display
 		$item_id = (int)$idata['item_id'];
 		$is_group = ($item_id >= \Booker::MINGRPID);
 		if ($is_group)
-			$allresource = $this->shares->GetGroupItems($this->mod,$item_id); //no sub-group(s)
+			$allresource = $this->utils->GetGroupItems($this->mod,$item_id); //no sub-group(s)
 		else
 			$allresource = array($item_id);
 
@@ -676,12 +676,12 @@ class Display
 	*/
 	private function ListFill(&$idata, $start, $range)
 	{
-		list($dt,$ndt) = $this->shares->RangeStamps($start,$range);
+		list($dt,$ndt) = $this->utils->RangeStamps($start,$range);
 		$dtw = clone $dt;
 		$item_id = (int)$idata['item_id'];
 		$is_group = ($item_id >= \Booker::MINGRPID);
 		if ($is_group)
-			$allresource = $this->shares->GetGroupItems($this->mod,$item_id);
+			$allresource = $this->utils->GetGroupItems($this->mod,$item_id);
 		else
 			$allresource = array($item_id);
 		//update respective last-processed-repeats dates, if relevant

@@ -54,7 +54,7 @@ if (isset($params['item_id'])) {
 }
 
 $tplvars = array();
-$funcs = new Booker\Shared();
+$funcs = new Booker\Utils();
 $idata = $funcs->GetItemProperty($this,$item_id,'*');
 $tzone = new DateTimeZone('UTC');
 
@@ -233,4 +233,4 @@ if ($jsloads) {
 $tplvars['jsfuncs'] = $jsfuncs;
 $tplvars['jsincs'] = $jsincs;
 
-echo Booker\Shared::ProcessTemplate($this,'find.tpl',$tplvars);
+echo Booker\Utils::ProcessTemplate($this,'find.tpl',$tplvars);

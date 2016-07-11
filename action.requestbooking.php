@@ -37,7 +37,7 @@ if (!empty($params['nosend'])) { //user cancelled
 
 $item_id = (int)$params['item_id'];
 $is_group = ($item_id >= Booker::MINGRPID);
-$funcs = new Booker\Shared();
+$funcs = new Booker\Utils();
 
 if (isset($params['slotid'])) {
 	//for a group, here we get some useful representative data
@@ -87,8 +87,8 @@ if (!empty($params['send'])) {
 		if ($save) {
 $this->Crash();
 /*
-			if (bkrverify::VerifyAdmin??($this,$shares,$params,$item_id,$is_new))
-				$ares = bkrbookingops::SaveBkg($this,$params,$is_new)
+			if (Booker\Verify::VerifyAdmin??($this,$utils,$params,$item_id,$is_new))
+				$ares = Booker\Bookingops::SaveBkg($this,$params,$is_new)
 */
 		} else {
 			//localise 'now'
@@ -211,7 +211,7 @@ $jsincs = array();
 
 $tplvars['title'] = $funcs->GetItemName($this,$idata);
 if (!empty($idata['description'])) {
-	$tplvars['desc'] = Booker\Shared::ProcessTemplateFromData($this,$idata['description'],$tplvars);
+	$tplvars['desc'] = Booker\Utils::ProcessTemplateFromData($this,$idata['description'],$tplvars);
 }
 $urls = $funcs->GetImageURLs($this,$idata['image'],$idata['name']);
 if ($urls)
@@ -303,7 +303,7 @@ if ($past) {
 	if (isset($params['slotid'])) {
 		if ($is_group) {
 			$tplvars['nowbooked'] = $nowbooked;
-			$d = $this->Lang('currentdesc3').Booker\Shared::ProcessTemplate($this,'currentbookings.tpl',$tplvars);
+			$d = $this->Lang('currentdesc3').Booker\Utils::ProcessTemplate($this,'currentbookings.tpl',$tplvars);
 		} elseif ($choosend)
 			$d = $this->Lang('currentdesc2',$bdata['user'],$t,$t2);
 		else
@@ -439,4 +439,4 @@ if ($jsloads) {
 $tplvars['jsfuncs'] = $jsfuncs;
 $tplvars['jsincs'] = $jsincs;
 
-echo Booker\Shared::ProcessTemplate($this,'requestbooking.tpl',$tplvars);
+echo Booker\Utils::ProcessTemplate($this,'requestbooking.tpl',$tplvars);

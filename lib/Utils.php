@@ -45,7 +45,7 @@ class bkrfee_cmp
 	}
 }
 
-class Shared
+class Utils
 {
 	/**
 	ProcessTemplate:
@@ -205,49 +205,6 @@ class Shared
 		return FALSE;
 	}
 
-	/* *
-	GetGroups(&$mod, $id=0, $returnid=0, $full=FALSE, $anyowner=TRUE)
-
-	Create associative array of group-data, sorted by field 'likeorder',
-	each array member's key is the group id, value is an object
-
-	@id used in link, when $full is TRUE
-	@returnid ditto
-	@full FALSE	return group_id and name only
-	@full TRUE return all table 'raw' data for the group, plus a link TODO describe
-	@anyowner TRUE return all groups
-	@anyowner FALSE return groups whose owner is 0 or matches the current user
-	*/
-/*	public function GetGroups(&$mod,$id=0, $returnid=0, $full=FALSE, $anyowner=TRUE)
-	{
-		$grparray = array();
-
-		$db = $mod->dbHandle;
-		if ($anyowner) {
-			$sql = "SELECT group_id,name,likeorder FROM $mod->GroupTable ORDER BY likeorder ASC";
-			$rows = $db->GetAssoc($sql);
-		} else {
-			$sql = "SELECT group_id,name,likeorder FROM $mod->GroupTable WHERE owner IN (0,?) ORDER BY likeorder ASC";
-			$uid = get_userid(FALSE);
-			$rows = $db->GetAssoc($sql,array($uid));
-		}
-
-		if ($rows) {
-			foreach ($rows as $cid=>$row) {
-				$one = new \stdClass();
-				$one->group_id = $cid;
-				$one->name = $row['name'];
-				if ($full) {
-					$one->order = $row['likeorder'];
-					$one->group_link = self::GetLink($mod,$id,$returnid,$one->name,$one->name);
-				}
-				$grparray[$cid] = $one;
-			}
-		}
-		return $grparray;
-	}
-*/
-
 	/**
 	GetItemFamily:
 	Get array of 'parents' and 'siblings' of @item_id e.g. for populating a
@@ -380,6 +337,49 @@ class Shared
 		return $ids;
 	}
 
+	/* *
+	GetGroups(&$mod, $id=0, $returnid=0, $full=FALSE, $anyowner=TRUE)
+
+	Create associative array of group-data, sorted by field 'likeorder',
+	each array member's key is the group id, value is an object
+
+	@id used in link, when $full is TRUE
+	@returnid ditto
+	@full FALSE	return group_id and name only
+	@full TRUE return all table 'raw' data for the group, plus a link TODO describe
+	@anyowner TRUE return all groups
+	@anyowner FALSE return groups whose owner is 0 or matches the current user
+	*/
+/*	public function GetGroups(&$mod,$id=0, $returnid=0, $full=FALSE, $anyowner=TRUE)
+	{
+		$grparray = array();
+
+		$db = $mod->dbHandle;
+		if ($anyowner) {
+			$sql = "SELECT group_id,name,likeorder FROM $mod->GroupTable ORDER BY likeorder ASC";
+			$rows = $db->GetAssoc($sql);
+		} else {
+			$sql = "SELECT group_id,name,likeorder FROM $mod->GroupTable WHERE owner IN (0,?) ORDER BY likeorder ASC";
+			$uid = get_userid(FALSE);
+			$rows = $db->GetAssoc($sql,array($uid));
+		}
+
+		if ($rows) {
+			foreach ($rows as $cid=>$row) {
+				$one = new \stdClass();
+				$one->group_id = $cid;
+				$one->name = $row['name'];
+				if ($full) {
+					$one->order = $row['likeorder'];
+					$one->group_link = self::GetLink($mod,$id,$returnid,$one->name,$one->name);
+				}
+				$grparray[$cid] = $one;
+			}
+		}
+		return $grparray;
+	}
+*/
+	
 	/**
 	OrderGroups:
 	Re-sequence likeorder and proximity fields in GroupTable
@@ -637,6 +637,31 @@ class Shared
 	}
 
 	/**
+	Get name for an item, with fallback
+	*/
+	public function GetItemName(&$mod, &$idata)
+	{
+		if (!empty($idata['name']))
+			return $idata['name'];
+		else {
+			$type = ($idata['item_id'] >= \Booker::MINGRPID) ? $mod->Lang('group'):$mod->Lang('item');
+			return $mod->Lang('title_noname',$type,$idata['item_id']);
+		}
+	}
+
+	/**
+	Get name for an item_id, with fallback
+	*/
+	public function GetItemNameForID(&$mod, $item_id)
+	{
+		$idata = self::GetItemProperty($mod,$item_id,'name',FALSE,FALSE);
+		if (!empty($idata['name']))
+			return $idata['name'];
+		$idata = array('name'=>FALSE,'item_id'=>$item_id);
+		return self::GetItemName($mod,$idata);
+	}
+
+	/**
 	GetFeeSignature:
 	Get identifier usable for cross-resource fee-comparisons
 	@row: array of fee-data including members: slottype,slotcount,fee,feecondition
@@ -730,91 +755,6 @@ class Shared
 	{
 		$fee = self::GetItemFee($mod,$item_id,$search,$conditional);
 		return ($fee !== FALSE && $fee > 0);
-	}
-
-	/**
-	Get name for an item, with fallback
-	*/
-	public function GetItemName(&$mod, &$idata)
-	{
-		if (!empty($idata['name']))
-			return $idata['name'];
-		else {
-			$type = ($idata['item_id'] >= \Booker::MINGRPID) ? $mod->Lang('group'):$mod->Lang('item');
-			return $mod->Lang('title_noname',$type,$idata['item_id']);
-		}
-	}
-
-	/**
-	Get name for an item_id, with fallback
-	*/
-	public function GetItemNameForID(&$mod, $item_id)
-	{
-		$idata = self::GetItemProperty($mod,$item_id,'name',FALSE,FALSE);
-		if (!empty($idata['name']))
-			return $idata['name'];
-		$idata = array('name'=>FALSE,'item_id'=>$item_id);
-		return self::GetItemName($mod,$idata);
-	}
-
-/*	public function GetBookingItemName(&$mod, $bkg_id)
-	{
-		$sql =<<<EOS
-	SELECT I.item_id,I.name FROM {$mod->ItemTable} I
-	JOIN {$mod->DataTable} B ON I.item_id = B.item_id
-	WHERE I.active>0 AND B.bkg_id=?
-	EOS;
-		$idata = self::SafeGet($sql,array($bkg_id),'row');
-		if ($idata)
-			return self::GetItemName($mod,$idata);
-		return FALSE;
-	}
-*/
-	/**
-	GetInterval:
-	Determine an interval (in seconds) to use. (Calculated per server-time)
-	@mod: reference to Booker module object
-	@item_id: resource or group identifier
-	@prefix: first part of paired property/column names i.e. 'slot','lead,'keep'
-	@default: optional value to return if all else fails, default=3600
-	Returns: interval in seconds
-	*/
-	public function GetInterval(&$mod, $item_id ,$prefix, $default=3600)
-	{
-		$idata = self::GetItemProperty($mod,$item_id,array($prefix.'type',$prefix.'count'),TRUE);
-		if ($idata && isset($idata[$prefix.'type']) && !is_null($idata[$prefix.'type'])
-		 && isset($idata[$prefix.'count']) && !is_null($idata[$prefix.'count']))
-		{
-			$c = (int)$idata[$prefix.'count'];
-			if ($c < 1)
-				$c = 1;
-			$t = (int)$idata[$prefix.'type']; //enum 0..5 consistent with TimeIntervals()
-			switch ($t) {
-			 case 0:
-				if ($c > 60)
-					$c = ceil($c/15) * 15; //round largish minutes up to qtr-hrs
-				$c *= 60;
-				break;
-			 case 1:
-				$c *= 3600;
-				break;
-			 case 2:
-				$v = 'day';
-			 case 3:
-				if ($t == 3) $v = 'week';
-			 case 4:
-				if ($t == 4) $v = 'month';
-			 case 5:
-				if ($t == 5) $v = 'year';
-				if ($c > 1) $v .= 's';
-				$s = time();
-				$e = strtotime('+'.$c.' '.$v,$s); //not localised, but near enough in this context
-				$c = $e - $s;
-				break;
-			}
-			return $c;
-		}
-		return $default;
 	}
 
 	/**
@@ -1026,7 +966,7 @@ class Shared
 		return FALSE;
 	}
 
-	/*
+	/**
 	GetImageURLs:
 	Get array of URLs of image files represented by @imageparam
 
@@ -1169,7 +1109,7 @@ class Shared
 		return $offt + $stamp;
 	}
 
-	/*
+	/**
 	GetTimeZones(&$mod)
 	Requires: PHP >= 5.2
 	Generate an array looking like:
@@ -1263,6 +1203,66 @@ class Shared
 			break;
 		}
 		return array($sdt,$ndt);
+	}
+
+/*	public function GetBookingItemName(&$mod, $bkg_id)
+	{
+		$sql =<<<EOS
+	SELECT I.item_id,I.name FROM {$mod->ItemTable} I
+	JOIN {$mod->DataTable} B ON I.item_id = B.item_id
+	WHERE I.active>0 AND B.bkg_id=?
+	EOS;
+		$idata = self::SafeGet($sql,array($bkg_id),'row');
+		if ($idata)
+			return self::GetItemName($mod,$idata);
+		return FALSE;
+	}
+*/
+	/**
+	GetInterval:
+	Determine an interval (in seconds) to use. (Calculated per server-time)
+	@mod: reference to Booker module object
+	@item_id: resource or group identifier
+	@prefix: first part of paired property/column names i.e. 'slot','lead,'keep'
+	@default: optional value to return if all else fails, default=3600
+	Returns: interval in seconds
+	*/
+	public function GetInterval(&$mod, $item_id ,$prefix, $default=3600)
+	{
+		$idata = self::GetItemProperty($mod,$item_id,array($prefix.'type',$prefix.'count'),TRUE);
+		if ($idata && isset($idata[$prefix.'type']) && !is_null($idata[$prefix.'type'])
+		 && isset($idata[$prefix.'count']) && !is_null($idata[$prefix.'count']))
+		{
+			$c = (int)$idata[$prefix.'count'];
+			if ($c < 1)
+				$c = 1;
+			$t = (int)$idata[$prefix.'type']; //enum 0..5 consistent with TimeIntervals()
+			switch ($t) {
+			 case 0:
+				if ($c > 60)
+					$c = ceil($c/15) * 15; //round largish minutes up to qtr-hrs
+				$c *= 60;
+				break;
+			 case 1:
+				$c *= 3600;
+				break;
+			 case 2:
+				$v = 'day';
+			 case 3:
+				if ($t == 3) $v = 'week';
+			 case 4:
+				if ($t == 4) $v = 'month';
+			 case 5:
+				if ($t == 5) $v = 'year';
+				if ($c > 1) $v .= 's';
+				$s = time();
+				$e = strtotime('+'.$c.' '.$v,$s); //not localised, but near enough in this context
+				$c = $e - $s;
+				break;
+			}
+			return $c;
+		}
+		return $default;
 	}
 
 	/**

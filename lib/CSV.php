@@ -20,7 +20,7 @@ class CSV
 	*/
 	public function ExportName(&$mod, $item_id=FALSE, $bkg_id=FALSE)
 	{
-		$funcs = new Shared();
+		$utils = new Utils();
 		$multi = FALSE;
 		if ($item_id) {
 			if (is_array($item_id)) {
@@ -30,9 +30,9 @@ class CSV
 		} else {
 			if (is_array($bkg_id))
 				$bkg_id = reset($bkg_id);
-			$item_id = $funcs->GetBookingItemID($mod,$bkg_id);
+			$item_id = $utils->GetBookingItemID($mod,$bkg_id);
 		}
-		$iname = $funcs->GetItemNameForID($mod,$item_id);
+		$iname = $utils->GetItemNameForID($mod,$item_id);
 		$sname = preg_replace('/\W/','_',$iname);
 		if ($multi)
 			$sname .= '_plus';
@@ -59,15 +59,15 @@ class CSV
 	*/
 	private function BookingCSV(&$mod, $item_id=FALSE, $bkg_id=FALSE, $fh=FALSE, $sep=',')
 	{
-		$funcs = new Shared();
+		$utils = new Utils();
 		if ($item_id) {
 			if (is_array($item_id)) {
 				$fillers = str_repeat('?,',count($item_id)-1);
 				$sql = 'SELECT bkg_id FROM '.$mod->DataTable.' WHERE item_id IN ('.$fillers.'?) ORDER BY item_id,slotstart';
-				$all = $funcs->SafeGet($sql,$item_id,'col');
+				$all = $utils->SafeGet($sql,$item_id,'col');
 			} else {
 				$sql = 'SELECT bkg_id FROM '.$mod->DataTable.' WHERE item_id=? ORDER BY slotstart';
-				$all = $funcs->SafeGet($sql,array($item_id),'col');
+				$all = $utils->SafeGet($sql,array($item_id),'col');
 			}
 		} elseif ($bkg_id) {
 			if (is_array($bkg_id))
@@ -127,12 +127,12 @@ class CSV
 			$sql = 'SELECT * FROM '.$mod->DataTable.' WHERE bkg_id=?';
 			//data lines(s)
 			foreach ($all as $one) {
-				$data = $funcs->SafeGet($sql,array($one),'row');
+				$data = $utils->SafeGet($sql,array($one),'row');
 				foreach ($translates as &$one) {
 					$fv = $data[$one];
 					switch ($one) {
 					 case 'item_id':
-					  $fv = $funcs->GetItemNameForID($mod,$fv);
+					  $fv = $utils->GetItemNameForID($mod,$fv);
 						if ($strip)
 							$fv = strip_tags($fv);
 						$fv = str_replace($sep,$r,$fv);
@@ -213,8 +213,8 @@ class CSV
 		$fname = self::ExportName($mod,$item_id,$bkg_id);
 
 		if ($mod->GetPreference('pref_exportfile')) {
-			$funcs = new Shared();
-			$updir = $funcs->GetUploadsPath($mod);
+			$utils = new Utils();
+			$updir = $utils->GetUploadsPath($mod);
 			if ($updir) {
 				$filepath = $updir.DIRECTORY_SEPARATOR.$fname;
 				$fh = fopen($filepath,'w');
@@ -222,7 +222,7 @@ class CSV
 					$success = self::BookingCSV($mod,$item_id,$bkg_id,$fh,$sep);
 					fclose($fh);
 					if ($success) {
-						$url = $funcs->GetUploadURL($mod,$fname,FALSE); //must succeed, in this context
+						$url = $utils->GetUploadURL($mod,$fname,FALSE); //must succeed, in this context
 						@ob_clean();
 						@ob_clean();
 						header('Location: '.$url);
@@ -363,7 +363,7 @@ class CSV
 					return array(FALSE,'err_file');
 				}
 			}
-			$funcs = new Shared();
+			$utils = new Utils();
 			$tzone = new \DateTimeZone('UTC');
 			$item_lens = array();
 			$skip = FALSE;
@@ -381,7 +381,7 @@ class CSV
 						if ($one) {
 							switch ($k) {
 							 case 'item_id':
-								$t = $funcs->GetItemID($mod,$one);
+								$t = $utils->GetItemID($mod,$one);
 								if ($t === FALSE) {
 									return array(FALSE,'err_file');
 								}
@@ -390,7 +390,7 @@ class CSV
 								$data[$k] = $t;
 								$save = TRUE;
 								if (!array_key_exists($t,$item_lens)) {
-									$item_lens[$t] = $funcs->GetInterval($mod,$t,'slot');
+									$item_lens[$t] = $utils->GetInterval($mod,$t,'slot');
 									if (!$item_lens[$t])
 										return array(FALSE,'err_system');
 								}
@@ -457,12 +457,12 @@ class CSV
 						if (!$dte)
 							$dte = clone $dts;
 						$slen = $item_lens[$data['item_id']];
-						$funcs->TrimRange($dts,$dte,$slen);
+						$utils->TrimRange($dts,$dte,$slen);
 						$data['slotstart'] = $dts->getTimestamp();
 						$data['slotlen'] = $dte->getTimestamp() - $data['slotstart'];
 						$funcs2 = new Schedule();
 						$save = !$funcs2->ItemBooked($mod,$data['item_id'],$dts,$dte)
-							&& $funcs2->ItemAvailable($mod,$funcs,$data['item_id'],$dts,$dte);
+							&& $funcs2->ItemAvailable($mod,$utils,$data['item_id'],$dts,$dte);
 					} else {
 						return array(FALSE,'err_badstart');
 					}
@@ -473,7 +473,7 @@ class CSV
 						$args = array_values($data);
 						$bid = $db->GenID($mod->DataTable.'_seq');
 						array_unshift($args,$bid);
-						if ($funcs->SafeExec($sql,$args))
+						if ($utils->SafeExec($sql,$args))
 							$icount++;
 						else {
 							return array(FALSE,'err_system');
@@ -585,8 +585,8 @@ class CSV
 				}
 			}
 
-			$funcs = new Shared();
-			$periods = $funcs->TimeIntervals();
+			$utils = new Utils();
+			$periods = $utils->TimeIntervals();
 			$icount = 0;
 			$db = $mod->dbHandle;
 			$sqlg = 'INSERT INTO '.$mod->GroupTable.' (child,parent,likeorder,proximity) VALUES (?,?,?,?)';
@@ -701,7 +701,7 @@ class CSV
 						if ($in_grps) {
 							foreach ($in_grps as $i=>$one) {
 								//find id of this name
-								$t = $funcs->GetItemID($mod,$one);
+								$t = $utils->GetItemID($mod,$one);
 								if ($t !== FALSE) {
 									//setup groups table
 									$db->Execute($sqlg,array($item_id,$t,-1,$i+1)); //likeorder unknowable in this context, proximity assumes blank canvas!

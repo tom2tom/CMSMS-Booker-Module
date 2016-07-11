@@ -18,11 +18,11 @@ class Verify
 	@is_new: boolean whether processing a new booking
 	Returns: 2-member array, 1st is T/F indicating success, 2nd '' or array of error messages
 	*/
-	public function VerifyAdmin(&$mod, &$shares, &$params, $item_id, $is_new)
+	public function VerifyAdmin(&$mod, &$utils, &$params, $item_id, $is_new)
 	{
 		$msg = array();
 		$tz = new \DateTimeZone('UTC');
-		$slen =  $shares->GetInterval($mod,$item_id,'slot');
+		$slen =  $utils->GetInterval($mod,$item_id,'slot');
 /*supplied $params keys
 		'subgrpcount'? 'when' 'until'? 'user' 'conformuser' 'userclass'
 		'conformstyle' 'contact' 'conformcontact' 'paid'
@@ -64,20 +64,20 @@ TODO support 'past' data without both date/time $params[]
 			if ($dte > $dts) {
 				$funcs = new Schedule();
 				//rationalise specified times relative to slot length
-				$shares->TrimRange($dts,$dte,$slen);
+				$utils->TrimRange($dts,$dte,$slen);
 				$params['when'] = $dts->getTimestamp();
 				$params['until'] = $dte->getTimestamp();
 				if ($is_new) {
 					if ($funcs->ItemBooked($mod,$item_id,$dts,$dte)) {
 						$msg[] = $mod->Lang('err_dup');
-					} elseif (!$funcs->ItemAvailable($mod,$shares,$item_id,$dts,$dte)) {
+					} elseif (!$funcs->ItemAvailable($mod,$utils,$item_id,$dts,$dte)) {
 						$msg[] = $mod->Lang('err_na');
 					}
 				} else { //update
 					$excl = (isset($params['bkg_id'])) ? $params['bkg_id'] : FALSE;
 					if ($funcs->ItemBooked($mod,$item_id,$dts,$dte,$excl)) {
 						$msg[] = $mod->Lang('err_dup');
-					} elseif (!$funcs->ItemAvailable($mod,$shares,$item_id,$dts,$dte)) {
+					} elseif (!$funcs->ItemAvailable($mod,$utils,$item_id,$dts,$dte)) {
 						$msg[] = $mod->Lang('err_na');
 					}
 				}
@@ -112,7 +112,7 @@ TODO support 'past' data without both date/time $params[]
 	@is_new: boolean whether processing a new booking-request
 	Returns: 2-member array, 1st is T/F indicating success, 2nd '' or array of error messages
 	*/
-	public function VerifyPublic(&$mod, &$shares, &$params, $is_new)
+	public function VerifyPublic(&$mod, &$utils, &$params, $is_new)
 	{
 		$msg = array();
 		$tz = new \DateTimeZone('UTC');
@@ -147,7 +147,7 @@ TODO support 'past' data without both date/time $params[]
 			} elseif (isset($dts)) {
 				//set default
 				$dte = clone $dts;
-				$slen = $shares->GetInterval($mod,$item_id,'slot');
+				$slen = $utils->GetInterval($mod,$item_id,'slot');
 				$dte->modify('+'.$slen.' seconds');
 			} else
 				$msg[] = $mod->Lang('err_badend');
@@ -156,8 +156,8 @@ TODO support 'past' data without both date/time $params[]
 		if (isset($dts) && isset($dte)) {
 			$timely = ($dte > $dts);
 			if ($timely && isset($params['item_id'])) {
-				$idata = $shares->GetItemProperty($mod,$params['item_id'],'timezone');
-				$t = $shares->GetZoneTime($idata['timezone']);
+				$idata = $utils->GetItemProperty($mod,$params['item_id'],'timezone');
+				$t = $utils->GetZoneTime($idata['timezone']);
 				$dtn = clone $dts;
 				$dtn->setTimestamp($t);
 				$timely = ($dts >= $dtn);
@@ -169,13 +169,13 @@ TODO support 'past' data without both date/time $params[]
 				if ($is_new) {
 					if ($funcs->ItemBooked($mod,$item_id,$dts,$dte)) {
 						$msg[] = $mod->Lang('err_dup');
-					} elseif (!$funcs->ItemAvailable($mod,$shares,$item_id,$dts,$dte)) {
+					} elseif (!$funcs->ItemAvailable($mod,$utils,$item_id,$dts,$dte)) {
 						$msg[] = $mod->Lang('err_na');
 					}
 				} else { //update
 					if ($funcs->ItemBooked($mod,$item_id,$dts,$dte,$params['slotid'])) {
 						$msg[] = $mod->Lang('err_dup');
-					} elseif (!$funcs->ItemAvailable($mod,$shares,$item_id,$dts,$dte)) {
+					} elseif (!$funcs->ItemAvailable($mod,$utils,$item_id,$dts,$dte)) {
 						$msg[] = $mod->Lang('err_na');
 					}
 				}

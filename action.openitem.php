@@ -56,7 +56,7 @@ if (!function_exists('groupstable')) {
 	$tplvars['sort'] = $dosort && ($c > 1);
 	$tplvars['entries'] = $rows;
 
-	return Booker\Shared::ProcessTemplate($mod,'groupsinput.tpl',$tplvars);
+	return Booker\Utils::ProcessTemplate($mod,'groupsinput.tpl',$tplvars);
  }
 }
 
@@ -141,7 +141,7 @@ if (!function_exists('groupsupdate')) {
 	}
 
 	if ($current || $new) {
-		$funcs = new Booker\Shared();
+		$funcs = new Booker\Utils();
 		$funcs->OrderGroups($mod,$db);
 	}
  }
@@ -376,7 +376,7 @@ if (isset($params['cancel']) || $act == 'submit') {
 }
 
 // get data for the item with the passed-in id, or an empty one if that id not found
-$funcs = new Booker\Shared();
+$funcs = new Booker\Utils();
 //$item = $funcs->GetItem($this,$item_id,FALSE);
 $sql = 'SELECT * FROM '.$this->ItemTable.' WHERE item_id=?';
 $row = $db->GetRow($sql,array($item_id));
@@ -609,7 +609,7 @@ if ($sel) {
 	}
 	unset($one);
 	$tplvars['entries'] = $fees;
-	$i = Booker\Shared::ProcessTemplate($this,'brieffees.tpl',$tplvars);
+	$i = Booker\Utils::ProcessTemplate($this,'brieffees.tpl',$tplvars);
 	$t = $this->Lang('edit');
 	$h = $this->Lang('help_fee');
 } else {
@@ -1278,4 +1278,4 @@ if ($jsloads) {
 $tplvars['jsfuncs'] = $jsfuncs;
 $tplvars['jsincs'] = $jsincs;
 
-echo Booker\Shared::ProcessTemplate($this,'openitem.tpl',$tplvars);
+echo Booker\Utils::ProcessTemplate($this,'openitem.tpl',$tplvars);

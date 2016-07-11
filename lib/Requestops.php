@@ -40,16 +40,16 @@ class Requestops
 	@extra: optional stuff for some types of message, default ''
 	Returns: TODO title & bodies for MessageSender::Send
 	*/
-/*	public function SetupMessage(&$mod, &$shares, &$params, $mtype, $custommsg, $extra='')
+/*	public function SetupMessage(&$mod, &$utils, &$params, $mtype, $custommsg, $extra='')
 	{
 		//$mtype = $TODO; //what type of message
 		$idata = $TODO;
 		$what = (isset($params['subgrpcount'])) ?
 			sprintf('%d %s',$params['subgrpcount'],$idata['membersname']):
-			$shares->GetItemName($mod,$idata);
+			$utils->GetItemName($mod,$idata);
 		$dt = $TODO;
 		$dt->setTimestamp($params['slotstart']);
-		$on = $shares->IntervalFormat($mod,$dt,'D j M');
+		$on = $utils->IntervalFormat($mod,$dt,'D j M');
 		if ($overday) {
 			switch ($mtype) {
 			 default:
@@ -84,9 +84,9 @@ class Requestops
 	@custommsg: text entered by user, to replace square-bracketed content of the message 'template'
 	@extra: optional stuff for some types of message, default ''
 	*/
-	private function MsgParms(&$mod, &$shares, &$bdata, &$idata, $mtype, $custommsg, $extra='')
+	private function MsgParms(&$mod, &$utils, &$bdata, &$idata, $mtype, $custommsg, $extra='')
 	{
-		$overday = ($shares->GetInterval($mod,$idata['item_id'],'slot') >= 84600);
+		$overday = ($utils->GetInterval($mod,$idata['item_id'],'slot') >= 84600);
 		switch ($mtype) {
 		 case self::MSGAPPROVE:
 			$ktitle = 'email_approve_title';
@@ -146,10 +146,10 @@ class Requestops
 		$to = array($bdata['sender']=>$bdata['contact']);
 		$what = ($bdata['subgrpcount'] > 1) ?
 			sprintf('%d %s',$bdata['subgrpcount'],$idata['membersname']):
-			$shares->GetItemName($mod,$idata);
+			$utils->GetItemName($mod,$idata);
 		$dts = new \DateTime('1900-1-1',new \DateTimeZone('UTC'));
 		$dts->setTimestamp($bdata['slotstart']);
-		$on = $shares->IntervalFormat($mod,$dts,'D j M');
+		$on = $utils->IntervalFormat($mod,$dts,'D j M');
 
 		$textparms = array('prefix'=>$idata['smsprefix'],'pattern'=>$idata['smspattern']);
 		$mailparms = array('subject'=>$mod->Lang($ktitle));
@@ -189,7 +189,7 @@ class Requestops
 		$rows = self::GetReqData($mod,$req_id);
 		if ($rows) {
 			$db = $mod->dbHandle;
-			$shares = new Shared();
+			$utils = new Utils();
 			$sched = new Schedule();
 			//cluster the requests by id, for specific processing
 			krsort($rows,SORT_NUMERIC); //reverse, so groups-first
@@ -216,9 +216,9 @@ class Requestops
 					if ($id != $m) {
 						if ($collect) {
 							if ($m < \Booker::MINGRPID)
-								$sched->ScheduleResource($mod,$shares,$m,$collect);
+								$sched->ScheduleResource($mod,$utils,$m,$collect);
 							else
-								$sched->ScheduleGroup($mod,$shares,$m,$collect);
+								$sched->ScheduleGroup($mod,$utils,$m,$collect);
 							$collect = array();
 						}
 						$m = $id;
@@ -230,9 +230,9 @@ class Requestops
 			unset($one);
 			if ($collect) {
 				if ($m < \Booker::MINGRPID)
-					$sched->ScheduleResource($mod,$shares,$m,$collect);
+					$sched->ScheduleResource($mod,$utils,$m,$collect);
 				else
-					$sched->ScheduleGroup($mod,$shares,$m,$collect);
+					$sched->ScheduleGroup($mod,$utils,$m,$collect);
 			}
 			//record updated status
 			$sql = 'UPDATE '.$mod->RequestTable.' SET status=? WHERE req_id=?';
@@ -253,8 +253,8 @@ class Requestops
 				foreach ($rows as $id=>&$one) {
 					switch ($one['status']) {
 					 case \Booker::STATNONE:
-						$idata = $shares->GetItemProperty($mod,$one['item_id'],'*');
-						list($from,$to,$textparms,$mailparms,$tweetparms) = self::MsgParms($mod,$shares,$one,$idata,self::MSGAPPROVE,$custommsg);
+						$idata = $utils->GetItemProperty($mod,$one['item_id'],'*');
+						list($from,$to,$textparms,$mailparms,$tweetparms) = self::MsgParms($mod,$utils,$one,$idata,self::MSGAPPROVE,$custommsg);
 						list($res,$msg) = $funcs->Send($from,$to,$textparms,$mailparms,$tweetparms);
 						if (!$res)
 							$fails[] = $msg;
@@ -306,7 +306,7 @@ class Requestops
 			if ($ob) {
 				unset($ob);
 				$funcs = new \MessageSender();
-				$shares = new Shared();
+				$utils = new Utils();
 				$fails = array();
 			} else
 				$funcs = FALSE;
@@ -315,8 +315,8 @@ class Requestops
 			foreach ($rows as $req_id=>$one) {
 				if ($funcs) {
 					//notify lodger
-					$idata = $shares->GetItemProperty($mod,$one['item_id'],'*');
-					list($from,$to,$textparms,$mailparms,$tweetparms) = self::MsgParms($mod,$shares,$one,$idata,self::MSGREJECT,$custommsg);
+					$idata = $utils->GetItemProperty($mod,$one['item_id'],'*');
+					list($from,$to,$textparms,$mailparms,$tweetparms) = self::MsgParms($mod,$utils,$one,$idata,self::MSGREJECT,$custommsg);
 					list($res,$msg) = $funcs->Send($from,$to,$textparms,$mailparms,$tweetparms);
 					if (!$res)
 						$fails[] = $msg;
@@ -345,7 +345,7 @@ class Requestops
 			if ($ob) {
 				unset($ob);
 				$funcs = new \MessageSender();
-				$shares = new Shared();
+				$utils = new Utils();
 				$fails = array();
 			} else
 				$funcs = FALSE;
@@ -354,8 +354,8 @@ class Requestops
 			foreach ($rows as $req_id=>$one) {
 				if ($funcs) {
 					//notify lodger
-					$idata = $shares->GetItemProperty($mod,$one['item_id'],'*');
-					list($from,$to,$textparms,$mailparms,$tweetparms) = self::MsgParms($mod,$shares,$one,$idata,self::MSGINFO,$custommsg);
+					$idata = $utils->GetItemProperty($mod,$one['item_id'],'*');
+					list($from,$to,$textparms,$mailparms,$tweetparms) = self::MsgParms($mod,$utils,$one,$idata,self::MSGINFO,$custommsg);
 					list($res,$msg) = $funcs->Send($from,$to,$textparms,$mailparms,$tweetparms);
 					if (!$res)
 						$fails[] = $msg;
@@ -384,7 +384,7 @@ class Requestops
 			if ($ob) {
 				unset($ob);
 				$funcs = new \MessageSender();
-				$shares = new Shared();
+				$utils = new Utils();
 				$fails = array();
 			} else
 				$funcs = FALSE;
@@ -393,8 +393,8 @@ class Requestops
 			foreach ($rows as $req_id=>$one) {
 				if ($funcs && $one['status'] !== \Booker::STATOK) {
 					//notify lodger
-					$idata = $shares->GetItemProperty($mod,$one['item_id'],'*');
-					list($from,$to,$textparms,$mailparms,$tweetparms) = self::MsgParms($mod,$shares,$one,$idata,self::MSGCANCELLED,$custommsg);
+					$idata = $utils->GetItemProperty($mod,$one['item_id'],'*');
+					list($from,$to,$textparms,$mailparms,$tweetparms) = self::MsgParms($mod,$utils,$one,$idata,self::MSGCANCELLED,$custommsg);
 					list($res,$msg) = $funcs->Send($from,$to,$textparms,$mailparms,$tweetparms);
 					if (!$res)
 						$fails[] = $msg;
@@ -486,8 +486,8 @@ class Requestops
 			$args[] = (int)$params['req_id'];
 			$sql = 'UPDATE '.$mod->RequestTable.' SET '.$sql2.' WHERE req_id=?';
 		}
-//		$funcs = new Shared();
-//		return $funcs->SafeExec($sql,$args);
+//		$utils = new Utils();
+//		return $utils->SafeExec($sql,$args);
 		return ($db->Execute($sql,$args)) != FALSE;
 	}
 }

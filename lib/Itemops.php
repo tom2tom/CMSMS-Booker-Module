@@ -15,20 +15,20 @@ class Itemops
 	@mod: reference to current module-object
 	@item_id: identifier of item to be processed
 	*/
-	private function ClearItem(&$mod, &$shares, $item_id)
+	private function ClearItem(&$mod, &$utils, $item_id)
 	{
 		$db = $mod->dbHandle;
 		//resource-localize 'now'
-		$idata = $shares->GetItemProperty($mod,$item_id,'timezone');
-		$limit = $shares->GetZoneTime($idata['timezone']);
+		$idata = $utils->GetItemProperty($mod,$item_id,'timezone');
+		$limit = $utils->GetZoneTime($idata['timezone']);
 		$sql = 'SELECT * FROM '.$mod->DataTable.' WHERE item_id=? AND slotstart>=?';
-		$rows = $shares->SafeGet($sql,array($item_id,$limit));
+		$rows = $utils->SafeGet($sql,array($item_id,$limit));
 		if ($rows) {
 			foreach ($rows as $one) {
 			//TODO divert resource booking if possible & notify user
 			}
 		}
-		if ($shares->GetInterval($mod,$item_id,'keep') > 0) { //past data still needed
+		if ($utils->GetInterval($mod,$item_id,'keep') > 0) { //past data still needed
 			$sql = array(
 				'DELETE FROM '.$mod->DataTable.' WHERE item_id=? AND slotstart>=?',
 				'UPDATE '.$mod->DataTable.' SET status='.\Booker::STATGONE.' WHERE item_id=? AND slotstart<?',
@@ -49,7 +49,7 @@ class Itemops
 				array($item_id)
 			);
 		}
-		$shares->SafeExec($sql,$args);
+		$utils->SafeExec($sql,$args);
 	}
 
 	/*
@@ -58,20 +58,20 @@ class Itemops
 	@shares reference to bkrshared-object
 	@gid identifier of group to be cleared
 	*/
-	private function ClearRecursive(&$mod, &$shares, $gid)
+	private function ClearRecursive(&$mod, &$utils, $gid)
 	{
 		$db = $mod->dbHandle;
 		$members = $db->GetCol('SELECT child FROM '.$mod->GroupTable.' WHERE parent=? ORDER BY proximity DESC',array($gid));
 		if ($members) {
 			foreach ($members as $mid) {
 				if ($mid >= \Booker::MINGRPID) {
-					$idata = $shares->GetItemProperty($mod,$mid,'cleargroup');
+					$idata = $utils->GetItemProperty($mod,$mid,'cleargroup');
 					if (!empty($idata['cleargroup']))
-						self::ClearRecursive($mod,$shares,$mid); //recurse
+						self::ClearRecursive($mod,$utils,$mid); //recurse
 					else
-						self::ClearItem($mod,$shares,$mid); //just clear the group itself
+						self::ClearItem($mod,$utils,$mid); //just clear the group itself
 				} else
-					self::ClearItem($mod,$shares,$mid);
+					self::ClearItem($mod,$utils,$mid);
 
 				$db->Execute('DELETE FROM '.$mod->GroupTable.' WHERE child=? AND parent=?',array($mid,$gid));
 			}
@@ -88,17 +88,17 @@ class Itemops
 	{
 		if (!is_array($item_id))
 			$item_id = array($item_id);
-		$funcs = new Shared();
+		$utils = new Utils();
 		foreach ($item_id as $one) {
 			if ($one >= \Booker::MINGRPID) {
-				$idata = $funcs->GetItemProperty($mod,$one,'cleargroup');
+				$idata = $utils->GetItemProperty($mod,$one,'cleargroup');
 				if (!empty($idata['cleargroup']))
-					self::ClearRecursive($mod,$funcs,$one);
+					self::ClearRecursive($mod,$utils,$one);
 				else
-					self::ClearItem($mod,$funcs,$one);
-				$funcs->OrderGroups($mod,$db); //cleanup remaining ordinals
+					self::ClearItem($mod,$utils,$one);
+				$utils->OrderGroups($mod,$db); //cleanup remaining ordinals
 			} else {
-				self::ClearItem($mod,$funcs,$one);
+				self::ClearItem($mod,$utils,$one);
 			}
 		}
 	}

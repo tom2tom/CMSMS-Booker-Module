@@ -311,7 +311,7 @@ class Booker extends CMSModule
 		these regexes translate url-parameter(s) to $param[](s) be supplied
 		to the specified actions (default calls ->DisplayModuleOutput())
 		so the routes need to conform to parameter-usage in handler-func(s).
-		See also: Booker\Shared::GetLink() which needs to conform to this.
+		See also: Booker\Utils->GetLink() which needs to conform to this.
 		*/
 		// for showing the contents of a specific group
 		$this->RegisterRoute('/[Bb]ookings?\/group(?P<group>.*?)\/(?P<returnid>[0-9]+)$/',array('action' => 'default'));

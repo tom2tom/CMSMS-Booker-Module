@@ -135,7 +135,7 @@ $params = array of all item/group properties, including 'active_tab'
 	$sel = FALSE;
 }
 
-$funcs = new Booker\Shared();
+$funcs = new Booker\Utils();
 
 if (isset($params['submit'])) {
 /*$params = array
@@ -277,7 +277,7 @@ WHERE condition_id=?';
 				}
 			}
 		}
-		Booker\Shared::SafeExec($allsql,$allargs);
+		$funcs->SafeExec($allsql,$allargs);
 	} else { //no fee-data now, clear from table
 		if (isset($params['sel'])) {
 			$sel = json_decode($params['sel']); //array
@@ -548,4 +548,4 @@ if ($jsloads) {
 }
 $tplvars['jsfuncs'] = $jsfuncs;
 
-echo Booker\Shared::ProcessTemplate($this,'fullfees.tpl',$tplvars);
+echo Booker\Utils::ProcessTemplate($this,'fullfees.tpl',$tplvars);

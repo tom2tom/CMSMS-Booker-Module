@@ -28,7 +28,7 @@ $is_group = ($item_id >= Booker::MINGRPID);
 $type = ($is_group) ? $this->Lang('group'):$this->Lang('item');
 $is_new = ($params['bkg_id'] == -1);
 $viewmode = ($resume == 'inspect');
-$funcs = new Booker\Shared();
+$funcs = new Booker\Utils();
 $funcs2 = new Booker\Bookingops();
 
 if (isset($params['submit']) || isset($params['apply'])) {
@@ -190,7 +190,7 @@ if (!empty($idata['name'])) {
 
 $t = '';
 if (!empty($idata['description']))
-	$t .= Booker\Shared::ProcessTemplateFromData($this,$idata['description'],$tplvars);
+	$t .= Booker\Utils::ProcessTemplateFromData($this,$idata['description'],$tplvars);
 $tplvars['desc'] = $t;
 //in this context, ignore any image
 
@@ -451,4 +451,4 @@ if ($jsloads) {
 $tplvars['jsfuncs'] = $jsfuncs;
 $tplvars['jsincs'] = $jsincs;
 
-echo Booker\Shared::ProcessTemplate($this,'openbooking.tpl',$tplvars);
+echo Booker\Utils::ProcessTemplate($this,'openbooking.tpl',$tplvars);

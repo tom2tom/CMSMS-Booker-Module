@@ -14,7 +14,7 @@ if ($this->_CheckAccess('admin') || $this->_CheckAccess('see')) {
 	if (isset($params['bkg_id']))
 		$bid = (int)$params['bkg_id'];
 	else {
-		$funcs = new Booker\Shared();
+		$funcs = new Booker\Utils();
 		$sql = 'SELECT bkg_id FROM '.$mod->DataTable.' WHERE item_id=?';
 		$bid = $funcs->SafeGet($sql,array($params['item_id']),'col');
 		if (!$bid) {
