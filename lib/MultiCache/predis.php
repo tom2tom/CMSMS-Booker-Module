@@ -18,7 +18,7 @@ class Cache_predis extends CacheBase implements CacheInterface
 	'timeout' => float seconds
 	'read_write_timeout' => float seconds
 	*/
-	function __construct($config = array())
+	public function __construct($config = array())
 	{
 		if ($this->use_driver()) {
 			parent::__construct($config);
@@ -30,7 +30,7 @@ class Cache_predis extends CacheBase implements CacheInterface
 		throw new \Exception('no predis storage');
 	}
 
-	function use_driver()
+	public function use_driver()
 	{
 		if (extension_loaded('Redis')) {
 			return FALSE; //native Redis extension is installed, prefer Redis to increase performance
@@ -38,7 +38,7 @@ class Cache_predis extends CacheBase implements CacheInterface
         return class_exists('Predis\Client');
 	}
 
-	function connectServer()
+	public function connectServer()
 	{
 		$params = array_merge(array(
 			'host' => '127.0.0.1',
@@ -75,7 +75,7 @@ class Cache_predis extends CacheBase implements CacheInterface
 		return $this->client !== NULL;
 	}
 
-	function _newsert($keyword, $value, $lifetime=FALSE)
+	public function _newsert($keyword, $value, $lifetime=FALSE)
 	{
 		if (!$this->_has($keyword)) {
 			$ret = $this->client->set($keyword, $value, array('xx', 'ex' => $lifetime));
@@ -84,7 +84,7 @@ class Cache_predis extends CacheBase implements CacheInterface
 		return FALSE;
 	}
 
-	function _upsert($keyword, $value, $lifetime=FALSE)
+	public function _upsert($keyword, $value, $lifetime=FALSE)
 	{
 		$ret = $this->client->set($keyword, $value, array('xx', 'ex' => $lifetime));
 		if ($ret === FALSE) {
@@ -93,7 +93,7 @@ class Cache_predis extends CacheBase implements CacheInterface
 		return $ret;
 	}
 
-	function _get($keyword)
+	public function _get($keyword)
 	{
 		$value = $this->client->get($keyword);
 		if ($value !== FALSE) {
@@ -102,23 +102,23 @@ class Cache_predis extends CacheBase implements CacheInterface
 		return NULL;
 	}
 
-	function _getall($filter)
+	public function _getall($filter)
 	{
 //TODO filtering
 		return NULL; //TODO allitems;
 	}
 
-	function _has($keyword)
+	public function _has($keyword)
 	{
 		return ($this->client->exists($keyword) != NULL);
 	}
 
-	function _delete($keyword)
+	public function _delete($keyword)
 	{
 		return $this->client->delete($keyword);
 	}
 
-	function _clean($filter)
+	public function _clean($filter)
 	{
 //TODO filtering
 		$this->client->flushDB();

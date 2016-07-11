@@ -8,7 +8,7 @@ class Cache_yac extends CacheBase implements CacheInterface
 {
 	protected $client;
 
-	function __construct($config=array())
+	public function __construct($config=array())
 	{
 		if ($this->use_driver()) {
 			parent::__construct($config);
@@ -20,12 +20,12 @@ class Cache_yac extends CacheBase implements CacheInterface
 		throw new \Exception('no yac storage');
 	}
 
-	function use_driver()
+	public function use_driver()
 	{
 		return extension_loaded('yac');
 	}
 
-	function connectServer()
+	public function connectServer()
 	{
 		if (!empty($this->config['prefix'])) {
 			$this->client = new \Yac($this->config['prefix']);
@@ -35,7 +35,7 @@ class Cache_yac extends CacheBase implements CacheInterface
 		return TRUE;
 	}
 
-	function _newsert($keyword, $value, $lifetime=FALSE)
+	public function _newsert($keyword, $value, $lifetime=FALSE)
 	{
 		if ($this->_has($keyword)) {
 			return FALSE;
@@ -43,12 +43,12 @@ class Cache_yac extends CacheBase implements CacheInterface
 		return $this->client->set($keyword, serialize($value), (int)$lifetime);
 	}
 
-	function _upsert($keyword, $value, $lifetime=FALSE)
+	public function _upsert($keyword, $value, $lifetime=FALSE)
 	{
 		return $this->client->set($keyword, serialize($value), (int)$lifetime);
 	}
 
-	function _get($keyword)
+	public function _get($keyword)
 	{
 		$value = $this->client->get($keyword);
 		if ($value !== FALSE) {
@@ -57,7 +57,7 @@ class Cache_yac extends CacheBase implements CacheInterface
 		return NULL;
 	}
 
-	function _getall($filter)
+	public function _getall($filter)
 	{
 		$items = array();
 		$info = $this->client->info();
@@ -84,17 +84,17 @@ class Cache_yac extends CacheBase implements CacheInterface
 		return $items;
 	}
 
-	function _has($keyword)
+	public function _has($keyword)
 	{
 		return ($this->_get($keyword) !== NULL);
 	}
 
-	function _delete($keyword)
+	public function _delete($keyword)
 	{
 		return $this->client->delete($keyword);
 	}
 	
-	function _clean($filter)
+	public function _clean($filter)
 	{
 		$info = $this->client->info();
 		$count = (int)$info['slots_used'];
@@ -115,5 +115,4 @@ class Cache_yac extends CacheBase implements CacheInterface
 		}
 		return TRUE;
 	}
-
 }

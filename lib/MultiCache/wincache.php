@@ -1,4 +1,5 @@
 <?php
+
 namespace MultiCache;
 
 class Cache_wincache extends CacheBase implements CacheInterface
