@@ -1,12 +1,10 @@
 <?php
-/*
-This file is part of CMS Made Simple module: Booker.
-Copyright(C) 2014-2015 Tom Phane <tpgww@onepost.net>
-Refer to licence and other details at the top of file Booker.module.php
-More info at http://dev.cmsmadesimple.org/projects/booker
-
-Class: Cleanold_task
-*/
+#----------------------------------------------------------------------
+# Module: Booker - a resource booking module
+# Library file: Cleanold_task handles system cron event - cleanup ...
+#----------------------------------------------------------------------
+# See file Booker.module.php for full details of copyright, licence, etc.
+#----------------------------------------------------------------------
 namespace Booker;
 
 class Cleanold_task implements \CmsRegularTask
