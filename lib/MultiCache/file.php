@@ -1,14 +1,15 @@
 <?php
+
 namespace MultiCache;
 
 class Cache_file extends CacheBase implements CacheInterface
 {
 	protected $basepath; //has trailing separator
 
-	function __construct($config = array())
+	public function __construct($config = array())
 	{
+		parent::__construct($config);
 		if ($this->use_driver()) {
-			parent::__construct($config);
 			if ($this->connectServer()) {
 				return;
 			}
@@ -16,12 +17,12 @@ class Cache_file extends CacheBase implements CacheInterface
 		throw new \Exception('no file storage');
 	}
 
-	function use_driver()
+	public function use_driver()
 	{
 		return !empty($this->config['path']);
 	}
 	
-	function connectServer()
+	public function connectServer()
 	{
 		$dir = trim(rtrim($this->config['path'],'/\\ \t'));
 		if (!$dir) {
@@ -43,7 +44,7 @@ class Cache_file extends CacheBase implements CacheInterface
 		return TRUE;
 	}
 
-	function _newsert($keyword, $value, $lifetime=FALSE)
+	public function _newsert($keyword, $value, $lifetime=FALSE)
 	{
 		$fp = $this->basepath.$this->filename($keyword);
 		if (!file_exists($fp)) {
@@ -52,13 +53,13 @@ class Cache_file extends CacheBase implements CacheInterface
 		return FALSE;
 	}
 
-	function _upsert($keyword, $value, $lifetime=FALSE)
+	public function _upsert($keyword, $value, $lifetime=FALSE)
 	{
 		$fp = $this->basepath.$this->filename($keyword);
 		return $this->writefile($fp,$value);
 	}
 
-	function _get($keyword)
+	public function _get($keyword)
 	{
 		$fp = $this->basepath.$this->filename($keyword);
 		if (is_file($fp)) {
@@ -70,7 +71,7 @@ class Cache_file extends CacheBase implements CacheInterface
 		return NULL;
 	}
 
-	function _getall($filter)
+	public function _getall($filter)
 	{
 		$items = array();
 		$files = glob($this->basepath.'*',GLOB_NOSORT);
@@ -92,13 +93,13 @@ class Cache_file extends CacheBase implements CacheInterface
 		return $vals;
 	}
 
-	function _has($keyword)
+	public function _has($keyword)
 	{
 		$fp = $this->basepath.$this->filename($keyword);
 		return file_exists($fp);
 	}
 
-	function _delete($keyword)
+	public function _delete($keyword)
 	{
 		$fp = $this->basepath.$this->filename($keyword);
 		if (is_file($fp)) {
@@ -107,7 +108,7 @@ class Cache_file extends CacheBase implements CacheInterface
 		return FALSE;
 	}
 
-	function _clean($filter)
+	public function _clean($filter)
 	{
 		$ret = TRUE;
 		$files = glob($this->basepath.'*',GLOB_NOSORT);

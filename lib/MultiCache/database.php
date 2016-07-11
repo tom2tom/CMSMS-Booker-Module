@@ -1,4 +1,5 @@
 <?php
+
 namespace MultiCache;
 
 class Cache_database extends CacheBase implements CacheInterface
@@ -101,7 +102,7 @@ class Cache_database extends CacheBase implements CacheInterface
 				}
 			}
 		}
-		return $items[];
+		return $items;
 	}
 
 	public function _has($keyword)
@@ -131,6 +132,7 @@ class Cache_database extends CacheBase implements CacheInterface
 	public function _clean($filter)
 	{
 		$ret = TRUE;
+		$db = cmsms()->GetDb();
 		$info = $db->GetAll('SELECT cache_id,keyword,value FROM '.$this->table);
 		if ($info) {
 			$sql = 'DELETE FROM '.$this->table.' WHERE cache_id=?';

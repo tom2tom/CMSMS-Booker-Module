@@ -1,4 +1,5 @@
 <?php
+
 namespace MultiCache;
 
 abstract class CacheBase
@@ -47,7 +48,7 @@ abstract class CacheBase
 	public function get($keyword)
 	{
 		$value = $this->_get($this->getKey($keyword));
-		if ($value == '_REALNULL_') {
+		if ($value === '_REALNULL_') {
 			$value = NULL;
 		}
 		return $value;
