@@ -1,9 +1,12 @@
 <?php
+
 namespace MultiCache;
 
-class Cache_apc extends CacheBase implements CacheInterface
+class Cache_apcu extends CacheBase implements CacheInterface
 {
-	function __construct($config = array())
+	protected $nativeiter; //which iter-API applies
+
+	public function __construct($config = array())
 	{
 		if ($this->use_driver()) {
 			parent::__construct($config);
@@ -11,24 +14,31 @@ class Cache_apc extends CacheBase implements CacheInterface
 				return;
 			}
 		}
-		throw new \Exception('no APC storage');
+		throw new \Exception('no APCu storage');
 	}
 
-/*	function __destruct()
+/*	public function __destruct()
 	{
 	}
 */
-	function use_driver()
+	public function use_driver()
 	{
 		return (extension_loaded('apcu') && ini_get('apc.enabled'));
 	}
 
-	function connectServer()
+	public function connectServer()
 	{
+		if (class_exists('APCUIterator')) {
+			$this->nativeiter = TRUE;
+		}	elseif (class_exists('APCIterator')) {
+			$this->nativeiter = FALSE;
+		} else {
+			return FALSE;
+		}
 		return TRUE;  //TODO connect
 	}
 
-	function _newsert($keyword, $value, $lifetime=FALSE)
+	public function _newsert($keyword, $value, $lifetime=FALSE)
 	{
 		if ($this->_has($keyword)) {
 			return FALSE;
@@ -37,7 +47,7 @@ class Cache_apc extends CacheBase implements CacheInterface
 		return $ret;
 	}
 
-	function _upsert($keyword, $value, $lifetime=FALSE)
+	public function _upsert($keyword, $value, $lifetime=FALSE)
 	{
 		$lifetime = (int)$lifetime;
 		$ret = apcu_add($keyword,$value,$lifetime);
@@ -47,7 +57,7 @@ class Cache_apc extends CacheBase implements CacheInterface
 		return $ret;
 	}
 
-	function _get($keyword)
+	public function _get($keyword)
 	{
 		$value = apcu_fetch($keyword,$suxs);
 		if ($suxs !== FALSE) {
@@ -56,10 +66,14 @@ class Cache_apc extends CacheBase implements CacheInterface
 		return NULL;
 	}
 
-	function _getall($filter)
+	public function _getall($filter)
 	{
 		$items = array();
-		$iter = new \APCUIterator();
+		if ($this->nativeiter) {
+			$iter = new \APCUIterator();
+		} else {
+			$iter = new \APCIterator('user');
+		}
 		if ($iter) {
 			foreach ($iter as $keyword=>$value) {
 				$again = is_object($value); //get it again, in case the filter played with it!
@@ -76,33 +90,36 @@ class Cache_apc extends CacheBase implements CacheInterface
 		return $items;
 	}
 
-	function _has($keyword)
+	public function _has($keyword)
 	{
 		return apcu_exists($keyword);
 	}
 
-	function _delete($keyword)
+	public function _delete($keyword)
 	{
 		return apcu_delete($keyword);
 	}
 
-	function _clean($filter)
+	public function _clean($filter)
 	{
-		$iter = new \APCUIterator();
+		if ($this->nativeiter) {
+			$iter = new \APCUIterator();
+		} else {
+			$iter = new \APCIterator('user');
+		}
 		if ($iter) {
 			$items = array();
 			foreach ($iter as $keyword=>$value) {
 				if ($this->filterKey($filter,$keyword,$value)) {
-					$items[] = $key;
+					$items[] = $keyword;
 				}
 			}
 			$ret = TRUE;
-			foreach ($items as $key) {
-				$ret = $ret && apcu_delete($key);
+			foreach ($items as $keyword) {
+				$ret = $ret && apcu_delete($keyword);
 			}
 			return $ret;
 		}
 		return FALSE;
 	}
-
 }
