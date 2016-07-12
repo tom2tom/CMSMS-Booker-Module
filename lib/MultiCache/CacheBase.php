@@ -21,9 +21,6 @@ abstract class CacheBase
 	*/
 	public function newsert($keyword, $value, $lifetime=0)
 	{
-		if ($value === NULL) {
-			$value = '_REALNULL_';
-		}
 		if ((int)$lifetime < 0) {
 			$lifetime = 157680000; //3600*24*365*5
 		}
@@ -36,9 +33,6 @@ abstract class CacheBase
 	*/
 	public function upsert($keyword, $value, $lifetime=0)
 	{
-		if ($value === NULL) {
-			$value = '_REALNULL_';
-		}
 		if ((int)$lifetime < 0) {
 			$lifetime = 157680000; //3600*24*365*5
 		}
@@ -47,11 +41,7 @@ abstract class CacheBase
 
 	public function get($keyword)
 	{
-		$value = $this->_get($this->getKey($keyword));
-		if ($value === '_REALNULL_') {
-			$value = NULL;
-		}
-		return $value;
+		return $this->_get($this->getKey($keyword));
 	}
 
 	/*
@@ -130,55 +120,35 @@ abstract class CacheBase
 		}
 		return TRUE;
 	}
-}
 
-/* class flatter implements \Serializable
-{
-	private $data;
-
-	public function __construct($data=NULL)
+/*	protected function flatten($value)
 	{
-		$this->data = $data;
-	}
-
-	public function serialize()
-	{
-		if ($this->data != NULL) {
-			if (is_scalar($this->data) || !is_null(@get_resource_type($this->data))) {
-				return (string)$this->data;
+		if ($value != NULL) {
+			if (is_scalar($value) || !is_null(@get_resource_type($value))) {
+				return (string)$value;
 			}
-//			return serialize($this->data);
-			$value = var_export($this->data,TRUE);
-			// HHVM fails at __set_state, so just use object-cast for now
-			return str_replace('stdClass::__set_state','(object)',$value);
 		}
-		return '_REALNULL_'; //prevent '' equivalent to FALSE
+		return serialize($value);
 	}
 
-	public function unserialize($data)
+	protected function unflatten($flatvalue)
 	{
-//		if ($data == 'b:0;') {
-//			$this->data = FALSE;
+//		if ($$flatvalue == 'b:0;') {
+//			$value = FALSE;
 //		} else
-		if ($data == '_REALNULL_') {
-			$this->data = NULL;
-		} elseif (is_string($data) && strpos('Resource id', $data) === 0) {
-			$this->data = NULL; //can't usefully reinstate a (string'd)resource
+		if ($$flatvalue == '_REALNULL_') {
+			$value = NULL;
+		} elseif (is_string($$flatvalue) && strpos('Resource id', $$flatvalue) === 0) {
+			$value = NULL; //can't usefully reinstate a (string'd)resource
 		} else {
-/ *			$conv = @unserialize($data);
+/ *			$conv = @unserialize($$flatvalue);
 			if ($conv === FALSE) {
-				$this->data = $data;
+				$value = $flatvalue;
 			} else {
-				$this->data = $conv;
+				$flatvalue = $conv;
 			}
 * /
-			$this->data = $data;
-		}
+		return $value;
 	}
-
-	public function getData()
-	{
-		return $this->data;
-	}
+ */
 }
-*/
