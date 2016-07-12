@@ -116,7 +116,9 @@ class Booker extends CMSModule
 	{
 		$prefix = get_class().'\\'; //specific namespace prefix
 		// ignore if the class doesn't use the prefix
-		if (!(strpos($class,$prefix) === 0 || ($class[0] == '\\' && strpos($class,$prefix,1) == 1)))
+		if (($p = strpos($class,$prefix)) === FALSE)
+			return;
+		if (!($p === 0 || ($p === 1 && $class[0] == '\\')))
 			return;
 		// get the relative class name
 		$len = strlen($prefix);
@@ -131,6 +133,22 @@ class Booker extends CMSModule
 			include $fp;
 	}
 
+	public function AllowAutoInstall()
+	{
+		return FALSE;
+	}
+
+	public function AllowAutoUpgrade()
+	{
+		return FALSE;
+	}
+
+	//for 1.11+
+	public function AllowSmartyCaching()
+	{
+		return FALSE;
+	}
+	
 	public function GetName()
 	{
 		return 'Booker';
@@ -139,21 +157,6 @@ class Booker extends CMSModule
 	public function GetFriendlyName()
 	{
 		return $this->Lang('friendlyname');
-	}
-
-	public function GetVersion()
-	{
-		return '0.1';
-	}
-
-	public function MinimumCMSVersion()
-	{
-		return '1.9'; //CHECKME
-	}
-
-	public function MaximumCMSVersion()
-	{
-		return '1.19.99';
 	}
 
 	public function GetHelp()
@@ -166,6 +169,11 @@ class Booker extends CMSModule
 		} else
 			$example = $this->Lang('missing');
 		return $this->Lang('help',$example);
+	}
+
+	public function GetVersion()
+	{
+		return '0.1';
 	}
 
 	public function GetAuthor()
@@ -252,6 +260,16 @@ class Booker extends CMSModule
 		return TRUE;
 	}
 
+	public function MinimumCMSVersion()
+	{
+		return '1.10'; //CHECKME
+	}
+
+/*public function MaximumCMSVersion()
+	{
+		return '1.12.99';
+	}
+*/	
 	public function InstallPostMessage()
 	{
 		return $this->Lang('postinstall');
