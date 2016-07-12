@@ -123,6 +123,7 @@ class Booker extends CMSModule
 		if ($class[0] == '\\') {
 			$len++;
 		}
+		$relative_class = substr($class,$len);
 		// base directory for the namespace prefix
 		$base_dir = __DIR__.DIRECTORY_SEPARATOR.'lib'.DIRECTORY_SEPARATOR;
 		$fp = $base_dir.str_replace('\\',DIRECTORY_SEPARATOR,$relative_class).'.php';

@@ -24,7 +24,7 @@ class Cache
 	  default empty
 	  Returns: cache-object (after creating it if not already done) or NULL
 	 */
-	public function GetCache(&$mod, $storage = 'auto', $settings = array())
+	public function GetCache(&$mod, $storage='auto', $settings=array())
 	{
 //		if (self::$cache == NULL && isset($_SESSION['bkrcache']))
 //			self::$cache = $_SESSION['bkrcache'];
@@ -32,8 +32,8 @@ class Cache
 			return self::$cache;
 
 		$path = __DIR__ . DIRECTORY_SEPARATOR . 'MultiCache' . DIRECTORY_SEPARATOR;
-		require($path . 'CacheInterface.php');
-		require($path . 'CacheBase.php');
+		require_once($path.'CacheInterface.php'); //prevent repeated creation crash
+		require_once($path.'CacheBase.php');
 
 		$config = cmsms()->GetConfig();
 		$url = (empty($_SERVER['HTTPS'])) ? $config['root_url'] : $config['ssl_url'];
@@ -86,7 +86,7 @@ class Cache
 				$settings[$one]['namespace'] = $mod->GetName();
 			$class = 'MultiCache\Cache_' . $one;
 			try {
-				require($path . $one . '.php');
+				require($path.$one.'.php');
 				$cache = new $class($settings[$one]);
 			} catch (\Exception $e) {
 				continue;
@@ -101,8 +101,7 @@ class Cache
 	public function ClearCache()
 	{
 //		unset($_SESSION['bkrcache']);
-		unset($this->cache);
-		$this->cache = NULL;
+		unset(self::$cache);
+		self::$cache = NULL;
 	}
-
 }

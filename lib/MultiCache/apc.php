@@ -1,4 +1,5 @@
 <?php
+
 namespace MultiCache;
 
 class Cache_apc extends CacheBase implements CacheInterface
@@ -88,7 +89,7 @@ class Cache_apc extends CacheBase implements CacheInterface
 
 	public function _clean($filter)
 	{
-		$iter = new \APCIterator();
+		$iter = new \APCIterator('user');
 		if ($iter) {
 			$items = array();
 			foreach ($iter as $keyword=>$value) {
