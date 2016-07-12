@@ -88,6 +88,10 @@ class Booker extends CMSModule
 
 	public function __construct()
 	{
+		if (!function_exists('cmsms_spacedload')) {
+			spl_autoload_register(array($this,'cmsms_spacedload'));
+		}
+		
 		parent::__construct();
 
 		$this->RegisterModulePlugin(TRUE);
@@ -105,21 +109,25 @@ class Booker extends CMSModule
 		global $CMS_VERSION;
 		$this->before20 = (version_compare($CMS_VERSION,'2.0') < 0);
 		$this->havemcrypt = function_exists('mcrypt_encrypt');
+	}
 
-		spl_autoload_register(function($class)
-		{
-			$prefix = self::GetName().'\\'; //specific namespace prefix
-			// does the class use the namespace prefix?
-			if (strpos($class,$prefix) !== 0)
-				return;
-			// get the relative class name
-			$relative_class = substr($class,strlen($prefix));
-			// base directory for the namespace prefix
-			$base_dir = __DIR__.DIRECTORY_SEPARATOR.'lib'.DIRECTORY_SEPARATOR;
-			$fp = $base_dir.str_replace('\\',DIRECTORY_SEPARATOR,$relative_class).'.php';
-			if (file_exists($fp))
-				include $fp;
-		});
+	/* autoloader */
+	private function cmsms_spacedload ($class)
+	{
+		$prefix = get_class().'\\'; //specific namespace prefix
+		// ignore if the class doesn't use the prefix
+		if (!(strpos($class,$prefix) === 0 || ($class[0] == '\\' && strpos($class,$prefix,1) == 1)))
+			return;
+		// get the relative class name
+		$len = strlen($prefix);
+		if ($class[0] == '\\') {
+			$len++;
+		}
+		// base directory for the namespace prefix
+		$base_dir = __DIR__.DIRECTORY_SEPARATOR.'lib'.DIRECTORY_SEPARATOR;
+		$fp = $base_dir.str_replace('\\',DIRECTORY_SEPARATOR,$relative_class).'.php';
+		if (file_exists($fp))
+			include $fp;
 	}
 
 	public function GetName()
