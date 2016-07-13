@@ -11,6 +11,8 @@ namespace Booker;
 
 class Cache
 {
+	const MAXKEY = 48; //longest allowable cache key
+
 	private static $cache = NULL; //intra-request cache-cache object
 
 	/**
@@ -24,7 +26,7 @@ class Cache
 	  default empty
 	  Returns: cache-object (after creating it if not already done) or NULL
 	 */
-	public function GetCache(&$mod, $storage='auto', $settings=array())
+	public static function GetCache(&$mod, $storage='auto', $settings=array())
 	{
 //		if (self::$cache == NULL && isset($_SESSION['bkrcache']))
 //			self::$cache = $_SESSION['bkrcache'];
@@ -98,10 +100,18 @@ class Cache
 		return NULL;
 	}
 
-	public function ClearCache()
+	public static function ClearCache()
 	{
 //		unset($_SESSION['bkrcache']);
 		unset(self::$cache);
 		self::$cache = NULL;
+	}
+
+	public static function GetKey($seed='')
+	{
+		if (!$seed)
+			$seed = 'ANYTYPE';
+		$key = uniqid($seed); //keeps seed as prefix
+		return substr($key,0,self::MAXKEY);
 	}
 }
