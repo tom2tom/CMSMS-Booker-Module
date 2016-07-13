@@ -148,7 +148,7 @@ class Cart
 	}
 
 	/**
-	Check if cart is empty by tyoe
+	Check if cart is empty by type
 
 	@param string type
 	@return bool
