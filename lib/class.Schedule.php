@@ -22,7 +22,7 @@ class Schedule
 	/*
 	Get value with status-flags for a slot
 	@mod: reference to current Booker module object
-	@shares: reference to bkrshared object
+	@utils: reference to Booker\Utils object
 	@session_id: identifier for cache-interrogation
 	@item_id: resource (not group) identifier
 	@dtstart: DateTime object populated for booking start
@@ -36,8 +36,7 @@ class Schedule
 	*/
 	private function GetSlotStatus(&$mod, &$utils, $session_id, $item_id, $dtstart, $dtend)
 	{
-/*		$funcs = new Cache();
-		$cache = $funcs->GetCache($mod);
+/*		$cache = Booker\Cache::GetCache($mod);
 		if ($cache && )	//$cache->
 */
 		if (0) { //TODO slot-status is cached
@@ -76,7 +75,7 @@ class Schedule
 	 specific bookings in bookings table
 	This is low-level method, normally UpdateRepeats() would be more appropriate
 	@mod: reference to current Booker module
-	@shares: reference to bkrshared object
+	@utils: reference to Booker\Utils object
 	@reps: reference to bkrrepeats object
 	@idata: reference to array of item parameters, including at least
 		'item_id','timezone','latitude','longitude'
@@ -184,7 +183,7 @@ class Schedule
 	Updates DataTable if possible, but not RequestTable.
 	The status field in @reqdata will be updated to indicate what precisely has been done
 	@mod: reference to current Booker module object
-	@shares: reference to bkrshared object
+	@utils: reference to Booker\Utils object
 	@session_id: identifier for cache-interrogation
 	@item_id: resource-identifier
 	@reqdata: reference to one row of data from RequestTable, or equivalent constructed array
@@ -316,11 +315,9 @@ class Schedule
 	If possible, select @num adjacent bookable items from @likes (which has @lcount
 	members), scanning from index @first, with rollaround to start if optional @roll = TRUE
 	*/
-	private function FindCluster($likes, $lcount, $num, $first, $dts, $dte, $session_id, $roll=FALSE)
+	private function FindCluster(&$mod, $likes, $lcount, $num, $first, $dts, $dte, $session_id, $roll=FALSE)
 	{
-/*		$funcs = new Cache();
-		$cache = $funcs->GetCache($mod);
-*/
+//		$cache = Booker\Cache::GetCache($mod);
 		$c = $num;
 		$i = $first;
 		$ret = array();
@@ -353,7 +350,7 @@ class Schedule
 	/*
 	ClusterPick:
 	@mod: reference to current Booker module object
-	@shares: reference to bkrshared object
+	@utils: reference to Booker\Utils object
 	@session_id: identifier for cache-interrogation
 	@likes: likeness-sorted array of resource identifiers, from which specific
 		resources are to be selected
@@ -414,7 +411,7 @@ class Schedule
 		$first = $F;
 
 		while (1) {
-			$ret = self::FindCluster($likes,$lcount,$rescount,$first,$dts,$dte);
+			$ret = self::FindCluster($mod,$likes,$lcount,$rescount,$first,$dts,$dte);
 			if ($ret) {
 				if ($alloctype == \Booker::ALLOCROTE)
 					$allocdata += $rescount; //CHECKME or ++?
@@ -434,7 +431,7 @@ class Schedule
 	The status field in each @reqdata member will be updated to indicate what
 	precisely has been done
 	@mod: reference to current Booker module object
-	@shares: reference to bkrshared object
+	@utils: reference to Booker\Utils object
 	@item_id: item identifier
 	@reqdata: reference to row of data from RequestTable, or array of them
 	Returns: boolean indicating complete success
@@ -457,8 +454,7 @@ class Schedule
 				$ret = FALSE;
 		}
 		unset($one);
-/*		$funcs = new Cache();
-		$cache = $funcs->GetCache($mod);
+/*	$cache = Booker\Cache::GetCache($mod);
 		TODO clear any cached PUBLIC slotstatus data for this session
 */
 		return $ret;
@@ -474,7 +470,7 @@ class Schedule
 	available resources) that the request fits into. Finally, any unplaced requests
 	are allocated wherever a vacancy is found.
 	@mod: reference to current Booker module object
-	@shares: reference to bkrshared object
+	@utils: reference to Booker\Utils object
 	@item_id: group identifier
 	@reqdata: reference to row of data from RequestTable, or array of them
 	Returns: boolean indicating complete success
@@ -501,9 +497,7 @@ class Schedule
 		//assume no need for resource-specific leadtimes
 		$limit = $utils->GetZoneTime($idata['timezone']) + $utils->GetInterval($mod,$item_id,'lead');
 		$session_id = 0; //TODO $mod->dbHandle->GenID(cms_db_prefix().'module_bkrcache_seq'); //uid for cached slotstatus data
-/*		$funcs = new Cache();
-		$cache = $funcs->GetCache($mod);
-*/
+//	$cache = Booker\Cache::GetCache($mod);
 		$sql = 'INSERT INTO '.$mod->DataTable.
 ' (bkg_id,item_id,slotstart,slotlen,user,contact,userclass,status,paid) VALUES (?,?,?,?,?,?,?,?,?)';
 		$ret = TRUE;
@@ -662,7 +656,7 @@ class Schedule
 	Determine whether the item represented by @item_id is available for	use
 	over the whole time-interval @dtstart to @dtend inclusive
 	@mod reference to current module-object
-	@shares: reference to bkrshared object
+	@utils: reference to Booker\Utils object
 	@item_id: resource or group identifier
 	@dtstart: UTC DateTime object for start of range
 	@dtend: ditto for end
