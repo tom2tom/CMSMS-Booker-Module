@@ -379,7 +379,7 @@ class Utils
 		return $grparray;
 	}
 */
-	
+
 	/**
 	OrderGroups:
 	Re-sequence likeorder and proximity fields in GroupTable
@@ -718,7 +718,7 @@ class Utils
 				elseif (!$conditional)
 					$conditional = '';
 			}
-	
+
 			foreach ($fees as $one) {
 				if ($one['fee'] != NULL) {
 					if ($conditional === FALSE) {
@@ -1481,5 +1481,53 @@ class Utils
 			$str = preg_replace('#</'.$tag.'(>|\s[^>]*>)#is','<br />',$str);
 		}
 		return $str;
+	}
+
+	/**
+	SaveParameters:
+	Store @params array and @cart object in cache.
+	Adds @params['sessiondata'] before saving, if that's not present already
+	Returns: nothing
+	*/
+	public function SaveParameters (&$cache, &$params, $cart)
+	{
+		if (empty($params['sessiondata'])) {
+			$params['sessiondata'] = Booker\Cache::GetKey(session_id());
+		}
+		$cache->set($params['sessiondata'],$params);
+		$cache->set($params['cartkey'],$cart);
+	}
+
+	/**
+	RetrieveParameters:
+	Update @params from @cache, if possible
+	Returns: BookingCart object, possibly newly-created
+	*/
+	public function RetrieveParameters (&$cache, &$params)
+	{
+		if (!empty($params['sessiondata'])) {
+			$data = $cache->get($params['sessiondata']);
+			if (!empty($data)) {
+				$params = array_merge($params,$data); //prefer cached values
+				return $cache->get($params['cartkey']);
+			} else {
+				$cache->delete($params['sessiondata']);
+			}
+		}
+		$params['sessiondata'] = Booker\Cache::GetKey(session_id());
+		return $this->MakeCart ($cache, $params); //TODO context, withtax
+	}
+
+	/**
+	MakeCart:
+	Returns: new BookingCart object
+	*/
+	public function MakeCart(&$cache, &$params, $context='', $pricesWithTax=TRUE)
+	{
+		$key = Booker\Cache::GetKey(\Booker::CARTKEY);
+		$params['cartkey'] = $key;
+		$cart = new Booker\Cart\BookingCart($context,$pricesWithTax);
+		$cache->set($key,$cart);
+		return $cart;
 	}
 }
