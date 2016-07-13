@@ -66,6 +66,8 @@ class Booker extends CMSModule
 	const RANGEMTH = 2;
 	const RANGEYR = 3;
 
+	const CARTKEY = '_BookerCart_'; //cache-key seed
+
 	public $dbHandle; //cached connection to adodb
 	public $DataTable; //non-repeated bookings-data
 	public $GroupTable; //group-relationships
