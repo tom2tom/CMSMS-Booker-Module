@@ -18,9 +18,13 @@
 {$submit}&nbsp;{$cancel}
 {$endform}
 <div id="calendar"></div>
-{$jsincs}
+{if $jsincs}
+{foreach from=$jsincs item=inc}{$inc}
+{/foreach}{/if}
+{if $jsfuncs}
 <script type="text/javascript">
 //<![CDATA[
 {foreach from=$jsfuncs item=func}{$func}{/foreach}
 //]]>
 </script>
+{/if}
