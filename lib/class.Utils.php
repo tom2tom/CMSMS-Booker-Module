@@ -1485,6 +1485,9 @@ class Utils
 
 	/**
 	SaveParameters:
+	@cache: reference to Cache oject
+	@params: reference to reqest-parameters array
+	@cart: cart-object
 	Store @params array and @cart object in cache.
 	Adds @params['sessiondata'] before saving, if that's not present already
 	Returns: nothing
@@ -1492,7 +1495,7 @@ class Utils
 	public function SaveParameters (&$cache, &$params, $cart)
 	{
 		if (empty($params['sessiondata'])) {
-			$params['sessiondata'] = Booker\Cache::GetKey(session_id());
+			$params['sessiondata'] = Cache::GetKey(session_id());
 		}
 		$cache->set($params['sessiondata'],$params);
 		$cache->set($params['cartkey'],$cart);
@@ -1500,8 +1503,10 @@ class Utils
 
 	/**
 	RetrieveParameters:
+	@cache: reference to Cache oject
+	@params: reference to reqest-parameters array
 	Update @params from @cache, if possible
-	Returns: BookingCart object, possibly newly-created
+	Returns: BookingCart object, restored from @cache or newly-created
 	*/
 	public function RetrieveParameters (&$cache, &$params)
 	{
@@ -1514,19 +1519,23 @@ class Utils
 				$cache->delete($params['sessiondata']);
 			}
 		}
-		$params['sessiondata'] = Booker\Cache::GetKey(session_id());
-		return $this->MakeCart ($cache, $params); //TODO context, withtax
+		$params['sessiondata'] = Cache::GetKey(session_id());
+		return $this->MakeCart($cache,$params); //TODO context, withtax
 	}
 
 	/**
 	MakeCart:
+	@cache: reference to Cache oject
+	@params: reference to reqest-parameters array
+	@context: mixed data about the cart, used (among other things) for setting prices
+	@pricesWithTax: boolean, whether cart uses gross prices
 	Returns: new BookingCart object
 	*/
 	public function MakeCart(&$cache, &$params, $context='', $pricesWithTax=TRUE)
 	{
-		$key = Booker\Cache::GetKey(\Booker::CARTKEY);
+		$key = Cache::GetKey(\Booker::CARTKEY);
 		$params['cartkey'] = $key;
-		$cart = new Booker\Cart\BookingCart($context,$pricesWithTax);
+		$cart = new Cart\BookingCart($context,$pricesWithTax);
 		$cache->set($key,$cart);
 		return $cart;
 	}
