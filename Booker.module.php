@@ -114,7 +114,8 @@ class Booker extends CMSModule
 	public function __destruct()
 	{
 		spl_autoload_unregister(array($this,'cmsms_spacedload'));
-		parent::__destruct();
+		if (function_exists('parent::__destruct'))
+			parent::__destruct();
 	}
 
 	/* namespace autoloader - CMSMS default autoloader doesn't do spacing */
@@ -140,11 +141,16 @@ class Booker extends CMSModule
 			$base = $relative_class;
 			$relative_dir = '';
 		}
-		// base directory for the namespace prefix
-		$fp = __DIR__.DIRECTORY_SEPARATOR.'lib'
-		.DIRECTORY_SEPARATOR.$relative_dir.'class.'.$base.'.php';
-		if (file_exists($fp))
+		// directory for the namespace
+		$bp = __DIR__.DIRECTORY_SEPARATOR.'lib'.DIRECTORY_SEPARATOR.$relative_dir;
+		$fp = $bp.'class.'.$base.'.php';
+		if (file_exists($fp)) {
 			include $fp;
+		} elseif ($relative_dir) {
+			$fp = $bp.$base.'.php';
+			if (file_exists($fp))
+				include $fp;
+		}
 	}
 
 	public function AllowAutoInstall()
