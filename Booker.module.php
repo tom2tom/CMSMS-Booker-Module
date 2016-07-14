@@ -66,7 +66,8 @@ class Booker extends CMSModule
 	const RANGEMTH = 2;
 	const RANGEYR = 3;
 
-	const CARTKEY = '_BookerCart_'; //cache-key seed
+	const CARTKEY = 'bkr_Cart'; //cache-key seed/prefix
+	const PARMKEY = 'bkr_Params'; //cache-key seed/prefix
 
 	public $dbHandle; //cached connection to adodb
 	public $DataTable; //non-repeated bookings-data
@@ -323,10 +324,10 @@ class Booker extends CMSModule
 		//TODO parameter types
 		$this->SetParameterType('apply',CLEAN_STRING); //change view enum
 		$this->SetParameterType('bookat',CLEAN_INT);
-		$this->SetParameterType('subgrpcount',CLEAN_INT);
 		$this->SetParameterType('calendarinput',CLEAN_STRING);
 		$this->SetParameterType('cancel',CLEAN_NONE);
 		$this->SetParameterType('captcha',CLEAN_STRING);
+		$this->SetParameterType('cart',CLEAN_STRING);
 		$this->SetParameterType('chooser',CLEAN_INT);
 		$this->SetParameterType('clickat',CLEAN_STRING);
 		$this->SetParameterType('comment',CLEAN_STRING); //booking-request parameters
@@ -344,9 +345,11 @@ class Booker extends CMSModule
 		$this->SetParameterType('request',CLEAN_NONE);
 		$this->SetParameterType('requesttype',CLEAN_INT);
 		$this->SetParameterType('send',CLEAN_NONE);
+		$this->SetParameterType('storedparams',CLEAN_STRING);
 		$this->SetParameterType('slide',CLEAN_INT); //value matches button label
 		$this->SetParameterType('slotid',CLEAN_STRING);
 		$this->SetParameterType('startat',CLEAN_STRING);
+		$this->SetParameterType('subgrpcount',CLEAN_INT);
 		$this->SetParameterType('toggle',CLEAN_NONE);
 		$this->SetParameterType('until',CLEAN_STRING);
 		$this->SetParameterType('user',CLEAN_STRING);
@@ -438,6 +441,7 @@ class Booker extends CMSModule
 		 case 'openrequest':
 		 case 'requestbooking':
 		 case 'openfees':
+		 case 'opencart':
 		 case 'setprefs':
 		 case 'swapgroups':
 		 case 'sortlike':
