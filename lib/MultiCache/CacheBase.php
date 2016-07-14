@@ -15,23 +15,15 @@ abstract class CacheBase
 	}
 
 	/* Core Functions */
-	/*
-	Add $keyword:$value to cache if $keyword not found in cache
-	$lifetime (seconds) 0 >> perpetual, <0 >> 5 yrs, tho' server-based caches won't survive restart
+	/**
+	set:
+	If @keyword not found in cache, add @keyword:@value to cache, otherwise update to @value
+	@keyword: string
+	@value: mixed
+	@lifetime: seconds, optional, default 0, 0 >> perpetual, <0 >> 5 yrs, tho' server-based caches won't survive restart
+	Returns: boolean representing success
 	*/
-	public function newsert($keyword, $value, $lifetime=0)
-	{
-		if ((int)$lifetime < 0) {
-			$lifetime = 157680000; //3600*24*365*5
-		}
-		return $this->_newsert($this->getKey($keyword),$value,$lifetime);
-	}
-
-	/*
-	If $keyword not found in cache, add $keyword:$value to cache, otherwise update to $value
-	$lifetime (seconds) 0 >> perpetual, <0 >> 5 yrs, tho' server-based caches won't survive restart
-	*/
-	public function upsert($keyword, $value, $lifetime=0)
+	public function set($keyword, $value, $lifetime=0)
 	{
 		if ((int)$lifetime < 0) {
 			$lifetime = 157680000; //3600*24*365*5
@@ -39,19 +31,47 @@ abstract class CacheBase
 		return $this->_upsert($this->getKey($keyword),$value,$lifetime);
 	}
 
+	/**
+	setnew:
+	Add @keyword:@value to cache if @keyword not found in cache
+	@keyword: string
+	@value: mixed
+	@lifetime: seconds, optional, default 0, 0 >> perpetual, <0 >> 5 yrs, tho' server-based caches won't survive restart
+	Returns: boolean representing success
+	*/
+	public function setnew($keyword, $value, $lifetime=0)
+	{
+		if ((int)$lifetime < 0) {
+			$lifetime = 157680000; //3600*24*365*5
+		}
+		return $this->_newsert($this->getKey($keyword),$value,$lifetime);
+	}
+
+	/**
+	get:
+	@keyword: string
+	Returns: cached value, or NULL
+	*/
 	public function get($keyword)
 	{
 		return $this->_get($this->getKey($keyword));
 	}
 
-	/*
-	See filterKey() for info about $filter
+	/**
+	getall:
+	@filter: optional, default NULL, see filterItem() for info
+	Returns: array with member(s) key=>value, or empty
 	*/
 	public function getall($filter=NULL)
 	{
 		return $this->_getall($filter);
 	}
 	
+	/**
+	has:
+	@keyword: string
+	Returns: boolean representing presence in cache
+	*/
 	public function has($keyword)
 	{
 		if (method_exists($this,'_has')) {
@@ -61,19 +81,31 @@ abstract class CacheBase
 		return ($value !== NULL);
 	}
 
+	/**
+	delete:
+	@keyword: string
+	Returns: boolean representing success
+	*/
 	public function delete($keyword)
 	{
 		return $this->_delete($this->getKey($keyword));
 	}
 
-	/*
-	See filterKey() for info about $filter
+	/**
+	clean:
+	@filter: optional, default NULL, see filterItem() for info
+	Returns: boolean representing success
 	*/
 	public function clean($filter=NULL)
 	{
 		return $this->_clean($filter);
 	}
 
+	/**
+	setKeySpace:
+	@name:
+	returns: nothing
+	*/
 	public function setKeySpace($name)
 	{
 		if ($name)
@@ -83,6 +115,10 @@ abstract class CacheBase
 		$this->keyspace = $name.'\\';
 	}
 
+	/**
+	setKeySpace:
+	Returns: string keys namespace
+	*/
 	public function getKeySpace()
 	{
 		return substr($this->keyspace,0,strlen($this->keyspace)-1);
@@ -94,6 +130,7 @@ abstract class CacheBase
 	}
 
    	/*
+   	Decide whether cache-item with @keyword and @value is 'wanted'
 	$filter may be:
 	 FALSE
 	 a regex to match against keyword, must NOT be end-user supplied (injection-risk)
@@ -102,7 +139,7 @@ abstract class CacheBase
 	  must NOT be end-user supplied (due to injection-risk)
 	 Returns TRUE by default
 	*/
-	protected function filterKey($filter, $keyword, $value)
+	protected function filterItem($filter, $keyword, $value)
 	{
 		if ($filter) {
 			//strip 'cache-namespace'
@@ -121,7 +158,7 @@ abstract class CacheBase
 		return TRUE;
 	}
 
-/*	protected function flatten($value)
+/*protected function flatten($value)
 	{
 		if ($value != NULL) {
 			if (is_scalar($value) || !is_null(@get_resource_type($value))) {
