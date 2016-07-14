@@ -1487,18 +1487,19 @@ class Utils
 	SaveParameters:
 	@cache: reference to Cache oject
 	@params: reference to reqest-parameters array
-	@cart: cart-object
+	@cart: cart-object or FALSE
 	Store @params array and @cart object in cache.
-	Adds @params['sessiondata'] before saving, if that's not present already
+	Adds @params['storedparams'] before saving, if that's not present already
 	Returns: nothing
 	*/
 	public function SaveParameters (&$cache, &$params, $cart)
 	{
-		if (empty($params['sessiondata'])) {
-			$params['sessiondata'] = Cache::GetKey(session_id());
+		if (empty($params['storedparams'])) {
+			$params['storedparams'] = Cache::GetKey(session_id());
 		}
-		$cache->set($params['sessiondata'],$params);
-		$cache->set($params['cartkey'],$cart);
+		$cache->set($params['storedparams'],$params);
+		if ($cart)
+			$cache->set($params['cartkey'],$cart);
 	}
 
 	/**
@@ -1510,16 +1511,16 @@ class Utils
 	*/
 	public function RetrieveParameters (&$cache, &$params)
 	{
-		if (!empty($params['sessiondata'])) {
-			$data = $cache->get($params['sessiondata']);
+		if (!empty($params['storedparams'])) {
+			$data = $cache->get($params['storedparams']);
 			if (!empty($data)) {
 				$params = array_merge($params,$data); //prefer cached values
 				return $cache->get($params['cartkey']);
 			} else {
-				$cache->delete($params['sessiondata']);
+				$cache->delete($params['storedparams']);
 			}
 		}
-		$params['sessiondata'] = Cache::GetKey(session_id());
+		$params['storedparams'] = Cache::GetKey(\Booker::PARMKEY);
 		return $this->MakeCart($cache,$params); //TODO context, withtax
 	}
 
