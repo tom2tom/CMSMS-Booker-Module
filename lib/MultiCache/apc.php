@@ -64,7 +64,7 @@ class Cache_apc extends CacheBase implements CacheInterface
 		if ($iter) {
 			foreach ($iter as $keyword=>$value) {
 				$again = is_object($value); //get it again, in case the filter played with it!
-				if ($this->filterKey($filter,$keyword,$value)) {
+				if ($this->filterItem($filter,$keyword,$value)) {
 					if ($again) {
 						$value = $this->_get($keyword);
 					}
@@ -93,7 +93,7 @@ class Cache_apc extends CacheBase implements CacheInterface
 		if ($iter) {
 			$items = array();
 			foreach ($iter as $keyword=>$value) {
-				if ($this->filterKey($filter,$keyword,$value)) {
+				if ($this->filterItem($filter,$keyword,$value)) {
 					$items[] = $keyword;
 				}
 			}

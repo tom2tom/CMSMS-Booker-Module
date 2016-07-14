@@ -92,7 +92,7 @@ class Cache_database extends CacheBase implements CacheInterface
 				$keyword = $row['keyword'];
 				$value = (!is_null($row['value'])) ? unserialize($row['value']) : NULL;
 				$again = is_object($value); //get it again, in case the filter played with it!
-				if ($this->filterKey($filter,$keyword,$value)) {
+				if ($this->filterItem($filter,$keyword,$value)) {
 					if ($again) {
 						$value = unserialize($row['value']);
 					}
@@ -139,7 +139,7 @@ class Cache_database extends CacheBase implements CacheInterface
 			foreach ($info as $row) {
 				$keyword = $row['keyword'];
 				$value = (!is_null($row['value'])) ? unserialize($row['value']) : NULL;
-				if ($this->filterKey($filter,$keyword,$value)) {
+				if ($this->filterItem($filter,$keyword,$value)) {
 					$ret = $ret && $db->Execute($sql,array($row['cache_id']));
 				}
 			}

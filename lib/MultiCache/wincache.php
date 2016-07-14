@@ -60,7 +60,7 @@ class Cache_wincache extends CacheBase implements CacheInterface
 			$keyword = $one['key_name'];
 			$value = $this->_get($keyword);
 			$again = is_object($value); //get it again, in case the filter played with it!
-			if ($this->filterKey($filter,$keyword,$value)) {
+			if ($this->filterItem($filter,$keyword,$value)) {
 				if ($again) {
 					$value = $this->_get($keyword);
 				}
@@ -89,7 +89,7 @@ class Cache_wincache extends CacheBase implements CacheInterface
 		foreach ($info['ucache_entries'] as $one) {
 			$keyword = $one['key_name'];
 			$value = $this->_get($keyword);
-			if ($this->filterKey($filter,$keyword,$value)) {
+			if ($this->filterItem($filter,$keyword,$value)) {
 				$ret = $ret && wincache_ucache_delete($keyword);
 			}
 		}

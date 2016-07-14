@@ -80,7 +80,7 @@ class Cache_file extends CacheBase implements CacheInterface
 				$keyword = $this->keyword($fp);
 				$value = $this->_get($keyword);
 				$again = is_object($value); //get it again, in case the filter played with it!
-				if ($this->filterKey($filter,$keyword,$value)) {
+				if ($this->filterItem($filter,$keyword,$value)) {
 					if ($again) {
 						$value = $this->_get($keyword);
 					}
@@ -116,7 +116,7 @@ class Cache_file extends CacheBase implements CacheInterface
 			if (is_file($fp)) {
 				$keyword = $this->keyword($fp);
 				$value = $this->_get($keyword);
-				if ($this->filterKey($filter,$keyword,$value)) {
+				if ($this->filterItem($filter,$keyword,$value)) {
 					$ret = $ret && @unlink($fp);
 				}
 			}
