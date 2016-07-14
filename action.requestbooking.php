@@ -18,45 +18,55 @@ $params array
  OR MAYBE
  'bookat'=>
 */
+
+//scrub $params which are harmful/unwanted for next user
+function wash_request_params (&$params)
+{
+	foreach (array('user','contact','captcha','comment','nosend','origreturnid','request') as $key)
+		unset($params[$key]);
+}
+
+$cache = Booker\Cache::GetCache($this);
+$utils = new Booker\Utils();
+//$cart = UNUSED HERE
+$utils->RetrieveParameters($cache,$params); //TODO parameters (context etc) for construction new cart-object
+if (empty($params['slotid'])) {
+	unset($params['slotid']); //avoid dealing with '' param
+}
+
 if (!empty($params['nosend'])) { //user cancelled
 	if (!(is_numeric($params['startat']) || strtotime($params['startat']))) {
 		$params['message'] = $this->Lang('err_system').' '.$params['startat'];
 		$params['startat'] = (int)(time()/86400);
 	} elseif (!isset($params['message']))
-		$params['message'] = '';
-
-	$parms = array(
-	'startat'=>$params['startat'],
-	'range'=>$params['range'],
-	'view'=>$params['view'],
-	'item_id'=>$params['item_id'],
-	'message'=>$params['message']
-	);
-	$this->Redirect($id,'default',$returnid,$parms);
+		$params['message'] = ''; //force clearance
+	wash_request_params($params);
+	$utils->SaveParameters($cache,$params,NULL);
+	$this->Redirect($id,'default',$returnid,
+		array('storedparams'=>$params['storedparams']));
 }
 
 $item_id = (int)$params['item_id'];
 $is_group = ($item_id >= Booker::MINGRPID);
-$funcs = new Booker\Utils();
 
 if (isset($params['slotid'])) {
 	//for a group, here we get some useful representative data
 	$bkg_id = $params['slotid'];
 	$sql = 'SELECT * FROM '.$this->DataTable.' WHERE bkg_id=?';
-	$bdata = $funcs->SafeGet($sql,array($bkg_id),'row');
+	$bdata = $utils->SafeGet($sql,array($bkg_id),'row');
 } else {
 	$bdata = array();
 	if (isset($params['bookat']))
 		$bdata['slotstart'] = $params['bookat'];
 	else
 		$bdata['slotstart'] = $params['startat'];
-	$bdata['slotlen'] = $funcs->GetInterval($this,$item_id,'slot');
+	$bdata['slotlen'] = $utils->GetInterval($this,$item_id,'slot');
 }
 
-$idata = $funcs->GetItemProperty($this,$item_id,'*');
-$overday = ($funcs->GetInterval($this,$item_id,'slot') >= 84600);
+$idata = $utils->GetItemProperty($this,$item_id,'*');
+$overday = ($utils->GetInterval($this,$item_id,'slot') >= 84600);
 $nd = $bdata['slotstart'] + $bdata['slotlen'];
-$localnow = $funcs->GetZoneTime($idata['timezone']);
+$localnow = $utils->GetZoneTime($idata['timezone']);
 $past = ($nd <= $localnow);
 $is_new = !($past || isset($params['requesttype']));
 $tzone = new DateTimeZone('UTC');
@@ -65,7 +75,7 @@ $tplvars = array();
 if (!empty($params['send'])) {
 	$funcs2 = new Booker\Verify();
 	//TODO make this handle $past == TRUE
-	list($res,$errmsg) = $funcs2->VerifyPublic($this,$funcs,$params,$is_new);
+	list($res,$errmsg) = $funcs2->VerifyPublic($this,$utils,$params,$is_new);
 	if ($res) {
 		$save = FALSE;
 		$ob = cms_utils::get_module('FrontEndUsers');
@@ -92,7 +102,7 @@ $this->Crash();
 */
 		} else {
 			//localise 'now'
-			$params['lodged'] = $funcs->GetZoneTime($idata['timezone']);
+			$params['lodged'] = $utils->GetZoneTime($idata['timezone']);
 			$rdata = FALSE; //passed-by-ref
 			$funcs2 = new Booker\Requestops();
 //			$ares =
@@ -124,9 +134,9 @@ $this->Crash();
 				$tweetparms = array();
 				$what = (isset($params['subgrpcount'])) ?
 					sprintf('%d %s',$params['subgrpcount'],$idata['membersname']):
-					$funcs->GetItemName($this,$idata);
+					$utils->GetItemName($this,$idata);
 				$dt = new DateTime($bdata['slotstart'],$tzone);
-				$on = $funcs->IntervalFormat($this,$dt,'D j M');
+				$on = $utils->IntervalFormat($this,$dt,'D j M');
 				if (!$overday)
 					$at = $dt->format('g:i A');
 
@@ -171,32 +181,26 @@ $this->Crash();
 			}
 		}
 
-		$parms = array(
-		 'message'=>$this->Lang('booking_feedback'),
-		 'startat'=>$params['startat'],
-		 'range'=>$params['range'],
-		 'view'=>$params['view'],
-		 'item_id'=>$item_id
-		);
-		$this->Redirect($id,'default',$returnid,$parms);
+		$params['message'] = $this->Lang('booking_feedback');
+		wash_request_params($params);
+		$utils->SaveParameters($cache,$params,NULL);
+		$this->Redirect($id,'default',$returnid,
+			array('storedparams'=>$params['storedparams']));
 	} else { //data error
 		$tplvars['errmessage'] = implode('<br >',$errmsg);
 		//fall into repeat presentation
 	}
 } elseif (isset($params['find'])) {
-	$this->Redirect($id,'findbooking',$returnid,array(
-	 'item_id'=>$item_id,
-	 'startat'=>$params['startat'],
-	 'range'=>$params['range'],
-	 'view'=>$params['view']));
+	wash_request_params($params);
+	$utils->SaveParameters($cache,$params,NULL);
+	$this->Redirect($id,'findbooking',$returnid,
+		array('storedparams'=>$params['storedparams']));
 }
 
 $hidden = array(
 	'item_id'=>$item_id,
-	'startat'=>$params['startat'],
-	'range'=>$params['range'],
-	'view'=>$params['view']);
-if (isset($params['slotid']))
+	'storedparams'=>$params['storedparams']);
+if (!empty($params['slotid']))
 	$hidden['slotid'] = $params['slotid'];
 
 $tplvars['startform'] = $this->CreateFormStart($id,'requestbooking',$returnid,
@@ -209,11 +213,11 @@ $jsfuncs = array();
 $jsloads = array();
 $jsincs = array();
 
-$tplvars['title'] = $funcs->GetItemName($this,$idata);
+$tplvars['title'] = $utils->GetItemName($this,$idata);
 if (!empty($idata['description'])) {
 	$tplvars['desc'] = Booker\Utils::ProcessTemplateFromData($this,$idata['description'],$tplvars);
 }
-$urls = $funcs->GetImageURLs($this,$idata['image'],$idata['name']);
+$urls = $utils->GetImageURLs($this,$idata['image'],$idata['name']);
 if ($urls)
 	$tplvars['pictures'] = $urls;
 
@@ -221,7 +225,7 @@ $mcount = 0;
 $groupextra = FALSE;
 if (!$past) {
 	if ($is_group) {
-		$members = $funcs->GetGroupItems($this,$item_id);
+		$members = $utils->GetGroupItems($this,$item_id);
 		if ($members) {
 			$mcount = count($members);
 			if ($mcount > 1) {
@@ -235,7 +239,7 @@ if (!$past) {
 			$funcs2 = new Booker\Bookingops();
 			$allbooked = $funcs2->GetBooked($this,$members,$bdata['slotstart'],$bdata['slotstart']+$bdata['slotlen']);
 			foreach ($allbooked as $one) {
-				$name = $one['name'] ? $one['name']:$funcs->GetItemNameForID($this,$one['item_id']);
+				$name = $one['name'] ? $one['name']:$utils->GetItemNameForID($this,$one['item_id']);
 				$nowbooked[$name] = $one['user'];
 			}
 			$groupextra = $mcount > count($nowbooked);
@@ -287,10 +291,10 @@ $choosend = ($idata['bookcount'] != 1);
 
 $dt = new DateTime('1900-1-1',$tzone);
 $dt->setTimestamp($bdata['slotstart']);
-$t = $funcs->IntervalFormat($this,$dt,$idata['dateformat']).' '.$dt->format($idata['timeformat']);
+$t = $utils->IntervalFormat($this,$dt,$idata['dateformat']).' '.$dt->format($idata['timeformat']);
 if ($choosend) {
 	$dt->setTimestamp($nd);
-	$t2 = $funcs->IntervalFormat($this,$dt,$idata['dateformat']).' '.$dt->format($idata['timeformat']);
+	$t2 = $utils->IntervalFormat($this,$dt,$idata['dateformat']).' '.$dt->format($idata['timeformat']);
 }
 if ($past) {
 	$tplvars['currentmsg'] = $this->Lang('nopastdesc');
@@ -394,7 +398,7 @@ $jsloads[] = <<<EOS
 EOS;
 
 $tplvars['cancel'] =  $this->CreateInputSubmit($id,'nosend',$this->Lang('cancel'));
-$choices = $funcs->GetItemFamily($this,$db,$item_id);
+$choices = $utils->GetItemFamily($this,$db,$item_id);
 if ($choices && count($choices) > 1) {
 	$tplvars['choose'] =
 		$this->CreateInputDropdown($id,'chooser',array_flip($choices),-1,$item_id,'id="'.$id.'chooser"');
@@ -411,7 +415,7 @@ $stylers = <<<EOS
 <link rel="stylesheet" type="text/css" href="{$baseurl}/css/public.css" />
 <link rel="stylesheet" type="text/css" href="{$baseurl}/css/pikaday.css" />
 EOS;
-$customcss = $funcs->GetStylesURL($this,$item_id);
+$customcss = $utils->GetStylesURL($this,$item_id);
 if ($customcss) {
 	$stylers .= <<<EOS
 <link rel="stylesheet" type="text/css" href="{$customcss}" />{/if}

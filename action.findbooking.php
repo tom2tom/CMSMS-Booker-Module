@@ -28,21 +28,36 @@ OR admin action
 'action' => string 'adminbooking'
 */
 
+//scrub $params which are harmful/unwanted for next user
+function wash_find_params (&$params)
+{
+	foreach (array('find','cancel','origreturnid') as $key)
+		unset($params[$key]);
+}
+
+$cache = Booker\Cache::GetCache($this);
+$utils = new Booker\Utils();
+//$cart =
+$utils->RetrieveParameters($cache,$params); //TODO parameters (context etc) for construction new cart-object
+
 if (isset($params['cancel'])) { //user cancelled
 	if (!(is_numeric($params['startat']) || strtotime($params['startat']))) {
 		$params['message'] = $this->Lang('err_system').' '.$params['startat'];
 		$params['startat'] = (int)(time()/86400);
 	} elseif (!isset($params['message']))
 		$params['message'] = '';
+	wash_find_params($params);
+	$utils->SaveParameters($cache,$params,NULL);
+	$this->Redirect($id,$params['action'],$returnid,
+		array('storedparams'=>$params['storedparams']));
+}
 
-	$parms = array(
-	'startat'=>$params['startat'],
-	'range'=>$params['range'],
-	'view'=>$params['view'],
-	'item_id'=>$params['item_id'],
-	'message'=>$params['message']
-	);
-	$this->Redirect($id,'default',$returnid,$parms);
+if (isset($params['submit'])) {
+	//TODO what params to send back?
+	wash_find_params($params);
+	$utils->SaveParameters($cache,$params,NULL);
+	$this->Redirect($id,$params['action'],$returnid,
+		array('storedparams'=>$params['storedparams']));
 }
 
 if (isset($params['item_id'])) {
@@ -54,44 +69,13 @@ if (isset($params['item_id'])) {
 }
 
 $tplvars = array();
-$funcs = new Booker\Utils();
-$idata = $funcs->GetItemProperty($this,$item_id,'*');
+$idata = $utils->GetItemProperty($this,$item_id,'*');
 $tzone = new DateTimeZone('UTC');
-
-if (isset($params['submit'])) {
-	if (!empty($params['sender'])) {
-		if ($valid) { //STILL
-			try {
-				$dts = new DateTime($params['when'],$tzone);
-			} catch(Exception $e) {
-				$key = 'err_badstart';
-			}
-			if ($params['until']) {
-				try {
-					$dte = new DateTime($params['until'],$tzone);
-				} catch(Exception $e) {
-					$key = 'err_badend';
-				}
-			} else {
-				$slen = $funcs->GetInterval($this,$item_id,'slot');
-				$dte = clone $dts;
-				$dte->modify('+'.$slen.' seconds');
-			}
-		}
-		$this->Redirect($id,'default',$returnid,$parms);
-	} else
-		$key = 'err_nosender';
-
-	$tplvars['message'] = $this->Lang($key);
-	//fall into repeat presentation
-}
 
 $tplvars['startform'] = $this->CreateFormStart($id,'findbooking',$returnid,
 	'POST','','','',array(
 	'item_id'=>$item_id,
-	'startat'=>$params['startat'],
-	'range'=>$params['range'],
-	'view'=>$params['view']
+	'storedparams'=>$params['storedparams']
 	));
 $tplvars['endform'] = $this->CreateFormEnd();
 
@@ -108,7 +92,7 @@ if (isset($params['bookat']))
 	$bdata['slotstart'] = $params['bookat'];
 else
 	$bdata['slotstart'] = $params['startat'];
-$bdata['slotlen'] = $funcs->GetInterval($this,$item_id,'slot');
+$bdata['slotlen'] = $utils->GetInterval($this,$item_id,'slot');
 
 $tplvars['submit'] =  $this->CreateInputSubmit($id,'submit',$this->Lang('submit'));
 $tplvars['cancel'] =  $this->CreateInputSubmit($id,'cancel',$this->Lang('cancel'));
@@ -166,7 +150,7 @@ $t = $this->Lang('longdays');
 $dnames = "'".str_replace(",","','",$t)."'";
 $t = $this->Lang('shortdays');
 $sdnames = "'".str_replace(",","','",$t)."'";
-$overday = ($funcs->GetInterval($this,$item_id,'slot') >= 84600);
+$overday = ($utils->GetInterval($this,$item_id,'slot') >= 84600);
 $momentfmt = ($overday) ? 'YYYY-MM-DD':'YYYY-MM-DD h:mm';
 
 $jsloads[] = <<<EOS
@@ -200,7 +184,7 @@ $stylers = <<<EOS
 <link rel="stylesheet" type="text/css" href="{$baseurl}/css/public.css" />
 <link rel="stylesheet" type="text/css" href="{$baseurl}/css/pikaday.css" />
 EOS;
-$customcss = $funcs->GetStylesURL($this,$item_id);
+$customcss = $utils->GetStylesURL($this,$item_id);
 if ($customcss)
 	$stylers .= <<<EOS
 <link rel="stylesheet" type="text/css" href="{$customcss}" />
