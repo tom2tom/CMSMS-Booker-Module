@@ -172,3 +172,55 @@ input.captcha {
  display:table-cell;
  vertical-align:28px;
 }
+/* sorted tables */
+table.table_sort thead tr th
+{
+	margin: 0 20px;
+	padding: 5px 5px 5px 10px;
+/*	color: #000; */
+/* 	background: #E5B400; / *gold*/
+	text-align: left;
+	cursor: default;
+}
+table.table_sort thead tr th.ord, table.table_sort thead tr th.\{sss\:false\}
+{
+	margin-left: 0;
+	padding-left: 2px;
+}
+table.table_sort thead tr th.checkbox
+{
+	margin-left: 20px;
+	padding-left: 10px;
+}
+
+table.table_sort thead tr .SortAble
+{
+	background-image: url(../images/bgdark.gif);
+	background-repeat: no-repeat;
+	background-position: center left;
+	cursor: pointer;
+}
+
+table.table_sort thead tr .SortUp
+{
+	background-image: url(../images/ascdark.gif);
+	background-repeat: no-repeat;
+	background-position: center left;
+	cursor: pointer;
+}
+
+table.table_sort thead tr .SortDown
+{
+	background-image: url(../images/descdark.gif);
+	background-repeat: no-repeat;
+	background-position: center left;
+	cursor: pointer;
+}
+
+table.table_sort tbody td.row1s {
+	background-color: #E9E9E9;
+}
+
+table.table_sort tbody td.row2s {
+	background: #D9D9D9;
+}
