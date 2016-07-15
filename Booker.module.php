@@ -333,6 +333,11 @@ class Booker extends CMSModule
 		$this->SetParameterType('comment',CLEAN_STRING); //booking-request parameters
 		$this->SetParameterType('contact',CLEAN_STRING);
 		$this->SetParameterType('find',CLEAN_NONE);
+		$this->SetParameterType('findchooser',CLEAN_INT);
+		$this->SetParameterType('findfirst',CLEAN_STRING);
+		$this->SetParameterType('findlast',CLEAN_STRING);
+		$this->SetParameterType('finduser',CLEAN_STRING);
+		$this->SetParameterType('findusertype',CLEAN_INT);
 		$this->SetParameterType('item',CLEAN_STRING); //id or alias
 		$this->SetParameterType('item_id',CLEAN_INT); //for zooms
 		$this->SetParameterType('listformat',CLEAN_INT); //list-format enum
@@ -344,6 +349,7 @@ class Booker extends CMSModule
 		$this->SetParameterType('ranger',CLEAN_INT); //change view-range enum
 		$this->SetParameterType('request',CLEAN_NONE);
 		$this->SetParameterType('requesttype',CLEAN_INT);
+		$this->SetParameterType('search',CLEAN_NONE);
 		$this->SetParameterType('send',CLEAN_NONE);
 		$this->SetParameterType('storedparams',CLEAN_STRING);
 		$this->SetParameterType('slide',CLEAN_INT); //value matches button label
