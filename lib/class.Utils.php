@@ -1485,15 +1485,26 @@ class Utils
 
 	/**
 	SaveParameters:
+
+	Store all or some of @params array and @cart object in cache.
+	Adds @params['storedparams'] before saving, if that's not present already.
+	@params is not changed.
+
 	@cache: reference to Cache oject
-	@params: request-parameters array to be cached
+	@params: request-parameters associative array to be cached
+	@except: parameter key, or array of them, to be omitted from cached @params, or FALSE
 	@cart: cart-object or FALSE
-	Store @params array and @cart object in cache.
-	Adds @params['storedparams'] before saving, if that's not present already
 	Returns: nothing
 	*/
-	public function SaveParameters (&$cache, $params, $cart)
+	public function SaveParameters (&$cache, $params, $except, $cart)
 	{
+		if ($except) {
+			if (is_array($except)) {
+				$params = array_diff_key($params,array_flip($except));
+			} else {
+				unset($params[$except]);
+			}
+		}
 		if (empty($params['storedparams'])) {
 			$params['storedparams'] = Cache::GetKey(session_id());
 		}
@@ -1506,15 +1517,23 @@ class Utils
 	RetrieveParameters:
 	@cache: reference to Cache oject
 	@params: reference to reqest-parameters array
+	@except: parameter key, or array of them, to be omitted from cached @params, default FALSE
 	Update @params from @cache, if possible
 	Returns: BookingCart object, restored from @cache or newly-created
 	*/
-	public function RetrieveParameters (&$cache, &$params)
+	public function RetrieveParameters (&$cache, &$params, $except=FALSE)
 	{
 		if (!empty($params['storedparams'])) {
-			$data = $cache->get($params['storedparams']);
-			if (!empty($data)) {
-				$params = array_merge($params,$data); //prefer cached values
+			$saved = $cache->get($params['storedparams']);
+			if (!empty($saved)) {
+				if ($except) {
+					if (is_array($except)) {
+						$saved = array_diff_key($saved,array_flip($except));
+					} else {
+						unset($saved[$except]);
+					}
+				}
+				$params = array_merge($params,$saved); //prefer cached values
 				return $cache->get($params['cartkey']);
 			} else {
 				$cache->delete($params['storedparams']);

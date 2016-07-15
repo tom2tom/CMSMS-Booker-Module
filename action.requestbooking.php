@@ -27,13 +27,13 @@ $localparams = array(
 	'comment',
 	'nosend',
 	'origreturnid',
-	'request'
+	'request',
+	'send'
 );
 
 $cache = Booker\Cache::GetCache($this);
 $utils = new Booker\Utils();
-//$cart = UNUSED HERE
-$utils->RetrieveParameters($cache,$params); //TODO parameters (context etc) for construction new cart-object
+$utils->RetrieveParameters($cache,$params);
 if (empty($params['slotid'])) {
 	unset($params['slotid']); //avoid dealing with '' param
 }
@@ -44,8 +44,9 @@ if (!empty($params['nosend'])) { //user cancelled
 		$params['startat'] = (int)(time()/86400);
 	} elseif (!isset($params['message']))
 		$params['message'] = ''; //force clearance
-	$utils->SaveParameters($cache,array_diff_key($params,array_flip($localparams)),NULL);
-	$this->Redirect($id,'default',$returnid,
+	$localparams[] = 'slotid'; //scrub, so we don't come back here
+	$utils->SaveParameters($cache,$params,$localparams,NULL);
+	$this->Redirect($id,$params['action'],$params['returnid'],
 		array('storedparams'=>$params['storedparams']));
 }
 
@@ -185,7 +186,7 @@ $this->Crash();
 		}
 
 		$params['message'] = $this->Lang('booking_feedback');
-		$utils->SaveParameters($cache,array_diff_key($params,array_flip($localparams)),NULL);
+		$utils->SaveParameters($cache,$params,$localparams,NULL);
 		$this->Redirect($id,'default',$returnid,
 			array('storedparams'=>$params['storedparams']));
 	} else { //data error
@@ -193,7 +194,7 @@ $this->Crash();
 		//fall into repeat presentation
 	}
 } elseif (isset($params['find'])) {
-	$utils->SaveParameters($cache,array_diff_key($params,array_flip($localparams)),NULL);
+	$utils->SaveParameters($cache,$params,$localparams,NULL);
 	$this->Redirect($id,'findbooking',$returnid,
 		array('storedparams'=>$params['storedparams']));
 }
@@ -423,7 +424,7 @@ if ($customcss) {
 EOS;
 }
 //porting heredoc-var newlines is a problem for qouted strings! workaround ...
-$stylers = str_replace("\n",' ',$stylers);
+$stylers = str_replace("\n",'',$stylers);
 $tplvars['jsstyler'] = <<<EOS
 var \$head = $('head'),
  \$linklast = \$head.find("link[rel='stylesheet']:last"),
