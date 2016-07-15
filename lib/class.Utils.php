@@ -1486,13 +1486,13 @@ class Utils
 	/**
 	SaveParameters:
 	@cache: reference to Cache oject
-	@params: reference to reqest-parameters array
+	@params: request-parameters array to be cached
 	@cart: cart-object or FALSE
 	Store @params array and @cart object in cache.
 	Adds @params['storedparams'] before saving, if that's not present already
 	Returns: nothing
 	*/
-	public function SaveParameters (&$cache, &$params, $cart)
+	public function SaveParameters (&$cache, $params, $cart)
 	{
 		if (empty($params['storedparams'])) {
 			$params['storedparams'] = Cache::GetKey(session_id());
