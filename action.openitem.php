@@ -677,7 +677,7 @@ if ($is_group) {
 				}
 				//rest are still alphabetic by name
 				$allgrps = $sel + $allgrps;
-				//TODO send 'active_tab' as a $param to action.swapgroups				
+				//TODO send 'active_tab' as a $param to action.swapgroups
 				$i = groupstable($this,$tplvars,$id,'members',$returnid,$icondn,$iconup,
 					$item_id,$allgrps,$relations,TRUE,TRUE,'members');
 				if ($rc > 1) //TODO send 'active_tab' as a $param to action.swapgroups
@@ -819,6 +819,7 @@ if ($allgrps) {
 
 	$jsincs[] = <<<EOS
 <script type="text/javascript" src="{$baseurl}/include/jquery.tablednd.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/include/jquery.metadata.min.js"></script>
 <script type="text/javascript" src="{$baseurl}/include/jquery.SSsort.min.js"></script>
 EOS;
 
@@ -1049,7 +1050,7 @@ JOIN {$pref}user_groups UG ON U.user_id = UG.user_id
 JOIN {$pref}group_perms GP ON GP.group_id = UG.group_id
 JOIN {$pref}permissions P ON P.permission_id = GP.permission_id
 JOIN {$pref}groups GR ON GR.group_id = UG.group_id
-WHERE 
+WHERE
 EOS;
 		if (!$allowners)
 			$sql .= "U.user_id=$uid AND "; //no injection risk

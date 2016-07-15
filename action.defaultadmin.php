@@ -952,7 +952,7 @@ JOIN {$pref}user_groups UG ON U.user_id = UG.user_id
 JOIN {$pref}group_perms GP ON GP.group_id = UG.group_id
 JOIN {$pref}permissions P ON P.permission_id = GP.permission_id
 JOIN {$pref}groups GR ON GR.group_id = UG.group_id
-WHERE 
+WHERE
 EOS;
 			if (!$allowners)
 				$sql .= "U.user_id=$uid AND "; //no injection risk
@@ -1121,6 +1121,7 @@ EOS;
 //js
 if ($icount > 0 || $gcount > 0) {
 	$jsincs[] = <<<EOS
+<script type="text/javascript" src="{$baseurl}/include/jquery.metadata.min.js"></script>
 <script type="text/javascript" src="{$baseurl}/include/jquery.SSsort.min.js"></script>
 
 EOS;
