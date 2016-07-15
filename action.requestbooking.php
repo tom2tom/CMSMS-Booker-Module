@@ -19,12 +19,16 @@ $params array
  'bookat'=>
 */
 
-//scrub $params which are harmful/unwanted for next user
-function wash_request_params (&$params)
-{
-	foreach (array('user','contact','captcha','comment','nosend','origreturnid','request') as $key)
-		unset($params[$key]);
-}
+//parameter keys for local use, not to be cached before departure
+$localparams = array(
+	'user',
+	'contact',
+	'captcha',
+	'comment',
+	'nosend',
+	'origreturnid',
+	'request'
+);
 
 $cache = Booker\Cache::GetCache($this);
 $utils = new Booker\Utils();
@@ -40,8 +44,7 @@ if (!empty($params['nosend'])) { //user cancelled
 		$params['startat'] = (int)(time()/86400);
 	} elseif (!isset($params['message']))
 		$params['message'] = ''; //force clearance
-	wash_request_params($params);
-	$utils->SaveParameters($cache,$params,NULL);
+	$utils->SaveParameters($cache,array_diff_key($params,array_flip($localparams)),NULL);
 	$this->Redirect($id,'default',$returnid,
 		array('storedparams'=>$params['storedparams']));
 }
@@ -182,8 +185,7 @@ $this->Crash();
 		}
 
 		$params['message'] = $this->Lang('booking_feedback');
-		wash_request_params($params);
-		$utils->SaveParameters($cache,$params,NULL);
+		$utils->SaveParameters($cache,array_diff_key($params,array_flip($localparams)),NULL);
 		$this->Redirect($id,'default',$returnid,
 			array('storedparams'=>$params['storedparams']));
 	} else { //data error
@@ -191,8 +193,7 @@ $this->Crash();
 		//fall into repeat presentation
 	}
 } elseif (isset($params['find'])) {
-	wash_request_params($params);
-	$utils->SaveParameters($cache,$params,NULL);
+	$utils->SaveParameters($cache,array_diff_key($params,array_flip($localparams)),NULL);
 	$this->Redirect($id,'findbooking',$returnid,
 		array('storedparams'=>$params['storedparams']));
 }
@@ -421,7 +422,8 @@ if ($customcss) {
 <link rel="stylesheet" type="text/css" href="{$customcss}" />{/if}
 EOS;
 }
-
+//porting heredoc-var newlines is a problem for qouted strings! workaround ...
+$stylers = str_replace("\n",' ',$stylers);
 $tplvars['jsstyler'] = <<<EOS
 var \$head = $('head'),
  \$linklast = \$head.find("link[rel='stylesheet']:last"),
