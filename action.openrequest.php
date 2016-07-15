@@ -482,7 +482,8 @@ $stylers = <<<EOS
 <link rel="stylesheet" type="text/css" href="{$baseurl}/css/public.css" />
 <link rel="stylesheet" type="text/css" href="{$baseurl}/css/pikaday.css" />
 EOS;
-
+//porting heredoc-var newlines is a problem for qouted strings! workaround ...
+$stylers = str_replace("\n",' ',$stylers);
 $tplvars['jsstyler'] = <<<EOS
 var \$head = $('head'),
  \$linklast = \$head.find("link[rel='stylesheet']:last"),
