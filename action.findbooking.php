@@ -27,8 +27,6 @@ OR admin action
 'active_tab' =>
 'action' => string 'adminbooking'
 */
-
-
 //parameter keys used locally, but not to be cached before departure
 $localparams = array(
 	'cancel',
@@ -39,13 +37,13 @@ $localparams = array(
 	'finduser',
 	'findusertype',
 	'search',
+	'searchsel',
 	'submit'
 );
 
 $cache = Booker\Cache::GetCache($this);
 $utils = new Booker\Utils();
-//$cart =
-$utils->RetrieveParameters($cache,$params); //TODO parameters (context etc) for construction new cart-object
+$utils->RetrieveParameters($cache,$params);
 
 if (isset($params['cancel'])) { //user cancelled
 	if (!(is_numeric($params['startat']) || strtotime($params['startat']))) {
@@ -53,26 +51,28 @@ if (isset($params['cancel'])) { //user cancelled
 		$params['startat'] = (int)(time()/86400);
 	} elseif (!isset($params['message']))
 		$params['message'] = '';
-	$utils->SaveParameters($cache,array_diff_key($params,array_flip($localparams)),NULL);
-	$this->Redirect($id,$params['action'],$returnid,
+	$utils->SaveParameters($cache,$params,$localparams,NULL);
+	$this->Redirect($id,$params['action'],$params['returnid'],
 		array('storedparams'=>$params['storedparams']));
 }
 
 if (isset($params['submit'])) {
-	//TODO what params to send back?
-	$utils->SaveParameters($cache,array_diff_key($params,array_flip($localparams)),NULL);
-	$this->Redirect($id,$params['action'],$returnid,
+	$use = (int)reset($params['searchsel']);
+//TODO	$params['startat'] = timestampfor($use);
+	$params['slotid'] = $use; //go directly to 'request' view
+	$utils->SaveParameters($cache,$params,$localparams,NULL);
+	$this->Redirect($id,$params['action'],$params['returnid'],
 		array('storedparams'=>$params['storedparams']));
 }
 
 if (isset($params['item_id'])) {
 	$item_id = (int)$params['item_id'];
 	$is_group = ($item_id >= Booker::MINGRPID);
-	$idata = $utils->GetItemProperty($this,$item_id,'*');
+	$idata = $utils->GetItemProperty($this,$item_id,'name');
+	$choices = $utils->GetItemFamily($this,$db,$item_id);
 } else {
-//TODO support any item
-//	$idata = TODO
-	$this->Crash();
+	$idata = array('name'=>$this->Lang('all'));
+	$choices = $db->GetAssoc('SELECT item_id,name FROM '.$mod->ItemTable.' WHERE active>0');
 }
 
 //script accumulators
@@ -80,18 +80,18 @@ $jsfuncs = array();
 $jsloads = array();
 $jsincs = array();
 $baseurl = $this->GetModuleURLPath();
-$tzone = new DateTimeZone('UTC');
+$tableid = 'details';
 
 $tplvars = array();
 
-$utils->SaveParameters($cache,array_diff_key($params,array_flip($localparams)),NULL);
+$utils->SaveParameters($cache,$params,$localparams,NULL);
 $tplvars['startform'] = $this->CreateFormStart($id,'findbooking',$returnid,
 	'POST','','','',array(
 	'item_id'=>$item_id,
 	'storedparams'=>$params['storedparams']
 	));
 $tplvars['endform'] = $this->CreateFormEnd();
-$hidden = ''; //TODO
+$hidden = NULL; //TODO
 $tplvars['hidden'] = $hidden;
 
 if (!empty($params['message']))
@@ -103,11 +103,11 @@ $selects = array();
 
 $oneset = new stdClass();
 $oneset->title = $this->Lang('title_item');
-$choices = $utils->GetItemFamily($this,$db,$item_id);
 if ($choices) {
 	if (count($choices) > 1) {
 		asort($choices,SORT_NATURAL);
-		$t1 = $this->CreateInputDropdown($id,'findchooser',array_flip($choices),-1,$item_id,'id="'.$id.'chooser"');
+		$t2 = isset($params['findchooser']) ? $params['findchooser'] : $item_id;
+		$t1 = $this->CreateInputDropdown($id,'findchooser',array_flip($choices),-1,$t2,'id="'.$id.'chooser"');
 	} else {
 		$t1 = $idata['name'];
 	}
@@ -119,9 +119,12 @@ $selects[] = $oneset;
 
 $oneset = new stdClass();
 $oneset->title = $this->Lang('start');
-$t1 = $this->CreateInputText($id,'findfirst','',10);
+
+$t1 = isset($params['findfirst']) ? $params['findfirst'] : '';
+$t1 = $this->CreateInputText($id,'findfirst',$t1,10);
 $t1 = str_replace('class="cms_textfield"','class="dateinput cms_textfield"',$t1);
-$t2 = $this->CreateInputText($id,'findlast','',10);
+$t2 = isset($params['findlast']) ? $params['findlast'] : '';
+$t2 = $this->CreateInputText($id,'findlast',$t2,10);
 $t2 = str_replace('class="cms_textfield"','class="dateinput cms_textfield"',$t2);
 $oneset->input = $this->Lang('rangeinput',$t1,$t2);
 $selects[] = $oneset;
@@ -129,52 +132,91 @@ $selects[] = $oneset;
 $oneset = new stdClass();
 $oneset->title = $this->Lang('title_user');
 $choices = array($this->Lang('is')=>1,$this->Lang('islike')=>2);
-$t1 = $this->CreateInputRadioGroup($id,'findusertype',$choices,1,'','&nbsp');
+
+// 'finduser' => string like 'Tom'
+$t1 = isset($params['findusertype']) ? $params['findusertype'] : 1;
+$t1 = $this->CreateInputRadioGroup($id,'findusertype',$choices,$t1,'','&nbsp');
 //override crappy default label-layout
 $t1 = preg_replace('~label class="(.*)"~U','label class="\\1 radiolabel"',$t1);
-$oneset->input = $t1.' '.$this->CreateInputText($id,'finduser','',15,45);
+$t2 = isset($params['finduser']) ? $params['finduser'] : '';
+$oneset->input = $t1.' '.$this->CreateInputText($id,'finduser',$t2,15,45);
 $selects[] = $oneset;
 
 $tplvars['selects'] = $selects;
 
-/* TODO STUFF
-$bdata = array();
-if (isset($params['bookat']))
-	$bdata['slotstart'] = $params['bookat'];
-else
-	$bdata['slotstart'] = $params['startat'];
-$bdata['slotlen'] = $utils->GetInterval($this,$item_id,'slot');
-*/
-
 if (isset($params['search'])) {
+/* use $params[] members:
+ 'findchooser' => int item_id
+ 'findfirst' => string e.g. '2016-07-14'
+ 'findlast' => string e.g. ''
+ 'findusertype' => int 1 or 2 for exact or partial name-match
+ 'finduser' => string like 'Tom'
+ */
+	$utils = new Booker\Utils();
+	$cond = array();
+	$t = (int)$params['findchooser'];
+	if ($t < Booker::MINGRPID) {
+		$cond[] = 'B.item_id='.$t;
+	} else {
+		$members = $utils->GetGroupItems($this,$t);
+		if ($members) {
+			$fillers = implode(',',$members);
+			$cond[] = 'B.item_id IN('.$fillers.')';
+		}
+	}
+	$t = $params['finduser'];
+	if ($t) {
+		if ($params['findusertype'] == 1) { //exact match
+			$cond[] = 'B.user=\''.$t.'\'';
+		} else {
+			$cond[] = 'B.user LIKE \'%'.$t.'%\'';
+		}
+	}
+	$tz = new DateTimeZone('UTC');
+	if ($params['findfirst']) { // => string like '2016-07-14'
+		$dts = new DateTime($params['findfirst'],$tz);
+		$cond[] = 'B.slotstart>='.$dts->getTimestamp();
+	}
+	if ($params['findlast']) {
+		$dts = new DateTime($params['findlast'].' 23:59:59',$tz);
+		$cond[] = 'B.slotstart<='.$dts->getTimestamp();
+	}
+	$sql = 'SELECT B.bkg_id,B.slotstart,B.slotlen,B.user,I.name FROM '.$this->DataTable.
+	' B LEFT JOIN '.$this->ItemTable.' I ON B.item_id=I.item_id';
+	if ($cond) {
+		$sql .= ' WHERE '.implode(' AND ',$cond);
+	}
+	$rows = $db->GetArray($sql);
 	$items = array();
-	//TODO get actual matches
-	$oneset = new stdClass();
-	$oneset->rowclass = 'row1';
-	$oneset->what = 'Resource 1';
-	$oneset->when = '2016-9-13 @ 9:00 to 9:59';
-	$oneset->who = 'Roger';
-	$oneset->hidden = 1;
-	$oneset->cb = $this->CreateInputCheckbox($id,'sel[]',1,-1,'class="pagecheckbox"');
-	$items[] = $oneset;
-
-	$oneset = new stdClass();
-	$oneset->rowclass = 'row2';
-	$oneset->what = 'Resource 2';
-	$oneset->when = '2016-9-12 @ 15:00 to 16:59';
-	$oneset->who = 'James';
-	$oneset->hidden = 2;
-	$oneset->cb = $this->CreateInputCheckbox($id,'sel[]',2,-1,'class="pagecheckbox"');
-	$items[] = $oneset;
-
-	$oneset = new stdClass();
-	$oneset->rowclass = 'row1';
-	$oneset->what = 'Resource 3';
-	$oneset->when = '2016-9-12 @ 9:00 to 9:59';
-	$oneset->who = 'Roger';
-	$oneset->hidden = 3;
-	$oneset->cb = $this->CreateInputCheckbox($id,'sel[]',3,-1,'class="pagecheckbox"');
-	$items[] = $oneset;
+	if ($rows) {
+		$class = 'row1';
+		$dts = new DateTime('1900-1-1',$tz);
+		$dte = clone $dts;
+		foreach ($rows as $one) {
+			$oneset = new stdClass();
+			$oneset->rowclass = $class;
+			$oneset->what = $one['name'];
+			$dts->setTimestamp($one['slotstart']);
+			$t1 = $dts->format('Y-n-j (D)');
+			$dte->setTimestamp($one['slotstart']+$one['slotlen']);
+			$t2 = $dte->format('Y-n-j (D)');
+			if ($t1 == $t2) {
+				$t = $t1;
+				$t1 = $dts->format('G:i');
+				$t2 = $dte->format('G:i');
+				$t .= ' '.$this->Lang('rangeinput',$t1,$t2);
+			} else {
+				$t1 .= ' '.$dts->format('G:i');
+				$t2 .= ' '.$dte->format('G:i');
+				$t = $this->Lang('rangeinput',$t1,$t2);
+			}
+			$oneset->when = $t; //Mon 2016-9-13 from 9:00 to 9:59';
+			$oneset->who = $one['user'];
+			$oneset->sel = $this->CreateInputCheckbox($id,'searchsel[]',(int)$one['bkg_id'],-1,'class="pagecheckbox"');
+			$items[] = $oneset;
+			$class = ($class = 'row1') ? 'row2':'row1';
+		}
+	}
 
 	$count = count($items);
 	if ($count) {
@@ -188,6 +230,62 @@ if (isset($params['search'])) {
 <script type="text/javascript" src="{$baseurl}/include/jquery.metadata.min.js"></script>
 <script type="text/javascript" src="{$baseurl}/include/jquery.SSsort.min.js"></script>
 EOS;
+			//TODO make page-rows count window-size-responsive
+			$pagerows = $this->GetPreference('pref_pagerows',10);
+			if ($pagerows && $count > $pagerows) {
+				$tplvars['hasnav'] = 1;
+				//setup for SSsort
+				$choices = array(strval($pagerows) => $pagerows);
+				$f = ($pagerows < 4) ? 5 : 2;
+				$n = $pagerows * $f;
+				if ($n < $count)
+					$choices[strval($n)] = $n;
+				$n *= 2;
+				if ($n < $count)
+					$choices[strval($n)] = $n;
+				$choices[$this->Lang('all')] = 0;
+				$tplvars['rowchanger'] =
+					$this->CreateInputDropdown($id,'pagerows',$choices,-1,$pagerows,
+					'onchange="pagerows(this);"').'&nbsp;&nbsp;'.$this->Lang('pagerows');
+				$curpg='<span id="cpage">1</span>';
+				$totpg='<span id="tpage">'.ceil($count/$pagerows).'</span>';
+				$tplvars += array(
+					'pageof' => $this->Lang('pageof',$curpg,$totpg),
+					'first' => '<a href="javascript:pagefirst()">'.$this->Lang('first').'</a>',
+					'prev' => '<a href="javascript:pageback()">'.$this->Lang('previous').'</a>',
+					'next' => '<a href="javascript:pageforw()">'.$this->Lang('next').'</a>',
+					'last' => '<a href="javascript:pagelast()">'.$this->Lang('last').'</a>'
+				);
+
+				$jsfuncs[] = <<<EOS
+function pagefirst() {
+ $.SSsort.movePage($('#{$tableid}')[0],false,true);
+}
+function pagelast() {
+ $.SSsort.movePage($('#{$tableid}')[0],true,true);
+}
+function pageforw() {
+ $.SSsort.movePage($('#{$tableid}')[0],true,false);
+}
+function pageback() {
+ $.SSsort.movePage($('#{$tableid}')[0],false,false);
+}
+function pagerows(cb) {
+ $.SSsort.setCurrent($('#{$tableid}')[0],'pagesize',parseInt(cb.value));
+}
+
+EOS;
+				$extras = <<<EOS
+,
+  currentid: 'cpage',
+  countid: 'tpage',
+  paginate: true,
+  pagesize: {$pagerows}
+EOS;
+			} else { //$count <= $pagerows
+				$tplvars['hasnav'] = 0;
+				$extras = '';
+			}
 			//TODO sorter func for type 'slotwhen'
 			$jsloads[] = <<<EOS
  $.SSsort.addParser({
@@ -202,65 +300,17 @@ EOS;
   watch: false,
   type: 'text'
  });
- $('table#details').SSsort({
+ $('table#{$tableid}').SSsort({
   sortClass: 'SortAble',
   ascClass: 'SortUp',
   descClass: 'SortDown',
   oddClass: 'row1',
   evenClass: 'row2',
   oddsortClass: 'row1s',
-  evensortClass: 'row2s'
+  evensortClass: 'row2s'{$extras}
  });
 
 EOS;
-			//TODO make page-rows count window-size-responsive
-			$pagerows = $this->GetPreference('pref_pagerows',10);
-			if ($pagerows && $count > $pagerows) {
-				$tplvars['hasnav'] = 1;
-				//setup for SSsort
-				$choices = array(strval($pagerows) => $pagerows);
-				$f = ($pagerows < 4) ? 5 : 2;
-				$n = $pagerows * $f;
-				if ($n < $rc)
-					$choices[strval($n)] = $n;
-				$n *= 2;
-				if ($n < $rc)
-					$choices[strval($n)] = $n;
-				$choices[$this->Lang('all')] = 0;
-				$tplvars['rowchanger'] =
-					$this->CreateInputDropdown($id,'pagerows',$choices,-1,$pagerows,
-					'onchange="pagerows(this);"').'&nbsp;&nbsp;'.$this->Lang('pagerows');
-				$curpg='<span id="cpage">1</span>';
-				$totpg='<span id="tpage">'.ceil($rc/$pagerows).'</span>';
-				$tplvars += array(
-					'pageof' => $this->Lang('pageof',$curpg,$totpg),
-					'first' => '<a href="javascript:pagefirst()">'.$this->Lang('first').'</a>',
-					'prev' => '<a href="javascript:pageback()">'.$this->Lang('previous').'</a>',
-					'next' => '<a href="javascript:pageforw()">'.$this->Lang('next').'</a>',
-					'last' => '<a href="javascript:pagelast()">'.$this->Lang('last').'</a>'
-				);
-
-				$jsfuncs[] = <<<EOS
-function pagefirst() {
- $.SSsort.movePage($('#bookings')[0],false,true);
-}
-function pagelast() {
- $.SSsort.movePage($('#bookings')[0],true,true);
-}
-function pageforw() {
- $.SSsort.movePage($('#bookings')[0],true,false);
-}
-function pageback() {
- $.SSsort.movePage($('#bookings')[0],false,false);
-}
-function pagerows(cb) {
- $.SSsort.setCurrent($('#bookings')[0],'pagesize',parseInt(cb.value));
-}
-
-EOS;
-			} else { //$count <= $pagerows
-				$tplvars['hasnav'] = 0;
-			}
 		}//$count > 1
 	} else { // no matches found
 		$tplvars['nofinds'] = $this->Lang('nofinds');
@@ -270,16 +320,15 @@ EOS;
 }
 $tplvars['count'] = $count;
 
-//TODO en/disable this according to user selection
 $xtra = ($count) ? '' : 'disabled="disabled"';
 $tplvars['submit'] = $this->CreateInputSubmit($id,'submit',$this->Lang('useselection'),$xtra);
 $tplvars['cancel'] = $this->CreateInputSubmit($id,'cancel',$this->Lang('cancel'));
 $tplvars['search'] = $this->CreateInputSubmit($id,'search',$this->Lang('find'));
 
 
-		$jsloads[] = <<<EOS
+$jsloads[] = <<<EOS
  $('#{$id}submit').prop('disabled',true).bind('click',validate);
- $('table#details').find('input[type="checkbox"]').click(function(ev) {
+ $('table#{$tableid}').find('input[type="checkbox"]').click(function(ev) {
   var st = $(this).attr('checked');
   if (st) {
     var \$cb = $(this),
@@ -294,6 +343,18 @@ $tplvars['search'] = $this->CreateInputSubmit($id,'search',$this->Lang('find'));
 
 EOS;
 
+//for picker
+
+$stylers = <<<EOS
+<link rel="stylesheet" type="text/css" href="{$baseurl}/css/pikaday.css" />
+EOS;
+
+$jsincs[] = <<<EOS
+<script type="text/javascript" src="{$baseurl}/include/moment.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/include/pikaday.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/include/jquery.pikaday.min.js"></script>
+EOS;
+
 $nextm = $this->Lang('nextm');
 $prevm = $this->Lang('prevm');
 //js wants quoted period-names
@@ -304,7 +365,7 @@ $dnames = "'".str_replace(",","','",$t)."'";
 $t = $this->Lang('shortdays');
 $sdnames = "'".str_replace(",","','",$t)."'";
 
-$jsloads[] = <<< EOS
+$jsloads[] = <<<EOS
  $('.dateinput').Pikaday({
   container: document.getElementById('calendar'),
   format: 'YYYY-MM-DD',
@@ -318,69 +379,42 @@ $jsloads[] = <<< EOS
  });
 
 EOS;
-/*
-<div id="calendar"></div>
-    container: this.parentNode,
 
-$jsloads[] = <<<EOS
- new Pikaday({
-  field: document.getElementById('calendar'),
-  trigger: document.getElementById('{$id}when'),
-  format: 'YYYY-MM-DD',
-  i18n: {
-   previousMonth: '{$prevm}',
-   nextMonth: '{$nextm}',
-   months: [{$mnames}],
-   weekdays: [{$dnames}],
-   weekdaysShort: [{$sdnames}]
-  },
-  onClose: function() {
-   var sel = $('#calendar').val();
-   if (sel !== '') { //not cancelled
-    var d = new Date(sel);
-    var f = 'YYYY-MM-DD';
-    var d2 = moment(d).format(f);
-    $('#{$id}when').val(d2);
-    d2 = moment(d).add({$bdata['slotlen']},'s').format(f);
-    $('#{$id}until').val(d2);
-   }
-  }
- });
-
-EOS;
-*/
 $jsfuncs[] = <<<EOS
 function showerr(msg) {
  confirm(msg);
 }
 function validate(ev) {
- var s = $('input[name="{$id}when"]').val(),
-     e = $('input[name="{$id}until"]').val();
- var ok = !isNaN(Date.parse(s));
- ok = ok && !isNaN(Date.parse(e));
- if (ok) {
-  var ds = new Date(s),
-      de = new Date(e),
-      dn = new Date();
-  ok = de > ds && ds > dn;
- }
- if (!ok) {
-  showerr('{$this->Lang('err_badtime')}');
+ var \$os = $('input[name="{$id}findfirst"]'),
+  s = \$os.val(),
+  \$oe = $('input[name="{$id}findlast"]'),
+  e = \$oe.val(),
+  ds, de, ok;
+ if (s) {
+  ds = (!isNaN(Date.parse(s))) ? new Date(s) : null;
  } else {
-  if ($('#{$id}sender').val() == '') {
-   showerr('{$this->Lang('err_nosender')}');
-   ok = false;
-  } else if ($('#{$id}contact').val() == '') {
-   showerr('{$this->Lang('err_nocontact')}');
-   ok = false;
-  } else if ($('{$id}captcha').val() == '') {
-   showerr('{$this->Lang('err_nocaptcha')}');
-   ok = false;
-  }
+  ds = false;
  }
+ if (e) {
+  de = (!isNaN(Date.parse(e))) ? new Date(e) : null;
+ } else {
+  de = false;
+ }
+ ok = (ds && de) ? (de >= ds) : (ds !== null && de !== null);
  if (ok) {
+  var f = 'YYYY-MM-DD',
+   dn;
+  if (ds) {
+   dn = moment(ds).format(f);
+   \$os.val(dn);
+  }
+  if (de) {
+   dn = moment(de).format(f);
+   \$oe.val(dn);
+  }
   return true;
  }
+ showerr('{$this->Lang('err_badtime')}');
  ev.stopImmediatePropagation();
  ev.preventDefault();
  return false;
@@ -388,17 +422,17 @@ function validate(ev) {
 
 EOS;
 
-$stylers = <<<EOS
+$stylers .= <<<EOS
 <link rel="stylesheet" type="text/css" href="{$baseurl}/css/public.css" />
-<link rel="stylesheet" type="text/css" href="{$baseurl}/css/pikaday.css" />
 EOS;
 $customcss = $utils->GetStylesURL($this,$item_id);
 if ($customcss)
 	$stylers .= <<<EOS
 <link rel="stylesheet" type="text/css" href="{$customcss}" />
 EOS;
+
 //porting heredoc-var newlines is a problem for qouted strings! workaround ...
-$stylers = str_replace("\n",' ',$stylers);
+$stylers = str_replace("\n",'',$stylers);
 $tplvars['jsstyler'] = <<<EOS
 var \$head = $('head'),
  \$linklast = \$head.find("link[rel='stylesheet']:last"),
@@ -408,13 +442,6 @@ if (\$linklast.length) {
 } else {
  \$head.append(linkadd);
 }
-EOS;
-
-//for picker
-$jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/include/moment.min.js"></script>
-<script type="text/javascript" src="{$baseurl}/include/pikaday.js"></script>
-<script type="text/javascript" src="{$baseurl}/include/jquery.pikaday.min.js"></script>
 EOS;
 
 if ($jsloads) {
