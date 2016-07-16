@@ -15,8 +15,10 @@
  </tbody></table>
  <div id="calendar" style="margin:5px auto 0 5em"></div>
 </div>
-<div id="results">
 {if $count}
+{if $hasnav}<div class="browsenav">{$first}&nbsp;|&nbsp;{$prev}&nbsp;&lt;&gt;&nbsp;{$next}&nbsp;|&nbsp;{$last}&nbsp;({$pageof})&nbsp;&nbsp;{$rowchanger}</div>
+{/if}
+<div id="results">
 <table id="details"{if $count>1} class="table_sort"{/if} style="margin:0;border:0;border-collapse:collapse;">
  <thead><tr>
   <th>{$whattitle}</th>
@@ -30,15 +32,16 @@
  <td>{$entry->what}</td>
  <td>{$entry->when}</td>
  <td>{$entry->who}</td>
- <td><span class="identifier" style="display:none;">{$entry->hidden}</span>{$entry->cb}</td>
+ <td>{$entry->sel}</td>
  </tr>
  {/foreach}
  </tbody>
 </table>
+</div>
+{if $hasnav}<div class="browsenav">{$first}&nbsp;|&nbsp;{$prev}&nbsp;&lt;&gt;&nbsp;{$next}&nbsp;|&nbsp;{$last}</div>{/if}
 {else}
 {if !empty($nofinds)}<p>{$nofinds}</p>{/if}
 {/if}
-</div>
 <br />
 {$search} {$cancel} {$submit}
 {$endform}
