@@ -345,17 +345,20 @@ class Booker extends CMSModule
 		$this->SetParameterType('newlist',CLEAN_INT); //list-format change boolean
 		$this->SetParameterType('nosend',CLEAN_NONE);
 		$this->SetParameterType('origreturnid',CLEAN_INT); //something for captcha module?
+		$this->SetParameterType('pagerows',CLEAN_INT); //table-pager value
 		$this->SetParameterType('range',CLEAN_STRING); //enum or period-name
 		$this->SetParameterType('ranger',CLEAN_INT); //change view-range enum
 		$this->SetParameterType('request',CLEAN_NONE);
 		$this->SetParameterType('requesttype',CLEAN_INT);
 		$this->SetParameterType('search',CLEAN_NONE);
+		$this->SetParameterType('searchsel',CLEAN_NONE);
 		$this->SetParameterType('send',CLEAN_NONE);
 		$this->SetParameterType('storedparams',CLEAN_STRING);
 		$this->SetParameterType('slide',CLEAN_INT); //value matches button label
 		$this->SetParameterType('slotid',CLEAN_STRING);
 		$this->SetParameterType('startat',CLEAN_STRING);
 		$this->SetParameterType('subgrpcount',CLEAN_INT);
+		$this->SetParameterType('submit',CLEAN_NONE);
 		$this->SetParameterType('toggle',CLEAN_NONE);
 		$this->SetParameterType('until',CLEAN_STRING);
 		$this->SetParameterType('user',CLEAN_STRING);
