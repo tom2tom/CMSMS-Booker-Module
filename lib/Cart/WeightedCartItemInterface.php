@@ -15,4 +15,3 @@ interface WeightedCartItemInterface extends CartItemInterface
 	*/
 	public function getWeight();
 }
-?>

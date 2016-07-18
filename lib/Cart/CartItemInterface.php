@@ -66,4 +66,3 @@ interface CartItemInterface
 	*/
 	public function getTaxRate();
 }
-?>
