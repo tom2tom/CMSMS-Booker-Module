@@ -14,7 +14,7 @@ class Cart
 	/**
 	Cart items
 
-	@var array of objects
+	@var array of objects each implementing CartItemInterface or an extension
 	*/
 	protected $items = array();
 
@@ -182,11 +182,15 @@ class Cart
 	/**
 	Get cart items (as references), optionally filtered
 
-	@param NULL|callable filter, must NOT be end-user definable (injection-risk)
-	@return array
+	@param NULL|string|callable filter for array_filter(),
+		a callable must NOT be end-user definable (injection-risk)
+	@return array, actual raw data of items
 	*/
 	public function getItems($filter=NULL)
 	{
+		if (is_string($filter)) {
+			$filter = $this->getTypeCondition($filter);
+		}
 		if ($filter && !is_callable($filter)) {
 			throw new \InvalidArgumentException('Filter for getItems method must be callable.');
 		}
@@ -367,10 +371,11 @@ class Cart
 	}
 
 	/**
-	Get totals using filter
-	If filter is string, uses getTypeCondition() to build filter function.
+	Get property-totals for all cart-items matching filter
 
-	@param callable|string, if string  then maybe ','-separated, leading ~ to negate
+	@param optional filter callable|string, if string then per getTypeCondition(),
+	    and result is cached
+		Default = match every type of item in the cart
 	@return array
 	*/
 	public function getTotals($filter='~')
@@ -403,14 +408,21 @@ class Cart
 	/**
 	Get subtotal
 
-	@param string type, maybe ','-separated, leading ~ to negate
+	@param optional filter callable|string, if string then per getTypeCondition(),
+		default match everything in cart
 	@return formatted decimal
 	*/
-	public function getSubtotal($type='~')
+	public function getSubtotal($filter='~')
 	{
+		try {
+			$totals = $this->getTotals($filter);
+		} catch ( \Exception $e) {
+			return FALSE;
+		}
+
 		$subtotal = 0.0;
 
-		foreach ($this->getTotals($type)['subtotals'] as $amount) {
+		foreach ($totals['subtotals'] as $amount) {
 			$subtotal += $amount;
 		}
 
@@ -420,14 +432,21 @@ class Cart
 	/**
 	Get total
 
-	@param string type, maybe ','-separated, leading ~ to negate
+	@param optional filter callable|string, if string then per getTypeCondition(),
+		default match everything in cart
 	@return formatted decimal
 	*/
-	public function getTotal($type='~')
+	public function getTotal($filter='~')
 	{
+		try {
+			$totals = $this->getTotals($filter);
+		} catch ( \Exception $e) {
+			return FALSE;
+		}
+
 		$total = 0.0;
 
-		foreach ($this->getTotals($type)['totals'] as $amount) {
+		foreach ($totals['totals'] as $amount) {
 			$total += $amount;
 		}
 
@@ -437,55 +456,84 @@ class Cart
 	/**
 	Get taxes
 
-	@param string type, maybe ','-separated, leading ~ to negate
+	@param optional filter callable|string, if string then per getTypeCondition(),
+		default match everything in cart
 	@return array
 	*/
-	public function getTaxes($type='~')
+	public function getTaxes($filter='~')
 	{
-		return $this->getTotals($type)['taxes'];
+		try {
+			$totals = $this->getTotals($filter);
+		} catch ( \Exception $e) {
+			return FALSE;
+		}
+		return $totals['taxes'];
 	}
 
 	/**
 	Get tax bases
 
-	@param string type, maybe ','-separated, leading ~ to negate
+	@param optional filter callable|string, if string then per getTypeCondition(),
+		default match everything in cart
 	@return array
 	*/
-	public function getTaxBases($type='~')
+	public function getTaxBases($filter='~')
 	{
-		return $this->getTotals($type)['subtotals'];
+		try {
+			$totals = $this->getTotals($filter);
+		} catch ( \Exception $e) {
+			return FALSE;
+		}
+		return $totals['subtotals'];
 	}
 
 	/**
 	Get tax totals
 
-	@param string type, maybe ','-separated, leading ~ to negate
+	@param optional filter callable|string, if string then per getTypeCondition(),
+		default match everything in cart
 	@return array
 	*/
-	public function getTaxTotals($type = '~')
+	public function getTaxTotals($filter='~')
 	{
-		return $this->getTotals($type)['totals'];
+		try {
+			$totals = $this->getTotals($filter);
+		} catch ( \Exception $e) {
+			return FALSE;
+		}
+		return $totals['totals'];
 	}
 
 	/**
 	Get weight
 
-	@param string type, maybe ','-separated, leading ~ to negate
+	@param optional filter callable|string, if string then per getTypeCondition(),
+		default match everything in cart
 	@return array
 	*/
-	public function getWeight($type='~')
+	public function getWeight($filter='~')
 	{
-		return $this->getTotals($type)['weight'];
+		try {
+			$totals = $this->getTotals($filter);
+		} catch ( \Exception $e) {
+			return FALSE;
+		}
+		return $totals['weight'];
 	}
 
 	/**
 	Calculate totals
 
-	@param callable filter
-	@return array
+	@param optional filter callable|string, if string then per getTypeCondition(),
+		default match everything in cart
+	@return array with members 'totals'(with tax),'subtotals'(no tax),'taxes','weight' all-but-weight are arraya
 	*/
-	protected function _calculateTotals($filter)
+	protected function _calculateTotals($filter='~')
 	{
+		if (is_string($filter)) {
+			$filter = $this->getTypeCondition($filter);
+		}
+
 		if (!is_callable($filter)) {
 			throw new \InvalidArgumentException('Filter for _calculateTotals method must be callable.');
 		}
@@ -510,7 +558,7 @@ class Cart
 			}
 		}
 
-		$totals = array('subtotals' => array(), 'taxes' => array(), 'totals' => array(), 'weight' => $weight);
+		$totals = array('totals' => array(), 'subtotals' => array(), 'taxes' => array(), 'weight' => $weight);
 
 		foreach ($taxTotals as $taxRate => $amount) {
 			if ($this->pricesWithTax) {
@@ -530,8 +578,9 @@ class Cart
 	/**
 	Build condition for item type
 
-	@param string item type
-	@return Closure
+	@param type string cart-item-type(s), one or ','-separated,
+	  leading '~' to negate, '~' alone matches everything
+	@return Closure implementing relevant filter
 	*/
 	protected function getTypeCondition($type)
 	{
@@ -542,7 +591,7 @@ class Cart
 
 		$type = explode(',', $type);
 
-		return function(CartItemInterface $item) use ($type, $negative)
+		return function(CartItemInterface $item) use ($negative, $type)
 		{
 			return $negative ? !in_array($item->getCartType(), $type) : in_array($item->getCartType(), $type);
 		};
@@ -558,4 +607,3 @@ class Cart
 		$this->totals = NULL;
 	}
 }
-?>
