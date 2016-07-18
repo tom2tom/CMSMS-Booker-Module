@@ -45,7 +45,7 @@ if (!empty($params['nosend'])) { //user cancelled
 	} elseif (!isset($params['message']))
 		$params['message'] = ''; //force clearance
 	$localparams[] = 'slotid'; //scrub, so we don't come back here
-	$utils->SaveParameters($cache,$params,$localparams,NULL);
+	$utils->SaveParameters($cache,$params,$localparams);
 	$this->Redirect($id,$params['action'],$params['returnid'],
 		array('storedparams'=>$params['storedparams']));
 }
@@ -186,7 +186,7 @@ $this->Crash();
 		}
 
 		$params['message'] = $this->Lang('booking_feedback');
-		$utils->SaveParameters($cache,$params,$localparams,NULL);
+		$utils->SaveParameters($cache,$params,$localparams);
 		$this->Redirect($id,'default',$returnid,
 			array('storedparams'=>$params['storedparams']));
 	} else { //data error
@@ -194,7 +194,7 @@ $this->Crash();
 		//fall into repeat presentation
 	}
 } elseif (isset($params['find'])) {
-	$utils->SaveParameters($cache,$params,$localparams,NULL);
+	$utils->SaveParameters($cache,$params,$localparams);
 	$this->Redirect($id,'findbooking',$returnid,
 		array('storedparams'=>$params['storedparams']));
 }
