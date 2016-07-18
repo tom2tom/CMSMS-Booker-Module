@@ -264,6 +264,7 @@ class Booker extends CMSModule
 			if (strpos($request['mact'],'multibooking',6)
 				&& isset($request['m1_export'])) return TRUE;
 			if (strpos($request['mact'],'sortlike',6)) return TRUE;
+//			if (strpos($request['mact'],'deletecartitem',6)) return TRUE;
 		}
 		return FALSE;
 	}
@@ -332,6 +333,7 @@ class Booker extends CMSModule
 		$this->SetParameterType('clickat',CLEAN_STRING);
 		$this->SetParameterType('comment',CLEAN_STRING); //booking-request parameters
 		$this->SetParameterType('contact',CLEAN_STRING);
+		$this->SetParameterType('delete',CLEAN_NONE); //cart-item action
 		$this->SetParameterType('find',CLEAN_NONE);
 		$this->SetParameterType('findchooser',CLEAN_INT);
 		$this->SetParameterType('findfirst',CLEAN_STRING);
@@ -339,6 +341,7 @@ class Booker extends CMSModule
 		$this->SetParameterType('finduser',CLEAN_STRING);
 		$this->SetParameterType('findusertype',CLEAN_INT);
 		$this->SetParameterType('item',CLEAN_STRING); //id or alias
+		$this->SetParameterType('itemkeys',CLEAN_STRING);
 		$this->SetParameterType('item_id',CLEAN_INT); //for zooms
 		$this->SetParameterType('listformat',CLEAN_INT); //list-format enum
 		$this->SetParameterType('message',CLEAN_STRING);
