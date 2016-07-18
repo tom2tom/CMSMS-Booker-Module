@@ -13,13 +13,13 @@
  <tr></tr><td>{$entry->title}</td><td>{$entry->input}</td><tr></tr>
 {/foreach}
  </tbody></table>
- <div id="calendar" style="margin:5px auto 0 5em"></div>
+ <div id="calendar"></div>
 </div>
 {if $count}
 {if $hasnav}<div class="browsenav">{$first}&nbsp;|&nbsp;{$prev}&nbsp;&lt;&gt;&nbsp;{$next}&nbsp;|&nbsp;{$last}&nbsp;({$pageof})&nbsp;&nbsp;{$rowchanger}</div>
 {/if}
 <div id="results">
-<table id="details"{if $count>1} class="table_sort"{/if} style="margin:0;border:0;border-collapse:collapse;">
+<table id="details" class="{if $count>1}table_sort {/if}bkr_collapse">
  <thead><tr>
   <th>{$whattitle}</th>
   <th class="{ldelim}sss:'slotwhen'{rdelim}">{$whentitle}</th>
