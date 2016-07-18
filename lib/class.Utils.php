@@ -1339,7 +1339,7 @@ class Utils
 	Get one, or array of, translated time-interval-name(s).
 	If @cap is TRUE, this uses ucfirst() which expects PHP locale value to be correspond to the translation of names
 
-	@mod reference to current module-object
+	@mod: reference to current module-object
 	@which: index 0 (for 'none'), 1 (for 'minute') .. 6 (for 'year'), or array of
 		such indices consistent with TimeIntervals() + 1
 	@plural: optional, whether to get plural form of the interval name(s), default FALSE
@@ -1355,7 +1355,7 @@ class Utils
 		if (!is_array($which)) {
 			if ($which >= 0 && $which < $c) {
 				if ($cap)
-					return ucfirst($all[$which]);
+					return mb_convert_case($all[$which],MB_CASE_TITLE); //TODO CHECK encoding string
 				else
 					return $all[$which];
 			}
@@ -1364,7 +1364,8 @@ class Utils
 		$ret = array();
 		foreach ($which as $period) {
 			if ($period >= 0 && $period < $c) {
-				$ret[$period] = ($cap) ? ucfirst($all[$period]): //for current locale
+				$ret[$period] = ($cap) ?
+					mb_convert_case($all[$period],MB_CASE_TITLE):
 					$all[$period];
 			}
 		}
@@ -1377,7 +1378,7 @@ class Utils
 	Get one, or array of, translated month-name(s).
 	If array, returned keys are values from @which i.e. 1-based
 
-	@mod reference to current module-object
+	@mod: reference to current module-object
 	@which: 1 (for January) .. 12 (for December), or array of such indices
 	@short: optional, whether to get short-form name, default FALSE
 	*/
@@ -1403,11 +1404,11 @@ class Utils
 
 	Get one, or array of, translated day-name(s)
 
-	@mod reference to current module-object
+	@mod: reference to current module-object
 	@which: 0 (for Sunday) .. 6 (for Saturday), or array of such indices
 	@short: optional, whether to get short-form name, default FALSE
 	*/
-	public function DayNames(&$mod,$which, $short=FALSE)
+	public function DayNames(&$mod, $which, $short=FALSE)
 	{
 		$k = ($short) ? 'shortdays' : 'longdays';
 		$all = explode(',',$mod->Lang($k));
@@ -1432,7 +1433,7 @@ class Utils
 	Get one, or array of, translated time-range-name(s)
 	If @cap is TRUE, this uses ucfirst() which expects PHP locale value to be correspond to the translation of names
 
-	@mod reference to current module-object
+	@mod: reference to current module-object
 	@which: index 0 (for 'day'), 1 (for 'week') .. 3 (for 'year'), or
 		array of such indices consistent with namespace\Shared::DisplayIntervals()
 	@plural: optional, whether to get plural form of the interval name(s), default FALSE
@@ -1449,7 +1450,7 @@ class Utils
 		if (!is_array($which)) {
 			if ($which >= 0 && $which < $c) {
 				if ($cap)
-					return ucfirst($all[$which]);
+					return mb_convert_case($all[$which],MB_CASE_TITLE); //TODO CHECK encoding string
 				else
 					return $all[$which];
 			}
@@ -1458,11 +1459,54 @@ class Utils
 		$ret = array();
 		foreach ($which as $period) {
 			if ($period >= 0 && $period < $c) {
-				$ret[$period] = ($cap) ? ucfirst($all[$period]): //for current locale TODO mbstring func
+				$ret[$period] = ($cap) ?
+					mb_convert_case($all[$period],MB_CASE_TITLE):
 					$all[$period];
 			}
 		}
 		return $ret;
+	}
+
+	/**
+	RangeDescriptor:
+
+	Get string representation of the interval from @st to @nd inclusive,
+	formatted suitably for public display
+
+	@mod: reference to current module-object
+	@st: UTC timestamp for start of interval
+	@nd: UTC timestamp for end of interval
+	@daynames: optional array of weekday names, keyed 0..6 and valued 'Sun'..'Sat' or similar
+	  default NULL means get the names to be used from self->DayNames();
+	*/
+	public function RangeDescriptor(&$mod, $st, $nd, &$daynames=NULL)
+	{
+		$tz = new \DateTimeZone('UTC');
+		$dts = new \DateTime('1900-1-1',$tz);
+		$dte = clone $dts;
+		$dts->setTimestamp($st);
+		$dte->setTimestamp($nd);
+		if ($daynames == NULL) {
+			$daynames = $this->DayNames($mod,range(0,6),TRUE);
+		}
+		$t1 = $dts->format('Y-n-j');
+		$t2 = $dte->format('Y-n-j');
+		$t = $t1;
+		if ($t1 == $t2) {
+			$t1 = $dts->format('w G:i');
+			$t .= ' ('.$daynames[$t1[0]].') ';
+			$t1 = substr($t1,2);
+			$t2 = $dte->format('G:i');
+			$t .= $mod->Lang('rangeshow',$t1,$t2);
+		} else {
+			$t1 = $dts->format('w G:i');
+			$t1 = $t.' ('.$daynames[$t1[0]].') '.substr($t1,2);
+			$t = $t2;
+			$t2 = $dte->format('w G:i');
+			$t2 = $t.' ('.$daynames[$t2[0]].') '.substr($t2,2);
+			$t = $mod->Lang('rangeshow',$t1,$t2);
+		}
+		return $t;
 	}
 
 	/**
@@ -1486,17 +1530,17 @@ class Utils
 	/**
 	SaveParameters:
 
-	Store all or some of @params array and @cart object in cache.
+	Store all or some of @params array and @cart object in cache, for 12-hours.
 	Adds @params['storedparams'] before saving, if that's not present already.
-	@params is not changed.
+	That key is session-specfic. @params is not changed.
 
 	@cache: reference to Cache oject
 	@params: request-parameters associative array to be cached
 	@except: parameter key, or array of them, to be omitted from cached @params, or FALSE
-	@cart: cart-object or FALSE
+	@cart: optional cart-object to also be cached
 	Returns: nothing
 	*/
-	public function SaveParameters (&$cache, $params, $except, $cart)
+	public function SaveParameters (&$cache, $params, $except=FALSE, $cart=FALSE)
 	{
 		if ($except) {
 			if (is_array($except)) {
@@ -1508,9 +1552,9 @@ class Utils
 		if (empty($params['storedparams'])) {
 			$params['storedparams'] = Cache::GetKey(session_id());
 		}
-		$cache->set($params['storedparams'],$params);
+		$cache->set($params['storedparams'],$params,43200);
 		if ($cart)
-			$cache->set($params['cartkey'],$cart);
+			$cache->set($params['cartkey'],$cart,43200);
 	}
 
 	/**
@@ -1546,17 +1590,35 @@ class Utils
 	/**
 	MakeCart:
 	@cache: reference to Cache oject
-	@params: reference to reqest-parameters array
+	@params: reference to request-parameters array
 	@context: mixed data about the cart, used (among other things) for setting prices
-	@pricesWithTax: boolean, whether cart uses gross prices
-	Returns: new BookingCart object
+	@pricesWithTax: boolean, whether cart uses 'gross' prices, default TRUE
+	Returns: new BookingCart object, cached with 'unique' (NOT session-specific)
+	key and 12-hour lifetime
 	*/
 	public function MakeCart(&$cache, &$params, $context='', $pricesWithTax=TRUE)
 	{
 		$key = Cache::GetKey(\Booker::CARTKEY);
 		$params['cartkey'] = $key;
 		$cart = new Cart\BookingCart($context,$pricesWithTax);
-		$cache->set($key,$cart);
+		$cache->set($key,$cart,43200);
+//DEBUG
+		$dt = new \DateTime('midnight',new \DateTimeZone('UTC'));
+		$base = $dt->getTimestamp();
+		$data = array(
+			array(2,    0.0, Cart\BookingCartItem::NORMAL, $base+36000 ,3600,1),
+			array(2,    12.0,Cart\BookingCartItem::PAID,   $base+45000 ,7200,1),
+			array(3,    28.0,Cart\BookingCartItem::PAYABLE,$base+72000 ,84600+3600,1),
+			array(10004,10.0,Cart\BookingCartItem::PAID,   $base+120600,3600,1),
+			array(10004,10.0,Cart\BookingCartItem::PAYABLE,$base+205200,1800,2)
+		);
+		foreach ($data as $one) {
+			$item = new Cart\BookingCartItem('',$one[0],$one[1]);
+			$item->setStatus($one[2]);
+			$item->setStamps($one[3],$one[4]);
+			$cart->addItem($item,$one[5]);
+		}
+
 		return $cart;
 	}
 }
