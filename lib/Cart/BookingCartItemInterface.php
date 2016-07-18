@@ -17,5 +17,12 @@ interface BookingCartItemInterface extends CartItemInterface
 	public function setUnitPrice($price);
 
 	public function setTaxRate($taxrate);
+
+	public function setStatus($status);
+
+	public function getStatus();
+
+	public function setStamps($start, $slen);
+
+	public function getStamps();
 }
-?>
