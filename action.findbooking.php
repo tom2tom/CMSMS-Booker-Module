@@ -51,16 +51,24 @@ if (isset($params['cancel'])) { //user cancelled
 		$params['startat'] = (int)(time()/86400);
 	} elseif (!isset($params['message']))
 		$params['message'] = '';
-	$utils->SaveParameters($cache,$params,$localparams,NULL);
+	$utils->SaveParameters($cache,$params,$localparams);
 	$this->Redirect($id,$params['action'],$params['returnid'],
 		array('storedparams'=>$params['storedparams']));
 }
 
 if (isset($params['submit'])) {
-	$use = (int)reset($params['searchsel']);
-//TODO	$params['startat'] = timestampfor($use);
-	$params['slotid'] = $use; //go directly to 'request' view
-	$utils->SaveParameters($cache,$params,$localparams,NULL);
+	$params['chooser'] = $params['findchooser'];
+	if (!empty($params['searchsel'])) {
+		$use = (int)reset($params['searchsel']);
+		if ($use) {
+			$use = $db->GetOne('SELECT slotstart FROM '.$this->DataTable.' WHERE bkg_id=?',array($use));
+			if ($use) {
+				$params['startat'] = (int)$use;
+			}
+		}
+//		$params['slotid'] = $use; //go directly to 'request' view
+	}
+	$utils->SaveParameters($cache,$params,$localparams);
 	$this->Redirect($id,$params['action'],$params['returnid'],
 		array('storedparams'=>$params['storedparams']));
 }
@@ -84,7 +92,7 @@ $tableid = 'details';
 
 $tplvars = array();
 
-$utils->SaveParameters($cache,$params,$localparams,NULL);
+$utils->SaveParameters($cache,$params,$localparams);
 $tplvars['startform'] = $this->CreateFormStart($id,'findbooking',$returnid,
 	'POST','','','',array(
 	'item_id'=>$item_id,
@@ -126,7 +134,7 @@ $t1 = str_replace('class="cms_textfield"','class="dateinput cms_textfield"',$t1)
 $t2 = isset($params['findlast']) ? $params['findlast'] : '';
 $t2 = $this->CreateInputText($id,'findlast',$t2,10);
 $t2 = str_replace('class="cms_textfield"','class="dateinput cms_textfield"',$t2);
-$oneset->input = $this->Lang('rangeinput',$t1,$t2);
+$oneset->input = $this->Lang('rangeshow',$t1,$t2);
 $selects[] = $oneset;
 
 $oneset = new stdClass();
@@ -169,7 +177,7 @@ if (isset($params['search'])) {
 		if ($params['findusertype'] == 1) { //exact match
 			$cond[] = 'B.user=\''.$t.'\'';
 		} else {
-			$cond[] = 'B.user LIKE \'%'.$t.'%\'';
+			$cond[] = 'B.user LIKE \'%'.$t.'%\''; //TODO caseless match LOWER ...
 		}
 	}
 	$tz = new DateTimeZone('UTC');
@@ -186,36 +194,28 @@ if (isset($params['search'])) {
 	if ($cond) {
 		$sql .= ' WHERE '.implode(' AND ',$cond);
 	}
-	$rows = $db->GetArray($sql);
+	if ($t)
+		$sql .= ' ORDER BY B.slotstart,B.user';
+	else
+		$sql .= ' ORDER BY B.slotstart,I.name';
+
+	$rs = $db->SelectLimit($sql,100);
 	$items = array();
-	if ($rows) {
+	if ($rs) {
+		$daynames = $utils->DayNames($this,range(0,6),TRUE); //onetime lookup short-form day-names, for speed
 		$class = 'row1';
-		$dts = new DateTime('1900-1-1',$tz);
-		$dte = clone $dts;
-		foreach ($rows as $one) {
+		while ($one = $rs->FetchRow()) {
 			$oneset = new stdClass();
 			$oneset->rowclass = $class;
 			$oneset->what = $one['name'];
-			$dts->setTimestamp($one['slotstart']);
-			$t1 = $dts->format('Y-n-j (D)');
-			$dte->setTimestamp($one['slotstart']+$one['slotlen']);
-			$t2 = $dte->format('Y-n-j (D)');
-			if ($t1 == $t2) {
-				$t = $t1;
-				$t1 = $dts->format('G:i');
-				$t2 = $dte->format('G:i');
-				$t .= ' '.$this->Lang('rangeinput',$t1,$t2);
-			} else {
-				$t1 .= ' '.$dts->format('G:i');
-				$t2 .= ' '.$dte->format('G:i');
-				$t = $this->Lang('rangeinput',$t1,$t2);
-			}
-			$oneset->when = $t; //Mon 2016-9-13 from 9:00 to 9:59';
+			$t = (int)$one['slotstart'];
+			$oneset->when = $utils->RangeDescriptor($this,$t,$t+$one['slotlen'],$daynames); //Mon 2016-9-13 from 9:00 to 9:59';
 			$oneset->who = $one['user'];
 			$oneset->sel = $this->CreateInputCheckbox($id,'searchsel[]',(int)$one['bkg_id'],-1,'class="pagecheckbox"');
 			$items[] = $oneset;
 			$class = ($class = 'row1') ? 'row2':'row1';
 		}
+		$rs->Close();
 	}
 
 	$count = count($items);
