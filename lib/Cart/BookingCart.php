@@ -1,143 +1,11 @@
 <?php
 #----------------------------------------------------------------------
 # Module: Booker - a resource booking module
-# Library file: BookingCartItem
+# Library file: BookingCart
 #----------------------------------------------------------------------
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
 namespace Booker\Cart;
-
-class BookingCartItem implements BookingCartItemInterface
-{
-	public $name;
-	public $type;
-	public $price;
-	public $taxrate;
-	//internal use only
-	public $context = NULL;
-	public $quantity = 0;
-
-	public function __construct($name = '', $type = '',	$price = 0.0, $taxrate = 0.0)
-	{
-		$this->name = ($name) ? $name : 'Anonymous cart item';
-		$this->type = ($type) ? $type : 'Untyped cart item';
-		$this->price = $price;
-		$this->taxrate = $taxrate;
-	}
-
-	/**
-	Get this item's unique identifier, cannot be 'randomised' or else its contents cannot be updated
-
-	@return mixed
-	*/
-	public function getCartId()
-	{
-		$id = hash('md4',get_class().$this->name.$this->type); //fastest conversion
-		return $id;
-	}
-
-	public function setCartType($type)
-	{
-		$this->type = ($type) ? $type : 'Untyped cart item';
-	}
-
-	/**
-	Get this item's type for discrimination within the cart
-
-	@return string
-	*/
-	public function getCartType()
-	{
-		return $this->type;
-	}
-
-	public function setCartName($name)
-	{
-		$this->name = ($name) ? $name : 'Anonymous cart item';
-	}
-
-	/**
-	Get this item's name
-
-	@return string
-	*/
-	public function getCartName()
-	{
-		return $this->name;
-	}
-
-	/**
-	Set cart-context for this item
-
-	@param mixed
-	@return void
-	*/
-	public function setCartContext($context)
-	{
-		$this->context = $context;
-	}
-
-	/**
-	Get this item's context
-
-	@return mixed
-	*/
-	public function getCartContext()
-	{
-		return $this->context;
-	}
-
-	/**
-	Log the no. of this item in the cart
-
-	@param int
-	@return void
-	*/
-	public function setCartQuantity($quantity)
-	{
-		$this->quantity = $quantity;
-	}
-
-	/**
-	Get the no. of this item in the cart
-
-	@return int
-	*/
-	public function getCartQuantity()
-	{
-		return (int) $this->quantity;
-	}
-
-	public function setUnitPrice($price)
-	{
-		$this->price = (float)$price;
-	}
-
-	/**
-	Get this item's unit-price (perhaps based on quantity and context)
-
-	@return float
-	*/
-	public function getUnitPrice()
-	{
-		return (float)$this->price;
-	}
-
-	public function setTaxRate($taxrate)
-	{
-		$this->taxrate = (float)$taxrate;
-	}
-
-	/**
-	Get this item's tax rate (percentage)
-
-	@return float
-	*/
-	public function getTaxRate()
-	{
-		return (float)$this->taxrate;
-	}
-}
 
 class BookingCart extends Cart implements \Serializable
 {
@@ -151,7 +19,7 @@ class BookingCart extends Cart implements \Serializable
 
 	@var array, members each an array propname=>additive, additive = FALSE returns mere count when totalled
 	*/
-	protected $properties = array('price'=>TRUE, 'tax'=>TRUE, 'weight'=>TRUE, 'count'=>FALSE);
+	protected $properties = array('price'=>TRUE, 'tax'=>TRUE, 'status'=>FALSE, 'weight'=>TRUE, 'count'=>FALSE);
 
 	/**
 	Constructor
@@ -188,6 +56,11 @@ class BookingCart extends Cart implements \Serializable
 	{
 		unset($this->xtraprops[$name]);
 		$this->cartModified();
+	}
+
+	public function __toString()
+	{
+		return json_encode(get_object_vars($this));
 	}
 
 	/**
@@ -289,19 +162,63 @@ class BookingCart extends Cart implements \Serializable
 		return FALSE;
 	}
 
-	public function __toString()
+
+	public function getRoundingDecimals()
 	{
-		return json_encode(get_object_vars($this));
+		return $this->roundingDecimals;
+	}
+
+	/**
+	Get status
+
+	@param optional filter callable|string, if string then per getTypeCondition(),
+		default match everything in cart
+	@return array with members: key is a detected status-value,
+		value is an array of cart-id's for items with that status
+	*/
+	public function getStatus($filter='~')
+	{
+		if (is_string($filter)) {
+			$filter = $this->getTypeCondition($filter);
+		}
+		if (!is_callable($filter)) {
+			throw new \InvalidArgumentException('Filter for getStatus method must be callable.');
+		}
+		$totals = array();
+		foreach ($this->getItems($filter) as $item) {
+			$status = $item->getStatus();
+			if (isset($totals[$status])) {
+				$totals[$status][] = $item->getCartId();
+			} else {
+				$totals[$status] = array($item->getCartId());
+			}
+		}
+		return $totals;
+	}
+
+	/**
+	Check if cart is empty or has only items marked as deleted
+
+	@return bool
+	*/
+	public function seemsEmpty()
+	{
+		if ($this->items) {
+			return !$this->getItems(function ($item) {
+				return $item->getStatus() >= 0; //not flagged as deleted
+			}); //TODO CHECK need to filter 'my' items if 'unique' cache can ever be shared ?
+		}
+		return TRUE;
 	}
 
 	/**
 	Incrementally populate all cart & item properties from supplied json (e.g. from cache)
 
 	@param string json
-	@param bool except whether to throw exception upon failure
+	@param optional bool except whether to throw exception upon failure, default FALSE
 	@return void
 	*/
-	public function restoreCart($json,$except=TRUE)
+	public function restoreCart($json,$except=FALSE)
 	{
 		if ($json) {
 			$props = json_decode($json);
@@ -314,19 +231,25 @@ class BookingCart extends Cart implements \Serializable
 						$one = (array)$one;
 						foreach ($one as $itmdata) {
 							$item = new BookingCartItem();
+							$start = 0;
+							$slen = 0;
 							foreach ($itmdata as $key=>$itmval) {
 								switch ($key) {
 									case 'name': $item->setCartName($itmval); break;
 									case 'type': $item->setCartType($itmval); break;
 									case 'price':  $item->setUnitPrice($itmval); break;
 									case 'taxrate': $item->setTaxRate($itmval); break;
+									case 'status': $item->setStatus($itmval); break;
+									case 'start': $start = $itmval; break;
+									case 'slen': $slen = $itmval; break;
 									case 'context': $item->setCartContext($itmval); break;
 									case 'quantity': $item->setCartQuantity($itmval); break;
-									default: throw new \Exception('Invalid property data for inflateCart');
+									default: throw new \Exception('restoreCart: invalid property data for item');
 								}
 							}
-							$id = $item->getCartId();
-							$this->items[$id] = $item;
+							$item->setStamps($start,$slen);
+							$itmid = $item->getCartId();
+							$this->items[$itmid] = $item;
 						}
 					}
 				}
@@ -349,6 +272,5 @@ class BookingCart extends Cart implements \Serializable
 	{
 		$this->restoreCart($serialized,FALSE);
 	}
-	
+
 }
-?>
