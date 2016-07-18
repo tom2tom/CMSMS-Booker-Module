@@ -156,7 +156,7 @@ class Itemops
 		} else {
 			foreach ($item_id as $one)
 				$args[] = (int)$one;
-			$fillers = str_repeat('?,',count(item_id)-1).'?';
+			$fillers = str_repeat('?,',count($item_id)-1).'?';
 		}
 		$sql = 'SELECT COUNT(1) AS num FROM '.$mod->ItemTable.' WHERE item_id IN ('.$fillers.') AND active=0';
 		$inact = $db->GetOne($sql,$args);
