@@ -9,6 +9,7 @@
 $taboptarray = array('mysql' => 'ENGINE MyISAM CHARACTER SET utf8 COLLATE utf8_general_ci',
  'mysqli' => 'ENGINE MyISAM CHARACTER SET utf8 COLLATE utf8_general_ci');
 $dict = NewDataDictionary($db);
+$pre = cms_db_prefix();
 /*
  items (i.e. groups and resources) table schema:
  NOTE (almost) no NOTNULL/default values, so inheritance can be determined
@@ -29,6 +30,7 @@ $dict = NewDataDictionary($db);
 	rationcount: max. pending bookings for any specific booker
 	keeptype: enumerator for interval used for max. retention-time for past bookings
 	keepcount: count of keeptype intervals which, together with keeptype, defines max. retention-time for bookings history
+  grossfees: whether recorded fees include sales tax
 	latitude: for sun-related calcs, accurate to ~1km
 	longitude: ditto
 	timezone: for date/time offsets & calcs
@@ -67,6 +69,7 @@ $fields = "
  rationcount I(1),
  keeptype I(1),
  keepcount I(1),
+ grossfees I(1) DEFAULT 1,
  latitude N(8.3),
  longitude N(8.3),
  timezone C(48),
@@ -80,13 +83,13 @@ $fields = "
  smspattern C(32),
  formiface C(48),
  paymentiface C(48),
- feugroup I4,
- owner I4,
+ feugroup I,
+ owner I,
  cleargroup I(1),
  subgrpalloc I(1),
  repeatsuntil I DEFAULT 0,
  subgrpdata I(1) DEFAULT 0,
- active I(1) NOTNULL DEFAULT 1
+ active I(1) DEFAULT 1
 ";
 $sqlarray = $dict->CreateTableSQL($this->ItemTable, $fields, $taboptarray);
 if ($sqlarray == FALSE)
@@ -137,7 +140,7 @@ non-repeated bookings-data table schema:
  slotlen: seconds booked, NOT seconds-per-slot
  user: identifier
  contact: phone, email etc
- userclass: enum 0..5
+ userclass: display-stying enum 0..5
  status: one of the Booker::STAT* values
  paid: boolean
 bkrcsv::ImportBookings must conform to this
@@ -146,7 +149,7 @@ $fields = "
  bkg_id I(4),
  item_id I(4),
  slotstart I,
- slotlen I,
+ slotlen I(4),
  user C(64),
  contact C(128),
  userclass I(1) NOTNULL DEFAULT 0,
@@ -172,7 +175,7 @@ repeated bookings-data table schema:
  formula: interval-descriptor string
  user: identifier
  contact: phone, email etc
- userclass: enum 0..5
+ userclass: display-stying enum 0..5
  subgrpcount: no. of in-group resources to be processed per subgrpalloc
  paid: boolean
  active: enum/boolean 1, or 0 if booking has been deleted but historic data remain
@@ -205,7 +208,7 @@ submitted booking requests table schema
  sender: identifier, assumed to be the booker i.e. not a 3rd-party
  contact: phone, email etc
  comment:
- userclass: enum 0..5
+ userclass: display-stying enum 0..5
  subgrpcount: no. of requested items in a group, irrelevant for non-groups
  status: one of the Booker::STAT* values
  paid: boolean
@@ -216,7 +219,7 @@ $fields = "
  req_id I(4) KEY,
  item_id I(4),
  slotstart I,
- slotlen I,
+ slotlen I(4),
  sender C(64),
  contact C(128),
  comment C(256),
@@ -235,7 +238,8 @@ if ($res != 2)
 	return FALSE;
 $db->CreateSequence($this->RequestTable.'_seq');
 
-/* Fees & related conditions
+/*
+ Fees for resource usage & related conditions
  condition_id:
  item_id: group/item to which the condition applies
  signature: identifier for cross-resource matching, raw crc32 hash of slottype.slotcount.fee.feecondition
@@ -257,30 +261,100 @@ $fields = "
  description C(64),
  slottype I(1),
  slotcount I(1),
- fee N(7.2),
+ fee N(8.2),
  feecondition C(128),
  condtype I(1) DEFAULT 0,
  condorder I(1) DEFAULT -1,
  active I(1) DEFAULT 1
 ";
-$sqlarray = $dict->CreateTableSQL($this->PayTable,$fields,$taboptarray);
+$sqlarray = $dict->CreateTableSQL($this->FeeTable,$fields,$taboptarray);
 if ($sqlarray == FALSE)
 	return FALSE;
 $res = $dict->ExecuteSQLArray($sqlarray,FALSE);
 if ($res != 2)
 	return FALSE;
-$db->CreateSequence($this->PayTable.'_seq');
+$db->CreateSequence($this->FeeTable.'_seq');
 
 /*
+ bookers table schema:
+ booker_id: table key
+ publicid: sorta account-id for use in making bookings
+ passwd: account password, 1-way encrypted
+ name: identifier for display, and identity check if publicid N/A
+ contact: email, cell-phone (maybe accept a post-address...)
+ type: generic discriminator e.g. authorised for un-mediated bookings
+ postpay: whether this booker is entitled to be invoiced after booking/using
+ userclass: display-stying enum 0..5
+ active: whether currently enabled
+*/
+$fields = "
+ booker_id I(4) KEY,
+ publicid C(32),
+ name C(64),
+ passwd C(64),
+ contact C(128),
+ type I(1) DEFAULT 0,
+ postpay I(1) DEFAULT 0,
+ userclass I(1) DEFAULT 0,
+ active I(1) DEFAULT 1
+";
+$sqlarray = $dict->CreateTableSQL($pre.'module_bkr_bookers',$fields,$taboptarray);
+if ($sqlarray == FALSE)
+	return FALSE;
+$res = $dict->ExecuteSQLArray($sqlarray,FALSE);
+if ($res != 2)
+	return FALSE;
+$db->CreateSequence($pre.'module_bkr_bookers_seq');
+
+/*
+ history table schema:
+ history_id: table key
+ booker_id: cross-referencer (indexed)
+ bookwhen: UTC timestamp
+ what: text/public description of what was booked
+ comment: as supplied by booker as part of request
+ fee: how much was paid
+ netfee: fee less any gateway cost
+ status: enum 0..3 represening NORMAL,DEFERRED,CREDITED,FAILED
+ gatetransaction: transaction id reported by payment gateway
+ gatedata: json data reported by payment gateway, encrypted
+*/
+$fields = "
+ history_id I(4) AUTO KEY,
+ booker_id I(4),
+ bookwhen I,
+ what C(64),
+ comment C(64),
+ fee N(8.2),
+ netfee N(8.2),
+ status I(1) DEFAULT 0,
+ gatetransaction C(48),
+ gatedata B
+";
+$sqlarray = $dict->CreateTableSQL($this->HistoryTable,$fields,$taboptarray);
+if ($sqlarray == FALSE)
+	return FALSE;
+$res = $dict->ExecuteSQLArray($sqlarray,FALSE);
+if ($res != 2)
+	return FALSE;
+// index
+$sqlarray = $dict->CreateIndexSQL('idx_'.$this->HistoryTable,$this->HistoryTable,'booker_id');
+$dict->ExecuteSQLArray($sqlarray);
+/*
 Data cache
+ cache_id:
+ keyword: key
+ value: flattened value
+ savetime: timestamp - UTC? 
+ lifetime: seconds
 */
 $fields = "
  cache_id I(2) AUTO KEY,
  keyword C(48),
  value B,
  savetime I,
- lifetime I";
-$pre = cms_db_prefix();
+ lifetime I(4)
+";
 $sqlarray = $dict->CreateTableSQL($pre.'module_bkr_cache',$fields,$taboptarray);
 $dict->ExecuteSQLArray($sqlarray);
 //this is not for table-data content
@@ -428,7 +502,7 @@ array(2,'Test3',1,1,'5.00','13:00..15:30'),
 array(10003,'	Non-members hire',1,1,'28.00',NULL),
 array(10004,'Nightplay fee',1,1,'10.00','0..sunrise,sunset..23:59'),
 	);
-	$sql = 'INSERT INTO '.$this->PayTable.
+	$sql = 'INSERT INTO '.$this->FeeTable.
 ' (condition_id,item_id,signature,description,slottype,slotcount,fee,feecondition,condorder) VALUES (?,?,?,?,?,?,?,?,?)';
 	$i = 0;
 	foreach ($data as $dummy) {
@@ -437,7 +511,7 @@ array(10004,'Nightplay fee',1,1,'10.00','0..sunrise,sunset..23:59'),
 			$sig .= ($dummy[$k] !== NULL) ? $dummy[$k] : 'NULL';
 		}
 		$sig = crc32($sig);
-		$bid = $db->GenID($this->PayTable.'_seq');
+		$bid = $db->GenID($this->FeeTable.'_seq');
 		$args = array($bid,$dummy[0],$sig,$dummy[1],$dummy[2],$dummy[3],$dummy[4],$dummy[5],$i);
 		$db->Execute($sql,$args);
 		$i++;
