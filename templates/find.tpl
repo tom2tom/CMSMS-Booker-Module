@@ -18,7 +18,7 @@
 {if $count}
 {if $hasnav}<div class="browsenav">{$first}&nbsp;|&nbsp;{$prev}&nbsp;&lt;&gt;&nbsp;{$next}&nbsp;|&nbsp;{$last}&nbsp;({$pageof})&nbsp;&nbsp;{$rowchanger}</div>
 {/if}
-<div id="results">
+<div id="results" style="overflow:auto;">
 <table id="details" class="{if $count>1}table_sort {/if}bkr_collapse">
  <thead><tr>
   <th>{$whattitle}</th>
