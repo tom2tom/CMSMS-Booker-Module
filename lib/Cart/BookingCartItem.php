@@ -9,31 +9,35 @@ namespace Booker\Cart;
 
 class BookingCartItem implements BookingCartItemInterface
 {
-	//a deleted item's status is one of the following - 30 i.e. < 0
+	//a deleted item's status is one of the following - STATUSMAX i.e. < 0
 	const NORMAL = 0;
 	const PAYABLE = 1;
 	const CREDITED = 2;
 	const PAID = 3;
-	const REQUESTED = 10; //TODO add 1|2|3 when relevant
+	const REQUESTED = 10; // add 1|2|3 to this when relevant
 	const RECORDED = 20; //ditto
+	const STATUSMAX = 30; //for [un]delete adjustments
 
+	public $id = ''; //unique identifier
 	public $name; // unused
 	public $type; // resource item_id (int)
 	public $price;
 	public $taxrate;
-	public $status = 0; //self::NORMAL
-	public $start; //booking start, UTC timestamp
-	public $slen; //booking length, seconds
+	public $data; // parameters-container, arbitrary properties
 	//internal use only
 	public $context = NULL;
 	public $quantity = 0;
 
-	public function __construct($name = '', $type = 0,	$price = 0.0, $taxrate = 0.0)
+	public function __construct($name = '', $type = 0, $price = 0.0, $taxrate = 0.0)
 	{
 		$this->name = $name;
 		$this->type = $type;
 		$this->price = $price;
 		$this->taxrate = $taxrate;
+		$this->data = new \stdClass();
+		$this->data->status = self::NORMAL;
+		$this->data->start = 0; //booking start, UTC timestamp
+		$this->data->slen = 0; //booking length, seconds
 	}
 
 	/**
@@ -43,16 +47,18 @@ class BookingCartItem implements BookingCartItemInterface
 	*/
 	public function getCartId()
 	{
-		return hash('md4',uniqid($this->type)); //fastest conversion
+		if (!$this->id)
+			$this->id = hash('md4',uniqid($this->type)); //fastest conversion
+		return $this->id;
 	}
 
 	public function setCartType($type)
 	{
-		$this->type = ($type) ? $type : 'Untyped cart item';
+		$this->type = $type;
 	}
 
 	/**
-	Get this item's type for discrimination within the cart
+	Get this item's type, for discrimination within the cart
 
 	@return string
 	*/
@@ -63,7 +69,7 @@ class BookingCartItem implements BookingCartItemInterface
 
 	public function setCartName($name)
 	{
-		$this->name = ($name) ? $name : 'Anonymous cart item';
+		$this->name = $name;
 	}
 
 	/**
@@ -151,12 +157,18 @@ class BookingCartItem implements BookingCartItemInterface
 	/**
 	Log the status of this item in the cart
 
-	@param int
+	@param mixed int|'deleted'|'undeleted'
 	@return void
 	*/
 	public function setStatus($status)
 	{
-		$this->status = (int)($status);
+		if (is_numeric($status)) {
+			$this->data->status = (int)($status);
+		} elseif ($status == 'deleted' && $this->data->status >= 0) {
+			$this->data->status -= self::STATUSMAX; //now < 0
+		} elseif ($status == 'undeleted' && $this->data->status < 0) {
+			$this->data->status += self::STATUSMAX; //now >= 0
+		}
 	}
 
 	/**
@@ -166,28 +178,26 @@ class BookingCartItem implements BookingCartItemInterface
 	*/
 	public function getStatus()
 	{
-		return (int)$this->status;
+		return (int)$this->data->status;
 	}
 	/**
-	Log the start, length of this item in the cart
+	Set this item's data-bundle
 
-	@param int timestamp
-	@param int seconds
+	@param stdClass object
 	@return void
 	*/
-	public function setStamps($start, $slen)
+	public function setPackage(\stdClass $object)
 	{
-		$this->start = (int)($start);
-		$this->slen = (int)($slen);
+		$this->data = $object;
 	}
 
 	/**
-	Get this item's start-stamp and length values
+	Get this item's data-bundle
 
-	@return array[int start-stamp,int seconds-length]
+	@return object
 	*/
-	public function getStamps()
+	public function getPackage()
 	{
-		return array($this->start,$this->slen);
+		return $this->data;
 	}
 }

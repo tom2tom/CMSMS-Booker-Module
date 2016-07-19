@@ -22,7 +22,7 @@ interface BookingCartItemInterface extends CartItemInterface
 
 	public function getStatus();
 
-	public function setStamps($start, $slen);
+	public function setPackage(\stdClass $object);
 
-	public function getStamps();
+	public function getPackage();
 }

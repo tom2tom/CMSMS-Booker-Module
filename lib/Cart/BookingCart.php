@@ -231,23 +231,19 @@ class BookingCart extends Cart implements \Serializable
 						$one = (array)$one;
 						foreach ($one as $itmdata) {
 							$item = new BookingCartItem();
-							$start = 0;
-							$slen = 0;
 							foreach ($itmdata as $key=>$itmval) {
 								switch ($key) {
+									case 'id': $item->id = $itmval; break;
 									case 'name': $item->setCartName($itmval); break;
 									case 'type': $item->setCartType($itmval); break;
 									case 'price':  $item->setUnitPrice($itmval); break;
 									case 'taxrate': $item->setTaxRate($itmval); break;
-									case 'status': $item->setStatus($itmval); break;
-									case 'start': $start = $itmval; break;
-									case 'slen': $slen = $itmval; break;
+									case 'data': $item->setPackage($itmval); break;
 									case 'context': $item->setCartContext($itmval); break;
 									case 'quantity': $item->setCartQuantity($itmval); break;
 									default: throw new \Exception('restoreCart: invalid property data for item');
 								}
 							}
-							$item->setStamps($start,$slen);
 							$itmid = $item->getCartId();
 							$this->items[$itmid] = $item;
 						}

@@ -1615,7 +1615,8 @@ class Utils
 		foreach ($data as $one) {
 			$item = new Cart\BookingCartItem('',$one[0],$one[1]);
 			$item->setStatus($one[2]);
-			$item->setStamps($one[3],$one[4]);
+			$item->data->start = $one[3];
+			$item->data->slen = $one[4]-1;
 			$cart->addItem($item,$one[5]);
 		}
 
