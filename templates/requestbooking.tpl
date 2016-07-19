@@ -31,7 +31,7 @@
 </tbody></table>
 {$title_comment}:<br />{$inputcomment}<br />
 <br />
-{$send}&nbsp;{$cancel}{if isset($choose)}&nbsp;{$choose}{/if}
+{$submit}{if isset($cart)} {$cart}{/if} {$cancel} {if isset($choose)} {$choose}{/if}
 {$endform}
 <div id="calendar"></div>
 {if !empty($jsincs)}{foreach from=$jsincs item=inc}{$inc}
