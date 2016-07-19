@@ -403,6 +403,7 @@ $lang['tip_back1'] = 'back 1 %s';
 $lang['tip_backN'] = 'back %d %s';
 $lang['tip_book'] = 'initiate booking';
 $lang['tip_calendar'] = 'select a date for display';
+$lang['tip_cartadd'] = 'add this to bookings cart';
 $lang['tip_cartempty'] = 'bookings cart is empty';
 $lang['tip_cartshow'] = 'display bookings cart';
 $lang['tip_copytype'] = 'clone %s';
