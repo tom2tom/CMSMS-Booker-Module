@@ -593,7 +593,7 @@ $basic[] = array('ttl'=>$cascade.$this->Lang('title_bookcount'),
 'hlp'=>$this->Lang('help_bookcount')
 );
 //------- fees
-$sql = 'SELECT description,fee,feecondition FROM '.$this->PayTable.' WHERE item_id=? AND active=1 ORDER BY condorder';
+$sql = 'SELECT description,fee,feecondition FROM '.$this->FeeTable.' WHERE item_id=? AND active=1 ORDER BY condorder';
 $sel = $db->GetAll($sql,array($item_id));
 if ($sel) {
 	$fees = array();

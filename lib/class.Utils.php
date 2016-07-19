@@ -696,14 +696,14 @@ class Utils
 			$args = self::GetItemGroups($mod,$db,$item_id);
 			array_unshift($args, $item_id); //priority-ordered for checking
 			$fillers = str_repeat('?,',count($args)-1);
-			$sql = 'SELECT item_id,fee,feecondition,condorder FROM '.$mod->PayTable.
+			$sql = 'SELECT item_id,fee,feecondition,condorder FROM '.$mod->FeeTable.
 			' WHERE item_id IN ('.$fillers.'?) AND active=1 ORDER BY item_id,condorder'; //a bit of downstream sorting might help ...
 			$fees = $db->GetAll($sql,$args); //NB ordered by item_id prob not what we want: $args has it
 			if ($fees) {
 				usort($fees,array(new bkrfee_cmp($args),'feecmp'));
 			}
 		} else {
-			$sql = 'SELECT fee,feecondition FROM '.$mod->PayTable.
+			$sql = 'SELECT fee,feecondition FROM '.$mod->FeeTable.
 			' WHERE item_id=? AND active=1 ORDER BY condorder';
 			$fees = $db->GetAll($sql,array($item_id));
 		}
@@ -712,7 +712,7 @@ class Utils
 			if (strpos($conditional,'ID<:>') === 0) {
 				$cid = substr($conditional,5);
 				$conditional = $db->GetOne('SELECT feecondition FROM '.
-					$mod->PayTable.' WHERE item_id=? AND condition_id=?',array($item_id,$cid));
+					$mod->FeeTable.' WHERE item_id=? AND condition_id=?',array($item_id,$cid));
 				if ($conditional === FALSE)
 					return FALSE; //error
 				elseif (!$conditional)
@@ -724,7 +724,7 @@ class Utils
 					if ($conditional === FALSE) {
 						return $one['fee']; //CHECKME
 					} elseif ($one['feecondition']) {
-	//TODO $this->PayTable stuff
+	//TODO $this->FeeTable stuff
 						if (0) {//TODO check for conforming condition
 							return $one['fee'];
 						}

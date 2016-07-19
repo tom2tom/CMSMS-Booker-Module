@@ -13,7 +13,7 @@ if (!function_exists('getfeedata')) {
  {
 	if (!isset($params['condition_id'])) {
 		global $db;
-		$sql = 'SELECT * FROM '.$mod->PayTable.' WHERE item_id=? ORDER BY condorder';
+		$sql = 'SELECT * FROM '.$mod->FeeTable.' WHERE item_id=? ORDER BY condorder';
 		return $db->GetAll($sql,array($item_id));
 	}
 	return mergefeedata($params,$item_id);
@@ -151,11 +151,11 @@ if (isset($params['submit'])) {
    missing member(s) whose condition is inactive AND missing whole $param if
    none is active
 */
-	$sql0 = 'DELETE FROM '.$mod->PayTable.' WHERE item_id IN(';
+	$sql0 = 'DELETE FROM '.$mod->FeeTable.' WHERE item_id IN(';
 
 	$pdata = mergefeedata($params,$item_id);
 	if ($pdata) {
-		$sql1 = 'INSERT INTO '.$mod->PayTable.' (
+		$sql1 = 'INSERT INTO '.$mod->FeeTable.' (
 condition_id,
 item_id,
 signature,
@@ -167,7 +167,7 @@ feecondition,
 condorder,
 active
 ) VALUES (?,?,?,?,?,?,?,?,?,?)';
-		$sql2 = 'UPDATE '.$mod->PayTable.' SET 
+		$sql2 = 'UPDATE '.$mod->FeeTable.' SET 
 signature=?
 description=?,
 slottype=?,
@@ -186,7 +186,7 @@ WHERE condition_id=?';
 				$allids[] = (int)$one;
 		}
 		//remove non-continuing conditions for $item_id
-		$t = 'DELETE FROM '.$mod->PayTable.' WHERE item_id=?';
+		$t = 'DELETE FROM '.$mod->FeeTable.' WHERE item_id=?';
 		$args = array($item_id);
 		if ($allids) {
 			$fillers = str_repeat('?,',count($allids)-1);
@@ -205,7 +205,7 @@ WHERE condition_id=?';
 			$one['active'] = (bool)$one['active'];
 			if ($one['condition_id'] < 0) { //new fee-item
 				$allsql[] = $sql1;
-				$cid = $db->GenID($this->PayTable.'_seq');
+				$cid = $db->GenID($this->FeeTable.'_seq');
 				if ($relfee)
 					$one['fee'] = NULL; //no basis for relative fee in new conditions
 				$sig = $funcs->GetFeeSignature($one);
@@ -262,7 +262,7 @@ WHERE condition_id=?';
 			foreach ($sel as $thisid) {
 				foreach ($pdata as $one) {
 					$allsql[] = $sql1;
-					$cid = $db->GenID($this->PayTable.'_seq');
+					$cid = $db->GenID($this->FeeTable.'_seq');
 					$allargs[] = array(
 					 $cid,
 					 $thisid,

@@ -71,11 +71,12 @@ class Booker extends CMSModule
 
 	public $dbHandle; //cached connection to adodb
 	public $DataTable; //non-repeated bookings-data
+	public $FeeTable; //payment amounts/rates and associated conditions
 	public $GroupTable; //group-relationships
+	public $HistoryTable; //bookings history
 	public $ItemTable; //resources and resource-groups
 	public $RepeatTable; //repeated bookings-data
 	public $RequestTable; //submitted booking requests
-	public $PayTable; //payment rates and associated conditions
 //	public $CacheTable; //cached bookings-data
 	public $UserTable; //admin users (who may 'own' resource/group)
 	public $before20;
@@ -98,11 +99,12 @@ class Booker extends CMSModule
 		$this->dbHandle = cmsms()->GetDb();
 		$pre = cms_db_prefix();
 		$this->DataTable = $pre.'module_bkr_data';
-		$this->GroupTable = $pre.'module_bkr_group';
-		$this->ItemTable = $pre.'module_bkr_item';
+		$this->FeeTable = $pre.'module_bkr_fees';
+		$this->GroupTable = $pre.'module_bkr_groups';
+		$this->HistoryTable = $pre.'module_bkr_history';
+		$this->ItemTable = $pre.'module_bkr_items';
 		$this->RepeatTable = $pre.'module_bkr_repeats';
 		$this->RequestTable = $pre.'module_bkr_requests';
-		$this->PayTable = $pre.'module_bkr_pay';
 //		$this->CacheTable = $pre.'module_bkr_cache';
 		$this->UserTable = $pre.'users';
 		global $CMS_VERSION;
@@ -264,7 +266,6 @@ class Booker extends CMSModule
 			if (strpos($request['mact'],'multibooking',6)
 				&& isset($request['m1_export'])) return TRUE;
 			if (strpos($request['mact'],'sortlike',6)) return TRUE;
-//			if (strpos($request['mact'],'deletecartitem',6)) return TRUE;
 		}
 		return FALSE;
 	}
@@ -329,6 +330,7 @@ class Booker extends CMSModule
 		$this->SetParameterType('cancel',CLEAN_NONE);
 		$this->SetParameterType('captcha',CLEAN_STRING);
 		$this->SetParameterType('cart',CLEAN_NONE);
+		$this->SetParameterType('cartadd',CLEAN_NONE);
 		$this->SetParameterType('cartcomment',CLEAN_STRING); //array of comments
 		$this->SetParameterType('cartsel',CLEAN_STRING); //array of keys
 		$this->SetParameterType('chooser',CLEAN_INT);

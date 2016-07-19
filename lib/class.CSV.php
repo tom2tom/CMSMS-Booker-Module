@@ -538,7 +538,7 @@ class CSV
 			 'Rationcount'=>'rationcount',
 			 'Keeptype'=>'keeptype',
 			 'Keepcount'=>'keepcount',
-// TODO $this->PayTable stuff pairs of fee+condition
+// TODO $this->FeeTable stuff pairs of fee+condition
 //			 'Fee1'=>'fee1',
 //			 'Fee1condition'=>'fee1condition',
 //			 'Fee2'=>'fee2',
@@ -610,7 +610,7 @@ class CSV
 							 case 'keywords':
 							 case 'image':
 							 case 'available': //NO sanity check
-// TODO $this->PayTable stuff pairs of fee+condition
+// TODO $this->FeeTable stuff pairs of fee+condition
 //							 case 'fee1condition':
 //							 case 'fee2condition':
 							 case 'timezone':
@@ -643,7 +643,7 @@ class CSV
 								$data[$k] = (int)$one;
 								$save = TRUE;
 								break;
-// TODO $this->PayTable stuff pairs of fee+condition
+// TODO $this->FeeTable stuff pairs of fee+condition
 //							 case 'fee1':
 //							 case 'fee2':
 							 case 'latitude':
