@@ -3,8 +3,8 @@
 {$jsstyler}
 //]]>
 </script>{/if}
-{if !empty($message)}<h3>{$message}</h3>{/if}
-<h4>{$title}</h4>
+{if !empty($message)}<p class="pagemessage">{$message}</p><br />{/if}
+<h4 class="bkgtitle">{$title}</h4>
 {$startform}
 {$hidden}
 <div id="selectors">

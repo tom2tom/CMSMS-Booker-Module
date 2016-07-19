@@ -3,9 +3,9 @@
 {$jsstyler}
 //]]>
 </script>{/if}
-{if !empty($message)}<h3>{$message}</h3><br />{/if}
-<h3>{$title}</h3>
-{if !empty($desc)}<p>{$desc}</p>{/if}
+{if !empty($message)}<p class="pagemessage">{$message}</p><br />{/if}
+<h4 class="bkgtitle">{$title}</h4>
+{if !empty($desc)}<p class="bkgdesc">{$desc}</p><br /><br />{/if}
 {$startform}
 {if $count}
 <div style="overflow:auto;">
