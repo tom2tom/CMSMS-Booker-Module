@@ -328,7 +328,9 @@ class Booker extends CMSModule
 		$this->SetParameterType('calendarinput',CLEAN_STRING);
 		$this->SetParameterType('cancel',CLEAN_NONE);
 		$this->SetParameterType('captcha',CLEAN_STRING);
-		$this->SetParameterType('cart',CLEAN_STRING);
+		$this->SetParameterType('cart',CLEAN_NONE);
+		$this->SetParameterType('cartcomment',CLEAN_STRING); //array of comments
+		$this->SetParameterType('cartsel',CLEAN_STRING); //array of keys
 		$this->SetParameterType('chooser',CLEAN_INT);
 		$this->SetParameterType('clickat',CLEAN_STRING);
 		$this->SetParameterType('comment',CLEAN_STRING); //booking-request parameters
@@ -346,7 +348,6 @@ class Booker extends CMSModule
 		$this->SetParameterType('listformat',CLEAN_INT); //list-format enum
 		$this->SetParameterType('message',CLEAN_STRING);
 		$this->SetParameterType('newlist',CLEAN_INT); //list-format change boolean
-		$this->SetParameterType('nosend',CLEAN_NONE);
 		$this->SetParameterType('origreturnid',CLEAN_INT); //something for captcha module?
 		$this->SetParameterType('pagerows',CLEAN_INT); //table-pager value
 		$this->SetParameterType('range',CLEAN_STRING); //enum or period-name
@@ -355,7 +356,6 @@ class Booker extends CMSModule
 		$this->SetParameterType('requesttype',CLEAN_INT);
 		$this->SetParameterType('search',CLEAN_NONE);
 		$this->SetParameterType('searchsel',CLEAN_NONE);
-		$this->SetParameterType('send',CLEAN_NONE);
 		$this->SetParameterType('storedparams',CLEAN_STRING);
 		$this->SetParameterType('slide',CLEAN_INT); //value matches button label
 		$this->SetParameterType('slotid',CLEAN_STRING);
