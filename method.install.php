@@ -25,12 +25,13 @@ $pre = cms_db_prefix();
 	slottype: enumerator for interval of a single booking per TimeIntervals()
 	slotcount: count of slottype intervals which, together with slottype, defines length of a bookings
 	bookcount: max. slots per booking, 0 = no limit, 1 = no need for booking end choice
-	leadtype: enumerator for interval used for max. lead-time for bookings
+	bookertell: whether to (try to) send confirmation message to booker, default true
+ 	leadtype: enumerator for interval used for max. lead-time for bookings
 	leadcount: count of leadtype intervals which, together with leadtype, defines max. lead-time for (no-repeat) bookings
 	rationcount: max. pending bookings for any specific booker
 	keeptype: enumerator for interval used for max. retention-time for past bookings
 	keepcount: count of keeptype intervals which, together with keeptype, defines max. retention-time for bookings history
-  grossfees: whether recorded fees include sales tax
+	grossfees: whether recorded fees include sales tax, default true
 	latitude: for sun-related calcs, accurate to ~1km
 	longitude: ditto
 	timezone: for date/time offsets & calcs
@@ -40,13 +41,14 @@ $pre = cms_db_prefix();
 	stylesfile: specific (uploaded) css file
 	approver: identifier of whoever handles booking requests for this item
 	approvercontact: contact info for the approver
+	approvertell: whether to (try to) send notice to approver about submitted/recorded booking, default true
 	smsprefix: country-code to be prepended to sms messages when needed
 	smspattern: regex for determining whether approvercontact is a phone suitable for sms messages (no whitespace, before country-prefix)
 	formiface: for future use e.g. module name, properties to use, for custom booking-request form
 	paymentiface: for future use e.g. module name, gateway name, properties to use
 	feugroup: id of group of whose members are authorised to make 'direct' (un-mediated) bookings
 	owner: uid of the contact-person for the item, or 0 if there's no such person
-	cleargroup: boolean whether to clear data for item when (sole) parent-group data are cleared
+	cleargroup: boolean whether to clear data for item when (sole) parent-group data are cleared, default false
 	subgrpalloc: Booker::ALLOC* enum for sub-group allocation protocol
 	repeatsuntil: internal use, datestamp for last (full) day for which repeat-bookings have been evaluated
 	subgrpdata: internal use, for working with subgrpalloc
@@ -64,6 +66,7 @@ $fields = "
  slottype I(1),
  slotcount I(1),
  bookcount I(1),
+ bookertell I(1) DEFAULT 1,
  leadtype I(1),
  leadcount I(1),
  rationcount I(1),
@@ -79,13 +82,14 @@ $fields = "
  stylesfile C(36),
  approver C(64),
  approvercontact C(128),
+ approvertell I(1) DEFAULT 1,
  smsprefix C(8),
  smspattern C(32),
  formiface C(48),
  paymentiface C(48),
  feugroup I,
  owner I,
- cleargroup I(1),
+ cleargroup I(1) DEFAULT 0,
  subgrpalloc I(1),
  repeatsuntil I DEFAULT 0,
  subgrpdata I(1) DEFAULT 0,
@@ -345,7 +349,7 @@ Data cache
  cache_id:
  keyword: key
  value: flattened value
- savetime: timestamp - UTC? 
+ savetime: timestamp - UTC?
  lifetime: seconds
 */
 $fields = "
