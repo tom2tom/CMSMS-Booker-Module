@@ -52,6 +52,7 @@ $lang['confirm_delete_sel']='Are you sure you want to delete the selected bookin
 $lang['confirm_delete_type'] = 'Are you sure you want to delete %s \\\'%s\\\' ?';
 //$lang['confirm_uninstall']='Are you sure you want to uninstall Boooker?';
 $lang['contact'] = 'contact'; //see also title...
+$lang['continue'] = 'Continue';
 $lang['copied'] = 'Copy of %s';
 $lang['countof'] = '%d of %d';
 $lang['countof2'] = '%d of %s';
