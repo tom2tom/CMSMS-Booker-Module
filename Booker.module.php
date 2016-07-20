@@ -333,6 +333,7 @@ class Booker extends CMSModule
 		$this->SetParameterType('cartadd',CLEAN_NONE);
 		$this->SetParameterType('cartcomment',CLEAN_STRING); //array of comments
 		$this->SetParameterType('cartsel',CLEAN_STRING); //array of keys
+		$this->SetParameterType('cartsubmit',CLEAN_NONE);
 		$this->SetParameterType('chooser',CLEAN_INT);
 		$this->SetParameterType('clickat',CLEAN_STRING);
 		$this->SetParameterType('comment',CLEAN_STRING); //booking-request parameters
