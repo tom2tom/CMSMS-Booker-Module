@@ -148,15 +148,18 @@ if (!$cart->seemsEmpty()) {
 		'delete' => $this->CreateInputSubmit($id,'delete',$this->Lang('delete'),
 			'title="'.$this->Lang('tip_delseltype',$this->Lang('booking_multi')).'"')
 	);
-	//buttons TODO
-	//	submit & back when $params['cart'] i.e. initiated by 'see cart'
-	//	submit & cancel when $params['add'] i.e. initiated by 'add to cart'
-	//	(finish or continue) & cancel when $params['submit'] i.e. initiated by '?'
-	if (isset($params['cart']) || isset($params['add']))
-		$tplvars['submit'] = $this->CreateInputSubmit($id,'submit',$this->Lang('submit')); //proceed to pay
-	else
+	//buttons
+	// submit & close when $params['cart'] i.e. initiated by 'see cart'
+	// submit & cancel when $params['cartadd'] i.e. initiated by action.requestbooking::'add to cart'
+	// continue & cancel when $params['cartsubmit'] i.e. initiated by action.requestbooking::'submit cart'
+	if (isset($params['cart']) || isset($params['cartadd'])) {
+		//proceed to pay
+		$t = (isset($params['cartsubmit'])) ?
+			$this->Lang('continue') : $this->Lang('submit');
+		$tplvars['submit'] = $this->CreateInputSubmit($id,'submit',$t);
+	} else
 		$tplvars['submit'] = NULL;
-	if (isset($params['add']))
+	if (isset($params['cartadd']))
 		$tplvars['cancel'] = $this->CreateInputSubmit($id,'cancel',$this->Lang('cancel'));
 	else
 		$tplvars['cancel'] = $this->CreateInputSubmit($id,'cancel',$this->Lang('close')); //or 'Back' to go back
