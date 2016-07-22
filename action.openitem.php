@@ -430,11 +430,9 @@ $pmod = ($act == 'see') ? FALSE :
 || ($act == 'edit' && $this->_CheckAccess('modify'))
 || (($act == 'add' || $act == 'copy') && $this->_CheckAccess('add'));
 
-if (!$pmod) {
-	//avoid empty strings in displayed text
-	$none = $this->Lang('none');
+$none = $this->Lang('none');
+if (!$pmod)
 	$nolimit = $this->Lang('nolimit');
-}
 
 // setup variables for the view-template
 $tplvars = array('mod' =>  $pmod);
@@ -485,7 +483,7 @@ $advanced = array();
 $formats = array();
 //------- active
 if ($pmod)
-	$i = $this->CreateInputCheckbox($id,'active','1',$item->active);
+	$i = $this->CreateInputCheckbox($id,'active',1,$item->active);
 elseif ($item->active)
 	$i = $yes;
 else
@@ -592,6 +590,25 @@ $basic[] = array('ttl'=>$cascade.$this->Lang('title_bookcount'),
 'inp'=>$i,
 'hlp'=>$this->Lang('help_bookcount')
 );
+//------- confirmation to booker
+if ($pmod && $padm) {
+	$choices = array($inherit=>-1,$no=>0,$yes=>1);
+	$sel = is_null($item->bookertell) ? -1:(int)$item->bookertell;
+	$i = $this->CreateInputRadioGroup($id,'bookertell',$choices,$sel,'','&nbsp;&nbsp;');
+	//override crappy default label-layout
+	$i = preg_replace('~label class="(.*)"~U','label class="\\1 radiolabel"',$i);
+} else {
+	if ($item->bookertell)
+		$i = $yes;
+	elseif (is_null($item->bookertell))
+		$i = $inherit;
+	else
+		$i = $no;
+}
+$basic[] = array('ttl'=>$this->Lang('bookertell'),
+'inp'=>$i,
+'hlp'=>NULL
+);
 //------- fees
 $sql = 'SELECT description,fee,feecondition FROM '.$this->FeeTable.' WHERE item_id=? AND active=1 ORDER BY condorder';
 $sel = $db->GetAll($sql,array($item_id));
@@ -624,6 +641,27 @@ $basic[] = array('ttl'=>$cascade.$this->Lang('title_feeusage'),
 'inp'=>$i,
 'hlp'=>$h
 );
+//------- gross or pretax fees
+if ($pmod && $padm) {
+	$choices = array($inherit=>-1,$no=>0,$yes=>1);
+	$sel = is_null($item->grossfees) ? -1:(int)$item->grossfees;
+	$i = $this->CreateInputRadioGroup($id,'grossfees',$choices,$sel,'','&nbsp;&nbsp;');
+	//override crappy default label-layout
+	$i = preg_replace('~label class="(.*)"~U','label class="\\1 radiolabel"',$i);
+} else {
+	if ($item->grossfees)
+		$i = $yes;
+	elseif (is_null($item->grossfees))
+		$i = $inherit;
+	else
+		$i = $no;
+}
+$basic[] = array('ttl'=>$this->Lang('title_grossfees'),
+'inp'=>$i,
+'hlp'=>NULL
+);
+//--------- tax rate
+//TODO
 //============ ADVANCED TAB
 //------- alias
 if ($pdev && $pmod) {
@@ -763,7 +801,7 @@ EOS;
 		else
 			$i = $no;
 	}
-	$advanced[] = array('ttl'=>$cascade.$this->Lang('title_cleargroup2'),
+	$advanced[] = array('ttl'=>$this->Lang('title_cleargroup2'),
 	'inp'=>$i,
 	'hlp'=>NULL
 	);
@@ -1008,6 +1046,25 @@ $advanced[] = array('ttl'=>$cascade.$this->Lang('approvercontact'),
 'inp'=>$i,
 'hlp'=>NULL
 );
+//------- messages to contact
+if ($pmod && $padm) {
+	$choices = array($inherit=>-1,$no=>0,$yes=>1);
+	$sel = is_null($item->approvertell) ? -1:(int)$item->approvertell;
+	$i = $this->CreateInputRadioGroup($id,'approvertell',$choices,$sel,'','&nbsp;&nbsp;');
+	//override crappy default label-layout
+	$i = preg_replace('~label class="(.*)"~U','label class="\\1 radiolabel"',$i);
+} else {
+	if ($item->approvertell)
+		$i = $yes;
+	elseif (is_null($item->approvertell))
+		$i = $inherit;
+	else
+		$i = $no;
+}
+$advanced[] = array('ttl'=>$this->Lang('approvertell'),
+'inp'=>$i,
+'hlp'=>NULL
+);
 //------- owner
 $sql = 'SELECT user_id,first_name,last_name FROM '.$this->UserTable.' WHERE active=1 ORDER BY last_name,first_name';
 $allusers = $db->GetAssoc($sql);
@@ -1022,7 +1079,7 @@ if ($pmod) {
 	//prepend other choices NB something changes index 0 to '', even if done postflip()
 	$allusers = array(
 		$inherit=>-1,
-		$this->Lang('none')=>0
+		$none=>0
 	) + $allusers;
 	$i = $this->CreateInputDropdown($id,'owner',$allusers,-1,$item->owner);
 } elseif ($item->owner)
@@ -1059,7 +1116,7 @@ P.permission_name IN ('{$this->PermAddName}','{$this->PermAdminName}','{$this->P
 ORDER BY U.last_name,U.first_name
 EOS;
 */
-		$allusers = array($this->Lang('none')=>0) + $allusers; //prepend 'none'
+		$allusers = array($none=>0) + $allusers;
 		$i = $this->CreateInputDropdown($id,'feugroup',$allusers,-1,$item->feugroup);
 	} elseif ($rc && $item->feugroup)
 		$i = array_search($item->feugroup,$allusers);
@@ -1071,13 +1128,25 @@ EOS;
 	);
 }
 //------- payments interface
-if ($pmod)
-	$i = $this->CreateInputText($id,'paymentiface',$item->paymentiface,30,48);
-elseif ($item->paymentiface)
-	$i = $item->paymentiface;
-else
+$choices = array();
+$allmodules = $this->GetModulesWithCapability('GatePayer');
+foreach ($allmodules as $name) {
+	$ob = ModuleOperations::get_instance()->get_module_instance($name);
+	if ($ob) {
+		$n = $ob->GetFriendlyName();
+		$choices[$n] = $name;
+		unset ($ob);
+	}
+}
+asort($choices);
+$choices = array($none=>'',	$inherit=>'-1') + $choices;
+if ($pmod) {
+	$i = $this->CreateInputDropdown($id,'paymentiface',$choices,-1,$item->paymentiface);
+} elseif ($item->paymentiface) {
+	$i = $allmodules[$item->paymentiface];
+} else
 	$i = $none;
-$advanced[] = array('ttl'=>$cascade.$this->Lang('title_paymentiface').$notyet,
+$advanced[] = array('ttl'=>$cascade.$this->Lang('title_paymentiface'),
 'inp'=>$i,
 'hlp'=>$this->Lang('help_paymentiface')
 );
