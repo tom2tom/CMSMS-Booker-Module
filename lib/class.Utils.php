@@ -64,7 +64,7 @@ class Utils
 		} else {
 			if ($cache) {
 				$cache_id = md5('bkr'.$tplname.serialize(array_keys($tplvars)));
-				$lang = CmsNlsOperations::get_current_language();
+				$lang = \CmsNlsOperations::get_current_language();
 				$compile_id = md5('bkr'.$tplname.$lang);
 				$tpl = $smarty->CreateTemplate($mod->GetFileResource($tplname),$cache_id,$compile_id,$smarty);
 				if (!$tpl->isCached())
@@ -1122,20 +1122,20 @@ class Utils
 	public function GetTimeZones(&$mod, $withtime=FALSE)
 	{
 		static $regions = array(
-			DateTimeZone::AFRICA,
-			DateTimeZone::AMERICA,
-			DateTimeZone::ANTARCTICA,
-			DateTimeZone::ASIA,
-			DateTimeZone::ATLANTIC,
-			DateTimeZone::AUSTRALIA,
-			DateTimeZone::EUROPE,
-			DateTimeZone::INDIAN,
-			DateTimeZone::PACIFIC,
+			\DateTimeZone::AFRICA,
+			\DateTimeZone::AMERICA,
+			\DateTimeZone::ANTARCTICA,
+			\DateTimeZone::ASIA,
+			\DateTimeZone::ATLANTIC,
+			\DateTimeZone::AUSTRALIA,
+			\DateTimeZone::EUROPE,
+			\DateTimeZone::INDIAN,
+			\DateTimeZone::PACIFIC,
 		);
 
 		$timezones = array();
 		foreach ($regions as $region) {
-			$timezones = array_merge($timezones, DateTimeZone::listIdentifiers($region));
+			$timezones = array_merge($timezones, \DateTimeZone::listIdentifiers($region));
 		}
 		ksort($timezones);
 
