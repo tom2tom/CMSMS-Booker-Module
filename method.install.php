@@ -25,14 +25,15 @@ $pre = cms_db_prefix();
 	slottype: enumerator for interval of a single booking per TimeIntervals()
 	slotcount: count of slottype intervals which, together with slottype, defines length of a bookings
 	bookcount: max. slots per booking, 0 = no limit, 1 = no need for booking end choice
-	bookertell: whether to (try to) send confirmation message to booker, default true
+	bookertell: whether to (try to) send confirmation message to booker, default inherit
  	leadtype: enumerator for interval used for max. lead-time for bookings
 	leadcount: count of leadtype intervals which, together with leadtype, defines max. lead-time for (no-repeat) bookings
 	rationcount: max. pending bookings for any specific booker
 	keeptype: enumerator for interval used for max. retention-time for past bookings
 	keepcount: count of keeptype intervals which, together with keeptype, defines max. retention-time for bookings history
 	grossfees: whether recorded fees include sales tax, default true
-	latitude: for sun-related calcs, accurate to ~1km
+	taxrate: sales tax rate, 0..1 assumed to be a proportion, >=1 assumed percent
+ 	latitude: for sun-related calcs, accurate to ~1km
 	longitude: ditto
 	timezone: for date/time offsets & calcs
 	dateformat: how to display dates
@@ -41,7 +42,7 @@ $pre = cms_db_prefix();
 	stylesfile: specific (uploaded) css file
 	approver: identifier of whoever handles booking requests for this item
 	approvercontact: contact info for the approver
-	approvertell: whether to (try to) send notice to approver about submitted/recorded booking, default true
+	approvertell: whether to (try to) send notice to approver about submitted/recorded booking, default inherit
 	smsprefix: country-code to be prepended to sms messages when needed
 	smspattern: regex for determining whether approvercontact is a phone suitable for sms messages (no whitespace, before country-prefix)
 	formiface: for future use e.g. module name, properties to use, for custom booking-request form
@@ -66,13 +67,14 @@ $fields = "
  slottype I(1),
  slotcount I(1),
  bookcount I(1),
- bookertell I(1) DEFAULT 1,
+ bookertell I(1) DEFAULT -1,
  leadtype I(1),
  leadcount I(1),
  rationcount I(1),
  keeptype I(1),
  keepcount I(1),
- grossfees I(1) DEFAULT 1,
+ grossfees I(1) DEFAULT -1,
+ taxrate N(8.4),
  latitude N(8.3),
  longitude N(8.3),
  timezone C(48),
@@ -82,7 +84,7 @@ $fields = "
  stylesfile C(36),
  approver C(64),
  approvercontact C(128),
- approvertell I(1) DEFAULT 1,
+ approvertell I(1) DEFAULT -1,
  smsprefix C(8),
  smspattern C(32),
  formiface C(48),
@@ -286,6 +288,7 @@ $db->CreateSequence($this->FeeTable.'_seq');
  passwd: account password, 1-way encrypted
  name: identifier for display, and identity check if publicid N/A
  contact: email, cell-phone (maybe accept a post-address...)
+ when: UTC timestamp when this record added
  type: generic discriminator e.g. authorised for un-mediated bookings
  postpay: whether this booker is entitled to be invoiced after booking/using
  userclass: display-stying enum 0..5
@@ -297,6 +300,7 @@ $fields = "
  name C(64),
  passwd C(64),
  contact C(128),
+ when I,
  type I(1) DEFAULT 0,
  postpay I(1) DEFAULT 0,
  userclass I(1) DEFAULT 0,
@@ -536,8 +540,10 @@ $this->CreatePermission($this->PermModName, $this->Lang('perm_modify'));
 // create preferences NOTE all named like corresponding table-column-name with 'pref_' prefix
 $this->SetPreference('pref_approver','');
 $this->SetPreference('pref_approvercontact','');
+$this->SetPreference('pref_approvertell',1);
 $this->SetPreference('pref_available',''); //always available
 $this->SetPreference('pref_bookcount',0); //book any no. of slots
+$this->SetPreference('pref_bookertell',1);
 $this->SetPreference('pref_cleargroup',0);	//delete items in group when group is deleted (admin)
 $this->SetPreference('pref_exportencoding','UTF-8'); //preference-only, not an items-table field
 $this->SetPreference('pref_exportfile',0); //preference-only, not an items-table field
@@ -545,10 +551,12 @@ $this->SetPreference('pref_fee',0.0);
 $this->SetPreference('pref_feecondition',''); //empty = always used
 $this->SetPreference('pref_feugroup',0);
 $this->SetPreference('pref_formiface',''); //data for custom request-form
+$this->SetPreference('pref_grossfees',1);
 $this->SetPreference('pref_keepcount',0);
 $this->SetPreference('pref_keeptype',8); //year-index per TimeIntervals()
 $this->SetPreference('pref_latitude',0.0);
 $this->SetPreference('pref_longitude',0.0);
+$this->SetPreference('pref_taxrate',0.0);
 $this->SetPreference('pref_leadcount',0);
 $this->SetPreference('pref_leadtype',3); //week-index per TimeIntervals()
 $this->SetPreference('pref_listformat',Booker::LISTSU);
