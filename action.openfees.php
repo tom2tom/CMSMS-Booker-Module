@@ -108,20 +108,20 @@ if (isset($params['cancel'])) {
 		$this->Redirect($id,'openitem','',array('item_id'=>$params['item_id'],'active_tab'=>$params['active_tab'])); }
 }
 
-if (isset($params['selitems'])) {
+if (isset($params['selitm'])) {
 /*came from defaultadmin action 'Fees' button-click, set fees for all
 $params = array
-'selitems' OR 'selgroups' => array
+'selitm' OR 'selgrp' => array
 	0 => string '1'
 'fees' => string 'Fees'
 'active_tab' => string 'items' OR 'groups'
 'action' => string 'process'
 */
-	$item_id = array_unshift($params['selitems']); //use 1st-selected for editing
-	$sel = $params['selitems']; //maybe empty now
-} elseif (isset($params['selgroups'])) {
-	$item_id = array_unshift($params['selgroups']);
-	$sel = $params['selgroups'];
+	$item_id = array_unshift($params['selitm']); //use 1st-selected for editing
+	$sel = $params['selitm']; //maybe empty now
+} elseif (isset($params['selgrp'])) {
+	$item_id = array_unshift($params['selgrp']);
+	$sel = $params['selgrp'];
 } elseif (!empty($params['sel'])) {
 	//TODO came back
 $this->Crash();
@@ -419,7 +419,7 @@ if ($pdata) {
 			$t = $this->Lang('del_confirm',$t);
 			$oneset->deletelink = $this->_CreateInputLinks($id,'delfee['.$cid.']',
 				$icondel,FALSE,$tip_del,'onclick="return confirm(\''.$t.'\');"');
-			//NOT selitems or selgroups - those may be supplied from elsewhere
+			//NOT selitm or selgrp - those may be supplied from elsewhere
 			$oneset->selected = ($count > 1) ? $this->CreateInputCheckbox($id,'selfees['.$cid.']',1,-1):NULL;
 		} else {
 			$oneset->desc = $one['description'];
@@ -463,9 +463,9 @@ if ($pmod) {
 	if ($count > 0) {
 		if ($count > 1) {
 			$tplvars['selectall'] = $this->CreateInputCheckbox($id,'item',1,-1,
-			'title="'.$this->Lang('selectall').'" onclick="select_all_items(this)"');
+			'title="'.$this->Lang('selectall').'" onclick="select_all_itm(this)"');
 			$jsfuncs[] = <<<EOS
-function select_all_items(b)
+function select_all_itm(b)
 {
  var st = $(b).attr('checked');
  if (!st) st = false;
