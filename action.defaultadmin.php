@@ -15,12 +15,14 @@ if ($padm) {
 	$pdel = TRUE;
 	$pmod = TRUE;
 	$pbkg = TRUE;
+	$pper = TRUE;
 } else {
 //	$psee = $this->_CheckAccess('view');
 	$padd = $this->_CheckAccess('add');
 	$pdel = $this->_CheckAccess('delete');
 	$pmod = $this->_CheckAccess('modify');
 	$pbkg = $this->_CheckAccess('book');
+	$pper = $this->_CheckAccess('booker');
 }
 
 $mod = $padm || $pmod;
@@ -34,6 +36,7 @@ $tplvars = array(
 	'del' => $pdel,
 	'dev' => $pdev,
 	'mod' => $mod, //not $pmod
+	'per' => $pper,
 	'set' => $pset
 );
 
@@ -51,6 +54,8 @@ $theme = ($this->before20) ? cmsms()->get_variable('admintheme'):
 	cms_utils::get_theme_object();
 $iconyes = $theme->DisplayImage('icons/system/true.gif',$this->Lang('true'),'','','systemicon');
 $iconno = $theme->DisplayImage('icons/system/false.gif',$this->Lang('false'),'','','systemicon');
+$yes = $this->Lang('yes');
+$no = $this->Lang('no');
 
 $baseurl = $this->GetModuleURLPath();
 $bseetip = $this->Lang('tip_seetype','%s');
@@ -64,7 +69,7 @@ $exporttip = $this->Lang('exporttype','%s');
 $iconexport = $theme->DisplayImage('icons/system/export.gif','%s','','','systemicon');
 $seetip = $this->Lang('tip_viewtype','%s');
 $iconsee = $theme->DisplayImage('icons/system/view.gif','%s','','','systemicon');
-if ($mod) {
+if ($mod || $pper) {
 	$edittip= $this->Lang('tip_edittype','%s');
 	$iconedit = $theme->DisplayImage('icons/system/edit.gif','%s','','','systemicon');
 }
@@ -72,7 +77,7 @@ if ($padd) {
 	$copytip = $this->Lang('tip_copytype','%s');
 	$iconcopy = $theme->DisplayImage('icons/system/copy.gif','%s','','','systemicon');
 }
-if ($pdel) {
+if ($pdel || $pper) {
 	$deltip = $this->Lang('tip_deletetype','%s');
 	$icondel = $theme->DisplayImage('icons/system/delete.gif','%s','','','systemicon');
 }
@@ -85,29 +90,32 @@ if (isset($params['active_tab']))
 	$showtab = $params['active_tab'];
 else
 	$showtab = 'data'; //default
-$seetab1 = ($showtab=='items');
-$seetab2 = ($showtab=='groups');
-$seetab3 = ($showtab=='settings');
+$seetab1 = ($showtab=='people');
+$seetab2 = ($showtab=='items');
+$seetab3 = ($showtab=='groups');
+$seetab4 = ($showtab=='settings');
 
 $tplvars['hidden'] = $this->CreateInputHidden($id,'active_tab',$showtab);
 
 $tplvars['tab_headers'] = $this->StartTabHeaders().
 	$this->SetTabHeader('data',$this->Lang('title_bookings')).
-	$this->SetTabHeader('items',$this->Lang('title_items'),$seetab1).
-	$this->SetTabHeader('groups',$this->Lang('title_groups'),$seetab2).
-	$this->SetTabHeader('settings',$this->Lang('settings'),$seetab3).
+	$this->SetTabHeader('people',$this->Lang('title_bookers'),$seetab1).
+	$this->SetTabHeader('items',$this->Lang('title_items'),$seetab2).
+	$this->SetTabHeader('groups',$this->Lang('title_groups'),$seetab3).
+	$this->SetTabHeader('settings',$this->Lang('settings'),$seetab4).
 	$this->EndTabHeaders().
 	$this->StartTabContent();
 $tplvars['tab_footers'] = $this->EndTabContent();
 $tplvars['end_tab'] = $this->EndTab();
+$tplvars['endform'] = $this->CreateFormEnd();
 
-$funcs = new Booker\Utils();
+$utils = new Booker\Utils();
 $jsfuncs = array(); //script accumulators
 $jsloads = array();
 $jsincs = array();
 //modal overlay
-$tplvars['yes'] = $this->Lang('yes');
-$tplvars['no'] = $this->Lang('no');
+$tplvars['yes'] = $yes;
+$tplvars['no'] = $no;
 $tplvars['proceed'] = $this->Lang('proceed');
 $tplvars['abort'] = $this->Lang('cancel');
 
@@ -116,8 +124,8 @@ $jsincs[] =<<<EOS
 
 EOS;
 
-//BOOKINGS TAB
-$tplvars['startform1'] = $this->CreateFormStart($id,'adminbooking',$returnid,
+//BOOKINGS TAB (& FORM)
+$tplvars['startform1'] = $this->CreateFormStart($id,'processrequest',$returnid,
 	'POST','','','',array('custmsg'=>''));
 $tplvars['start_data_tab'] = $this->StartTab('data');
 
@@ -138,8 +146,6 @@ if ($data) {
 		$iconrno = $theme->DisplayImage('icons/system/false.gif',$this->Lang('tip_reject'),'','','systemicon');
 	}
 	$rtip = $this->Lang('tip_selecttype',$t);
-	$yes = $this->Lang('yes');
-	$no = $this->Lang('no');
 	$fmt = $this->GetPreference('pref_dateformat','Y-m-j').' '.
 		$this->GetPreference('pref_timeformat','G:i');
 	$tz = new DateTimeZone('UTC');
@@ -198,7 +204,7 @@ if ($data) {
 		$dt = new DateTime('1900-1-1',$tz);
 		$dt->setTimestamp($row['lodged']);
 		$one->lodged = $dt->format($fmt);
-		$t = $funcs->GetItemNameForID($this,$row['item_id']);
+		$t = $utils->GetItemNameForID($this,$row['item_id']);
 		if ($row['item_id'] >= Booker::MINGRPID) {
 			if ($row['subgrpcount'])
 				$t .= ','.$row['subgrpcount'];
@@ -212,16 +218,16 @@ if ($data) {
 			$t = substr($t,0,5).'...';
 		$one->comment = $t;
 		$thisid = (int)$row['req_id'];
-		$one->see = $this->CreateLink($id,'rsee',$returnid,$iconrsee,array('req_id'=>$thisid));
+		$one->see = $this->CreateLink($id,'processrequest',$returnid,$iconrsee,array('req_id'=>$thisid,'task'=>'see'));
 		if ($bmod) {
-			$one->edit = $this->CreateLink($id,'redit',$returnid,$iconredit,array('req_id'=>$thisid));
+			$one->edit = $this->CreateLink($id,'processrequest',$returnid,$iconredit,array('req_id'=>$thisid,'task'=>'edit'));
 			if (1) { //TODO if e.g. not an info-request
 				if (empty($row['approved'])) {
-					$one->approve = $this->CreateLink($id,'rapprove',$returnid,$iconryes,array('req_id'=>$thisid));
-					$one->reject = $this->CreateLink($id,'rreject',$returnid,$iconrno,array('req_id'=>$thisid));
+					$one->approve = $this->CreateLink($id,'processrequest',$returnid,$iconryes,array('req_id'=>$thisid,'task'=>'approve'));
+					$one->reject = $this->CreateLink($id,'processrequest',$returnid,$iconrno,array('req_id'=>$thisid,'task'=>'reject'));
 				} else {
 					$one->approve = ''; //$yes;
-					$one->reject = $this->CreateLink($id,'rreject',$returnid,$iconrno,array('req_id'=>$thisid)); //TODO 'tip_reject2'
+					$one->reject = $this->CreateLink($id,'processrequest',$returnid,$iconrno,array('req_id'=>$thisid,'task'=>'reject')); //TODO 'tip_reject2'
 				}
 			} else {
 				$one->approve = '';
@@ -229,10 +235,10 @@ if ($data) {
 			}
 		}
 		if ($tell)
-			$one->notice = $this->CreateLink($id,'rnotify',$returnid,$icontell,array('req_id'=>$thisid));
+			$one->notice = $this->CreateLink($id,'processrequest',$returnid,$icontell,array('req_id'=>$thisid,'task'=>'notify'));
 		if ($pdel)
-			$one->delete = $this->CreateLink($id,'rdelete',$returnid,$iconrdel,array('req_id'=>$thisid));
-		$one->selected = $this->CreateInputCheckbox($id,'selreq[]',$thisid,-1,'title="'.$rtip.'"');
+			$one->delete = $this->CreateLink($id,'processrequest',$returnid,$iconrdel,array('req_id'=>$thisid,'task'=>'delete'));
+		$one->sel = $this->CreateInputCheckbox($id,'selreq[]',$thisid,-1,'title="'.$rtip.'"');
 		$pending[] = $one;
 	}
 	unset($row);
@@ -275,21 +281,18 @@ EOS;
 		$jsfuncs[] =<<<EOS
 function modalsetup(tg,\$d) {
  var msg,action,id = $(this).attr('id');
- if (id) {
+  if (id) {
   action = id.replace('{$id}','');
  } else {
-  action = $(this).attr('href').replace(/^.+,{$id},(\w+),.+/,'$1');
+  action = $(this).attr('href').replace(/^.+{$id}task=(\w+).*$/,'$1');
  }
  switch (action) {
-  case 'rapprove':
   case 'approve':
    msg = "$approve";
    break;
-  case 'rreject':
   case 'reject':
    msg = "$reject";
    break;
-  case 'rnotify':
   case 'notify':
    msg = "$notify";
    break;
@@ -429,19 +432,11 @@ EOS;
 			$this->Lang('approve'),'title="'.$this->Lang('tip_approve_sel').'"');
 		$tplvars['rejectbtn'] = $this->CreateInputSubmit($id,'reject',
 			$this->Lang('reject'),'title="'.$this->Lang('tip_reject_sel').'"');
-		$tplvars['deletebtn0'] = $this->CreateInputSubmit($id,'delete',
+		$tplvars['deletebtn1'] = $this->CreateInputSubmit($id,'delete',
 			$this->Lang('delete'),'title="'.$this->Lang('tip_delseltype',$this->Lang('request_multi')).'"');
 
 		$t = $this->Lang('confirm_delete_type',$this->Lang('request'),'%s');
 		$jsloads[] =<<<EOS
- $('#{$id}moduleform_1 #{$id}delete').modalconfirm({
-  overlayID: 'confirm',
-  popupID: 'confgeneral',
-  doCheck: confirm_reqcount,
-  preShow: function(tg,\$d) {
-   var para = \$d.children('p:first')[0];
-   para.innerHTML = '{$this->Lang('delsel_confirm',$this->Lang('request_multi'))}';
-  }
  });
  $('#data .bkrdel > a').modalconfirm({
   overlayID: 'confirm',
@@ -454,6 +449,14 @@ EOS;
    para.innerHTML = m;
   }
  });
+ $('#dataacts #{$id}delete').modalconfirm({
+  overlayID: 'confirm',
+  popupID: 'confgeneral',
+  doCheck: confirm_reqcount,
+  preShow: function(tg,\$d) {
+   var para = \$d.children('p:first')[0];
+   para.innerHTML = '{$this->Lang('delsel_confirm',$this->Lang('request_multi'))}';
+  }
 
 EOS;
 	}
@@ -474,10 +477,150 @@ EOS;
 	$tplvars['nodata'] = $this->Lang('nonew');
 }
 if ($bmod)
-	$tplvars['importbbtn'] = $this->CreateInputSubmit($id,'importbkg',$this->Lang('import'),
+	$tplvars['importbtn1'] = $this->CreateInputSubmit($id,'import',$this->Lang('import'),
 		'title="'.$this->Lang('tip_importbkg').'"');
 $tplvars['findbtn'] = $this->CreateInputSubmit($id,'find',$this->Lang('find'),
 		'title="'.$this->Lang('tip_findbkg').'"');
+
+//BOOKERS TAB (& FORM)
+$pref = cms_db_prefix();
+
+$tplvars['startform2'] = $this->CreateFormStart($id,'adminbooker',$returnid,
+	'POST','','','',array('custmsg'=>''));
+$tplvars['start_people_tab'] = $this->StartTab('people');
+
+$bkrs = array();
+$sql = 'SELECT * FROM '.$pref.'module_bkr_bookers ORDER BY name';
+$rows = $db->GetArray($sql);
+if ($rows) {
+	$st = $utils->GetZoneTime('UTC'); //'now' timestamp with same zone as booking data
+	$dt = new DateTime('1900-1-1',new DateTimeZone('UTC'));
+	$sql = 'SELECT bookwhen FROM '.$this->HistoryTable.' WHERE booker_id=? ORDER BY bookwhen';
+	$sb = $this->Lang('booker');
+	foreach ($rows as $row) {
+		$bid = (int)$row['booker_id'];
+		$one = new stdClass();
+		//TODO make this link sortable
+		$one->name = ($pper) ?
+			$this->CreateLink($id,'adminbooker',$returnid,$row['name'],array('booker_id'=>$bid,'task'=>'edit')):
+			$row['name'];
+		$one->reg = ($row['publicid'] && $row['passwd']) ? $yes : $no;
+		$dt->setTimestamp($row['when']);
+		$one->added = $dt->format('Y-m-d'); //sortable format
+		$data = $db->GetArray($sql,array($bid));
+		if ($data) {
+			$count = count($data);
+			$future = count(array_filter($data,function($v)use($st){return $v >= $st;}));
+			$dt->setTimestamp(reset($data));
+			$first = $dt->format('Y-m-d');
+			$dt->setTimestamp(end($data));
+			$last = $dt->format('Y-m-d');
+		} else {
+			$count = 0;
+			$future = '';
+			$first = '';
+			$last = '';
+		}
+		$one->total = $count;
+		$one->pending = $future;
+		$one->first = $first;
+		$one->last = $last;
+		if ($pper) {
+			$t = sprintf($edittip,$sb);
+			$t = sprintf($iconedit,$t,$t);
+			$one->edit = $this->CreateLink($id,'adminbooker',$returnid,$t,array('booker_id'=>$bid,'task'=>'edit'));
+			$t = sprintf($deltip,$sb);
+			$t = sprintf($icondel,$t,$t);
+			$one->delete = $this->CreateLink($id,'adminbooker',$returnid,$t,array('booker_id'=>$bid,'task'=>'delete'));
+		} else {
+			$one->edit = NULL;
+			$one->delete = NULL;
+		}
+		$t = sprintf($seltip,$sb);
+		$one->sel = $this->CreateInputCheckbox($id,'selbkr[]',$bid,-1,'title="'.$t.'"');
+		$bkrs[] = $one;
+	}
+} //$rows
+$pcount = count($bkrs);
+$tplvars['pcount'] = $pcount;
+if ($pcount > 0) {
+	$tplvars += array(
+	 'bookers' => $bkrs,
+	 'title_person' => $this->Lang('title_name'),
+	 'title_reg' => $this->Lang('registered'),
+	 'title_added' => $this->Lang('start'),
+	 'title_total' => $this->Lang('title_bookings'),
+	 'title_pending' => $this->Lang('registered'),
+	 'title_first' => $this->Lang('first'),
+	 'title_last' => $this->Lang('last')
+	);
+	if ($pcount > 1) {
+		$tplvars['selectall_bookers'] = $this->CreateInputCheckbox($id,'booker',TRUE,FALSE,'title="'.$this->Lang('selectall').'" onclick="select_all_bkr(this)"');
+		$jsfuncs[] = <<<EOS
+function select_all_bkr(b)
+{
+ var st = $(b).attr('checked');
+ if (! st) st = false;
+ $('input[name="{$id}selbkr[]"][type="checkbox"]').attr('checked',st);
+}
+
+EOS;
+	} // $pcount > 1
+
+	$jsfuncs[] =<<<EOS
+function confirm_bkrcount() {
+ var cb = $('input[name="{$id}selbkr[]"]:checked');
+ return (cb.length > 0);
+}
+
+EOS;
+	if($pper) {
+		$tplvars['ablebtn1'] =
+			$this->CreateInputSubmit($id,'activate',$this->Lang('activate'),
+			'title="'.$this->Lang('activatesel',$this->Lang('booker_multi')).'" onclick="return confirm_bkrcount();"');
+		$tplvars['deletebtn2'] = $this->CreateInputSubmit($id,'delete',
+			$this->Lang('delete'),'title="'.$this->Lang('tip_delseltype',$this->Lang('booker_multi')).'"');
+
+		$t = $this->Lang('confirm_delete_type',$this->Lang('booker'),'%s');
+		$jsloads[] =<<<EOS
+ $('#people .bkrdel > a').modalconfirm({
+  overlayID: 'confirm',
+  popupID: 'confgeneral',
+  preShow: function(tg,\$d) {
+    var n = $(this.parentNode).siblings(':first').text(),
+    t = "{$t}",
+    m = t.replace('%s',n),
+    para = \$d.children('p:first')[0];
+   para.innerHTML = m;
+  }
+ });
+ $('#peopleacts #{$id}delete').modalconfirm({
+  overlayID: 'confirm',
+  popupID: 'confgeneral',
+  doCheck: confirm_bkrcount,
+  preShow: function(tg,\$d) {
+   var para = \$d.children('p:first')[0];
+   para.innerHTML = '{$this->Lang('delsel_confirm',$this->Lang('booker_multi'))}';
+  }
+ });
+
+EOS;
+	} //$pper
+	$tplvars['exportbtn2'] = $this->CreateInputSubmit($id,'export',$this->Lang('export'),
+		'title="'.$this->Lang('exportsel',$this->Lang('booker_multi')).'" onclick="return confirm_bkrcount();"');
+} else { //$pcount == 0
+	$tplvars['nobookers'] = $this->Lang('nobooker');
+}
+if ($padd) {
+	$tplvars['addbooker'] = $this->CreateLink($id,'adminbooker',$returnid,
+		 $theme->DisplayImage('icons/system/newobject.gif',$this->Lang('addbooker'),'','','systemicon'),
+		 array('item_id'=>-1,'task'=>'add'),'',FALSE,FALSE,'')
+	 .' '.$this->CreateLink($id,'adminbooker',$returnid,
+		 $this->Lang('addbooker'),
+		 array('item_id'=>-1,'task'=>'add'),'',FALSE,FALSE,'class="pageoptions"');
+	$tplvars['importbtn2'] = $this->CreateInputSubmit($id,'importbkr',$this->Lang('import'),
+		'title="'.$this->Lang('tip_importbkr').'"');
+}
 
 $items = array();
 $icount = 0;
@@ -507,11 +650,11 @@ if ($rs) {
 		$isitem = ($thisid < Booker::MINGRPID && $thisid != -Booker::MINGRPID);
 
 		$one = new stdClass();
-
+		//TODO make this sortable
 		if ($mod)
-			$one->name = $this->CreateLink($id,'edit',$returnid,
+			$one->name = $this->CreateLink($id,'process',$returnid,
 				strip_tags($row['name']),
-				array('item_id'=>$thisid));
+				array('item_id'=>$thisid,'task'=>'edit'));
 		else
 			$one->name	= strip_tags($row['name']);
 		//for group-name lookups
@@ -552,37 +695,37 @@ if ($rs) {
 
 		$t = sprintf($bseetip,($isitem)?$si:$sg);
 		$t = sprintf($iconbsee,$t,$t);
-		$one->bsee = $this->CreateLink($id,'inspect','',$t,array('item_id'=>$thisid));
+		$one->bsee = $this->CreateLink($id,'process','',$t,array('item_id'=>$thisid,'task'=>'inspect'));
 
 //	if ($isitem && $bmod && !$skip)
 		if ($mod && !$skip) {
 			$t = sprintf($bedittip,($isitem)?$si:$sg);
 			$t = sprintf($iconbedit,$t,$t);
-			$one->bedit = $this->CreateLink($id,'administer','',$t,array('item_id'=>$thisid));
+			$one->bedit = $this->CreateLink($id,'process','',$t,array('item_id'=>$thisid,'task'=>'administer'));
 		} else
 			$one->bedit = '';
 
 		$t = sprintf($exporttip,($isitem)?$si:$sg);
 		$t = sprintf($iconexport,$t,$t);
-		$one->export = $this->CreateLink($id,'exportbooking','',$t,array('item_id'=>$thisid));
+		$one->export = $this->CreateLink($id,'process','',$t,array('item_id'=>$thisid,'task'=>'export'));
 
 		$t = sprintf($seetip,($isitem)?$si:$sg);
 		$t = sprintf($iconsee,$t,$t);
-		$one->see = $this->CreateLink($id,'see','',$t,array('item_id'=>$thisid));
+		$one->see = $this->CreateLink($id,'process','',$t,array('item_id'=>$thisid,'task'=>'see'));
 
 		if ($mod && !$skip) {
 			if ($row['active'] > 0) //it's active so create a deactivate-link
-				$one->active = $this->CreateLink($id,'toggle',$returnid,$iconyes,
-					array('item_id'=>$thisid,'active'=>TRUE));
+				$one->active = $this->CreateLink($id,'process',$returnid,$iconyes,
+					array('item_id'=>$thisid,'task'=>'toggle','active'=>TRUE));
 			elseif ($row['active'] == 0) //it's inactive so create an activate-link
-				$one->active = $this->CreateLink($id,'toggle',$returnid,$iconno,
-					array('item_id'=>$thisid,'active'=>FALSE));
+				$one->active = $this->CreateLink($id,'process',$returnid,$iconno,
+					array('item_id'=>$thisid,'task'=>'toggle','active'=>FALSE));
 			else
 				$one->active = ''; //fake-deleted
 
 			$t = sprintf($edittip,($isitem)?$si:$sg);
 			$t = sprintf($iconedit,$t,$t);
-			$one->edit = $this->CreateLink($id,'edit',$returnid,$t,array('item_id'=>$thisid));
+			$one->edit = $this->CreateLink($id,'process',$returnid,$t,array('item_id'=>$thisid,'task'=>'edit'));
 		} else {
 			if ($row['active'] > 0)
 				$one->active = $yes;
@@ -596,23 +739,23 @@ if ($rs) {
 		if ($padd) {
 			$t = sprintf($copytip,($isitem)?$si:$sg);
 			$t = sprintf($iconcopy,$t,$t);
-			$one->copy = $this->CreateLink($id,'copy','',$t,array('item_id'=>$thisid));
+			$one->copy = $this->CreateLink($id,'process','',$t,array('item_id'=>$thisid,'task'=>'copy'));
 		} else {
 			$one->copy = '';
 		}
 
-		if ($pdel  && !$skip) {
+		if ($pdel && !$skip) {
 			$s = ($isitem)?$si:$sg;
 			$t = sprintf($deltip,$s);
 			$t = sprintf($icondel,$t,$t);
-			$one->delete = $this->CreateLink($id,'delete',$returnid,$t,array('item_id'=>$thisid));
+			$one->delete = $this->CreateLink($id,'process',$returnid,$t,array('item_id'=>$thisid,'task'=>'delete'));
 		} else {
 			$one->delete = '';
 		}
 
 		$t = sprintf($seltip,($isitem)?$si:$sg);
 		if ($isitem) {
-			$one->selected = $this->CreateInputCheckbox($id,'selitems[]',$thisid,-1,'title="'.$t.'"');
+			$one->sel = $this->CreateInputCheckbox($id,'selitm[]',$thisid,-1,'title="'.$t.'"');
 			$items[] = $one;
 			$icount++;
 		} else {
@@ -620,7 +763,7 @@ if ($rs) {
 				$one->count = (int)$memcounts[$thisid];
 			else
 				$one->count = 0;
-			$one->selected = $this->CreateInputCheckbox($id,'selgroups[]',$thisid,-1,'title="'.$t.'"');
+			$one->sel = $this->CreateInputCheckbox($id,'selgrp[]',$thisid,-1,'title="'.$t.'"');
 			$groups[] = $one;
 			$gcount++;
 		}
@@ -638,8 +781,7 @@ if ($icount > 0 || $gcount > 0) {
 }
 
 //RESOURCES TAB
-$tplvars['startform2'] = $this->CreateFormStart($id,'process',$returnid);
-$tplvars['endform'] = $this->CreateFormEnd(); //used for all forms
+$tplvars['startform3'] = $this->CreateFormStart($id,'process',$returnid);
 $tplvars['start_items_tab'] = $this->StartTab('items');
 
 $tplvars['icount'] = $icount;
@@ -648,40 +790,40 @@ if ($icount > 0) {
 	$tplvars['inametext'] = $this->Lang('title_name');
 	if ($icount > 1)
 		$tplvars['selectall_items'] =
-			$this->CreateInputCheckbox($id,'item',TRUE,FALSE,'title="'.$this->Lang('selectall').'" onclick="select_all_items(this)"');
-	$tplvars['exportbtn1'] =
+			$this->CreateInputCheckbox($id,'item',TRUE,FALSE,'title="'.$this->Lang('selectall').'" onclick="select_all_itm(this)"');
+	$tplvars['exportbtn3'] =
 		$this->CreateInputSubmit($id,'export',$this->Lang('export'),
 		'title="'.$this->Lang('exportsel',$this->Lang('item_multi')).'" onclick="return confirm_itmcount();"');
 	$t = ($mod) ? 'update':'inspect';
 	$t = $this->Lang($t);
 	$t = mb_convert_case($t,MB_CASE_LOWER);
-	$tplvars['feebtn1'] =
+	$tplvars['feebtn3'] =
 		$this->CreateInputSubmit($id,'setfees',$this->Lang('title_fees'),
 		'title="'.$this->Lang('feesel',$t,$this->Lang('item_multi')).'" onclick="return confirm_itmcount();"');
 	if ($mod) {
 		if ($icount > 1)
-			$tplvars['sortbtn1'] =
+			$tplvars['sortbtn3'] =
 				$this->CreateInputSubmit($id,'sort',$this->Lang('sort'),
 				'title="'.$this->Lang('tip_sorttype',$this->Lang('item_multi')).'" onclick="return confirm_itmcount();"');
-		$tplvars['ablebtn1'] =
+		$tplvars['ablebtn3'] =
 			$this->CreateInputSubmit($id,'activate',$this->Lang('activate'),
 			'title="'.$this->Lang('activatesel',$this->Lang('item_multi')).'" onclick="return confirm_itmcount();"');
 	}
 	if ($pdel)
-		$tplvars['deletebtn1'] =
+		$tplvars['deletebtn3'] =
 			$this->CreateInputSubmit($id,'delete',$this->Lang('delete'),
 			'title="'.$this->Lang('tip_delseltype',$this->Lang('item_multi')).'"');
 	//related js
 	$jsfuncs[] = <<<EOS
-function select_all_items(b)
+function select_all_itm(b)
 {
  var st = $(b).attr('checked');
  if (! st) st = false;
- $('input[name="{$id}selitems[]"][type="checkbox"]').attr('checked',st);
+ $('input[name="{$id}selitm[]"][type="checkbox"]').attr('checked',st);
 }
 function confirm_itmcount()
 {
- var cb = $('input[name="{$id}selitems[]"]:checked');
+ var cb = $('input[name="{$id}selitm[]"]:checked');
  return (cb.length > 0);
 }
 
@@ -689,15 +831,6 @@ EOS;
 	if ($pdel) {
 		$t = $this->Lang('confirm_delete_type',$this->Lang('item'),'%s');
 		$jsloads[] = <<<EOS
- $('#{$id}moduleform_2 #{$id}delete').modalconfirm({
-  overlayID: 'confirm',
-  popupID: 'confgeneral',
-  doCheck: confirm_itmcount,
-  preShow: function(tg,\$d) {
-   var para = \$d.children('p:first')[0];
-   para.innerHTML = '{$this->Lang('delsel_confirm',$this->Lang('item_multi'))}';
-  }
- });
  $('#items .bkrdel > a').modalconfirm({
   overlayID: 'confirm',
   popupID: 'confgeneral',
@@ -709,6 +842,15 @@ EOS;
    para.innerHTML = m;
   }
  });
+ $('#itemacts #{$id}delete').modalconfirm({
+  overlayID: 'confirm',
+  popupID: 'confgeneral',
+  doCheck: confirm_itmcount,
+  preShow: function(tg,\$d) {
+   var para = \$d.children('p:first')[0];
+   para.innerHTML = '{$this->Lang('delsel_confirm',$this->Lang('item_multi'))}';
+  }
+ });
 
 EOS;
 	}
@@ -716,22 +858,20 @@ EOS;
 	$tplvars['noitems'] = $this->Lang('noitems');
 
 if ($padd) {
-	$tplvars['additem'] =
-	 $this->CreateLink($id,'add',$returnid,
+	$tplvars['additem'] = $this->CreateLink($id,'process',$returnid,
 		 $theme->DisplayImage('icons/system/newobject.gif',$this->Lang('additem'),'','','systemicon'),
-		 array('item_id'=>-1),'',FALSE,FALSE,'')
-	 .' '.
-	 $this->CreateLink($id,'add',$returnid,
+		 array('item_id'=>-1,'task'=>'add'),'',FALSE,FALSE,'')
+	 .' '.$this->CreateLink($id,'process',$returnid,
 		 $this->Lang('additem'),
-		 array('item_id'=>-1),'',FALSE,FALSE,'class="pageoptions"');
+		 array('item_id'=>-1,'task'=>'add'),'',FALSE,FALSE,'class="pageoptions"');
 
-	$tplvars['importibtn'] = $this->CreateInputSubmit($id,'importitm',$this->Lang('fetch'),
+	$tplvars['importbtn3'] = $this->CreateInputSubmit($id,'importitm',$this->Lang('import'),
 		'title="'.$this->Lang('tip_importitm').'"');
 }
 
 //GROUPS TAB
 $tplvars['start_grps_tab'] = $this->StartTab('groups');
-$tplvars['startform3'] = $this->CreateFormStart($id,'process',$returnid);
+$tplvars['startform4'] = $this->CreateFormStart($id,'process',$returnid);
 
 $tplvars['gcount'] = $gcount;
 if ($gcount > 0) {
@@ -740,56 +880,47 @@ if ($gcount > 0) {
 	$tplvars['title_gcount'] = $this->Lang('title_gcount');
 	if ($gcount > 1)
 		$tplvars['selectall_grps'] =
-			$this->CreateInputCheckbox($id,'group',TRUE,FALSE,'title="'.$this->Lang('selectall').'" onclick="select_all_groups(this)"');
-	$tplvars['exportbtn2'] =
+			$this->CreateInputCheckbox($id,'group',TRUE,FALSE,'title="'.$this->Lang('selectall').'" onclick="select_all_grp(this)"');
+	$tplvars['exportbtn4'] =
 		$this->CreateInputSubmit($id,'export',$this->Lang('export'),
 		'title="'.$this->Lang('exportsel',$this->Lang('group_multi')).'" onclick="return confirm_grpcount();"');
 	$t = ($mod) ? 'update':'inspect';
 	$t = $this->Lang($t);
 	$t = mb_convert_case($t,MB_CASE_LOWER);
-	$tplvars['feebtn2'] =
+	$tplvars['feebtn4'] =
 		$this->CreateInputSubmit($id,'setfees',$this->Lang('title_fees'),
 		'title="'.$this->Lang('feesel',$t,$this->Lang('group_multi')).'" onclick="return confirm_grpcount();"');
 	if ($mod) {
 		if ($gcount > 1)
-			$tplvars['sortbtn2'] =
+			$tplvars['sortbtn4'] =
 				$this->CreateInputSubmit($id,'sort',$this->Lang('sort'),
 				'title="'.$this->Lang('tip_sorttype',$this->Lang('group_multi')).'" onclick="return confirm_grpcount();"');
-		$tplvars['ablebtn2'] =
+		$tplvars['ablebtn4'] =
 			$this->CreateInputSubmit($id,'activate',$this->Lang('activate'),
 			'title="'.$this->Lang('activatesel',$this->Lang('group_multi')).'" onclick="return confirm_grpcount();"');
 	}
 	if ($pdel)
-		$tplvars['deletebtn2'] =
+		$tplvars['deletebtn4'] =
 			$this->CreateInputSubmit($id,'delete',$this->Lang('delete'),
 			'title="'.$this->Lang('tip_delseltype',$this->Lang('group_multi')).'"');
 	//related js
 	$t = $this->Lang('confirm_delete_type',$this->Lang('group'),'%s');
 	$jsfuncs[] = <<<EOS
-function select_all_groups(b)
+function select_all_grp(b)
 {
  var st = $(b).attr('checked');
  if (! st) st = false;
- $('input[name="{$id}selgroups[]"][type="checkbox"]').attr('checked',st);
+ $('input[name="{$id}selgrp[]"][type="checkbox"]').attr('checked',st);
 }
 function confirm_grpcount()
 {
- var cb = $('input[name="{$id}selgroups[]"]:checked');
+ var cb = $('input[name="{$id}selgrp[]"]:checked');
  return (cb.length > 0);
 }
 
 EOS;
 	if ($pdel) {
 		$jsloads[] = <<<EOS
- $('#{$id}moduleform_3 #{$id}delete').modalconfirm({
-  overlayID: 'confirm',
-  popupID: 'confgeneral',
-  doCheck: confirm_grpcount,
-  preShow: function(tg,\$d) {
-   var para = \$d.children('p:first')[0];
-   para.innerHTML = '{$this->Lang('delsel_confirm',$this->Lang('group_multi'))}';
-  }
- });
  $('#groups .bkrdel > a').modalconfirm({
   overlayID: 'confirm',
   popupID: 'confgeneral',
@@ -801,6 +932,15 @@ EOS;
    para.innerHTML = m;
   }
  });
+ $('#groupacts #{$id}delete').modalconfirm({
+  overlayID: 'confirm',
+  popupID: 'confgeneral',
+  doCheck: confirm_grpcount,
+  preShow: function(tg,\$d) {
+   var para = \$d.children('p:first')[0];
+   para.innerHTML = '{$this->Lang('delsel_confirm',$this->Lang('group_multi'))}';
+  }
+ });
 
 EOS;
 	}
@@ -808,18 +948,17 @@ EOS;
 	$tplvars['nogroups'] = $this->Lang('nogroups');
 
 if ($mod) {
-	$tplvars['addgrp'] =
-	 $this->CreateLink($id,'add',$returnid,
+	$tplvars['addgrp'] = $this->CreateLink($id,'process',$returnid,
 		 $theme->DisplayImage('icons/system/newobject.gif',$this->Lang('addgroup'),'','','systemicon'),
-		 array('item_id'=>-Booker::MINGRPID),'',FALSE,FALSE,'')
-	 .' '.
-	 $this->CreateLink($id,'add',$returnid,
+		 array('item_id'=>-Booker::MINGRPID,'task'=>'add'),'',FALSE,FALSE,'')
+	 .' '.$this->CreateLink($id,'process',$returnid,
 		 $this->Lang('addgroup'),
-		 array('item_id'=>-Booker::MINGRPID),'',FALSE,FALSE,'class="pageoptions"');
+		 array('item_id'=>-Booker::MINGRPID,'task'=>'add'),'',FALSE,FALSE,'class="pageoptions"');
+	$tplvars['importbtn4'] = $tplvars['importbtn3'];
 }
 
 //SETTINGS TAB
-$tplvars['startform4'] = $this->CreateFormStart($id,'setprefs',$returnid);
+$tplvars['startform5'] = $this->CreateFormStart($id,'setprefs',$returnid);
 $tplvars['start_settings_tab'] = $this->StartTab('settings');
 if ($pset) {
 	$settings = array();
@@ -828,7 +967,6 @@ if ($pset) {
 	$one->title = $this->Lang('title_cleargroup');
 	$one->input = $this->CreateInputCheckbox($id,'pref_cleargroup',TRUE,
 		$this->GetPreference('pref_cleargroup',FALSE),'');
-	$one->must = 1;
 	$settings[] = $one;
 
 	$sql = 'SELECT user_id,first_name,last_name FROM '.$this->UserTable.' WHERE active=1 ORDER BY last_name,first_name';
@@ -856,6 +994,12 @@ if ($pset) {
 	$one->title = $this->Lang('approvercontact');
 	$one->input = $this->CreateInputText($id,'pref_approvercontact',$this->GetPreference('pref_approvercontact'),40,128);
 //	$one->help = $this->Lang('help_approvercontact');
+	$settings[] = $one;
+
+	$one = new stdClass();
+	$one->title = $this->Lang('approvertell');
+	$one->input = $this->CreateInputCheckbox($id,'pref_approvertell',TRUE,
+		$this->GetPreference('pref_approvertell',FALSE),'');
 	$settings[] = $one;
 
 	$one = new stdClass();
@@ -990,6 +1134,20 @@ EOS;
 	$settings[] = $one;
 
 	$one = new stdClass();
+	$one->title = $this->Lang('title_grossfees');
+	$one->input = $this->CreateInputCheckbox($id,'pref_grossfees',TRUE,
+		$this->GetPreference('pref_grossfees',FALSE),'');
+	$settings[] = $one;
+
+	$one = new stdClass();
+	$one->title = $this->Lang('title_taxrate');
+	$one->input = $this->CreateInputText($id,'pref_taxrate',
+		$this->GetPreference('pref_taxrate',0.0),4,8);
+//	$one->must = 1;
+	$one->help = $this->Lang('help_taxrate');
+	$settings[] = $one;
+
+	$one = new stdClass();
 	$one->title = $this->Lang('title_feecondition');
 	$one->input = $this->CreateTextArea(FALSE,$id,$this->GetPreference('pref_feecondition'),
 		'pref_feecondition','','','','',40,3,'','','style="height:3em;"');
@@ -998,7 +1156,22 @@ EOS;
 
 	$one = new stdClass();
 	$one->title = $this->Lang('title_paymentiface');
-	$one->input = $this->CreateInputText($id,'pref_paymentiface',$this->GetPreference('pref_paymentiface'),30,48);
+	$choices = array();
+	$allmodules = $this->GetModulesWithCapability('GatePayer');
+	if ($allmodules) {
+		foreach ($allmodules as $name) {
+			$ob = ModuleOperations::get_instance()->get_module_instance($name);
+			if ($ob) {
+				$n = $ob->GetFriendlyName();
+				$choices[$n] = $name;
+				unset ($ob);
+			}
+		}
+		asort($choices);
+	}
+	$choices = array($this->Lang('none')=>'') + $choices;
+	$one->input = $this->CreateInputDropdown($id,'pref_paymentiface',$choices,-1,
+	$this->GetPreference('pref_paymentiface'));
 	$one->help = $this->Lang('help_paymentiface');
 	$settings[] = $one;
 
@@ -1021,6 +1194,12 @@ EOS;
 	$one->help = $this->Lang('help_lead');
 	$settings[] = $one;
 
+	$one = new stdClass();
+	$one->title = $this->Lang('bookertell');
+	$one->input = $this->CreateInputCheckbox($id,'pref_bookertell',TRUE,
+		$this->GetPreference('pref_bookertell',FALSE),'');
+	$settings[] = $one;
+
 	//days+ for this one
 	$t = array_flip($alltypes);
 	unset($t[0]);
@@ -1033,7 +1212,7 @@ EOS;
 	$settings[] = $one;
 
 	$one = new stdClass();
-	$choices = $funcs->GetTimeZones($this);
+	$choices = $utils->GetTimeZones($this);
 	$one->title = $this->Lang('title_timezone');
 	$one->input = $this->CreateInputDropdown($id,'pref_timezone',$choices,-1,$this->GetPreference('pref_timezone'));
 	$one->help = $this->Lang('help_zone');
