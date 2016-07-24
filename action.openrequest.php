@@ -48,7 +48,7 @@ if (isset($params['submit']) || isset($params['apply'])) {
 'when' => string '9 November 2015 11:00'
 'until' => string '9 November 2015 11:59'
 'user' => string 'HiThere'
-'userclass' => string '1'
+'displayclass' => string '1'
 'contact' => string '@myhandle'
 'comment' => string 'asdad dfgdf dhdfg'
 'custmsg' => string 'You must pay!'
@@ -214,11 +214,11 @@ if (!$viewmode) {
 //==
 if (!$viewmode) {
 	$one = new stdClass();
-	$one->title = $this->Lang('userclass');
+	$one->title = $this->Lang('displayclass');
 	$t = 1;
 	$one->must = 0;
 	$choices = array(1=>1,2=>2,3=>3,4=>4,5=>5);
-	$one->input = $this->CreateInputDropdown($id,'userclass',$choices,-1,$t);
+	$one->input = $this->CreateInputDropdown($id,'displayclass',$choices,-1,$t);
 	$one->help = $this->Lang('help_book_style');
 	$vars[] = $one;
 //==

@@ -382,7 +382,7 @@ class Display
 		$resources = array(); //id(s) actually booked
 		$bslots = array(); //bookings (automatically) sorted by increasing $bs
 		$users = array(); //at most 2 members
-		$userclass = array(); //ditto
+		$displayclass = array(); //ditto
 		$row = FALSE;
 		$nextpos = -1; //we can cache a single position cuz array-rows are sorted on start-stamp
 		//interrogate all bookings-data for the cell
@@ -404,8 +404,8 @@ class Display
 				$t = $row['user'];
 				if (!isset($users[1]) && !in_array($t,$users)) {
 					$users[] = $t;
-					//log corresponding userclass
-					$userclass[] = $row['userclass'];
+					//log corresponding displayclass
+					$displayclass[] = $row['displayclass'];
 				}
 				//log distinct resource id's
 				$t = (int)$row['item_id'];
@@ -471,8 +471,8 @@ class Display
 				$one->tip .= '&#013;'.$d.'&#013;'.sprintf($this->rangefmt,$t1,$t2);
 
 				$type = ($whole) ? 'full':'part';
-				if ($userclass[0])
-					$one->style = 'class="'.$type.$userclass[0].'"';
+				if ($displayclass[0])
+					$one->style = 'class="'.$type.$displayclass[0].'"';
 				else
 					$one->style = 'class="'.$type.'"';
 

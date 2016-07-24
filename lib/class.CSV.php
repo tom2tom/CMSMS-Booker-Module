@@ -111,7 +111,7 @@ class CSV
 			 '#Start'=>'slotstart', //ditto
 			 'End'=>'slotlen', //ditto
 			 '#User'=>'user',
-			 'Class'=>'userclass',
+			 'Class'=>'displayclass',
 			 'Contact'=>'contact',
 			 'Paid'=>'paid'
 			);
@@ -145,7 +145,7 @@ class CSV
 						$dts->setTimestamp($fv+$one['slotstart']);
 					  $fv = $dts->format('Y-n-j G:i');
 					 	break;
-					 case 'userclass':
+					 case 'displayclass':
 						$fv = (int)$fv;
 					 	break;
 					 case 'user':
@@ -340,7 +340,7 @@ class CSV
 			 '#Start'=>'slotstart', //ditto
 			 'End'=>'slotlen', //ditto
 			 '#User'=>'user',
-			 'Class'=>'userclass',
+			 'Class'=>'displayclass',
 			 'Contact'=>'contact',
 			 'Paid'=>'paid'
 			);
@@ -425,7 +425,7 @@ class CSV
 								$data[$k] = trim($one);
 								$save = TRUE;
 								break;
-							 case 'userclass':
+							 case 'displayclass':
 								if (!is_numeric($one)) {
 									return array(FALSE,'err_file');
 								}
@@ -444,7 +444,7 @@ class CSV
 							switch ($k) {
 							 case 'slotstart':
 							 case 'slotlen':
-							 case 'userclass':
+							 case 'displayclass':
 							 case 'paid':
 								$data[$k] = 0;
 								break;

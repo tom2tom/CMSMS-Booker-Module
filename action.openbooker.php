@@ -120,7 +120,7 @@ $oneset->ttl = $this->Lang('');
 $oneset->inp = '';
 $oneset->hlp = '';
 $vars[] = $oneset;
-// userclass I(1) DEFAULT 0,
+// displayclass I(1) DEFAULT 0,
 $oneset = new stdClass();
 $oneset->ttl = $this->Lang('');
 //$oneset->mst = ; //optional

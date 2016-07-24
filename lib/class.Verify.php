@@ -24,7 +24,7 @@ class Verify
 		$tz = new \DateTimeZone('UTC');
 		$slen =  $utils->GetInterval($mod,$item_id,'slot');
 /*supplied $params keys
-		'subgrpcount'? 'when' 'until'? 'user' 'conformuser' 'userclass'
+		'subgrpcount'? 'when' 'until'? 'user' 'conformuser' 'displayclass'
 		'conformstyle' 'contact' 'conformcontact' 'paid'
 TODO support 'past' data without both date/time $params[]
 */

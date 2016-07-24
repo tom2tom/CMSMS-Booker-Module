@@ -42,7 +42,7 @@ if (isset($params['submit']) || isset($params['apply'])) {
   'until' => string '17 October 2015 12:59'
   'user' => string 'Mary'
   'conformuser' => string '1' MAYBE
-  'userclass' => string '1'
+  'displayclass' => string '1'
   'conformstyle' => string '1' MAYBE
   'contact' => string '@myfirm'
   'conformcontact' => string '1' MAYBE
@@ -67,7 +67,7 @@ if (isset($params['submit']) || isset($params['apply'])) {
 		}
 		if ($t) {
 			if ($is_new) {
-				$sql2 = 'bkg_id,item_id,formula,user,contact,userclass';
+				$sql2 = 'bkg_id,item_id,formula,user,contact,displayclass';
 				$fillers = '?,?,?,?,?,?';
 				$bid = $db->GenID($this->DataTable.'_seq');
 				$args = array(
@@ -76,7 +76,7 @@ if (isset($params['submit']) || isset($params['apply'])) {
 					$t,
 					$params['user'],
 					$params['contact'],
-					(int)$params['userclass']
+					(int)$params['displayclass']
 				);
 				foreach (array('subgrpcount','paid') as $k) {
 					if (isset($params[$k])) {
@@ -89,12 +89,12 @@ if (isset($params['submit']) || isset($params['apply'])) {
 				$db->Execute($sql,$args);
 			} else { //update
 				$funcs2->ConformBookingData($this,$params); //general update where needed, before we change user
-				$sql2 = 'formula=?,user=?,contact=?,userclass=?';
+				$sql2 = 'formula=?,user=?,contact=?,displayclass=?';
 				$args = array(
 					$t,
 					$params['user'],
 					$params['contact'],
-					(int)$params['userclass']
+					(int)$params['displayclass']
 				);
 				foreach (array('subgrpcount','paid') as $k) {
 					if (isset($params[$k])) {
@@ -341,14 +341,14 @@ if (!($is_new || $viewmode)) {
 }
 //==
 $one = new stdClass();
-$one->title = $this->Lang('userclass');
-$t = ($is_new) ? 0:(int)$bdata['userclass'];
+$one->title = $this->Lang('displayclass');
+$t = ($is_new) ? 0:(int)$bdata['displayclass'];
 if ($viewmode) {
 	$one->input = $t;
 } else {
 	$one->must = 0;
 	$choices = array(1=>1,2=>2,3=>3,4=>4,5=>5);
-	$one->input = $this->CreateInputDropdown($id,'userclass',$choices,-1,$t);
+	$one->input = $this->CreateInputDropdown($id,'displayclass',$choices,-1,$t);
 }
 $one->help = $this->Lang('help_book_style');
 $vars[] = $one;

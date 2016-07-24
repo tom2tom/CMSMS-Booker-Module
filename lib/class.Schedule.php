@@ -56,7 +56,7 @@ class Schedule
 		return $slotstatus;
 	}
 
-	//Try to match userclass with an existing booking
+	//Try to match displayclass with an existing booking
 	private function MatchUserClass(&$mod, &$utils, $item_id, $user)
 	{
 		$sql = 'SELECT item_id,userlass FROM '.$mod->DataTable.' WHERE user=?';
@@ -87,7 +87,7 @@ class Schedule
 	{
 		$ret = TRUE;
 		$item_id = (int)$idata['item_id'];
-		$sql = 'SELECT bkg_id,formula,user,contact,userclass,subgrpcount,paid FROM '.
+		$sql = 'SELECT bkg_id,formula,user,contact,displayclass,subgrpcount,paid FROM '.
 			$mod->RepeatTable.' WHERE item_id=? AND active=1';
 		$rows = $utils->SafeGet($sql,array($item_id));
 		if ($rows) {
@@ -104,12 +104,12 @@ class Schedule
 						$times[$user] = $times[$user] + $utimes;
 					if (!array_key_exists($user,$parms)) {
 						$parms[$user] = array(
-							(int)$one['userclass'], //0
+							(int)$one['displayclass'], //0
 							trim($one['contact']), //1
 							(int)$one['paid']); //2
 					} else {
 						if ($parms[$user][0] == 0); //keep first non-0 class
-							$parms[$user][0] = (int)$one['userclass'];
+							$parms[$user][0] = (int)$one['displayclass'];
 						if ($parms[$user][1] == FALSE); //keep first non-empty contact
 							$parms[$user][1] = trim($one['contact']);
 						if (!$one['paid'])
@@ -124,7 +124,7 @@ class Schedule
 					 'slotstart'=>0,
 					 'slotlen'=>0,
 					 'sender'=>$user,
-					 'userclass'=>$parms[$user][0],
+					 'displayclass'=>$parms[$user][0],
 					 'contact'=>$parms[$user][1],
 					 'paid'=>$parms[$user][2]
 					);
@@ -225,7 +225,7 @@ class Schedule
 				$this->slotsdone[] = $sig;
 				//record booking
 				$bid = $mod->dbHandle->GenID($mod->DataTable.'_seq');
-				$class = (!empty($reqdata['userclass'])) ? $reqdata['userclass'] :
+				$class = (!empty($reqdata['displayclass'])) ? $reqdata['displayclass'] :
 					self::MatchUserClass($mod,$utils,$item_id,$reqdata['sender']);
 				$status = \Booker::STATNONE; //TODO or STATNOPAY etc
 				$args = array(
@@ -240,7 +240,7 @@ class Schedule
 					!empty($reqdata['paid'])
 				);
 				$sql = 'INSERT INTO '.$mod->DataTable.
-' (bkg_id,item_id,slotstart,slotlen,user,contact,userclass,status,paid) VALUES (?,?,?,?,?,?,?,?,?)';
+' (bkg_id,item_id,slotstart,slotlen,user,contact,displayclass,status,paid) VALUES (?,?,?,?,?,?,?,?,?)';
 				if ($utils->SafeExec($sql,$args)) {
 					$reqdata['status'] = $status;
 					$reqdata['approved'] = TRUE;
@@ -499,7 +499,7 @@ class Schedule
 		$session_id = 0; //TODO $mod->dbHandle->GenID(cms_db_prefix().'module_bkrcache_seq'); //uid for cached slotstatus data
 //	$cache = Booker\Cache::GetCache($mod);
 		$sql = 'INSERT INTO '.$mod->DataTable.
-' (bkg_id,item_id,slotstart,slotlen,user,contact,userclass,status,paid) VALUES (?,?,?,?,?,?,?,?,?)';
+' (bkg_id,item_id,slotstart,slotlen,user,contact,displayclass,status,paid) VALUES (?,?,?,?,?,?,?,?,?)';
 		$ret = TRUE;
 
 		foreach ($reqdata as &$one) { //process decreasing subgrpcount
@@ -554,7 +554,7 @@ class Schedule
 				$allsql = array();
 				$allargs = array();
 				$bid = $mod->dbHandle->GenID($mod->DataTable.'_seq');
-				$class = (!empty($one['userclass'])) ? $one['userclass'] :
+				$class = (!empty($one['displayclass'])) ? $one['displayclass'] :
 					self::MatchUserClass($mod,$utils,reset($items),$one['sender']);
 				$status = \Booker::STATNONE; //TODO or STATNOPAY etc
 				foreach ($items as $memberid) {

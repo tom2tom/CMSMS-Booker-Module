@@ -257,7 +257,7 @@ class Bookingops
 
 	/**
 	ConformBookingData:
-	Conform tabled values: contact,userclass and/or user according to @params values
+	Conform tabled values: contact,displayclass and/or user according to @params values
 	@mod: reference to current Booker module
 	@params: reference to parameters array
 	Returns: T/F indicating successful completion
@@ -283,9 +283,9 @@ class Bookingops
 				$old = self::CurrentBookingUser($mod,$params);
 			if (!$old) return;
 			$allsql = array(
-			'UPDATE '.$mod->DataTable.' SET userclass=? WHERE user=?',
-			'UPDATE '.$mod->RepeatTable.' SET userclass=? WHERE user=?');
-			$args = array((int)$params['userclass'],$old);
+			'UPDATE '.$mod->DataTable.' SET displayclass=? WHERE user=?',
+			'UPDATE '.$mod->RepeatTable.' SET displayclass=? WHERE user=?');
+			$args = array((int)$params['displayclass'],$old);
 			if (!$utils->SafeExec($allsql,array($args,$args)))
 				$ret = FALSE;
 		}
@@ -324,7 +324,7 @@ class Bookingops
 			}
 		}
 		if ($is_new) {
-			$sql2 = 'bkg_id,item_id,slotstart,user,contact,userclass';
+			$sql2 = 'bkg_id,item_id,slotstart,user,contact,displayclass';
 			$fillers = '?,?,?,?,?,?';
 			$bid = $mod->dbHandle->GenID($mod->DataTable.'_seq');
 			$args = array(
@@ -332,7 +332,7 @@ class Bookingops
 				(int)$params['item_id'],
 				$params['user'],
 				$params['contact'],
-				(int)$params['userclass']
+				(int)$params['displayclass']
 			);
 			foreach (array('when','until','paid') as $k) {
 				if (isset($params[$k])) {
@@ -344,11 +344,11 @@ class Bookingops
 			$sql = 'INSERT INTO '.$mod->DataTable.' ('.$sql2.') VALUES ('.$fillers.')';
 		} else { //update
 			self::ConformBookingData($mod,$params); //general update where needed
-			$sql2 = 'slotstart=?,user=?,contact=?,userclass=?';
+			$sql2 = 'slotstart=?,user=?,contact=?,displayclass=?';
 			$args = array(
 				$params['user'],
 				$params['contact'],
-				(int)$params['userclass']
+				(int)$params['displayclass']
 			);
 			foreach (array('when','until','paid') as $k) {
 				if (isset($params[$k])) {
