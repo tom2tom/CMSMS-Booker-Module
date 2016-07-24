@@ -5,9 +5,9 @@
 {$startform}
 <div class="pageinput pageoverflow">
 {foreach from=$settings item=entry}
- <p class="pagetext" style="margin-left:0;">{$entry.ttl}:{if isset($entry.mst)} *{/if}</p>
- <div>{$entry.inp}</div>
-{if $entry.hlp}<p>{$entry.hlp}</p>{/if}
+ <p class="pagetext" style="margin-left:0;">{$entry->ttl}:{if !empty($entry->mst)} *{/if}</p>
+ <div>{$entry->inp}</div>
+{if !empty($entry->hlp)}<p>{$entry->hlp}</p>{/if}
 {/foreach}
 </div>
 <div class="pageinput" style="margin-top:1em;">
