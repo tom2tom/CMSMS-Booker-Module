@@ -343,11 +343,11 @@ if (isset($params['message']))
 
 if ($pmod) {
 	if ($sel)
-		$key = ($is_group) ? 'feemodtitle3' : 'feemodtitle1';
+		$key = ($is_group) ? 'title_feemod3' : 'title_feemod1';
 	else
-		$key = ($is_group) ? 'feemodtitle2' : 'feemodtitle';
+		$key = ($is_group) ? 'title_feemod2' : 'title_feemod';
 } else {
-	$key = ($is_group) ? 'feeseetitle2' : 'feeseetitle';
+	$key = ($is_group) ? 'title_feesee2' : 'title_feesee';
 }
 
 $t = $funcs->GetItemNameForID($this,$item_id);

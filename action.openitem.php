@@ -461,7 +461,7 @@ $tplvars += array(
 
 $hidden = $this->CreateInputHidden($id,'active_tab','');
 
-$tplvars['title'] = ($is_group) ? $this->Lang('group_page_title'):$this->Lang('item_page_title');
+$tplvars['title'] = ($is_group) ? $this->Lang('title_group_page'):$this->Lang('title_item_page');
 $s = ($is_group) ? $this->Lang('group'):$this->Lang('item');
 
 $baseurl = $this->GetModuleURLPath();
