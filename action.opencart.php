@@ -17,9 +17,10 @@ $localparams = array(
 	'hidden'
 );
 
-$cache = Booker\Cache::GetCache($this);
 $utils = new Booker\Utils();
-$cart = $utils->RetrieveParameters($cache,$params);
+$cache = Booker\Cache::GetCache($this);
+$utils->RetrieveParameters($cache,$params);
+$cart = $utils->RetrieveCart($cache,$params);
 
 if (isset($params['cancel'])) {
 	//restore 'deleted' items
@@ -141,7 +142,7 @@ if (!$cart->seemsEmpty()) {
 		'payable' => $pay,
 		// column-titles
 		'whattitle' => $this->Lang('title_item'),
-		'whentitle' => $this->Lang('title_when'),
+		'whentitle' => $this->Lang('title_period'),
 		'feetitle' => $this->Lang('title_fee'),
 		'cmttitle' => $this->Lang('title_comment'),
 		'totaltitle' => $this->Lang('title_feesum'),
