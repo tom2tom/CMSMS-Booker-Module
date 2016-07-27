@@ -34,6 +34,8 @@ $dict->ExecuteSQLArray($sql);
 $sql = $dict->DropIndexSQL('idx_'.$this->HistoryTable,$this->HistoryTable);
 $dict->ExecuteSQLArray($sql);
 // remove database tables
+$sql = $dict->DropTableSQL($this->BookerTable);
+$dict->ExecuteSQLArray($sql);
 $sql = $dict->DropTableSQL($this->DataTable);
 $dict->ExecuteSQLArray($sql);
 $sql = $dict->DropTableSQL($this->FeeTable);
@@ -48,11 +50,10 @@ $sql = $dict->DropTableSQL($this->RepeatTable);
 $dict->ExecuteSQLArray($sql);
 $sql = $dict->DropTableSQL($this->RequestTable);
 $dict->ExecuteSQLArray($sql);
-$sql = $dict->DropTableSQL($pre.'module_bkr_bookers');
-$dict->ExecuteSQLArray($sql);
 $sql = $dict->DropTableSQL($pre.'module_bkr_cache');
 $dict->ExecuteSQLArray($sql);
 // remove sequences
+$db->DropSequence($this->BookerTable.'_seq');
 $db->DropSequence($this->DataTable.'_seq');
 $db->DropSequence($this->FeeTable.'_seq');
 $db->DropSequence($this->GroupTable.'_seq');
@@ -61,7 +62,6 @@ $db->DropSequence($this->ItemTable.'_seq');
 $db->DropSequence($this->ItemTable.'_gseq');
 //RepeatTable sequence same as for DataTable
 $db->DropSequence($this->RequestTable.'_seq');
-$db->DropSequence($pre.'module_bkr_bookers_seq');
 $db->DropSequence($pre.'module_bkr_cache_seq');
 // remove permissions
 $this->RemovePermission($this->PermStructName);
