@@ -222,7 +222,7 @@ if (isset($params['search'])) {
 	if ($count) {
 		$tplvars['finds'] = $items;
 		$tplvars['whattitle'] = $this->Lang('title_item');
-		$tplvars['whentitle'] = $this->Lang('title_when');
+		$tplvars['whentitle'] = $this->Lang('title_starting');
 		$tplvars['whotitle'] = $this->Lang('title_user');
 
 		if ($count > 1) {

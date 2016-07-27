@@ -168,7 +168,7 @@ EOS;
 $rows = array();
 if ($data) {
 	$titles = array(
-		$this->Lang('title_time'),
+		$this->Lang('title_when'),
 		$this->Lang('title_user'),
 		$this->Lang('title_paid')
 	);
@@ -229,7 +229,8 @@ if ($data) {
 
 $rc = count($rows);
 if ($rc) {
-	$pagerows = $this->GetPreference('pref_pagerows');
+	//TODO make page-rows count window-size-responsive
+	$pagerows = $this->GetPreference('pref_pagerows',10);
 	if ($pagerows && $rc > $pagerows) {
 		$tplvars['hasnav'] = 1;
 		//setup for SSsort
