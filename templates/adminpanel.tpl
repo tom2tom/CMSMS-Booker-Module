@@ -5,8 +5,10 @@
 {$startform1}
 {if $dcount > 0}
 <h4 style="margin-left:5%;">{$title_pending}</h4>
+{if !empty($hasnav1)}<div class="browsenav">{$first1}&nbsp;|&nbsp;{$prev1}&nbsp;&lt;&gt;&nbsp;{$next1}&nbsp;|&nbsp;{$last1}&nbsp;({$pageof1})&nbsp;&nbsp;{$rowchanger1}</div>
+{/if}
 <div style="overflow:auto;">
-  <table id="data" class="table_sort leftwards pagetable">
+  <table id="datatable" class="{if $dcount > 1}table_sort {/if}leftwards pagetable">
     <thead><tr>
       <th>{$title_lodger}</th>
       <th>{$title_contact}</th>
@@ -16,13 +18,13 @@
       <th>{$title_name}</th>
       <th>{$title_start}</th>
       <th>{$title_comment}</th>
-      <th class="pageicon nosort">&nbsp;</th>
-{if $mod}  <th class="pageicon nosort">&nbsp;</th>{/if}
-{if $bmod} <th class="pageicon nosort">&nbsp;</th>
-      <th class="pageicon nosort">&nbsp;</th>{/if}
-{if $tell}  <th class="pageicon nosort">&nbsp;</th>{/if}
-{if $del}   <th class="pageicon nosort">&nbsp;</th>{/if}
-      <th class="checkbox nosort" style="width:20px;">{if $dcount > 1}{$selectall_req}{/if}</th>
+      <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>
+{if $mod}  <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>{/if}
+{if $bmod} <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>
+      <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>{/if}
+{if $tell} <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>{/if}
+{if $del}  <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>{/if}
+      <th class="checkbox {ldelim}sss:false{rdelim}" style="width:20px;">{if $dcount > 1}{$selectall_req}{/if}</th>
     </tr></thead>
     <tbody>
  {foreach from=$pending item=entry} {cycle values='row1,row2' assign='rowclass'}
@@ -47,13 +49,15 @@
     </tbody>
   </table>
 </div>
+{if !empty($hasnav1)}<div class="browsenav">{$first1}&nbsp;|&nbsp;{$prev1}&nbsp;&lt;&gt;&nbsp;{$next1}&nbsp;|&nbsp;{$last1}</div>{/if}
 {else}
  <p class="pageinput">{$nodata}</p>
 {/if}
 <div id="dataacts" class="pageoptions" style="margin-top:1em;">
-{if $bmod}{$importbtn1} {/if}{$findbtn}
+{if $bmod}{$addbooking}<span style="margin-left:5em;">{$importbtn1} {/if}{$findbtn}
 {if $dcount > 0}
 {if $bmod} {$approvbtn} {$rejectbtn} {/if}{if $tell}{$notifybtn}{/if}{if $del} {$deletebtn1}{/if}
+{if $bmod}</span>{/if}
 {/if}
 </div>
 {$endform}
@@ -62,50 +66,56 @@
 {$start_people_tab}
 {$startform2}
 {if $pcount > 0}
-<div class="pageoverflow">
-  <table id="people" class="table_sort leftwards pagetable">
+{if !empty($hasnav2)}<div class="browsenav">{$first2}&nbsp;|&nbsp;{$prev2}&nbsp;&lt;&gt;&nbsp;{$next2}&nbsp;|&nbsp;{$last2}&nbsp;({$pageof2})&nbsp;&nbsp;{$rowchanger2}</div>
+{/if}
+<div style="overflow:auto;">
+  <table id="peopletable" class="{if $pcount > 1}table_sort {/if}leftwards pagetable">
     <thead><tr>
       <th>{$title_person}</th>
-      <th>{$title_reg}</th>
+      <th class="{ldelim}sss:'icon'{rdelim}">{$title_reg}</th>
+      <th class="{ldelim}sss:'icon'{rdelim}">{$title_active}</th>
       <th>{$title_added}</th>
       <th>{$title_total}</th>
       <th>{$title_pending}</th>
       <th>{$title_first}</th>
       <th>{$title_last}</th>
-      <th>{$title_pending}</th>
-{if $mod} <th class="pageicon nosort">&nbsp;</th>{/if}
-{if $del} <th class="pageicon nosort">&nbsp;</th>{/if}
-      <th class="checkbox nosort" style="width:20px;">{if $pcount > 1}{$selectall_bookers}{/if}</th>
+      <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>
+{if $per} <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>{/if}
+{if $per} <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>{/if}
+      <th class="checkbox {ldelim}sss:false{rdelim}" style="width:20px;">{if $pcount > 1}{$selectall_bookers}{/if}</th>
     </tr></thead>
     <tbody>
 {foreach from=$bookers item=entry} {cycle values='row1,row2' assign='rowclass'}
     <tr class="{$rowclass}" onmouseover="this.className='{$rowclass}hover';" onmouseout="this.className='{$rowclass}';">
       <td>{$entry->name}</td>
       <td>{$entry->reg}</td>
+      <td>{$entry->act}</td>
       <td>{$entry->added}</td>
       <td>{$entry->total}</td>
       <td>{$entry->pending}</td>
       <td>{$entry->first}</td>
       <td>{$entry->last}</td>
-{if $mod} <td>{$entry->edit}</td>{/if}
-{if $del} <td class="bkrdel">{$entry->delete}</td>{/if}
+      <td>{$entry->hist}</td>
+{if $per} <td>{$entry->edit}</td>{/if}
+{if $per} <td class="bkrdel">{$entry->delete}</td>{/if}
       <td class="checkbox">{$entry->sel}</td>
     </tr>
 {/foreach}
     </tbody>
   </table>
 </div>
+{if !empty($hasnav2)}<div class="browsenav">{$first2}&nbsp;|&nbsp;{$prev2}&nbsp;&lt;&gt;&nbsp;{$next2}&nbsp;|&nbsp;{$last2}</div>{/if}
 {else}
  <p class="pageinput">{$nobookers}</p>
 {/if}
 <div id="peopleacts" class="pageoptions" style="margin-top:1em;">
-{if $add}{$addbooker}{/if}
+{if $per}{$addbooker}{/if}
 {if $pcount > 0}
 <span style="margin-left:5em;">
-{if $add}{$importbtn2} {/if}{$exportbtn2}{if $mod} {$ablebtn2}{/if}{if $del} {$deletebtn2}{/if}
+{if $per}{$importbtn2} {/if}{$exportbtn2}{if $per} {$ablebtn2} {$deletebtn2}{/if}
 </span>
 {else}
-{if $add}<span style="margin-left:3em">{$importbtn2}</span>{/if}
+{if $per}<span style="margin-left:3em">{$importbtn2}</span>{/if}
 {/if}
 </div>
 {$endform}
@@ -114,22 +124,24 @@
 {$start_items_tab}
 {$startform3}
 {if $icount > 0}
-<div class="pageoverflow">
-  <table id="items" class="table_sort leftwards pagetable">
+{if !empty($hasnav3)}<div class="browsenav">{$first3}&nbsp;|&nbsp;{$prev3}&nbsp;&lt;&gt;&nbsp;{$next3}&nbsp;|&nbsp;{$last3}&nbsp;({$pageof3})&nbsp;&nbsp;{$rowchanger3}</div>
+{/if}
+<div style="overflow:auto;">
+  <table id="itemstable" class="{if $icount > 1}table_sort {/if}leftwards pagetable">
     <thead><tr>
       <th>{$inametext}</th>
       <th>{$title_grp}</th>
 {if $own} <th>{$title_owner}</th>{/if}
-      <th class="pageicon">{$title_active}</th>
+      <th class="pageicon {ldelim}sss:'icon'{rdelim}">{$title_active}</th>
 {if $dev} <th>{$title_tag}</th>{/if}
-      <th class="pageicon nosort">&nbsp;</th>
-{if $bmod}<th class="pageicon nosort">&nbsp;</th>{/if}
-      <th class="pageicon nosort">&nbsp;</th>
-      <th class="pageicon nosort">&nbsp;</th>
-{if $mod} <th class="pageicon nosort">&nbsp;</th>{/if}
-{if $add} <th class="pageicon nosort">&nbsp;</th>{/if}
-{if $del} <th class="pageicon nosort">&nbsp;</th>{/if}
-      <th class="checkbox nosort" style="width:20px;">{if $icount > 1}{$selectall_items}{/if}</th>
+      <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>
+{if $bmod}<th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>{/if}
+      <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>
+      <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>
+{if $mod} <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>{/if}
+{if $add} <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>{/if}
+{if $del} <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>{/if}
+      <th class="checkbox {ldelim}sss:false{rdelim}" style="width:20px;">{if $icount > 1}{$selectall_items}{/if}</th>
     </tr></thead>
     <tbody>
  {foreach from=$items item=entry} {cycle values='row1,row2' assign='rowclass'}
@@ -152,6 +164,7 @@
     </tbody>
   </table>
 </div>
+{if !empty($hasnav3)}<div class="browsenav">{$first3}&nbsp;|&nbsp;{$prev3}&nbsp;&lt;&gt;&nbsp;{$next3}&nbsp;|&nbsp;{$last3}</div>{/if}
 {else}
  <p class="pagetext" style="font-weight:normal;">{$noitems}</p>
 {/if}
@@ -171,23 +184,25 @@
 {$start_grps_tab}
 {$startform4}
 {if $gcount > 0}
-<div class="pageoverflow">
-  <table id="groups" class="table_sort leftwards pagetable">
+{if !empty($hasnav4)}<div class="browsenav">{$first4}&nbsp;|&nbsp;{$prev4}&nbsp;&lt;&gt;&nbsp;{$next4}&nbsp;|&nbsp;{$last4}&nbsp;({$pageof4})&nbsp;&nbsp;{$rowchanger4}</div>
+{/if}
+<div style="overflow:auto;">
+  <table id="groupstable" class="{if $gcount > 1}table_sort {/if}leftwards pagetable">
     <thead><tr>
       <th>{$title_gname}</th>
       <th>{$title_gcount}</th>
       <th>{$title_grp}</th>
 {if $own} <th>{$title_owner}</th>{/if}
-      <th class="pageicon">{$title_active}</th>
+      <th class="pageicon {ldelim}sss:'icon'{rdelim}">{$title_active}</th>
 {if $dev} <th>{$title_tag}</th>{/if}
-      <th class="pageicon nosort">&nbsp;</th>
-{if $mod} <th class="pageicon nosort">&nbsp;</th>{/if}
-      <th class="pageicon nosort">&nbsp;</th>
-      <th class="pageicon nosort">&nbsp;</th>
-{if $mod} <th class="pageicon nosort">&nbsp;</th>{/if}
-{if $add} <th class="pageicon nosort">&nbsp;</th>{/if}
-{if $del} <th class="pageicon nosort">&nbsp;</th>{/if}
-      <th class="checkbox nosort" style="width:20px;">{if $gcount > 1}{$selectall_grps}{/if}</th>
+      <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>
+{if $mod} <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>{/if}
+      <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>
+      <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>
+{if $mod} <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>{/if}
+{if $add} <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>{/if}
+{if $del} <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>{/if}
+      <th class="checkbox {ldelim}sss:false{rdelim}" style="width:20px;">{if $gcount > 1}{$selectall_grps}{/if}</th>
     </tr></thead>
     <tbody>
  {foreach from=$groups item=entry} {cycle values='row1,row2' assign='rowclass'}
@@ -211,6 +226,7 @@
     </tbody>
   </table>
 </div>
+{if !empty($hasnav4)}<div class="browsenav">{$first4}&nbsp;|&nbsp;{$prev4}&nbsp;&lt;&gt;&nbsp;{$next4}&nbsp;|&nbsp;{$last4}</div>{/if}
 {else}
   <p class="pagetext" style="font-weight:normal;">{$nogroups}</p>
 {/if}
@@ -227,9 +243,17 @@
 {$endform}
 {$end_tab}
 
+{$start_reports_tab}
+{$startform5}
+<div style="overflow:auto;">
+NOT YET IMPLEMENTED
+</div>
+{$endform}
+{$end_tab}
+
 {$start_settings_tab}
 {if $set}
-{$startform5}
+{$startform6}
 <div style="margin:0 20px;overflow:auto;">
 <p class="pagetext" style="font-weight:normal;">{$compulsory}</p>
 {foreach from=$settings item=entry name=opts}
