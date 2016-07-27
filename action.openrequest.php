@@ -119,7 +119,7 @@ else {
 }
 
 $one = new stdClass();
-$one->title = $this->Lang('title_when');
+$one->title = $this->Lang('title_starting');
 if ($viewmode) {
 	$one->input = ($t) ? $t:'&lt;'.$this->Lang('missing').'&gt;';
 } else {
@@ -145,13 +145,13 @@ EOS;
 	} else {
 		$t2 = '';
 	}
-	$momentfmt = ($overday) ? 'YYYY-MM-DD':'YYYY-MM-DD h:mm';
+	$momentfmt = ($overday) ? 'YYYY-MM-DD':'YYYY-MM-DD H:mm';
 
 	$jsloads[] = <<<EOS
  new Pikaday({
   field: document.getElementById('calendar'),
   trigger: document.getElementById('{$id}when'),
-  format: 'YYYY-MM-DD',
+  format: '{$momentfmt}',
   i18n: {
    previousMonth: '{$prevm}',
    nextMonth: '{$nextm}',
@@ -162,10 +162,8 @@ EOS;
   onClose: function() {
    var sel = $('#calendar').val();
    if (sel !== '') { //not cancelled
-    var d = new Date(sel);
-    var f = '{$momentfmt}';
-    var d2 = moment(d).format(f);
-    $('#{$id}when').val(d2);
+    var d = moment(sel).format('{$momentfmt}');
+    $('#{$id}when').val(d);
 {$t2}
    }
   }
@@ -181,7 +179,7 @@ if ($choosend) {
 	$t = $dt->format($fmt);
 
 	$one = new stdClass();
-	$one->title = $this->Lang('title_until');
+	$one->title = $this->Lang('title_ending');
 	if ($viewmode) {
 		$one->input = ($t) ? $t:'&lt;'.$this->Lang('missing').'&gt;';
 	} else {
@@ -214,12 +212,15 @@ if (!$viewmode) {
 //==
 if (!$viewmode) {
 	$one = new stdClass();
-	$one->title = $this->Lang('displayclass');
-	$t = 1;
+	$one->title = $this->Lang('title_displayclass');
 	$one->must = 0;
-	$choices = array(1=>1,2=>2,3=>3,4=>4,5=>5);
+	$choices = array(1,Booker::USERSTYLES,0);
+	foreach ($choices as $k=>&$t) {
+		$t = $k;
+	}
+	$t = 1;
 	$one->input = $this->CreateInputDropdown($id,'displayclass',$choices,-1,$t);
-	$one->help = $this->Lang('help_book_style');
+	$one->help = $this->Lang('help_displayclass');
 	$vars[] = $one;
 //==
 	$one = new stdClass();
