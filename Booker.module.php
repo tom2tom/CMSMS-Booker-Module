@@ -1,7 +1,7 @@
 <?php
 #------------------------------------------------------------------------
 # Module: Booker - a resource booking module for CMS Made Simple
-# Mostly copyright (C) 2015 Tom Phane <@>
+# Mostly copyright (C) 2015-2016 Tom Phane <@>
 # This project's forge-page is: http://dev.cmsmadesimple.org/projects/booker
 #
 # This module is free software; you can redistribute it and/or modify it under
@@ -21,6 +21,7 @@ define('DBGBKG', TRUE);
 class Booker extends CMSModule
 {
 	const MINGRPID = 10000; //lowest id in items-table for a group
+	const USERSTYLES = 5; //no. of styles available for bookings-table styling
 
 	//sub-group allocation protocol
 	const ALLOCNONE = 0;
@@ -70,6 +71,7 @@ class Booker extends CMSModule
 	const PARMKEY = 'bkr_Params'; //cache-key seed/prefix
 
 	public $dbHandle; //cached connection to adodb
+	public $BookerTable; //booker details
 	public $DataTable; //non-repeated bookings-data
 	public $FeeTable; //payment amounts/rates and associated conditions
 	public $GroupTable; //group-relationships
@@ -89,6 +91,7 @@ class Booker extends CMSModule
 	protected $PermAddName = 'Booker Resource Add';
 	protected $PermModName = 'Booker Resource Modify';
 	protected $PermDelName = 'Booker Resource Delete';
+	protected $PermPerName = 'Booker User Modify';
 
 	public function __construct()
 	{
@@ -98,6 +101,7 @@ class Booker extends CMSModule
 
 		$this->dbHandle = cmsms()->GetDb();
 		$pre = cms_db_prefix();
+		$this->BookerTable = $pre.'module_bkr_bookers';
 		$this->DataTable = $pre.'module_bkr_data';
 		$this->FeeTable = $pre.'module_bkr_fees';
 		$this->GroupTable = $pre.'module_bkr_groups';
@@ -443,6 +447,7 @@ class Booker extends CMSModule
 			$action = 'defaultadmin';
 			break;
 		 case 'administer':
+		 case 'adminbooker':
 		 case 'default':
 		 case 'defaultadmin':
 		 case 'delete':
@@ -451,6 +456,7 @@ class Booker extends CMSModule
 		 case 'findbooking':
 		 case 'import':
 		 case 'notifybooker':
+		 case 'openbooker':
 		 case 'openitem':
 		 case 'openbooking':
 		 case 'openrequest':
@@ -461,7 +467,7 @@ class Booker extends CMSModule
 		 case 'swapgroups':
 		 case 'sortlike':
 			break;
-		 case 'adminbooking':
+/*		 case 'adminbooking':
 			if (isset($params['importbkg']))
 				$action = 'import';
 			elseif (isset($params['find']))
@@ -469,6 +475,7 @@ class Booker extends CMSModule
 			else
 				$action = 'processrequest';
 			break;
+*/
 		 case 'process': //multiple/selected/?export?/delete etc
 			if (isset($params['setfees']))
 				$action = 'openfees';
@@ -479,7 +486,7 @@ class Booker extends CMSModule
 			if (isset($params['importbkg']))
 				$action = 'import';
 			break;
-		 case 'approve':
+/*		 case 'approve':
 		 case 'reject':
 		//TODO others
 		 case 'rapprove':
@@ -490,6 +497,7 @@ class Booker extends CMSModule
 		 case 'rsee':
 			$action = 'processrequest';
 			break;
+*/
 		 case 'addfee':
 		 case 'delfee':
 		 case 'modfee':
@@ -516,12 +524,13 @@ class Booker extends CMSModule
 			$ok = $this->CheckPermission($this->PermAdminName);
 			if (!$ok) $ok = $this->CheckPermission($this->PermSeeName);
 			if (!$ok) $ok = $this->CheckPermission($this->PermEditName);
+			if (!$ok) $ok = $this->CheckPermission($this->PermPerName);
 			if (!$ok) $ok = $this->CheckPermission($this->PermAddName);
 			if (!$ok) $ok = $this->CheckPermission($this->PermDelName);
 			if (!$ok) $ok = $this->CheckPermission($this->PermModName);
 			if (!$ok) $ok = $this->CheckPermission($this->PermStructName);
 			break;
-			//bookings
+		//bookings
 		 case 'view':
 			$name = $this->PermSeeName;
 			$ok = $this->CheckPermission($name);
@@ -532,6 +541,11 @@ class Booker extends CMSModule
 			break;
 		 case 'admin':
 			$name = $this->PermAdminName;
+			$ok = $this->CheckPermission($name);
+			break;
+		//bookers
+		 case 'booker':
+			$name = $this->PermPerName;
 			$ok = $this->CheckPermission($name);
 			break;
 		//resources
