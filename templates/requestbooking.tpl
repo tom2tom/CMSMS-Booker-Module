@@ -4,7 +4,7 @@
 //]]>
 </script>{/if}
 {if !empty($message)}<p class="pagemessage">{$message}</p>{/if}
-<h4 class="bkgtitle">{$title}<br />{$textwhat}</h4>
+<h4 class="bkgtitle">{$title}: {$textwhat}</h4>
 {if isset($desc)}<p class="bkgdesc">{$desc}</p><br /><br />{/if}
 {if isset($pictures)}<div class="bkgimg">
 {foreach from=$pictures item=pic}
@@ -27,9 +27,9 @@
 {/if}
 <tr><td>* {$title_sender}:</td><td>{$inputsender}</td></tr>
 <tr><td>* {$title_contact}:</td><td>{$inputcontact}</td></tr>
+<tr><td>{$title_comment}:</td><td>{$inputcomment}</td></tr>
 {if isset($captcha)}<tr><td>* {$title_captcha}:</td><td>{$inputcaptcha} {$captcha}</td></tr>{/if}
 </tbody></table>
-{$title_comment}:<br />{$inputcomment}<br />
 <br />
 {$submit}{if isset($cart)} {$cart}{/if} {$cancel} {if isset($choose)} {$choose}{/if}
 {$endform}
