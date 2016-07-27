@@ -13,11 +13,13 @@ class Userops
 
 	private $dbhandle;
 	private $table;
+	private $history; //history-data table
 
 	public function __construct (&$mod, &$db)
 	{
 		$this->dbhandle = $db;
-		$this->table = cms_db_prefix().'module_bkr_bookers';
+		$this->table = $mod->BookerTable;
+		$this->history = $mod->HistoryTable;
 	}
 
 	private function gettype($booker_id)
@@ -28,9 +30,11 @@ class Userops
 	}
 
 	// adapted from PHP's password hashing framework
-	private function encodeBytes($input, $ilen=32)
+	private function encodeBytes($input, $ilen=16)
 	{
-		while (($len = strlen($input)) < $ilen)
+		if (!$input)
+			$input = 'pGJCu"F~p+>Q94je';	//ensure a hash for empty passwords
+		while (strlen($input) < $ilen)
 			$input .= strrev($input);
 		$itoa64 = './ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 		$output = '';
@@ -43,35 +47,40 @@ class Userops
 				$output .= $itoa64[$c1];
 				break;
 			}
-
 			$c2 = ord($input[$i++]);
 			$c1 |= $c2 >> 4;
 			$output .= $itoa64[$c1];
+			if ($i >= $ilen) {
+				break;
+			}
 			$c1 = ($c2 & 0x0f) << 2;
-
 			$c2 = ord($input[$i++]);
 			$c1 |= $c2 >> 6;
 			$output .= $itoa64[$c1];
+			if ($i >= $ilen) {
+				break;
+			}
 			$output .= $itoa64[$c2 & 0x3f];
 		}
-
 		return $output;
 	}
 
-	private function hashpass ($passwd)
+	/**
+	HashPassword:
+	@passwd: string, any length or empty
+	Returns: 48-byte encoded string
+	 */
+	public function HashPassword ($passwd)
 	{
-		if ($passwd) {
-			$salt = $this->encodeBytes(str_shuffle(time().'ABCDEFGHIJKLMNOPQRSTUVWXYZ'),6); //10-chars
-			return $salt.$this->encodeBytes($passwd.$salt);
-		}
-		return '';
+		$pubkey = $this->encodeBytes(str_shuffle(time().'ABCDEFGHIJKLMNOPQRSTUVWXYZ'),8); //10-chars
+		return $pubkey.$this->encodeBytes($passwd.$pubkey,28); //10+38-chars
 	}
 
 	private function matchpass ($hashed, $passwd)
 	{
 		if ($hashed) {
-			$p = str_split($hashed,10); //separate salt & pw
-			return strcmp($p[1],$this->encodeBytes($passwd.$p[0]));
+			$p = str_split($hashed,10); //separate pubkey & pw
+			return strcmp($p[1],$this->encodeBytes($passwd.$p[0]),28);
 		} else {
 			return !$passwd;
 		}
@@ -117,8 +126,8 @@ class Userops
 		if ($account) {
 			$fields[] = 'publicid';
 			$args[] = $account;
-			$fields[] = 'passwd';
-			$args[] = $this->hashpass($passwd);
+			$fields[] = 'passhash';
+			$args[] = $this->HashPassword($passwd);
 		}
 
 		$fields[] = 'addwhen';
@@ -131,9 +140,18 @@ class Userops
 		return ($r != FALSE) ? $bid : FALSE;
 	}
 
-	public function DeleteUser ($name, $account=FALSE, $passwd=FALSE)
+	/**
+	DeleteUser:
+	@booker_id: numeric identifier
+	Returns: boolean indicating success
+	*/
+	public function DeleteUser ($booker_id)
 	{
-		//TODO this table and all history
+		$r = $this->dbhandle->Execute('DELETE FROM '.$this->table.' WHERE booker_id=?',array($booker_id));
+		if ($r) {
+			$r = $this->dbhandle->Execute('DELETE FROM '.$this->history.' WHERE booker_id=?',array($booker_id));
+		}
+		return ($r != FALSE);
 	}
 
 	/**
@@ -165,11 +183,11 @@ class Userops
 	*/
 	public function SetPassword ($booker_id, $current, $passwd=DEFAULTPASS)
 	{
-		$row = $this->dbhandle->GetRow('SELECT passwd FROM '.$this->table.' WHERE booker_id=?',array($booker_id));
+		$row = $this->dbhandle->GetRow('SELECT passhash FROM '.$this->table.' WHERE booker_id=?',array($booker_id));
 		if ($row) {
-			if ($current == 'FORCE' || $this->matchpass($row['passwd'],$current)) {
-				$r = $this->dbhandle->Execute('UPDATE '.$this->table.' SET passwd=? WHERE booker_id=?',
-					array($this->hashpass($passwd),$booker_id));
+			if ($current == 'FORCE' || $this->matchpass($row['passhash'],$current)) {
+				$r = $this->dbhandle->Execute('UPDATE '.$this->table.' SET passhash=? WHERE booker_id=?',
+					array($this->HashPassword($passwd),$booker_id));
 				return ($r != FALSE);
 			}
 		}
@@ -222,7 +240,7 @@ class Userops
 	public function IsRegistered ($name)
 	{
 		$r = $this->dbhandle->GetOne('SELECT booker_id FROM '.$this->table.
-		' WHERE publicid=? AND passwd IS NOT NULL AND passwd<>\'\' AND ACTIVE=1',array($name));
+		' WHERE publicid=? AND passhash IS NOT NULL AND passhash<>\'\' AND ACTIVE=1',array($name));
 		return ($r != FALSE) ? $r : FALSE;
 	}
 
@@ -234,7 +252,7 @@ class Userops
 	*/
 	public function IsAccepted ($name, $passwd)
 	{
-		$rows = $this->dbhandle->GetAll('SELECT booker_id,publicid,name,passwd FROM '
+		$rows = $this->dbhandle->GetAll('SELECT booker_id,publicid,name,passhash FROM '
 			.$this->table.' WHERE publicid=? or name=? AND active=1',array($name,$name));
 		if ($rows) {
 			$row = reset($rows);
@@ -242,7 +260,7 @@ class Userops
 			if ($r == '') { //hence $row['name'] == $name
 				return (int)$row['booker_id'];
 			} else //$row['publicid'] == $name
-				if ($this->matchpass($row['passwd'],$passwd)) {
+				if ($this->matchpass($row['passhash'],$passwd)) {
 				return (int)$row['booker_id'];
 			}
 		}
@@ -252,18 +270,21 @@ class Userops
 	/**
 	SetRights:
 	@booker_id: numeric identifier
-	@types: array of $name=>boolean
+	@rights: array of $name=>boolean
+	@type: optional enumerator, to avoid lookup
 	Returns: nothing
 	*/
-	public function SetRights ($booker_id, $types)
+	public function SetRights ($booker_id, $rights, $type=FALSE)
 	{
-		$type = $this->gettype($booker_id);
+		if ($type === FALSE) {
+			$type = $this->gettype($booker_id);
+		}
 		if ($type === FALSE)
 			return;
 		$base = $type % 10;
 		$oldflags = (int)($type / 10);
 		$newflags = 0;
-		foreach ($types as $right=>$val)
+		foreach ($rights as $right=>$val)
 		{
 			switch ($right) {
 			 case 'prepay':
@@ -284,19 +305,22 @@ class Userops
 		}
 		$newtype = ($newflags | $oldflags) * 10 + $base;
 		$r = $this->dbhandle->Execute('UPDATE '.$this->table.' SET type=? WHERE booker_id=?',
-			array($newtype,booker_id));
+			array($newtype,$booker_id));
 		return ($r != FALSE);
 	}
 
 	/**
 	HasRight:
 	@booker_id: numeric identifier
-	@right:
+	@right: descriptor string, 'postpay' etc
+	@type: optional enumerator, to avoid lookup
 	Returns: boolean
 	*/
-	public function HasRight ($booker_id, $right)
+	public function HasRight ($booker_id, $right, $type=FALSE)
 	{
-		$type = $this->gettype($booker_id);
+		if ($type === FALSE) {
+			$type = $this->gettype($booker_id);
+		}
 		if ($type === FALSE)
 			return FALSE;
 		$flags = (int)($type / 10);
@@ -315,12 +339,15 @@ class Userops
 	/**
 	GetRights:
 	@booker_id: numeric identifier
-	@rights: array of right-names, or NULL
+	@rights: array of descriptor strings ('postpay' etc), or NULL
+	@type: optional enumerator, to avoid lookup
 	Returns: array, or FALSE
 	*/
-	public function GetRights ($booker_id, $rights=NULL)
+	public function GetRights ($booker_id, $rights=NULL, $type=FALSE)
 	{
-		$type = $this->gettype($booker_id);
+		if ($type === FALSE) {
+			$type = $this->gettype($booker_id);
+		}
 		if ($type === FALSE)
 			return FALSE;
 		$flags = (int)($type / 10);
@@ -353,11 +380,14 @@ class Userops
 	/**
 	GetBaseType:
 	@booker_id: numeric identifier
+	@type: optional enumerator, to avoid lookup
 	Returns: enum 0..9, or FALSE
 	*/
-	public function GetBaseType ($booker_id)
+	public function GetBaseType ($booker_id, $type=FALSE)
 	{
-		$type = $this->gettype($booker_id);
+		if ($type === FALSE) {
+			$type = $this->gettype($booker_id);
+		}
 		if ($type !== FALSE)
 			return $type % 10;
 		return FALSE;
