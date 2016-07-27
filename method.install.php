@@ -146,7 +146,7 @@ non-repeated bookings-data table schema:
  slotlen: seconds booked, NOT seconds-per-slot
  user: identifier
  contact: phone, email etc
- userclass: display-stying enum 0..5
+ displayclass: display-stying enum 1..Booker::USERSTYLES
  status: one of the Booker::STAT* values
  paid: boolean
 bkrcsv::ImportBookings must conform to this
@@ -158,7 +158,7 @@ $fields = "
  slotlen I(4),
  user C(64),
  contact C(128),
- userclass I(1) NOTNULL DEFAULT 0,
+ displayclass I(1) NOTNULL DEFAULT 1,
  status I(1) NOTNULL DEFAULT ".Booker::STATNONE.",
  paid I(1) NOTNULL DEFAULT 0
 ";
@@ -181,7 +181,7 @@ repeated bookings-data table schema:
  formula: interval-descriptor string
  user: identifier
  contact: phone, email etc
- userclass: display-stying enum 0..5
+ displayclass: display-stying enum 1..Booker::USERSTYLES
  subgrpcount: no. of in-group resources to be processed per subgrpalloc
  paid: boolean
  active: enum/boolean 1, or 0 if booking has been deleted but historic data remain
@@ -192,7 +192,7 @@ $fields = "
  formula C(256),
  user C(64),
  contact C(128),
- userclass I(1) DEFAULT 0,
+ displayclass I(1) DEFAULT 1,
  subgrpcount I(1) DEFAULT 0,
  paid I(1) DEFAULT 0,
  active I(1) DEFAULT 1
@@ -214,7 +214,7 @@ submitted booking requests table schema
  sender: identifier, assumed to be the booker i.e. not a 3rd-party
  contact: phone, email etc
  comment:
- userclass: display-stying enum 0..5
+ displayclass: display-stying enum 1..Booker::USERSTYLES
  subgrpcount: no. of requested items in a group, irrelevant for non-groups
  status: one of the Booker::STAT* values
  paid: boolean
@@ -229,7 +229,7 @@ $fields = "
  sender C(64),
  contact C(128),
  comment C(256),
- userclass I(1) DEFAULT 0,
+ displayclass I(1) DEFAULT 1,
  subgrpcount I(1) DEFAULT 1,
  status I(1) NOTNULL DEFAULT ".Booker::STATNONE.",
  paid I(1) DEFAULT 0,
@@ -284,54 +284,67 @@ $db->CreateSequence($this->FeeTable.'_seq');
 /*
  bookers table schema:
  booker_id: table key
- publicid: sorta account-id for use in making bookings
- passwd: account password, 1-way encrypted
  name: identifier for display, and identity check if publicid N/A
+ publicid: login/account for 'registed' bookers
+ passhash: login password, 1-way encrypted
  contact: email, cell-phone (maybe accept a post-address...)
- when: UTC timestamp when this record added
- type: generic discriminator e.g. authorised for un-mediated bookings
- postpay: whether this booker is entitled to be invoiced after booking/using
- userclass: display-stying enum 0..5
+ addwhen: UTC timestamp when this record added
+ type: combination of 10 generic types and permission-flags - see class.Userops
+ displayclass: display-stying enum 0..Booker::USERSTYLES
  active: whether currently enabled
 */
 $fields = "
  booker_id I(4) KEY,
- publicid C(32),
  name C(64),
- passwd C(64),
+ publicid C(32),
+ passhash C(48),
  contact C(128),
- when I,
+ addwhen I,
  type I(1) DEFAULT 0,
- postpay I(1) DEFAULT 0,
- userclass I(1) DEFAULT 0,
+ displayclass I(1) DEFAULT 1,
  active I(1) DEFAULT 1
 ";
-$sqlarray = $dict->CreateTableSQL($pre.'module_bkr_bookers',$fields,$taboptarray);
+$sqlarray = $dict->CreateTableSQL($this->BookerTable,$fields,$taboptarray);
 if ($sqlarray == FALSE)
 	return FALSE;
 $res = $dict->ExecuteSQLArray($sqlarray,FALSE);
 if ($res != 2)
 	return FALSE;
-$db->CreateSequence($pre.'module_bkr_bookers_seq');
+$db->CreateSequence($this->BookerTable.'_seq');
 
 /*
  history table schema:
  history_id: table key
  booker_id: cross-referencer (indexed)
- bookwhen: UTC timestamp
- what: text/public description of what was booked
+ item_id: booked-resource identifier
+ bookwhen: UTC timestamp booking submitted/recorded
+ slotstart: UTC timestamp start of booking
+ slotlen: booking length (seconds)
  comment: as supplied by booker as part of request
  fee: how much was paid
  netfee: fee less any gateway cost
- status: enum 0..3 represening NORMAL,DEFERRED,CREDITED,FAILED
+ status: enum
+	NORMAL = 0
+	PAYABLE = 1
+	CREDITED = 2
+	PAID = 3
+	CREDITEXPIRED = 4
+	CREDITUSED = 5
+	DEFERRED = 6
+	FAILED = 9
+	REQUESTED = 10; // add 0..9 to this when relevant
+	RECORDED = 20; //ditto
+	See also BookingCartItem::constants which replicate these
  gatetransaction: transaction id reported by payment gateway
  gatedata: json data reported by payment gateway, encrypted
 */
 $fields = "
  history_id I(4) AUTO KEY,
  booker_id I(4),
+ item_id I(4),
  bookwhen I,
- what C(64),
+ slotstart I,
+ slotlen I(4),
  comment C(64),
  fee N(8.2),
  netfee N(8.2),
@@ -431,8 +444,7 @@ array(9,10001,-1,2),
 array(10,10002,-1,1),
 array(10,10001,-1,2)
 );
-	$sql = 'INSERT INTO '.$this->GroupTable.
-' (child,parent,likeorder,proximity) VALUES (?,?,?,?)';
+	$sql = 'INSERT INTO '.$this->GroupTable.' (child,parent,likeorder,proximity) VALUES (?,?,?,?)';
 	foreach ($data as $dummy) {
 		$db->Execute($sql,$dummy);
 	}
@@ -475,7 +487,7 @@ array(2,15,1,'User2',NULL,1,0,0),
 array(2,9,1,'Fred','me@here.com',1,0,0)
 );
 	$sql = 'INSERT INTO '.$this->DataTable.
-' (bkg_id,item_id,slotstart,slotlen,user,contact,userclass,status,paid) VALUES (?,?,?,?,?,?,?,?,?)';
+' (bkg_id,item_id,slotstart,slotlen,user,contact,displayclass,status,paid) VALUES (?,?,?,?,?,?,?,?,?)';
 	$i = $daygroup;
 	foreach ($data as $dummy) {
 		if ($i == $daygroup) {
@@ -497,7 +509,7 @@ array(2,9,1,'Fred','me@here.com',1,0,0)
 // same sequence used for repeats and non-repeats
 	$bid = $db->GenID($this->DataTable.'_seq');
 	$item = 8;
-	$sql = 'INSERT INTO '.$this->RepeatTable.' (bkg_id,item_id,formula,user,userclass) VALUES (?,?,?,?,?)';
+	$sql = 'INSERT INTO '.$this->RepeatTable.' (bkg_id,item_id,formula,user,displayclass) VALUES (?,?,?,?,?)';
 	$dummy = array($bid,$item,'Mon..Fri@20:00..21:00','Repeater',5);
 	$db->Execute($sql,$dummy);
 
@@ -509,7 +521,7 @@ array(2,'Test2',1,1,'25.00','12:00'),
 array(2,'Test3',1,1,'5.00','13:00..15:30'),
 array(10003,'	Non-members hire',1,1,'28.00',NULL),
 array(10004,'Nightplay fee',1,1,'10.00','0..sunrise,sunset..23:59'),
-	);
+);
 	$sql = 'INSERT INTO '.$this->FeeTable.
 ' (condition_id,item_id,signature,description,slottype,slotcount,fee,feecondition,condorder) VALUES (?,?,?,?,?,?,?,?,?)';
 	$i = 0;
@@ -524,6 +536,51 @@ array(10004,'Nightplay fee',1,1,'10.00','0..sunrise,sunset..23:59'),
 		$db->Execute($sql,$args);
 		$i++;
 	}
+
+	//publicid,name,passwd,contact,addwhen,type,displayclass
+	$data = array(
+array('C821D00','Mary','password','0417394479','2016-1-1',0,1),
+array('C821D123','User2','password','tpgww@onepost.net','2016-5-2',1,1),
+array('','Fred','','tpgww@onepost.net','2015-1-10',10,1),
+array('C821D125','Jane','longlonglonglonglong','tpgww@onepost.net','2015-10-10',21,1),
+array('C822D123','Coach','nope','','2016-1-1',13,5),
+array('C823D123','Roger Rabbit','haha','tpgww@onepost.net','2016-4-4',32,2),
+array('C823D123','Roger RAbbit','c9218d','tpgww@onepost.net','2016-4-3',32,2),
+array('','Tester 45','','0417394479','2016-3-4',10,4),
+array('C824D','Somebody Else','password','0417394479','2016-4-4',20,1)
+);
+	$funcs = new \Booker\Userops($this,$db);
+	$sql = 'UPDATE '.$this->BookerTable.' SET contact=?,addwhen=?,type=?,displayclass=? WHERE booker_id=?';
+	foreach ($data as $dummy) {
+		$bid = $funcs->AddUser($dummy[1],$dummy[0],$dummy[2]);
+		$dt->modify($dummy[4]);
+		$args = array($dummy[3],$dt->getTimestamp(),$dummy[5],$dummy[6],$bid);
+		$db->Execute($sql,$args);
+	}
+
+	// booker_id,bookwhen,startwhen,slotlen,comment,fee
+	$data = array(
+array(4,2,'2015-12-12 9:15','2015-12-12 12:00',3600,'Hi there',0),
+array(4,1,'2015-1-1 15:14', '2015-1-2 9:00',7200,'Might need to cancel',0),
+array(4,3,'2016-4-30 17:00','2016-5-1 17:00',3600,'YAY TEAM',10),
+array(4,1,'2016-6-12 17:01','2016-6-19 14:00',7200,'Won\'t pay',0.6),
+array(5,1,'2016-7-12 17:01','2016-7-25 14:00',7200,'Nowish',12.5),
+array(5,3,'2016-7-12 17:02','2016-7-25 14:00',3600,'Nowish',12.5),
+array(6,1,'2016-7-20 17:01','2016-7-26 14:00',7200,'Future',28.0),
+array(7,1,'2016-6-20 17:01','2016-7-2 14:00',7200,'Past',28.0),
+array(7,1,'2016-7-20 13:39','2016-8-3 14:00',7200,'Future',28.0),
+array(7,1,'2016-7-20 14:01','2016-8-2 14:00',7200,'Future',28.0),
+array(8,1,'2016-7-20 17:01','2016-8-9 14:00',7200,'Future',28.0)
+);
+	$sql = 'INSERT INTO '.$this->HistoryTable.' (booker_id,item_id,bookwhen,slotstart,slotlen,comment,fee) VALUES (?,?,?,?,?,?,?)';
+	$utils = new Booker\Utils();
+	foreach ($data as $dummy) {
+		$dt->modify($dummy[2]);
+		$st = $dt->GetTimestamp();
+		$dt->modify($dummy[3]);
+		$args = array($dummy[0],$dummy[1],$st,$dt->getTimestamp(),$dummy[4]-1,$dummy[5],$dummy[6]);
+		$db->Execute($sql,$args);
+	}
 }
 
 // permissions
@@ -536,6 +593,8 @@ $this->CreatePermission($this->PermSeeName, $this->Lang('perm_view')); //Booker 
 $this->CreatePermission($this->PermAddName, $this->Lang('perm_add'));
 $this->CreatePermission($this->PermDelName, $this->Lang('perm_delete'));
 $this->CreatePermission($this->PermModName, $this->Lang('perm_modify'));
+//bookers
+$this->CreatePermission($this->PermPerName, $this->Lang('perm_booker'));
 
 // create preferences NOTE all named like corresponding table-column-name with 'pref_' prefix
 $this->SetPreference('pref_approver','');
