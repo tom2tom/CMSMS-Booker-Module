@@ -983,7 +983,7 @@ class Utils
 		if (!$name)
 			$name = '<'.$mod->Lang('noname').'>';
 		$name = htmlentities($name,ENT_QUOTES | ENT_XHTML,FALSE);
-		$title = $mod->Lang('imagetitle',$name);
+		$title = $mod->Lang('title_image2',$name);
 		$all = array();
 		$parts = explode(',',$image);
 		foreach ($parts as &$one) {
@@ -1099,7 +1099,7 @@ class Utils
 			}
 			$stamp = $dt->getTimestamp();
 		}
-
+//$this->Crash();
 		try {
 			$tz = new \DateTimeZone($zonename);
 			$offt = $tz->getOffset($dt);
@@ -1535,25 +1535,26 @@ class Utils
 	That key is session-specfic. @params is not changed.
 
 	@cache: reference to Cache oject
-	@params: request-parameters associative array to be cached
+	@params: reference to request-parameters associative array to be (updated &) cached
 	@except: parameter key, or array of them, to be omitted from cached @params, or FALSE
 	@cart: optional cart-object to also be cached
 	Returns: nothing
 	*/
-	public function SaveParameters (&$cache, $params, $except=FALSE, $cart=FALSE)
+	public function SaveParameters (&$cache, &$params, $except=FALSE, $cart=FALSE)
 	{
 		if ($except) {
 			if (is_array($except)) {
-				$params = array_diff_key($params,array_flip($except));
+				$store = array_diff_key($params,array_flip($except));
 			} else {
-				unset($params[$except]);
+				$store = $params;
+				unset($store[$except]);
 			}
 		}
 		if (empty($params['storedparams'])) {
-			$params['storedparams'] = Cache::GetKey(session_id());
+			$params['storedparams'] = Cache::GetKey(\Booker::PARMKEY); //Cache::GetKey(session_id());
 		}
-		$cache->set($params['storedparams'],$params,43200);
-		if ($cart)
+		$cache->set($params['storedparams'],$store,43200);
+		if ($cart && $params['cartkey'])
 			$cache->set($params['cartkey'],$cart,43200);
 	}
 
@@ -1563,7 +1564,7 @@ class Utils
 	@params: reference to reqest-parameters array
 	@except: parameter key, or array of them, to be omitted from cached @params, default FALSE
 	Update @params from @cache, if possible
-	Returns: BookingCart object, restored from @cache or newly-created
+	Returns: nothing
 	*/
 	public function RetrieveParameters (&$cache, &$params, $except=FALSE)
 	{
@@ -1578,28 +1579,37 @@ class Utils
 					}
 				}
 				$params = array_merge($params,$saved); //prefer cached values
-				return $cache->get($params['cartkey']);
+				return;
 			} else {
 				$cache->delete($params['storedparams']);
+				unset($params['storedparams']);
 			}
 		}
-		$params['storedparams'] = Cache::GetKey(\Booker::PARMKEY);
-		return $this->MakeCart($cache,$params); //TODO context, withtax
 	}
 
 	/**
-	MakeCart:
+	RetrieveCart:
+	If $params['cartkey'] is present it's used, or otherwise it's created and used,
+	as the cache-key for the new cart-object.
 	@cache: reference to Cache oject
 	@params: reference to request-parameters array
 	@context: mixed data about the cart, used (among other things) for setting prices
 	@pricesWithTax: boolean, whether cart uses 'gross' prices, default TRUE
-	Returns: new BookingCart object, cached with 'unique' (NOT session-specific)
-	key and 12-hour lifetime
+	Returns: existing BookingCart object, or a new one cached with 'unique'
+	(NOT session-specific) key and 12-hour lifetime.
 	*/
-	public function MakeCart(&$cache, &$params, $context='', $pricesWithTax=TRUE)
+	public function RetrieveCart(&$cache, &$params, $context='', $pricesWithTax=TRUE)
 	{
-		$key = Cache::GetKey(\Booker::CARTKEY);
-		$params['cartkey'] = $key;
+		if (!empty($params['cartkey'])) {
+			$key = $params['cartkey'];
+			$cart = $cache->get($key);
+			if ($cart) {
+				return $cart;
+			}
+		} else {
+			$key = Cache::GetKey(\Booker::CARTKEY);
+			$params['cartkey'] = $key;
+		}
 		$cart = new Cart\BookingCart($context,$pricesWithTax);
 		$cache->set($key,$cart,43200);
 //DEBUG
