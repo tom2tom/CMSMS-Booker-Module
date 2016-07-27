@@ -54,7 +54,7 @@
     <table id="repeats" class="pagetable leftwards">
      <thead><tr>
 {foreach from=$colnames2 key=fcol item=fname}
-      <th class="{ldelim}sss:{if $colsorts2[$fcol]}'text'{else}FALSE{/if}{rdelim}">{$fname}</th>
+      <th class="{ldelim}sss:{if $colsorts2[$fcol]}'text'{else}false{/if}{rdelim}">{$fname}</th>
 {/foreach}
       <th class="pageicon {ldelim}sss:false{rdelim}"></th>
 {if $tell}    <th class="pageicon {ldelim}sss:false{rdelim}"></th>{/if}
@@ -100,7 +100,6 @@
 &nbsp;&nbsp;<input id="mc_deny2" class="cms_submit btn_deny" type="submit" value="{$abort}" /></p>
 </div>
 {/if}
-
 {if !empty($jsincs)}{foreach from=$jsincs item=inc}{$inc}
 {/foreach}{/if}
 <script type="text/javascript">
