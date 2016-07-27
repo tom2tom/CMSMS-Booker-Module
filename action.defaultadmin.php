@@ -6,6 +6,40 @@
 # See file Booker.module.php for full details of copyright,licence,etc.
 #----------------------------------------------------------------------
 
+if (!function_exists('setupPager')) {
+ function setupPager ($i, $rc, $pagerows, &$tplvars, &$mod, $id)
+ {
+	if ($rc > $pagerows) {
+		//setup for SSsort
+		$curpg='<span id="cpage'.$i.'">1</span>';
+		$totpg='<span id="tpage'.$i.'">'.ceil($rc/$pagerows).'</span>';
+
+		$choices = array((string)$pagerows => $pagerows);
+		$f = ($pagerows < 4) ? 5 : 2;
+		$n = $pagerows * $f;
+		if ($n < $rc)
+			$choices[(string)$n] = $n;
+		$n *= 2;
+		if ($n < $rc)
+			$choices[(string)$n] = $n;
+		$choices[$mod->Lang('all')] = 0;
+
+		$tplvars += array(
+		 'hasnav'.$i => 1,
+		 'first'.$i => '<a href="javascript:pagefirst(tbl'.$i.')">'.$mod->Lang('first').'</a>',
+		 'prev'.$i => '<a href="javascript:pageback(tbl'.$i.')">'.$mod->Lang('previous').'</a>',
+		 'next'.$i => '<a href="javascript:pageforw(tbl'.$i.')">'.$mod->Lang('next').'</a>',
+		 'last'.$i => '<a href="javascript:pagelast(tbl'.$i.')">'.$mod->Lang('last').'</a>',
+		 'pageof'.$i => $mod->Lang('pageof',$curpg,$totpg),
+		 'rowchanger'.$i => $mod->CreateInputDropdown($id,'pagerows'.$i,$choices,-1,$pagerows,
+			'onchange="pagerows(tbl'.$i.',this);"').'&nbsp;&nbsp;'.$mod->Lang('pagerows')
+		);
+		return TRUE;
+	}
+	return FALSE;
+ }
+}
+
 $pdev = $this->CheckPermission('Modify Any Page');
 $pset = $this->_CheckAccess('module');
 $padm = $pset || $this->_CheckAccess('admin');
@@ -93,7 +127,8 @@ else
 $seetab1 = ($showtab=='people');
 $seetab2 = ($showtab=='items');
 $seetab3 = ($showtab=='groups');
-$seetab4 = ($showtab=='settings');
+$seetab4 = ($showtab=='reports');
+$seetab5 = ($showtab=='settings');
 
 $tplvars['hidden'] = $this->CreateInputHidden($id,'active_tab',$showtab);
 
@@ -102,7 +137,8 @@ $tplvars['tab_headers'] = $this->StartTabHeaders().
 	$this->SetTabHeader('people',$this->Lang('title_bookers'),$seetab1).
 	$this->SetTabHeader('items',$this->Lang('title_items'),$seetab2).
 	$this->SetTabHeader('groups',$this->Lang('title_groups'),$seetab3).
-	$this->SetTabHeader('settings',$this->Lang('settings'),$seetab4).
+	$this->SetTabHeader('reports',$this->Lang('reports'),$seetab4).
+	$this->SetTabHeader('settings',$this->Lang('settings'),$seetab5).
 	$this->EndTabHeaders().
 	$this->StartTabContent();
 $tplvars['tab_footers'] = $this->EndTabContent();
@@ -129,6 +165,7 @@ $tplvars['startform1'] = $this->CreateFormStart($id,'processrequest',$returnid,
 	'POST','','','',array('custmsg'=>''));
 $tplvars['start_data_tab'] = $this->StartTab('data');
 
+$dcount = 0;
 $sql = 'SELECT * FROM '.$this->RequestTable.' ORDER BY lodged';
 $data = $db->GetAll($sql);
 if ($data) {
@@ -165,7 +202,7 @@ if ($data) {
 		$one = new stdClass();
 		$one->sender = $row['sender'];
 		$one->contact = $row['contact'];
-		$one->paid = ($row['paid']) ? $yes:$no;
+		$one->paid = ($row['paid']) ? $iconyes:$iconno;
 		switch ($row['status']) {
 		 case Booker::STATNONE:
 			$t = $statNONE;
@@ -281,10 +318,15 @@ EOS;
 		$jsfuncs[] =<<<EOS
 function modalsetup(tg,\$d) {
  var msg,action,id = $(this).attr('id');
-  if (id) {
+ if (id) {
   action = id.replace('{$id}','');
  } else {
-  action = $(this).attr('href').replace(/^.+{$id}task=(\w+).*$/,'$1');
+  var m = $(this).attr('href').match(/^.+{$id}task=(\w+).*$/);
+  if (m) {
+   action = m[1];
+  } else {
+   action = 'unknown';
+  }
  }
  switch (action) {
   case 'approve':
@@ -442,7 +484,7 @@ EOS;
   overlayID: 'confirm',
   popupID: 'confgeneral',
   preShow: function(tg,\$d) {
-    var n = $(this.parentNode).siblings(':first').text(),
+   var n = $(this.parentNode).siblings(':first').text(),
     t = "{$t}",
     m = t.replace('%s',n),
     para = \$d.children('p:first')[0];
@@ -483,31 +525,46 @@ $tplvars['findbtn'] = $this->CreateInputSubmit($id,'find',$this->Lang('find'),
 		'title="'.$this->Lang('tip_findbkg').'"');
 
 //BOOKERS TAB (& FORM)
-$pref = cms_db_prefix();
-
 $tplvars['startform2'] = $this->CreateFormStart($id,'adminbooker',$returnid,
 	'POST','','','',array('custmsg'=>''));
 $tplvars['start_people_tab'] = $this->StartTab('people');
 
 $bkrs = array();
-$sql = 'SELECT * FROM '.$pref.'module_bkr_bookers ORDER BY name';
+$sql = 'SELECT * FROM '.$this->BookerTable.' ORDER BY name';
 $rows = $db->GetArray($sql);
 if ($rows) {
+	$sb = $this->Lang('booker');
 	$st = $utils->GetZoneTime('UTC'); //'now' timestamp with same zone as booking data
 	$dt = new DateTime('1900-1-1',new DateTimeZone('UTC'));
-	$sql = 'SELECT bookwhen FROM '.$this->HistoryTable.' WHERE booker_id=? ORDER BY bookwhen';
-	$sb = $this->Lang('booker');
+	$sql = 'SELECT slotstart FROM '.$this->HistoryTable.' WHERE booker_id=? ORDER BY slotstart';
+	$t = sprintf($bseetip,$this->Lang('recorded'));
+	$iconspect = '<img src="'.$baseurl.'/images/calendar.png" alt="%s" title="%s" border="0" />';
+	$icon1 = sprintf($iconspect,$t,$t);
+	if ($pper) {
+		$t = sprintf($edittip,$sb);
+		$icon2 = sprintf($iconedit,$t,$t);
+		$t = sprintf($deltip,$sb);
+		$icon3 = sprintf($icondel,$t,$t);
+	}
 	foreach ($rows as $row) {
 		$bid = (int)$row['booker_id'];
 		$one = new stdClass();
-		//TODO make this link sortable
 		$one->name = ($pper) ?
 			$this->CreateLink($id,'adminbooker',$returnid,$row['name'],array('booker_id'=>$bid,'task'=>'edit')):
 			$row['name'];
-		$one->reg = ($row['publicid'] && $row['passwd']) ? $yes : $no;
-		$dt->setTimestamp($row['when']);
+		$one->reg = ($row['publicid'] && $row['passhash']) ? $iconyes : $iconno;
+		if ($pper) {
+			$one->act = ($row['active']) ?
+				$this->CreateLink($id,'adminbooker',$returnid,$iconyes,
+					array('booker_id'=>$bid,'task'=>'toggle','active'=>TRUE)):
+				$this->CreateLink($id,'adminbooker',$returnid,$iconno,
+					array('booker_id'=>$bid,'task'=>'toggle','active'=>FALSE));
+		} else {
+			$one->act = ($row['active']) ? $iconyes : $iconno;
+		}
+		$dt->setTimestamp($row['addwhen']);
 		$one->added = $dt->format('Y-m-d'); //sortable format
-		$data = $db->GetArray($sql,array($bid));
+		$data = $db->GetCol($sql,array($bid));
 		if ($data) {
 			$count = count($data);
 			$future = count(array_filter($data,function($v)use($st){return $v >= $st;}));
@@ -526,13 +583,15 @@ if ($rows) {
 		$one->first = $first;
 		$one->last = $last;
 		if ($pper) {
-			$t = sprintf($edittip,$sb);
-			$t = sprintf($iconedit,$t,$t);
-			$one->edit = $this->CreateLink($id,'adminbooker',$returnid,$t,array('booker_id'=>$bid,'task'=>'edit'));
-			$t = sprintf($deltip,$sb);
-			$t = sprintf($icondel,$t,$t);
-			$one->delete = $this->CreateLink($id,'adminbooker',$returnid,$t,array('booker_id'=>$bid,'task'=>'delete'));
+			$one->hist = ($count) ?
+				$this->CreateLink($id,'adminbooker',$returnid,$icon1,array('booker_id'=>$bid,'task'=>'bookings')):
+				NULL;
+			$one->edit = $this->CreateLink($id,'adminbooker',$returnid,$icon2,array('booker_id'=>$bid,'task'=>'edit'));
+			$one->delete = $this->CreateLink($id,'adminbooker',$returnid,$icon3,array('booker_id'=>$bid,'task'=>'delete'));
 		} else {
+			$one->hist = ($count) ?
+				$this->CreateLink($id,'adminbooker',$returnid,$icon1,array('booker_id'=>$bid,'task'=>'bookings')): //TODO read-only
+				NULL;
 			$one->edit = NULL;
 			$one->delete = NULL;
 		}
@@ -548,9 +607,10 @@ if ($pcount > 0) {
 	 'bookers' => $bkrs,
 	 'title_person' => $this->Lang('title_name'),
 	 'title_reg' => $this->Lang('registered'),
-	 'title_added' => $this->Lang('start'),
+	 'title_active' => $this->Lang('title_active'),
+	 'title_added' => $this->Lang('title_commenced'),
 	 'title_total' => $this->Lang('title_bookings'),
-	 'title_pending' => $this->Lang('registered'),
+	 'title_pending' => $this->Lang('future'),
 	 'title_first' => $this->Lang('first'),
 	 'title_last' => $this->Lang('last')
 	);
@@ -574,8 +634,14 @@ function confirm_bkrcount() {
 }
 
 EOS;
-	if($pper) {
-		$tplvars['ablebtn1'] =
+	if($padd) {
+		$tplvars['addbooking'] = $this->CreateLink($id,'adminbooker',$returnid,
+			 $theme->DisplayImage('icons/system/newobject.gif',$this->Lang('addbooking'),'','','systemicon'),
+			 array('booker_id'=>-1,'task'=>'add'),'',FALSE,FALSE,'')
+		 .' '.$this->CreateLink($id,'adminbooker',$returnid,
+			 $this->Lang('addbooking'),
+			 array('booker_id'=>-1,'task'=>'add'),'',FALSE,FALSE,'class="pageoptions"');
+		$tplvars['ablebtn2'] =
 			$this->CreateInputSubmit($id,'activate',$this->Lang('activate'),
 			'title="'.$this->Lang('activatesel',$this->Lang('booker_multi')).'" onclick="return confirm_bkrcount();"');
 		$tplvars['deletebtn2'] = $this->CreateInputSubmit($id,'delete',
@@ -587,7 +653,7 @@ EOS;
   overlayID: 'confirm',
   popupID: 'confgeneral',
   preShow: function(tg,\$d) {
-    var n = $(this.parentNode).siblings(':first').text(),
+   var n = $(this.parentNode).siblings(':first').text(),
     t = "{$t}",
     m = t.replace('%s',n),
     para = \$d.children('p:first')[0];
@@ -611,13 +677,13 @@ EOS;
 } else { //$pcount == 0
 	$tplvars['nobookers'] = $this->Lang('nobooker');
 }
-if ($padd) {
+if ($pper) {
 	$tplvars['addbooker'] = $this->CreateLink($id,'adminbooker',$returnid,
 		 $theme->DisplayImage('icons/system/newobject.gif',$this->Lang('addbooker'),'','','systemicon'),
-		 array('item_id'=>-1,'task'=>'add'),'',FALSE,FALSE,'')
+		 array('booker_id'=>-1,'task'=>'add'),'',FALSE,FALSE,'')
 	 .' '.$this->CreateLink($id,'adminbooker',$returnid,
 		 $this->Lang('addbooker'),
-		 array('item_id'=>-1,'task'=>'add'),'',FALSE,FALSE,'class="pageoptions"');
+		 array('booker_id'=>-1,'task'=>'add'),'',FALSE,FALSE,'class="pageoptions"');
 	$tplvars['importbtn2'] = $this->CreateInputSubmit($id,'importbkr',$this->Lang('import'),
 		'title="'.$this->Lang('tip_importbkr').'"');
 }
@@ -714,7 +780,7 @@ if ($rs) {
 		$one->see = $this->CreateLink($id,'process','',$t,array('item_id'=>$thisid,'task'=>'see'));
 
 		if ($mod && !$skip) {
-			if ($row['active'] > 0) //it's active so create a deactivate-link
+			if ($row['active'] > 0)
 				$one->active = $this->CreateLink($id,'process',$returnid,$iconyes,
 					array('item_id'=>$thisid,'task'=>'toggle','active'=>TRUE));
 			elseif ($row['active'] == 0) //it's inactive so create an activate-link
@@ -835,7 +901,7 @@ EOS;
   overlayID: 'confirm',
   popupID: 'confgeneral',
   preShow: function(tg,\$d) {
-    var n = $(this.parentNode).siblings(':first').children(':first').text(),
+   var n = $(this.parentNode).siblings(':first').children(':first').text(),
     t = "{$t}",
     m = t.replace('%s',n),
     para = \$d.children('p:first')[0];
@@ -925,7 +991,7 @@ EOS;
   overlayID: 'confirm',
   popupID: 'confgeneral',
   preShow: function(tg,\$d) {
-    var n = $(this.parentNode).siblings(':first').children(':first').text(),
+   var n = $(this.parentNode).siblings(':first').children(':first').text(),
     t = "{$t}",
     m = t.replace('%s',n),
     para = \$d.children('p:first')[0];
@@ -957,8 +1023,13 @@ if ($mod) {
 	$tplvars['importbtn4'] = $tplvars['importbtn3'];
 }
 
+//REPORTS TAB (&FORM)
+$tplvars['startform5'] = $this->CreateFormStart($id,'processreport',$returnid);
+$tplvars['start_reports_tab'] = $this->StartTab('reports');
+//TODO content
+
 //SETTINGS TAB
-$tplvars['startform5'] = $this->CreateFormStart($id,'setprefs',$returnid);
+$tplvars['startform6'] = $this->CreateFormStart($id,'setprefs',$returnid);
 $tplvars['start_settings_tab'] = $this->StartTab('settings');
 if ($pset) {
 	$settings = array();
@@ -1298,21 +1369,89 @@ EOS;
 }
 
 //js
-if ($icount > 0 || $gcount > 0) {
+if ($dcount > 0 || $pcount > 0 || $icount > 0 || $gcount > 0) {
 	$jsincs[] = <<<EOS
 <script type="text/javascript" src="{$baseurl}/include/jquery.metadata.min.js"></script>
 <script type="text/javascript" src="{$baseurl}/include/jquery.SSsort.min.js"></script>
 
 EOS;
+// TODO make page-rows count window-size-responsive
+	$pagerows = $this->GetPreference('pref_pagerows',10);
+	if ($dcount > $pagerows || $pcount > $pagerows || $icount > $pagerows || $gcount > $pagerows) {
+		$jsfuncs[] = <<<EOS
+var tbl1,tbl2,tbl3,tbl4;
+
+function pagefirst(tbl) {
+ $.SSsort.movePage(tbl,false,true);
+}
+function pagelast(tbl) {
+ $.SSsort.movePage(tbl,true,true);
+}
+function pageforw(tbl) {
+ $.SSsort.movePage(tbl,true,false);
+}
+function pageback(tbl) {
+ $.SSsort.movePage(tbl,false,false);
+}
+function pagerows(tbl,dd) {
+ $.SSsort.setCurrent(tbl,'pagesize',parseInt(dd.value));
+}
+
+EOS;
+		//table-specific extra parameters for SSsort({})
+		$pagers = array();
+		$pagers[1] = ($dcount > 1) && setupPager(1,$dcount,$pagerows,$tplvars,$this,$id);
+		$pagers[2] = ($pcount > 1) && setupPager(2,$pcount,$pagerows,$tplvars,$this,$id);
+		$pagers[3] = ($icount > 1) && setupPager(3,$icount,$pagerows,$tplvars,$this,$id);
+		$pagers[4] = ($gcount > 1) && setupPager(4,$gcount,$pagerows,$tplvars,$this,$id);
+		$pagerdata = array();
+		foreach ($pagers as $k=>$t) {
+			if ($t) {
+				$pagerdata[] = sprintf("{currentid:'cpage%d', countid:'tpage%d', paginate:true, pagesize:%d}",$k,$k,$pagerows);
+			}
+		}
+		if ($pagerdata) {
+			$extras = '['.PHP_EOL.implode(','.PHP_EOL,$pagerdata).PHP_EOL.']';
+		} else {
+			$extras = 'null';
+		}
+	} else {
+		$extras = 'null';
+	}
+
 	$jsloads[] = <<<EOS
- $('table.table_sort').SSsort({
-  sortClass: 'SortAble',
-  ascClass: 'SortUp',
-  descClass: 'SortDown',
-  oddClass: 'row1',
-  evenClass: 'row2',
-  oddsortClass: 'row1s',
-  evensortClass: 'row2s'
+ $.SSsort.addParser({
+  id: 'icon',
+  is: function(s,node) {
+   var \$i = $(node).find('img');
+   return \$i.length > 0;
+  },
+  format: function(s,node) {
+   var \$i = $(node).find('img');
+   return \$i[0].src;
+  },
+  watch: false,
+  type: 'text'
+ });
+ tbl1 = $('#datatable')[0];
+ tbl2 = $('#peopletable')[0];
+ tbl3 = $('#itemstable')[0];
+ tbl4 = $('#groupstable')[0];
+ var extras = {$extras};
+ $('table.table_sort').each(function(idx) {
+  var cfg = {
+   sortClass: 'SortAble',
+   ascClass: 'SortUp',
+   descClass: 'SortDown',
+   oddClass: 'row1',
+   evenClass: 'row2',
+   oddsortClass: 'row1s',
+   evensortClass: 'row2s'
+  };
+  if (extras) {
+    $.extend(cfg,extras[idx]);
+  }
+  $(this).SSsort(cfg);
  });
 
 EOS;
