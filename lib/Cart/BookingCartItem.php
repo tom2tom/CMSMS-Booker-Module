@@ -14,7 +14,11 @@ class BookingCartItem implements BookingCartItemInterface
 	const PAYABLE = 1;
 	const CREDITED = 2;
 	const PAID = 3;
-	const REQUESTED = 10; // add 1|2|3 to this when relevant
+	const CREDITEXPIRED = 4;
+	const CREDITUSED = 5;
+	const DEFERRED = 6;
+	const FAILED = 9;
+	const REQUESTED = 10; // add 0..9 to this when relevant
 	const RECORDED = 20; //ditto
 	const STATUSMAX = 30; //for [un]delete adjustments
 
