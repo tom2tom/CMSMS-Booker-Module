@@ -156,13 +156,20 @@ table.booker .sg\-h\-scroll\-container {
  padding:5px 5px 0 5px;
 }
 /*booking-request-page table */
-table.plain {
+table.shrink {
  border:0;
+ margin:0;
  max-width:100%;
 }
-table.plain td {
- padding:2px;
+table.shrink td {
+ padding:1px 3px;
+ border:0;
+ margin:0;
 }
+table.shrink .reqtitle label {
+ font-weight:bold;
+}
+
 /*radio buttons*/
 .radiolabel {
  margin-right:5px;
