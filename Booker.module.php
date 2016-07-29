@@ -39,23 +39,6 @@ class Booker extends CMSModule
 	const LISTSR = 2; //default for imported groups
 	const LISTRS = 3;
 	const LISTUS = 4;
-	//request status codes
-	const STATNONE = 0;//unknown/normal
-	const STATTEMP = 99;//new and already recorded, pending confirmation
-	const STATNEW = 1;//new pending
-	const STATCHG = 2;//change pending
-	const STATDEL = 3;//delete pending
-	const STATTELL = 4;//further information submitted
-	const STATASK = 5;//queried (waiting for asker)
-	const STATDEFER = 6;//booking request not yet processed cuz' too far ahead
-	const STATNOPAY = 14;//unpaid
-	const STATBIG = 15;//too many slots requested
-	const STATNA = 16; //resouce N/A at requested time, cannot accept
-	const STATDUP = 17;//duplicate request, cannot accept
-	const STATOK = 18;//done/processed i.e. request not yet deleted
-	const STATCANCEL = 19;//abandoned
-	const STATGONE = 20;//deletion pending, while its historical data needed
-	const STATERR = 29;//system error while processing
 	//bookings-table-column durations
 	const SEGDAY = 0;
 	const SEGWEEK = 1;
@@ -66,6 +49,37 @@ class Booker extends CMSModule
 	const RANGEWEEK = 1;
 	const RANGEMTH = 2;
 	const RANGEYR = 3;
+	//request status codes
+	const STATNONE = 0;//unknown/normal/default
+	//request-stage
+	const STATNEW = 1;//new, approver consideration pending
+	const STATCHG = 2;//change request, approver consideration pending
+	const STATDEL = 3;//delete request, approver consideration pending
+	const STATTELL = 4;//further information submitted
+	const STATASK = 5;//booker queried, waiting for response
+ 	const STATCANCEL = 6;//abandoned by user or admin on user's behalf
+	//fees
+	const STATPAYABLE = 10;//booking requires payment, not yet paid
+	const STATPAID = 11;//paid for, pre- or post-
+	const STATCREDITED = 12;//to be paid for
+	const STATCREDITUSED = 13;//past credit offset against other use
+	const STATCREDITEXPIRED = 14;//past credit timed out
+	const STATCREDITADDED = 15;//user-prepayment amount
+ 	const STATNOTPAID = 19;//payable but unpaid for some non-credit-related reason
+	//later status
+	const STATOK = 20;//aka APPROVED done/processed
+	const STATTEMP = 21;//new and already recorded, pending confirmation
+	const STATRECORDED = 20; //add 0..19 to this to flag records for recorded bookings
+	const STATDEFERRED = 40; //ditto for aborted/pre-empted booking records
+ 	const STATGONE = 90;//deletion pending, while its historical data needed
+	//problems
+	const STATBIG = 80;//too many slots requested
+	const STATDEFER = 81;//request not yet processed cuz' too far ahead
+	const STATLATE = 82;//request past or not far-enough ahead
+	const STATNA = 83; //resouce N/A at requested time, cannot accept
+	const STATDUP = 84;//duplicate request, cannot accept
+ 	const STATERR = 85;//system error while processing
+	const STATFAILED = 89;//generic request-failure
 
 	const CARTKEY = 'bkr_Cart'; //cache-key seed/prefix
 	const PARMKEY = 'bkr_Params'; //cache-key seed/prefix
@@ -78,7 +92,6 @@ class Booker extends CMSModule
 	public $HistoryTable; //bookings history
 	public $ItemTable; //resources and resource-groups
 	public $RepeatTable; //repeated bookings-data
-	public $RequestTable; //submitted booking requests
 //	public $CacheTable; //cached bookings-data
 	public $UserTable; //admin users (who may 'own' resource/group)
 	public $before20;
@@ -108,7 +121,6 @@ class Booker extends CMSModule
 		$this->HistoryTable = $pre.'module_bkr_history';
 		$this->ItemTable = $pre.'module_bkr_items';
 		$this->RepeatTable = $pre.'module_bkr_repeats';
-		$this->RequestTable = $pre.'module_bkr_requests';
 //		$this->CacheTable = $pre.'module_bkr_cache';
 		$this->UserTable = $pre.'users';
 		global $CMS_VERSION;
@@ -328,8 +340,10 @@ class Booker extends CMSModule
 	{
 		$this->RestrictUnknownParams();
 		//TODO parameter types
+		$this->SetParameterType('account',CLEAN_STRING);
 		$this->SetParameterType('apply',CLEAN_STRING); //change view enum
 		$this->SetParameterType('bookat',CLEAN_INT);
+		$this->SetParameterType('bookertype',CLEAN_INT);
 		$this->SetParameterType('calendarinput',CLEAN_STRING);
 		$this->SetParameterType('cancel',CLEAN_NONE);
 		$this->SetParameterType('captcha',CLEAN_STRING);
@@ -341,7 +355,9 @@ class Booker extends CMSModule
 		$this->SetParameterType('chooser',CLEAN_INT);
 		$this->SetParameterType('clickat',CLEAN_STRING);
 		$this->SetParameterType('comment',CLEAN_STRING); //booking-request parameters
-		$this->SetParameterType('contact',CLEAN_STRING);
+//		$this->SetParameterType('contact',CLEAN_STRING);
+		$this->SetParameterType('contactnew',CLEAN_STRING);
+		$this->SetParameterType('contactuser',CLEAN_STRING);
 		$this->SetParameterType('delete',CLEAN_NONE); //cart-item action
 		$this->SetParameterType('find',CLEAN_NONE);
 		$this->SetParameterType('findchooser',CLEAN_INT);
@@ -350,23 +366,24 @@ class Booker extends CMSModule
 		$this->SetParameterType('finduser',CLEAN_STRING);
 		$this->SetParameterType('findusertype',CLEAN_INT);
 		$this->SetParameterType('item',CLEAN_STRING); //id or alias
-		$this->SetParameterType('itemkeys',CLEAN_STRING);
 		$this->SetParameterType('item_id',CLEAN_INT); //for zooms
+		$this->SetParameterType('itemkeys',CLEAN_STRING);
 		$this->SetParameterType('listformat',CLEAN_INT); //list-format enum
 		$this->SetParameterType('message',CLEAN_STRING);
 		$this->SetParameterType('newlist',CLEAN_INT); //list-format change boolean
 		$this->SetParameterType('origreturnid',CLEAN_INT); //something for captcha module?
 		$this->SetParameterType('pagerows',CLEAN_INT); //table-pager value
+		$this->SetParameterType('passwd',CLEAN_STRING);
 		$this->SetParameterType('range',CLEAN_STRING); //enum or period-name
 		$this->SetParameterType('ranger',CLEAN_INT); //change view-range enum
 		$this->SetParameterType('request',CLEAN_NONE);
 		$this->SetParameterType('requesttype',CLEAN_INT);
 		$this->SetParameterType('search',CLEAN_NONE);
 		$this->SetParameterType('searchsel',CLEAN_NONE);
-		$this->SetParameterType('storedparams',CLEAN_STRING);
 		$this->SetParameterType('slide',CLEAN_INT); //value matches button label
 		$this->SetParameterType('slotid',CLEAN_STRING);
 		$this->SetParameterType('startat',CLEAN_STRING);
+		$this->SetParameterType('storedparams',CLEAN_STRING);
 		$this->SetParameterType('subgrpcount',CLEAN_INT);
 		$this->SetParameterType('submit',CLEAN_NONE);
 		$this->SetParameterType('toggle',CLEAN_NONE);
