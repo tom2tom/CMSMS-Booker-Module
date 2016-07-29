@@ -205,46 +205,6 @@ if ($res != 2)
 	return FALSE;
 
 /*
-NOTE action.requestbooking.php must be conformed to any change here
-submitted booking requests table schema
- req_id: unique identifier
- item_id: resource or group id
- slotstart: UTC timestamp
- slotlen: seconds booked, NOT seconds-per-slot
- sender: identifier, assumed to be the booker i.e. not a 3rd-party
- contact: phone, email etc
- comment:
- displayclass: display-stying enum 1..Booker::USERSTYLES
- subgrpcount: no. of requested items in a group, irrelevant for non-groups
- status: one of the Booker::STAT* values
- paid: boolean
- lodged: UTC timestamp
- approved: UTC timestamp
-*/
-$fields = "
- req_id I(4) KEY,
- item_id I(4),
- slotstart I,
- slotlen I(4),
- sender C(64),
- contact C(128),
- comment C(256),
- displayclass I(1) DEFAULT 1,
- subgrpcount I(1) DEFAULT 1,
- status I(1) NOTNULL DEFAULT ".Booker::STATNONE.",
- paid I(1) DEFAULT 0,
- lodged I,
- approved I
-";
-$sqlarray = $dict->CreateTableSQL($this->RequestTable,$fields,$taboptarray);
-if ($sqlarray == FALSE)
-	return FALSE;
-$res = $dict->ExecuteSQLArray($sqlarray,FALSE);
-if ($res != 2)
-	return FALSE;
-$db->CreateSequence($this->RequestTable.'_seq');
-
-/*
  Fees for resource usage & related conditions
  condition_id:
  item_id: group/item to which the condition applies
@@ -313,28 +273,21 @@ if ($res != 2)
 $db->CreateSequence($this->BookerTable.'_seq');
 
 /*
+ NOTE action.requestbooking.php must be conformed to any change here
  history table schema:
  history_id: table key
  booker_id: cross-referencer (indexed)
  item_id: booked-resource identifier
- bookwhen: UTC timestamp booking submitted/recorded
+ subgrpcount: no. of requested items in a group, irrelevant for non-groups
+ lodged: UTC timestamp booking submitted/recorded
+ approved: UTC timestamp - sometimes needed
  slotstart: UTC timestamp start of booking
  slotlen: booking length (seconds)
  comment: as supplied by booker as part of request
  fee: how much was paid
- netfee: fee less any gateway cost
- status: enum
-	NORMAL = 0
-	PAYABLE = 1
-	CREDITED = 2
-	PAID = 3
-	CREDITEXPIRED = 4
-	CREDITUSED = 5
-	DEFERRED = 6
-	FAILED = 9
-	REQUESTED = 10; // add 0..9 to this when relevant
-	RECORDED = 20; //ditto
-	See also BookingCartItem::constants which replicate these
+ netfee: fee less any gateway/institution cost
+ status: enum per Booker:STAT*
+	See also BookingCartItem:: constants which overlaps this a bit
  gatetransaction: transaction id reported by payment gateway
  gatedata: json data reported by payment gateway, encrypted
 */
@@ -342,7 +295,9 @@ $fields = "
  history_id I(4) AUTO KEY,
  booker_id I(4),
  item_id I(4),
- bookwhen I,
+ subgrpcount I(1) DEFAULT 1,
+ lodged I,
+ approved I,
  slotstart I,
  slotlen I(4),
  comment C(64),
@@ -361,6 +316,8 @@ if ($res != 2)
 // index
 $sqlarray = $dict->CreateIndexSQL('idx_'.$this->HistoryTable,$this->HistoryTable,'booker_id');
 $dict->ExecuteSQLArray($sqlarray);
+//$db->CreateSequence($this->HistoryTable.'_seq');
+
 /*
 Data cache
  cache_id:
@@ -558,7 +515,7 @@ array('C824D','Somebody Else','password','0417394479','2016-4-4',20,1)
 		$db->Execute($sql,$args);
 	}
 
-	// booker_id,bookwhen,startwhen,slotlen,comment,fee
+	// booker_id,lodged,startwhen,slotlen,comment,fee
 	$data = array(
 array(4,2,'2015-12-12 9:15','2015-12-12 12:00',3600,'Hi there',0),
 array(4,1,'2015-1-1 15:14', '2015-1-2 9:00',7200,'Might need to cancel',0),
@@ -572,7 +529,7 @@ array(7,1,'2016-7-20 13:39','2016-8-3 14:00',7200,'Future',28.0),
 array(7,1,'2016-7-20 14:01','2016-8-2 14:00',7200,'Future',28.0),
 array(8,1,'2016-7-20 17:01','2016-8-9 14:00',7200,'Future',28.0)
 );
-	$sql = 'INSERT INTO '.$this->HistoryTable.' (booker_id,item_id,bookwhen,slotstart,slotlen,comment,fee) VALUES (?,?,?,?,?,?,?)';
+	$sql = 'INSERT INTO '.$this->HistoryTable.' (booker_id,item_id,lodged,slotstart,slotlen,comment,fee) VALUES (?,?,?,?,?,?,?)';
 	$utils = new Booker\Utils();
 	foreach ($data as $dummy) {
 		$dt->modify($dummy[2]);

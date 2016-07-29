@@ -48,8 +48,6 @@ $sql = $dict->DropTableSQL($this->ItemTable);
 $dict->ExecuteSQLArray($sql);
 $sql = $dict->DropTableSQL($this->RepeatTable);
 $dict->ExecuteSQLArray($sql);
-$sql = $dict->DropTableSQL($this->RequestTable);
-$dict->ExecuteSQLArray($sql);
 $sql = $dict->DropTableSQL($pre.'module_bkr_cache');
 $dict->ExecuteSQLArray($sql);
 // remove sequences
@@ -58,10 +56,10 @@ $db->DropSequence($this->DataTable.'_seq');
 $db->DropSequence($this->FeeTable.'_seq');
 $db->DropSequence($this->GroupTable.'_seq');
 //HistoryTable has AUTO key
+//$db->DropSequence($this->HistoryTable.'_seq');
 $db->DropSequence($this->ItemTable.'_seq');
 $db->DropSequence($this->ItemTable.'_gseq');
 //RepeatTable sequence same as for DataTable
-$db->DropSequence($this->RequestTable.'_seq');
 $db->DropSequence($pre.'module_bkr_cache_seq');
 // remove permissions
 $this->RemovePermission($this->PermStructName);
