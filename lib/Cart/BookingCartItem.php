@@ -10,17 +10,11 @@ namespace Booker\Cart;
 class BookingCartItem implements BookingCartItemInterface
 {
 	//a deleted item's status is one of the following - STATUSMAX i.e. < 0
-	const NORMAL = 0;
+	const NORMAL = 0; //nothing to do, cartwise
 	const PAYABLE = 1;
-	const CREDITED = 2;
-	const PAID = 3;
-	const CREDITEXPIRED = 4;
-	const CREDITUSED = 5;
-	const DEFERRED = 6;
-	const FAILED = 9;
-	const REQUESTED = 10; // add 0..9 to this when relevant
-	const RECORDED = 20; //ditto
-	const STATUSMAX = 30; //for [un]delete adjustments
+	const PAID = 2;
+	const NOTPAID = 3; //aka FAILED
+	const STATUSMAX = 10; //for [un]delete adjustments
 
 	public $id = ''; //unique identifier
 	public $name; // unused
