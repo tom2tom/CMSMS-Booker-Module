@@ -22,25 +22,25 @@ if (isset($params['cancel'])) {
 
 	switch ($params['task']) {
 	 case 'see':
-		$this->Redirect($id,'openrequest','',array('req_id'=>$params['req_id'],'mode'=>'inspect'));
+		$this->Redirect($id,'openrequest','',array('history_id'=>$params['history_id'],'mode'=>'inspect'));
 		break;
 	 case 'add':
-		$this->Redirect($id,'openrequest','',array('req_id'=>$params['req_id'],'mode'=>'add'));
+		$this->Redirect($id,'openrequest','',array('history_id'=>$params['history_id'],'mode'=>'add'));
 		break;
 	 case 'edit':
-		$this->Redirect($id,'openrequest','',array('req_id'=>$params['req_id'],'mode'=>'edit'));
+		$this->Redirect($id,'openrequest','',array('history_id'=>$params['history_id'],'mode'=>'edit'));
 		break;
 	 case 'approve':
-		list($res,$msg) = $funcs->ApproveReq($this,$params['req_id'],$params['custmsg']);
+		list($res,$msg) = $funcs->ApproveReq($this,$params['history_id'],$params['custmsg']);
 		break;
 	 case 'reject':
-		list($res,$msg) = $funcs->RejectReq($this,$params['req_id'],$params['custmsg']);
+		list($res,$msg) = $funcs->RejectReq($this,$params['history_id'],$params['custmsg']);
 		break;
 	 case 'notify':
-		list($res,$msg) = $funcs->NotifyReq($this,$params['req_id'],$params['custmsg']);
+		list($res,$msg) = $funcs->NotifyReq($this,$params['history_id'],$params['custmsg']);
 		break;
 	 case 'delete':
-		list($res,$msg) = $funcs->DeleteReq($this,$params['req_id'],$params['custmsg']);
+		list($res,$msg) = $funcs->DeleteReq($this,$params['history_id'],$params['custmsg']);
 		break;
 	 default:
 	 	$res = TRUE;

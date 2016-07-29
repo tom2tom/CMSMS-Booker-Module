@@ -180,13 +180,13 @@ class Schedule
 
 	/*
 	Process a request for a single resource
-	Updates DataTable if possible, but not RequestTable.
+	Updates DataTable if possible, but not HistoryTable.
 	The status field in @reqdata will be updated to indicate what precisely has been done
 	@mod: reference to current Booker module object
 	@utils: reference to Booker\Utils object
 	@session_id: identifier for cache-interrogation
 	@item_id: resource-identifier
-	@reqdata: reference to one row of data from RequestTable, or equivalent constructed array
+	@reqdata: reference to one row of data from HistoryTable, or equivalent constructed array
 	Returns: boolean indicating success
 	*/
 	private function Schedule1(&$mod, &$utils, $session_id, $item_id, &$reqdata)
@@ -227,7 +227,7 @@ class Schedule
 				$bid = $mod->dbHandle->GenID($mod->DataTable.'_seq');
 				$class = (!empty($reqdata['displayclass'])) ? $reqdata['displayclass'] :
 					self::MatchUserClass($mod,$utils,$item_id,$reqdata['sender']);
-				$status = \Booker::STATNONE; //TODO or STATNOPAY etc
+				$status = \Booker::STATNONE; //TODO or STATNOTPAID etc
 				$args = array(
 					$bid,
 					$item_id,
@@ -433,7 +433,7 @@ class Schedule
 	@mod: reference to current Booker module object
 	@utils: reference to Booker\Utils object
 	@item_id: item identifier
-	@reqdata: reference to row of data from RequestTable, or array of them
+	@reqdata: reference to row of data from HistoryTable, or array of them
 	Returns: boolean indicating complete success
 	*/
 	public function ScheduleResource(&$mod, &$utils, $item_id, &$reqdata)
@@ -472,7 +472,7 @@ class Schedule
 	@mod: reference to current Booker module object
 	@utils: reference to Booker\Utils object
 	@item_id: group identifier
-	@reqdata: reference to row of data from RequestTable, or array of them
+	@reqdata: reference to row of data from HistoryTable, or array of them
 	Returns: boolean indicating complete success
 	*/
 	public function ScheduleGroup(&$mod, &$utils, $item_id, &$reqdata)
@@ -556,7 +556,7 @@ class Schedule
 				$bid = $mod->dbHandle->GenID($mod->DataTable.'_seq');
 				$class = (!empty($one['displayclass'])) ? $one['displayclass'] :
 					self::MatchUserClass($mod,$utils,reset($items),$one['sender']);
-				$status = \Booker::STATNONE; //TODO or STATNOPAY etc
+				$status = \Booker::STATNONE; //TODO or STATNOTPAID etc
 				foreach ($items as $memberid) {
 					//TODO signature(s) for actual slot(s), not booking interval
 					//signature = string form of long number
