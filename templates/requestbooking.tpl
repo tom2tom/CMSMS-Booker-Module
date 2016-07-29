@@ -16,20 +16,13 @@
 <p>{$mustmsg}</p>
 {$startform}
 {$hidden}
-<table class="plain"><tbody>
-<tr><td>{$title_what}</td><td>{$inputwhat}</td></tr>
-{if isset($membermsg) && empty($past)}
-<tr><td>* {$title_count}</td><td>{$inputcount}</td></tr>
-{/if}
-<tr><td>{if empty($past)}* {/if}{$title_when}:</td><td>{$inputwhen}</td></tr>
-{if isset($inputuntil)}
-<tr><td>{if empty($past)}* {/if}{$title_until}:</td><td>{$inputuntil}</td></tr>
-{/if}
-<tr><td>* {$title_sender}:</td><td>{$inputsender}</td></tr>
-<tr><td>* {$title_contact}:</td><td>{$inputcontact}</td></tr>
-<tr><td>{$title_comment}:</td><td>{$inputcomment}</td></tr>
-{if isset($captcha)}<tr><td>* {$title_captcha}:</td><td>{$inputcaptcha} {$captcha}</td></tr>{/if}
+<div style="overflow:auto;">
+<table class="shrink"><tbody>
+{foreach from=$tablerows item=entry}
+<tr{if $entry->class} class="{$entry->class}"{/if}><td>{if $entry->mst}* {/if}{$entry->ttl}</td><td>{$entry->inp}</td></tr>
+{/foreach}
 </tbody></table>
+</div>
 <br />
 {$submit}{if isset($cart)} {$cart}{/if} {$cancel} {if isset($choose)} {$choose}{/if}
 {$endform}
