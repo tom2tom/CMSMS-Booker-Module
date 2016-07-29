@@ -11,21 +11,21 @@ class Clearcache_task implements \CmsRegularTask
 {
 	const MODNAME = 'Booker';
 
-	public function get_name() 
+	public function get_name()
 	{
 		return get_class($this);
 	}
 
 	public function get_description()
 	{
-		$mod = cms_utils::get_module(self::MODNAME);
+		$mod = \cms_utils::get_module(self::MODNAME);
 		return $mod->Lang('task_clearcache');
 	}
 
 	public function test($time='')
 	{
 /* TODO
-		$mod = cms_utils::get_module(self::MODNAME);
+		$mod = \cms_utils::get_module(self::MODNAME);
 		if (!($mod->GetPreference('logsends')
 		  || $mod->GetPreference('logdeliveries')))
 			return FALSE;
@@ -52,7 +52,7 @@ class Clearcache_task implements \CmsRegularTask
 	{
 		if (!$time)
 			$time = time();
-		$mod = cms_utils::get_module(self::MODNAME);
+		$mod = \cms_utils::get_module(self::MODNAME);
 		$mod->SetPreference('cachelastclear',$time);
 	}
 

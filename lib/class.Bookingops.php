@@ -112,7 +112,7 @@ class Bookingops
 	{
 		$rows = self::GetBkgData($mod,$bkg_id);
 		if ($rows) {
-			$ob = cms_utils::get_module('Notifier');
+			$ob = \cms_utils::get_module('Notifier');
 			if ($ob) {
 				unset($ob);
 				$funcs = new \MessageSender();
@@ -165,7 +165,7 @@ class Bookingops
 	{
 		$rows = self::GetBkgData($mod,$bkg_id);
 		if ($rows) {
-			$ob = cms_utils::get_module('Notifier');
+			$ob = \cms_utils::get_module('Notifier');
 			if ($ob) {
 				unset($ob);
 				$funcs = new \MessageSender();
@@ -216,7 +216,7 @@ class Bookingops
 		}
 
 		if ($rows) {
-			$ob = cms_utils::get_module('Notifier');
+			$ob = \cms_utils::get_module('Notifier');
 			if ($ob) {
 				unset($ob);
 				$funcs = new \MessageSender();

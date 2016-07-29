@@ -202,7 +202,7 @@ TODO support 'past' data without both date/time $params[]
 		}
 
 		if (isset($params['captcha'])) {
-			$ob = cms_utils::get_module('Captcha');
+			$ob = \cms_utils::get_module('Captcha');
 			if ($ob) {
 				$valid = $ob->checkCaptcha($params['captcha']);
 				unset($ob);
@@ -395,7 +395,7 @@ EOS;
   tg = document.getElementById('{$id}user');
   str = tg.value;
   if (typeof me.trim === "function") str = str.trim();
-  if (str == false){
+  if (str == false) {
     showerr('$usererr',tg);
     ok = false;
   }
@@ -409,7 +409,7 @@ function validate(ev) {
    tg = document.getElementById('{$id}user'),
    str = tg.value;
  if (typeof me.trim === "function") str = str.trim();
- if (str == false){
+ if (str == false) {
   showerr('$usererr',tg);
   ok = false;
  }
@@ -504,7 +504,7 @@ EOS;
   if (tg !== null){
    str = tg.value;
    if (typeof me.trim === "function") str = str.trim();
-   if (str == false){
+   if (str == false) {
     showerr('{$mod->Lang('err_nocaptcha')}',tg);
     ok = false;
    }
