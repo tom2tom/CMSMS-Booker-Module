@@ -76,12 +76,15 @@
       <th class="{ldelim}sss:'icon'{rdelim}">{$title_active}</th>
       <th>{$title_added}</th>
       <th>{$title_total}</th>
-      <th>{$title_pending}</th>
       <th>{$title_first}</th>
       <th>{$title_last}</th>
+      <th>{$title_future}</th>
       <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>
 {if $per} <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>{/if}
-{if $per} <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>{/if}
+      <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>
+      <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>
+{if $per} <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>
+      <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>{/if}
       <th class="checkbox {ldelim}sss:false{rdelim}" style="width:20px;">{if $pcount > 1}{$selectall_bookers}{/if}</th>
     </tr></thead>
     <tbody>
@@ -92,12 +95,15 @@
       <td>{$entry->act}</td>
       <td>{$entry->added}</td>
       <td>{$entry->total}</td>
-      <td>{$entry->pending}</td>
       <td>{$entry->first}</td>
       <td>{$entry->last}</td>
-      <td>{$entry->hist}</td>
-{if $per} <td>{$entry->edit}</td>{/if}
-{if $per} <td class="bkrdel">{$entry->delete}</td>{/if}
+      <td>{$entry->pending}</td>
+      <td>{$entry->bsee}</td>
+{if $per} <td>{$entry->bedit}</td>{/if}
+      <td>{$entry->export}</td>
+      <td>{$entry->see}</td>
+{if $per} <td>{$entry->edit}</td>
+      <td class="bkrdel">{$entry->delete}</td>{/if}
       <td class="checkbox">{$entry->sel}</td>
     </tr>
 {/foreach}
