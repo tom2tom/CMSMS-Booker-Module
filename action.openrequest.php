@@ -6,7 +6,7 @@
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
 /*first-time redirect, $params = array
-'req_id'=>identifier
+'history_id'=>identifier
 'mode'=>'inspect' OR 'edit'
 */
 if (!$this->_CheckAccess()) exit;
@@ -15,8 +15,8 @@ if (isset($params['cancel'])) {
 	$this->Redirect($id,'defaultadmin');
 }
 
-$sql = 'SELECT * FROM '.$this->RequestTable.' WHERE req_id=?';
-$rdata = $db->GetRow($sql,array($params['req_id']));
+$sql = 'SELECT * FROM '.$this->HistoryTable.' WHERE history_id=?'; //TODO condition = get requests
+$rdata = $db->GetRow($sql,array($params['history_id']));
 $is_group = ($rdata['item_id'] >= Booker::MINGRPID);
 $type = ($is_group) ? $this->Lang('group'):$this->Lang('item');
 $is_new = ($rdata['status'] == Booker::STATNEW); //ETC?
@@ -43,7 +43,7 @@ if (isset($params['submit']) || isset($params['apply'])) {
 	}
 } elseif (isset($params['approve'])) {
 /*supplied $params[]
-'req_id' => string '6'
+'history_id' => string '6'
 'mode' => string 'edit'
 'when' => string '9 November 2015 11:00'
 'until' => string '9 November 2015 11:59'
@@ -71,7 +71,7 @@ if (isset($params['find'])) {
 $tplvars = array();
 $tplvars['startform'] =
 	$this->CreateFormStart($id,'openrequest',$returnid,'POST','','','',array(
-		'req_id'=>$params['req_id'],'mode'=>$params['mode'],'custmsg'=>''));
+		'history_id'=>$params['history_id'],'mode'=>$params['mode'],'custmsg'=>''));
 $tplvars['endform'] = $this->CreateFormEnd();
 
 $this->_BuildNav($id,$params,$returnid,$tplvars);
@@ -316,7 +316,7 @@ switch ($rdata['status']) {
  case Booker::STATASK:
 	$t = $this->Lang('stat_ask');
 	break;
- case Booker::STATNOPAY:
+ case Booker::STATNOTPAID:
 	$t = $this->Lang('stat_nopay');
 	break;
  case Booker::STATOK:
