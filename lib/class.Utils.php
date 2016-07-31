@@ -1209,8 +1209,8 @@ class Utils
 	{
 		$sql =<<<EOS
 	SELECT I.item_id,I.name FROM {$mod->ItemTable} I
-	JOIN {$mod->DataTable} B ON I.item_id = B.item_id
-	WHERE I.active>0 AND B.bkg_id=?
+	JOIN {$mod->DataTable} D ON I.item_id=D.item_id
+	WHERE I.active>0 AND D.bkg_id=?
 	EOS;
 		$idata = self::SafeGet($sql,array($bkg_id),'row');
 		if ($idata)
