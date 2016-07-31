@@ -44,7 +44,7 @@ table.booker th.topleft{
 table.booker th.periodname {
  text-align:center;
  color:black;
- background-color:#FFE6E6; /*pink*/
+ background-color:#CCD6FF /*pale blue*/
 }
 
 table.booker td {
@@ -59,7 +59,7 @@ table.booker td.list {
 
 table.booker td.slotname{
  text-align:right;
- background-color:#FFE6E6; /*pink*/
+ background-color:#CCD6FF /*pale blue*/
 }
 
 table.booker td.vacant {
