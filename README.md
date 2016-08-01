@@ -16,7 +16,7 @@ Features:
 * flexible fee(s) definition e.g. $10 per hour for Thursdays in June 6:00..8:00
 * user classes for differentiated fees
 * supports pre- and post-payment, or no payment, for resource usage
-* can work with an online payment gateway, if a suitable wrapper class is available
+* can work with any online payment gateway for which a suitable wrapper-class is available
 * can work with the [Notifier module](https://github.com/tom2tom/CMSMS-Notifier-Module) to communicate with bookers and responsible admins
 * reporting about resources and users
 * data import/export
