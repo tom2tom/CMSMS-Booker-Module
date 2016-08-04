@@ -7,11 +7,11 @@
 #----------------------------------------------------------------------
 namespace Booker;
 
-class bkritem_namecmp
+class bkr_itemname_cmp
 {
-	var $coll;
+	private $coll;
 
-	public function __contruct($collator)
+	public function __construct(&$collator)
 	{
 		$this->coll = $collator;
 	}
@@ -26,7 +26,7 @@ class bkrfee_cmp
 {
 	private $ids;
 
-	public function __contruct($allids)
+	public function __construct(&$allids)
 	{
 		$this->ids = $allids;
 	}
@@ -239,12 +239,13 @@ class Utils
 			if (class_exists('Collator')) {
 				try {
 					$col = new \Collator(self::GetLocale());
-					uasort($grps,array(new bkritem_namecmp($col),'namecmp'));
+					uasort($grps,array(new bkr_itemname_cmp($col),'namecmp'));
 				} catch (Exception $e) {
 					asort($grps,SORT_LOCALE_STRING);
 				}
-			} else
+			} else {
 				asort($grps,SORT_LOCALE_STRING);
+			}
 		}
 		$sql = 'SELECT DISTINCT child FROM '.$mod->GroupTable.' WHERE parent IN ('.
 			$getters.') AND child<'.\Booker::MINGRPID;
@@ -255,18 +256,18 @@ class Utils
 			$sql = 'SELECT item_id,name FROM '.$mod->ItemTable.' WHERE item_id IN ('.$getters.')';
 			$mems = $db->GetAssoc($sql);
 			if (count($mems) > 1) {
-				if (!$col) {
-					if (class_exists('Collator')) {
-						try {
-							$col = new \Collator(self::GetLocale());
-							uasort($mems,array(new bkritem_namecmp($col),'namecmp'));
-						} catch (Exception $e) {
-							asort($mems,SORT_LOCALE_STRING);
-						}
-					} else
+				if ($col) {
+					uasort($mems,array(new bkr_itemname_cmp($col),'namecmp'));
+				} elseif (class_exists('Collator')) {
+					try {
+						$col = new \Collator(self::GetLocale());
+						uasort($mems,array(new bkr_itemname_cmp($col),'namecmp'));
+					} catch (Exception $e) {
 						asort($mems,SORT_LOCALE_STRING);
-				} else
-					uasort($grps,array(new bkritem_namecmp($collator),'namecmp'));
+					}
+				} else {
+					asort($mems,SORT_LOCALE_STRING);
+				}
 			}
 			return $grps + $mems;
 		}
@@ -983,7 +984,7 @@ class Utils
 		if (!$name)
 			$name = '<'.$mod->Lang('noname').'>';
 		$name = htmlentities($name,ENT_QUOTES | ENT_XHTML,FALSE);
-		$title = $mod->Lang('title_image2',$name);
+		$title = $mod->Lang('picture_type',$name);
 		$all = array();
 		$parts = explode(',',$image);
 		foreach ($parts as &$one) {
@@ -1497,14 +1498,14 @@ class Utils
 			$t .= ' ('.$daynames[$t1[0]].') ';
 			$t1 = substr($t1,2);
 			$t2 = $dte->format('G:i');
-			$t .= $mod->Lang('rangeshow',$t1,$t2);
+			$t .= $mod->Lang('showrange',$t1,$t2);
 		} else {
 			$t1 = $dts->format('w G:i');
 			$t1 = $t.' ('.$daynames[$t1[0]].') '.substr($t1,2);
 			$t = $t2;
 			$t2 = $dte->format('w G:i');
 			$t2 = $t.' ('.$daynames[$t2[0]].') '.substr($t2,2);
-			$t = $mod->Lang('rangeshow',$t1,$t2);
+			$t = $mod->Lang('showrange',$t1,$t2);
 		}
 		return $t;
 	}
@@ -1549,6 +1550,8 @@ class Utils
 				$store = $params;
 				unset($store[$except]);
 			}
+		} else {
+			$store = $params;
 		}
 		if (empty($params['storedparams'])) {
 			$params['storedparams'] = Cache::GetKey(\Booker::PARMKEY); //Cache::GetKey(session_id());
@@ -1631,5 +1634,57 @@ class Utils
 		}
 
 		return $cart;
+	}
+
+	/**
+	OpenPaymentForm:
+	Arrange for and display payment-gateway form
+	@mod: reference to current module-object
+	@id: module identifier
+	@returnid:
+	@params: array of parameters for the action
+	@idata: array of data for the resource being booked
+	@cart: cart-object containing the item(s) to be paid for
+	Returns: only if something goes wrong - normally redirects
+	*/
+	public function OpenPaymentForm(&$mod, $id, $returnid, $params, $idata, $cart)
+	{
+		$t = $idata['paymentiface'];
+		if ($t) {
+			$ob = \cms_utils::get_module($t);
+			$handlerclass = $ob->GetPayer();
+			$ifuncs = new $handlerclass($mod,$ob);
+			if ($ifuncs->Furnish(
+				array(
+				 'amount'=>TRUE,
+				 'cancel'=>TRUE,
+				 'payer'=>'who',
+				 'payfor'=>'what',
+//				 'surcharge'=>TRUE,
+				 'cachekey'=>'storedparams',
+				 'errmsg'=>'msg',
+				 'success'=>'result',
+				 'transactid'=>'identifier'
+				),
+				array($mod->GetName(),'requestfinish')
+			)) {
+				$num = $cart->countItems(); //TODO count only the payable items
+				if ($num < 2) {
+					$t = $this->GetItemName($mod,$idata);
+					$desc = trim($mod->Lang('title_bookfor',$t,''));
+				} else {
+					$desc = $mod->Lang('title_booksfor',$num,$idata['membersname']);
+				}
+				$args = array_merge($params,array(
+				 'amount'=>$cart->getTotal(),
+				 'cancel'=>TRUE,
+//				 'surcharge'=>'3%' TODO UI & API for setting this
+				 'who'=>$params['name'],
+				 'what'=>$desc
+				));
+				$ifuncs->ShowForm($id,$returnid,$args); //redirects
+				exit;
+			}
+		}	
 	}
 }
