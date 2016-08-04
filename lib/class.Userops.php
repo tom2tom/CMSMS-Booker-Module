@@ -11,20 +11,20 @@ class Userops
 {
 	const DEFAULTPASS = 'changethis';
 
-	private $dbhandle;
-	private $table;
-	private $history; //history-data table
+	private $dbHandle;
+	private $table; //bookers-data table name
+	private $history; //history-data table name
 
-	public function __construct (&$mod, &$db)
+	public function __construct (&$mod)
 	{
-		$this->dbhandle = $db;
+		$this->dbHandle = $mod->dbHandle;
 		$this->table = $mod->BookerTable;
 		$this->history = $mod->HistoryTable;
 	}
 
 	private function gettype($booker_id)
 	{
-		$r = $this->dbhandle->GetOne('SELECT type FROM '.$this->table.' WHERE booker_id=? AND active=1',
+		$r = $this->dbHandle->GetOne('SELECT type FROM '.$this->table.' WHERE booker_id=? AND active=1',
 			array($booker_id));
 		return ($r) ? $r:FALSE;
 	}
@@ -36,7 +36,7 @@ class Userops
 			$input = 'pGJCu"F~p+>Q94je';	//ensure a hash for empty passwords
 		while (strlen($input) < $ilen)
 			$input .= strrev($input);
-		$itoa64 = './ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+		$itoa64 = '~|ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 		$output = '';
 		$i = 0;
 		while (1) {
@@ -70,13 +70,13 @@ class Userops
 	@passwd: string, any length or empty
 	Returns: 48-byte encoded string
 	 */
-	public function HashPassword ($passwd)
+	public function HashPassword($passwd)
 	{
 		$pubkey = $this->encodeBytes(str_shuffle(time().'ABCDEFGHIJKLMNOPQRSTUVWXYZ'),8); //10-chars
 		return $pubkey.$this->encodeBytes($passwd.$pubkey,28); //10+38-chars
 	}
 
-	private function matchpass ($hashed, $passwd)
+	private function matchpass($hashed, $passwd)
 	{
 		if ($hashed) {
 			$p = str_split($hashed,10); //separate pubkey & pw
@@ -91,7 +91,7 @@ class Userops
 	@booker_id: numeric identifier
 	Returns:
 	*/
-/*	public function ($booker_id)
+/*	public function($booker_id)
 	{
 	}
 */
@@ -102,21 +102,21 @@ class Userops
 	@passwd: optional plaintext password
 	Returns: booker_id, OR FALSE if user exists and/or no password is provided
 	*/
-	public function AddUser ($name, $account=FALSE, $passwd=FALSE)
+	public function AddUser($name, $account=FALSE, $passwd=FALSE)
 	{
 		if (!($name || $account))
 			return FALSE;
 		if ($account) {
 			if (!$passwd)
 				return FALSE;
-			$r = $this->dbhandle->GetOne('SELECT name FROM '.$this->table.' WHERE publicid=?',array($account));
+			$r = $this->dbHandle->GetOne('SELECT name FROM '.$this->table.' WHERE publicid=?',array($account));
 			if ($r)
 				return FALSE;
 		}
 		$fields = array();
 		$args = array();
 		$fields[] = 'booker_id';
-		$bid = $this->dbhandle->GenId($this->table.'_seq');
+		$bid = $this->dbHandle->GenId($this->table.'_seq');
 		$args[] = $bid;
 
 		if ($name) {
@@ -136,7 +136,7 @@ class Userops
 
 		$sql = 'INSERT INTO '.$this->table.' ('.implode(',',$fields).
 		') VALUES ('.str_repeat('?,',count($fields)-1).'?)';
-		$r = $this->dbhandle->Execute($sql,$args);
+		$r = $this->dbHandle->Execute($sql,$args);
 		return ($r != FALSE) ? $bid : FALSE;
 	}
 
@@ -145,11 +145,11 @@ class Userops
 	@booker_id: numeric identifier
 	Returns: boolean indicating success
 	*/
-	public function DeleteUser ($booker_id)
+	public function DeleteUser($booker_id)
 	{
-		$r = $this->dbhandle->Execute('DELETE FROM '.$this->table.' WHERE booker_id=?',array($booker_id));
+		$r = $this->dbHandle->Execute('DELETE FROM '.$this->table.' WHERE booker_id=?',array($booker_id));
 		if ($r) {
-			$r = $this->dbhandle->Execute('DELETE FROM '.$this->history.' WHERE booker_id=?',array($booker_id));
+			$r = $this->dbHandle->Execute('DELETE FROM '.$this->history.' WHERE booker_id=?',array($booker_id));
 		}
 		return ($r != FALSE);
 	}
@@ -160,19 +160,40 @@ class Userops
 	@account: account identifier
 	@passwd: optional plaintext password
 	 */
-	public function Register ($booker_id, $account, $passwd=DEFAULTPASS)
+	public function Register($booker_id, $account, $passwd=DEFAULTPASS)
 	{
 		if ($account) {
 			if (!$paswd)
 				return FALSE;
-			$r = $this->dbhandle->GetOne('SELECT name FROM '.$this->table.' WHERE publicid=?',array($account));
+			$r = $this->dbHandle->GetOne('SELECT name FROM '.$this->table.' WHERE publicid=?',array($account));
 			if ($r)
 				return FALSE;
 		}
-		$r = $this->dbhandle->Execute('UPDATE '.$this->table.' SET publicid=? WHERE booker_id=?',
+		$r = $this->dbHandle->Execute('UPDATE '.$this->table.' SET publicid=? WHERE booker_id=?',
 			array($account,booker_id));
 		$this->SetPassword ($booker_id,'FORCE',$passwd);
 	}
+
+/* TODO support FEU-permissions
+	$ob = \cms_utils::get_module('FrontEndUsers');
+	if ($ob) {
+		$uid = $ob->LoggedInID();
+		if ($uid !== FALSE) {
+			$t = (int)$idata['feugroup'];
+			if ($t == -1) //any group
+				$save = TRUE;
+			elseif ($t != 0) { //none
+				$gid = $ob->GetGroupID($t);
+				$save = $ob->MemberOfGroup($uid,$gid);
+			}
+			if ($save) {
+				'record' permitted
+				'publicid' OR 'name' = $ob->GetUserName($uid); //default
+			}
+		}
+		unset($ob);
+	}
+*/
 
 	/**
 	SetPassword:
@@ -181,12 +202,12 @@ class Userops
 	@passwd: optional new plaintext password, default 'changethis'
 	Returns: boolean indicating success
 	*/
-	public function SetPassword ($booker_id, $current, $passwd=DEFAULTPASS)
+	public function SetPassword($booker_id, $current, $passwd=DEFAULTPASS)
 	{
-		$row = $this->dbhandle->GetRow('SELECT passhash FROM '.$this->table.' WHERE booker_id=?',array($booker_id));
+		$row = $this->dbHandle->GetRow('SELECT passhash FROM '.$this->table.' WHERE booker_id=?',array($booker_id));
 		if ($row) {
 			if ($current == 'FORCE' || $this->matchpass($row['passhash'],$current)) {
-				$r = $this->dbhandle->Execute('UPDATE '.$this->table.' SET passhash=? WHERE booker_id=?',
+				$r = $this->dbHandle->Execute('UPDATE '.$this->table.' SET passhash=? WHERE booker_id=?',
 					array($this->HashPassword($passwd),$booker_id));
 				return ($r != FALSE);
 			}
@@ -194,27 +215,117 @@ class Userops
 		return FALSE;
 	}
 
+	/* *
+	GetID:
+	Get existing or new booker enumerator representing @main and @supp
+	@main: user name or account identifier
+	@supp: email-address or phone-number for username, or password for account
+	Returns: 2-member array, 1st is booker_id or FALSE, 2nd is boolean representing id-is-new
+	*/
+/*	private function GetID($main, $supp)
+	{
+		$booker_id = $this->IsKnown($main,$supp);
+		if ($booker_id === FALSE) {
+			if (empty($params['publicid'])) {
+				$is_new = TRUE;
+				$booker_id = $this->AddUser($main);
+				$this->SetContact($booker_id,$supp);
+			} else {
+				$is_new = FALSE;
+				$booker_id = FALSE; //report password failure
+			}
+		} else {
+			$is_new = FALSE;
+		}
+		return array($booker_id,$is_new);
+	}
+*/
+	/**
+	GetParamsID:
+	Get existing or new booker enumerator representing the relevant members of @params
+	@params: reference to array of parameters
+	Returns: 2-member array, 1st is booker_id or FALSE(bad P/W), 2nd is boolean representing id-is-new
+	*/
+	public function GetParamsID(&$params)
+	{
+		if (!empty($params['publicid'])) {
+			$main = $params['publicid'];
+			$supp = $params['passwd'];
+		} else {
+			$main = $params['name'];
+			$supp = array('address'=>$params['address'],'phone'=>$params['phone']);
+		}
+//		return $this->GetID($main,$supp);
+		//TODO support FEU-permissions
+		$booker_id = $this->IsKnown($main,$supp);
+		if ($booker_id === FALSE) {
+			if (empty($params['publicid'])) {
+				$is_new = TRUE;
+				$booker_id = $this->AddUser($main);
+				$this->SetContact($booker_id,$supp);
+			} else {
+				$is_new = FALSE;
+				$booker_id = FALSE; //report password failure
+			}
+		} else {
+			$is_new = FALSE;
+		}
+		return array($booker_id,$is_new);
+	}
+
+	/**
+	GetName:
+	@booker_id: numeric identifier
+	Returns: recorded booker-name or ''
+	*/
+	public function GetName($booker_id)
+	{
+		$r = $this->dbHandle->GetOne('SELECT name FROM '.$this->table.' WHERE booker_id=? AND active=1',
+			array($booker_id));
+		if (!$r) $r = '';
+		return $r;
+	}
+
 	/**
 	SetContact:
 	@booker_id: numeric identifier
-	@contact: new contact-address
+	@contact: new email-address, or phone number, or associative array with email-address and/or phone-number
 	Returns: boolean indicating success
 	*/
-	public function SetContact ($booker_id, $contact)
+	public function SetContact($booker_id, $contact)
 	{
-		$r = $this->dbhandle->Execute('UPDATE '.$this->table.' SET contact=? WHERE booker_id=?',
-			array($contact,$booker_id));
+		$patn = '/^(\+\d{1,4} *)?[\d ]{5,15}$/';
+		if (is_array($contact)) {
+			$sql = '';
+			$args = array();
+			foreach ($contact as $k=>$val) {
+	//TODO interpret & arrange values
+			}
+			$args[] = $booker_id;
+		} else {
+			$contact = trim($contact);
+			if (!$contact) {
+				$sql = 'address=?'; //clear address - BAD!
+			} elseif (preg_match($patn,$contact)) {
+				$sql = 'phone=?';
+			} else { //TODO specific validity check(s)
+				$sql = 'address=?';
+			}
+			$args = array($contact,$booker_id);
+		}
+		$r = $this->dbHandle->Execute('UPDATE '.$this->table.' SET '.$sql.' WHERE booker_id=?',
+			$args);
 		return ($r != FALSE);
 	}
 
 	/**
-	:
+	GetContact:
 	@booker_id: numeric identifier
-	Returns: stored contact-address
+	Returns: 2-member associative array (stored contact-address and phone), or '';
 	*/
-	public function GetContact ($booker_id)
+	public function GetContact($booker_id)
 	{
-		$r = $this->dbhandle->GetOne('SELECT contact FROM '.$this->table.' WHERE booker_id=? AND active=1',
+		$r = $this->dbHandle->GetRow('SELECT address,phone '.$this->table.' WHERE booker_id=? AND active=1',
 			array($booker_id));
 		if ($r == FALSE) $r = '';
 		return $r;
@@ -222,14 +333,27 @@ class Userops
 
 	/**
 	IsKnown:
-	@name: user name or account identifier
-	Returns: booker_id or FALSE
+	@main: user name or account identifier
+	@supp: email-address or phone-number for username, or password for account
+	Returns: booker_id or FALSE if no match or password is wrong
 	*/
-	public function IsKnown ($name)
+	public function IsKnown($main, $supp)
 	{
-		$rows = $this->dbhandle->GetAll('SELECT booker_id FROM '.$this->table.' WHERE publicid=? OR name=? AND active=1',
-			array($name,$name));
-		return ($rows != FALSE) ? reset($rows) : FALSE;
+		$rows = $this->dbHandle->GetAll('SELECT booker_id,publicid,passhash,address,phone FROM '.
+			$this->table.' WHERE (name=? OR publicid=?) AND active=1 ORDER BY addwhen DESC',
+			array($id,$id));
+		if ($rows) {
+			foreach ($rows as $one) {
+				if ($id == $one['publicid']) {
+					if ($supp && $this->matchpass($one['passhash'],$supp))
+						return $one['booker_id'];
+				} elseif ($supp) {
+					if ($supp == $one['address'] || $supp == $one['phone'])
+						return $one['booker_id'];
+				}
+			}
+		}
+		return FALSE;
 	}
 
 	/**
@@ -237,9 +361,9 @@ class Userops
 	@name:
 	Returns: booker_id or FALSE
 	*/
-	public function IsRegistered ($name)
+	public function IsRegistered($name)
 	{
-		$r = $this->dbhandle->GetOne('SELECT booker_id FROM '.$this->table.
+		$r = $this->dbHandle->GetOne('SELECT booker_id FROM '.$this->table.
 		' WHERE publicid=? AND passhash IS NOT NULL AND passhash<>\'\' AND ACTIVE=1',array($name));
 		return ($r != FALSE) ? $r : FALSE;
 	}
@@ -250,9 +374,9 @@ class Userops
 	@passwd: plaintext password, if @name is for an account
 	Returns: booker_id or FALSE
 	*/
-	public function IsAccepted ($name, $passwd)
+	public function IsAccepted($name, $passwd)
 	{
-		$rows = $this->dbhandle->GetAll('SELECT booker_id,publicid,name,passhash FROM '
+		$rows = $this->dbHandle->GetAll('SELECT booker_id,publicid,name,passhash FROM '
 			.$this->table.' WHERE publicid=? or name=? AND active=1',array($name,$name));
 		if ($rows) {
 			$row = reset($rows);
@@ -274,7 +398,7 @@ class Userops
 	@type: optional enumerator, to avoid lookup
 	Returns: nothing
 	*/
-	public function SetRights ($booker_id, $rights, $type=FALSE)
+	public function SetRights($booker_id, $rights, $type=FALSE)
 	{
 		if ($type === FALSE) {
 			$type = $this->gettype($booker_id);
@@ -304,7 +428,7 @@ class Userops
 			}
 		}
 		$newtype = ($newflags | $oldflags) * 10 + $base;
-		$r = $this->dbhandle->Execute('UPDATE '.$this->table.' SET type=? WHERE booker_id=?',
+		$r = $this->dbHandle->Execute('UPDATE '.$this->table.' SET type=? WHERE booker_id=?',
 			array($newtype,$booker_id));
 		return ($r != FALSE);
 	}
@@ -316,7 +440,7 @@ class Userops
 	@type: optional enumerator, to avoid lookup
 	Returns: boolean
 	*/
-	public function HasRight ($booker_id, $right, $type=FALSE)
+	public function HasRight($booker_id, $right, $type=FALSE)
 	{
 		if ($type === FALSE) {
 			$type = $this->gettype($booker_id);
@@ -343,7 +467,7 @@ class Userops
 	@type: optional enumerator, to avoid lookup
 	Returns: array, or FALSE
 	*/
-	public function GetRights ($booker_id, $rights=NULL, $type=FALSE)
+	public function GetRights($booker_id, $rights=NULL, $type=FALSE)
 	{
 		if ($type === FALSE) {
 			$type = $this->gettype($booker_id);
@@ -383,7 +507,7 @@ class Userops
 	@type: optional enumerator, to avoid lookup
 	Returns: enum 0..9, or FALSE
 	*/
-	public function GetBaseType ($booker_id, $type=FALSE)
+	public function GetBaseType($booker_id, $type=FALSE)
 	{
 		if ($type === FALSE) {
 			$type = $this->gettype($booker_id);
@@ -396,13 +520,13 @@ class Userops
 	/**
 	GetDisplayClass:
 	@booker_id: numeric identifier
-	Returns: enum 0..5
+	Returns: enum 1..MAX
 	*/
-	public function GetDisplayClass ($booker_id)
+	public function GetDisplayClass($booker_id)
 	{
-		$r = $this->dbhandle->GetOne('SELECT displayclass FROM '.$this->table.' WHERE booker_id=? AND active=1',
+		$r = $this->dbHandle->GetOne('SELECT displayclass FROM '.$this->table.' WHERE booker_id=? AND active=1',
 			array($booker_id));
-		if (!$r) $r = 0;
+		if (!$r) $r = 1;
 		return $r;
 	}
 }
