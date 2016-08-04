@@ -13,7 +13,7 @@ $pre = cms_db_prefix();
 /*
  items (i.e. groups and resources) table schema:
  NOTE (almost) no NOTNULL/default values, so inheritance can be determined
- NOTE: changes here must be reflected in action.open.php, bkrcsv::ImportItems
+ NOTE: changes here must be reflected in action.open.php, Booker\CSV::ImportItems
 	item_id:
 	alias:
 	name:
@@ -144,21 +144,17 @@ non-repeated bookings-data table schema:
  item_id: resource or group id
  slotstart: UTC timestamp
  slotlen: seconds booked, NOT seconds-per-slot
- user: identifier
- contact: phone, email etc
- displayclass: display-stying enum 1..Booker::USERSTYLES
+ booker_id: identifier
  status: one of the Booker::STAT* values
  paid: boolean
-bkrcsv::ImportBookings must conform to this
+Booker\CSV::ImportBookings must conform to this
 */
 $fields = "
  bkg_id I(4),
  item_id I(4),
  slotstart I,
  slotlen I(4),
- user C(64),
- contact C(128),
- displayclass I(1) NOTNULL DEFAULT 1,
+ booker_id I(4),
  status I(1) NOTNULL DEFAULT ".Booker::STATNONE.",
  paid I(1) NOTNULL DEFAULT 0
 ";
@@ -179,9 +175,7 @@ repeated bookings-data table schema:
  bkg_id:
  item_id: resource or group id
  formula: interval-descriptor string
- user: identifier
- contact: phone, email etc
- displayclass: display-stying enum 1..Booker::USERSTYLES
+ booker_id: identifier
  subgrpcount: no. of in-group resources to be processed per subgrpalloc
  paid: boolean
  active: enum/boolean 1, or 0 if booking has been deleted but historic data remain
@@ -190,10 +184,8 @@ $fields = "
  bkg_id I(4) KEY,
  item_id I(4),
  formula C(256),
- user C(64),
- contact C(128),
- displayclass I(1) DEFAULT 1,
- subgrpcount I(1) DEFAULT 0,
+ booker_id I(4),
+ subgrpcount I(1) DEFAULT 1,
  paid I(1) DEFAULT 0,
  active I(1) DEFAULT 1
 ";
@@ -247,7 +239,8 @@ $db->CreateSequence($this->FeeTable.'_seq');
  name: identifier for display, and identity check if publicid N/A
  publicid: login/account for 'registed' bookers
  passhash: login password, 1-way encrypted
- contact: email, cell-phone (maybe accept a post-address...)
+ address: email (maybe accept a post-address...) for general messaging and billing
+ phone: cell-phone number, preferred for messaging
  addwhen: UTC timestamp when this record added
  type: combination of 10 generic types and permission-flags - see class.Userops
  displayclass: display-stying enum 0..Booker::USERSTYLES
@@ -258,7 +251,8 @@ $fields = "
  name C(64),
  publicid C(32),
  passhash C(48),
- contact C(128),
+ address C(96),
+ phone C(24),
  addwhen I,
  type I(1) DEFAULT 0,
  displayclass I(1) DEFAULT 1,
@@ -286,13 +280,14 @@ $db->CreateSequence($this->BookerTable.'_seq');
  comment: as supplied by booker as part of request
  fee: how much was paid
  netfee: fee less any gateway/institution cost
- status: enum per Booker:STAT*
-	See also BookingCartItem:: constants which overlaps this a bit
+ status: enum per some of Booker:STAT*
+	See also BookingCartItem:: constants which overlap this a bit
+ payment: another enum per some of Booker:STAT*
  gatetransaction: transaction id reported by payment gateway
  gatedata: json data reported by payment gateway, encrypted
 */
 $fields = "
- history_id I(4) AUTO KEY,
+ history_id I(4) KEY,
  booker_id I(4),
  item_id I(4),
  subgrpcount I(1) DEFAULT 1,
@@ -303,7 +298,8 @@ $fields = "
  comment C(64),
  fee N(8.2),
  netfee N(8.2),
- status I(1) DEFAULT 0,
+ status I(1) DEFAULT ".Booker::STATNONE.",
+ payment I(1) DEFAULT ".Booker::STATFREE.",
  gatetransaction C(48),
  gatedata B
 ";
@@ -316,7 +312,7 @@ if ($res != 2)
 // index
 $sqlarray = $dict->CreateIndexSQL('idx_'.$this->HistoryTable,$this->HistoryTable,'booker_id');
 $dict->ExecuteSQLArray($sqlarray);
-//$db->CreateSequence($this->HistoryTable.'_seq');
+$db->CreateSequence($this->HistoryTable.'_seq');
 
 /*
 Data cache
@@ -413,38 +409,38 @@ array(10,10001,-1,2)
 	$daygroup = 5;
 
 	$data = array(
-array(2,11,1,'Coaching','0444 555 666',5,0,1),
-array(2,12,1,'Mary','@myfirm',1,0,0),
-array(2,13,2,'Comp1',NULL,2,0,1),
-array(2,15,1,'User2',NULL,0,0,0),
-array(2,9,1,'Fred','me@here.com',1,0,0),
+array(2,11,1,9,0,1),
+array(2,12,1,2,0,0),
+array(2,13,2,4,0,1),
+array(2,15,1,6,0,0),
+array(2,9,1,7,0,0),
 
-array(2,11,1,'Coaching','0444 555 666',5,0,1),
-array(2,12,1,'Mary','@myfirm',1,0,0),
-array(2,13,2,'Comp1',NULL,2,0,1),
-array(2,15,1,'User2',NULL,0,0,0),
-array(2,9,1,'Fred','me@here.com',1,0,0),
+array(2,11,1,9,0,1),
+array(2,12,1,2,1,0,0),
+array(2,13,2,4,0,1),
+array(2,15,1,6,0,0),
+array(2,9,1,7,0,0),
 
-array(2,11,1,'Coaching','0444 555 666',5,0,1),
-array(2,12,1,'Mary','@myfirm',1,0,0),
-array(2,13,2,'Comp2',NULL,2,0,1),
-array(2,15,1,'User2',NULL,1,0,0),
-array(2,9,1,'Fred','me@here.com',1,0,0),
+array(2,11,1,9,0,1),
+array(2,12,1,2,1,0,0),
+array(2,13,2,11,0,1),
+array(2,15,1,6,0,0),
+array(2,9,1,7,0,0),
 
-array(2,11,1,'Coaching','0444 555 666',5,0,1),
-array(2,12,1,'Jane','@myfirm',1,0,0),
-array(2,13,2,'Comp2',NULL,2,0,1),
-array(2,15,1,'User2',NULL,0,0,0),
-array(2,9,1,'Fred','me@here.com',1,0,0),
+array(2,11,1,9,0,1),
+array(2,12,1,8,0,0),
+array(2,13,2,11,0,1),
+array(2,15,1,6,0,0),
+array(2,9,1,7,0,0),
 
-array(2,11,1,'Coaching','0444 555 666',5,0,1),
-array(2,12,1,'Jane','@myfirm',1,0,0),
-array(2,13,2,'Comp1',NULL,2,0,1),
-array(2,15,1,'User2',NULL,1,0,0),
-array(2,9,1,'Fred','me@here.com',1,0,0)
+array(2,11,1,9,0,1),
+array(2,12,1,8,0,0),
+array(2,13,2,4,0,1),
+array(2,15,1,6,0,0),
+array(2,9,1,7,0,0)
 );
 	$sql = 'INSERT INTO '.$this->DataTable.
-' (bkg_id,item_id,slotstart,slotlen,user,contact,displayclass,status,paid) VALUES (?,?,?,?,?,?,?,?,?)';
+' (bkg_id,item_id,slotstart,slotlen,booker_id,status,paid) VALUES (?,?,?,?,?,?,?)';
 	$i = $daygroup;
 	foreach ($data as $dummy) {
 		if ($i == $daygroup) {
@@ -465,9 +461,8 @@ array(2,9,1,'Fred','me@here.com',1,0,0)
 
 // same sequence used for repeats and non-repeats
 	$bid = $db->GenID($this->DataTable.'_seq');
-	$item = 8;
-	$sql = 'INSERT INTO '.$this->RepeatTable.' (bkg_id,item_id,formula,user,displayclass) VALUES (?,?,?,?,?)';
-	$dummy = array($bid,$item,'Mon..Fri@20:00..21:00','Repeater',5);
+	$sql = 'INSERT INTO '.$this->RepeatTable.' (bkg_id,item_id,formula,booker_id) VALUES (?,?,?,?)';
+	$dummy = array($bid,8,'Mon..Fri@20:00..21:00',1);
 	$db->Execute($sql,$dummy);
 
 // 1 description 2 slottype 3 slotcount 4 fee 5 feecondition
@@ -494,48 +489,58 @@ array(10004,'Nightplay fee',1,1,'10.00','0..sunrise,sunset..23:59'),
 		$i++;
 	}
 
-	//publicid,name,passwd,contact,addwhen,type,displayclass
+	$funcs = new \Booker\Userops($this);
+	//name,publicid,passhash,address,phone,addwhen,type,displayclass
 	$data = array(
-array('C821D00','Mary','password','0417394479','2016-1-1',0,1),
-array('C821D123','User2','password','tpgww@onepost.net','2016-5-2',1,1),
-array('','Fred','','tpgww@onepost.net','2015-1-10',10,1),
-array('C821D125','Jane','longlonglonglonglong','tpgww@onepost.net','2015-10-10',21,1),
-array('C822D123','Coach','nope','','2016-1-1',13,5),
-array('C823D123','Roger Rabbit','haha','tpgww@onepost.net','2016-4-4',32,2),
-array('C823D123','Roger RAbbit','c9218d','tpgww@onepost.net','2016-4-3',32,2),
-array('','Tester 45','','0417394479','2016-3-4',10,4),
-array('C824D','Somebody Else','password','0417394479','2016-4-4',20,1)
+array('Repeater','','','tpgww@onepost.net','0417394479','2016-1-1',0,5),
+array('Mary','C821D00','password','','0417394479','2016-1-1',0,1),
+array('Tester 45','','','','0417394479','2016-3-4',0,4),
+array('Comp1','','','tpgww@onepost.net','0417394479','2016-3-4',0,4),
+array('Somebody Else','C824D','password','','0417394479','2016-4-4',0,1),
+array('User2','C821D123','password','tpgww@onepost.net','0417394479','2016-5-2',1,1),
+array('Fred','','','tpgww@onepost.net','','2015-1-10',10,1),
+array('Jane','C821D125','longlonglonglonglong','tpgww@onepost.net','0417394479','2015-10-10',1,1),
+array('Coaching','C822D123','nope','','','2016-1-1',3,5),
+array('Roger Rabbit','C823D123','haha','tpgww@onepost.net','0417394479','2016-4-4',2,2),
+array('Roger RAbbit','C823D123','c9218d','tpgww@onepost.net','0417394479','2016-4-3',2,2),
+array('Comp2','','','tpgww@onepost.net','0417394479','2016-3-4',0,4)
 );
-	$funcs = new \Booker\Userops($this,$db);
-	$sql = 'UPDATE '.$this->BookerTable.' SET contact=?,addwhen=?,type=?,displayclass=? WHERE booker_id=?';
+	$sql = 'UPDATE '.$this->BookerTable.' SET address=?,phone=?,addwhen=?,type=?,displayclass=? WHERE booker_id=?';
 	foreach ($data as $dummy) {
-		$bid = $funcs->AddUser($dummy[1],$dummy[0],$dummy[2]);
-		$dt->modify($dummy[4]);
-		$args = array($dummy[3],$dt->getTimestamp(),$dummy[5],$dummy[6],$bid);
+		$bid = $funcs->AddUser($dummy[0],$dummy[1],$dummy[2]);
+		$dt->modify($dummy[5]);
+		$args = array($dummy[3],$dummy[4],$dt->getTimestamp(),$dummy[6],$dummy[7],$bid);
 		$db->Execute($sql,$args);
 	}
 
-	// booker_id,lodged,startwhen,slotlen,comment,fee
+	//history_id,booker_id,item_id,subgrpcount,lodged,approved,slotstart,slotlen,comment,fee
+	$dt->modify('now');
+	$dt->setTime(0,0,0);
+	$stoff = $dt->getTimestamp();
+	$dt->modify('2016-7-25 0:0');
+	$stoff -= $dt->getTimestamp();
+
 	$data = array(
-array(4,2,'2015-12-12 9:15','2015-12-12 12:00',3600,'Hi there',0),
-array(4,1,'2015-1-1 15:14', '2015-1-2 9:00',7200,'Might need to cancel',0),
-array(4,3,'2016-4-30 17:00','2016-5-1 17:00',3600,'YAY TEAM',10),
-array(4,1,'2016-6-12 17:01','2016-6-19 14:00',7200,'Won\'t pay',0.6),
-array(5,1,'2016-7-12 17:01','2016-7-25 14:00',7200,'Nowish',12.5),
-array(5,3,'2016-7-12 17:02','2016-7-25 14:00',3600,'Nowish',12.5),
-array(6,1,'2016-7-20 17:01','2016-7-26 14:00',7200,'Future',28.0),
-array(7,1,'2016-6-20 17:01','2016-7-2 14:00',7200,'Past',28.0),
-array(7,1,'2016-7-20 13:39','2016-8-3 14:00',7200,'Future',28.0),
-array(7,1,'2016-7-20 14:01','2016-8-2 14:00',7200,'Future',28.0),
-array(8,1,'2016-7-20 17:01','2016-8-9 14:00',7200,'Future',28.0)
+array(4,2,'2015-12-12 9:15','2015-12-12 12:00',3600,'Hi there',0,Booker::STATOK),
+array(4,1,'2015-1-1 15:14', '2015-1-2 9:00',7200,'Might need to cancel',0,Booker::STATOK),
+array(4,3,'2016-4-30 17:00','2016-5-1 17:00',3600,'YAY TEAM',10,Booker::STATOK),
+array(4,1,'2016-6-12 17:01','2016-6-19 14:00',7200,'Won\'t pay',0.6,Booker::STATOK),
+array(5,1,'2016-7-12 17:01','2016-7-25 14:00',7200,'Nowish',12.5,Booker::STATSELFREC),
+array(5,3,'2016-7-12 17:02','2016-7-25 14:00',3600,'Nowish',12.5,Booker::STATADMINREC),
+array(6,1,'2016-7-20 17:01','2016-7-26 14:00',7200,'Future',28.0,Booker::STATADMINREC),
+array(7,1,'2016-6-20 17:01','2016-7-2 14:00',7200,'Past',28.0,Booker::STATADMINREC),
+array(7,1,'2016-7-20 13:39','2016-8-3 14:00',7200,'Future',28.0,Booker::STATSELFREC),
+array(7,1,'2016-7-20 14:01','2016-8-2 14:00',7200,'Future',28.0,Booker::STATNEW),
+array(8,1,'2016-7-20 17:01','2016-8-9 14:00',7200,'Future',28.0,Booker::STATNEW)
 );
-	$sql = 'INSERT INTO '.$this->HistoryTable.' (booker_id,item_id,lodged,slotstart,slotlen,comment,fee) VALUES (?,?,?,?,?,?,?)';
+	$sql = 'INSERT INTO '.$this->HistoryTable.' (history_id,booker_id,item_id,lodged,slotstart,slotlen,comment,fee,status) VALUES (?,?,?,?,?,?,?,?,?)';
 	$utils = new Booker\Utils();
 	foreach ($data as $dummy) {
+		$hid = $db->GenID($this->HistoryTable.'_seq');
 		$dt->modify($dummy[2]);
-		$st = $dt->GetTimestamp();
+		$st = $dt->GetTimestamp() + $stoff;
 		$dt->modify($dummy[3]);
-		$args = array($dummy[0],$dummy[1],$st,$dt->getTimestamp(),$dummy[4]-1,$dummy[5],$dummy[6]);
+		$args = array($hid,$dummy[0],$dummy[1],$st,$dt->getTimestamp()+$stoff,$dummy[4]-1,$dummy[5],$dummy[6],$dummy[7]);
 		$db->Execute($sql,$args);
 	}
 }
@@ -585,7 +590,7 @@ $this->SetPreference('pref_rationcount',0);
 $this->SetPreference('pref_showrange',1); //week-index per DisplayIntervals(), default bookings-display-period
 $this->SetPreference('pref_slotcount',1);
 $this->SetPreference('pref_slottype',1); //hour-index per TimeIntervals()
-$this->SetPreference('pref_smspattern','^\d{6,15}$');
+$this->SetPreference('pref_smspattern','^\d[ \d]{6,15}$');
 $this->SetPreference('pref_smsprefix',''); //TODO func(timezone)
 $this->SetPreference('pref_stripexport',0);
 $this->SetPreference('pref_stylesfile','');
@@ -649,7 +654,7 @@ if ($ud) {
 $this->SetPreference('pref_uploadsdir',$ud); //place for file uploads, preference-only, not an items-table field
 
 // enable FormBuilder-module custom processing
-$ob = ModuleOperations::get_instance()->get_module_instance('FormBuilder');
+$ob = cms_utils::get_module('FormBuilder');
 if (is_object($ob)) {
 	$fp = $config['root_path'];
 	if ($fp && is_dir($fp)) {
