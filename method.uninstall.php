@@ -55,8 +55,7 @@ $db->DropSequence($this->BookerTable.'_seq');
 $db->DropSequence($this->DataTable.'_seq');
 $db->DropSequence($this->FeeTable.'_seq');
 $db->DropSequence($this->GroupTable.'_seq');
-//HistoryTable has AUTO key
-//$db->DropSequence($this->HistoryTable.'_seq');
+$db->DropSequence($this->HistoryTable.'_seq');
 $db->DropSequence($this->ItemTable.'_seq');
 $db->DropSequence($this->ItemTable.'_gseq');
 //RepeatTable sequence same as for DataTable
@@ -92,7 +91,7 @@ if ($fp && is_dir($fp)) {
 // remove all preferences
 $this->RemovePreference();
 // remove FormBuilder-module custom processing
-$ob = ModuleOperations::get_instance()->get_module_instance('FormBuilder');
+$ob = cms_utils::get_module('FormBuilder');
 if (is_object($ob)) {
 	$fp = cms_join_path($ob->GetModulePath,'classes');
 	if ($fp && is_dir($fp)) {
