@@ -13,10 +13,10 @@ class Verify
 	VerifyAdmin:
 	Validate relevant members of @params, sourced from an admin page
 	@mod reference to current module-object
-	@shares: reference to bkrshared object
+	@utils: reference to Booker\Utils object
 	@params: reference to array of POST parameters
 	@is_new: boolean whether processing a new booking
-	Returns: 2-member array, 1st is T/F indicating success, 2nd '' or array of error messages
+	Returns: 2-member array, 1st is boolean indicating success, 2nd '' or array of error messages
 	*/
 	public function VerifyAdmin(&$mod, &$utils, &$params, $item_id, $is_new)
 	{
@@ -107,13 +107,15 @@ TODO support 'past' data without both date/time $params[]
 	VerifyPublic:
 	Validate relevant members of @params, sourced from a frontend page
 	@mod reference to current module-object
-	@shares: reference to bkrshared object
+	@utils: reference to Booker\Utils object
 	@params: reference to array of POST parameters
 	@is_new: boolean whether processing a new booking-request
-	Returns: 2-member array, 1st is T/F indicating success, 2nd '' or array of error messages
+	Returns: 2-member array, 1st is boolean indicating success, 2nd '' or array of error messages
 	*/
 	public function VerifyPublic(&$mod, &$utils, &$params, $is_new)
 	{
+//TODO make validation handle $past == TRUE
+//TODO CHECK validation enforces lead-time, lead-count limits ?
 		$msg = array();
 		$tz = new \DateTimeZone('UTC');
 /* supplied $params keys
@@ -445,7 +447,7 @@ EOS;
      showTarget: tg,
      preShow: function(tg,\$d) {
       var para = \$d.children('p:first')[0],
-       prompt = '{$mod->Lang('meaning','%s')}'.replace('%s','<strong>'+suggest.full+'</strong>');
+       prompt = '{$mod->Lang('meaning_type','%s')}'.replace('%s','<strong>'+suggest.full+'</strong>');
       para.innerHTML = prompt;
       \$d.find('#mc_conf').val('{$mod->Lang('yes')}');
       \$d.find('#mc_deny').val('{$mod->Lang('no')}');
@@ -468,7 +470,7 @@ EOS;
 EOS;
 		} else { //frontend
 			$js4 = <<<EOS
-    var prompt = '{$mod->Lang('meaning','%s')}'.replace('%s',suggest.full);
+    var prompt = '{$mod->Lang('meaning_type','%s')}'.replace('%s',suggest.full);
     if (confirm(prompt)){
      tg.value = suggest.full;
      setTimeout(function() {
