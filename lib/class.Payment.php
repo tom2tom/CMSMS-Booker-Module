@@ -9,8 +9,29 @@ namespace Booker;
 
 class Payment
 {
-	//$data is array of 3 arrays, respectively start-stamps, end-stamps, rules
-	private function RulesTotal($data, $calcer) //callable typehint for PHP 5.4+
+	//$data1,$data2 are arrays of 3 arrays, respective start-stamps, end-stamps, rules
+	//$funcs is reference to Inherit-class object
+	private function IntersectsTotal($data1, $data2, &$funcs, $calcer) //PHP 5.4+ supports callable typehint
+	{
+		array_multisort($data1[0],SORT_ASC,SORT_NUMERIC,$data1[1],$data1[2]);
+		array_multisort($data2[0],SORT_ASC,SORT_NUMERIC,$data2[1],$data2[2]);
+		//determine $data1,$data2 intersects & corresponding rule(s)
+		$res = $funcs->BlockIntersects2Ruled(
+			$data1[0],$data1[1],$data1[2],$data2[0],$data2[1],$data2[2]);
+
+		$total = 0.0;
+		if ($res) {
+			list($starts,$ends,$rules1,$rules2) = $res;
+			foreach ($starts as $i=>$st) {
+				$slen = $ends[$i] - $st;
+				$total += $calcer($slen,$rules1[$i],$rules2[$i]);
+			}
+		}
+		return $total;
+	}
+
+	//$data is array of 3 arrays, respective start-stamps, end-stamps, rules
+	private function RulesTotal($data, $calcer) //PHP 5.4+ supports callable typehint
 	{
 		$total = 0.0;
 		foreach ($data[0] as $i=>$st) {
@@ -20,110 +41,8 @@ class Payment
 		return $total;
 	}
 
-	//$data1,$data2 are arrays of 3 arrays, respectively start-stamps, end-stamps, rules
-	private function IntersectsTotal($data1, $data2, $calcer) //callable typehint for PHP 5.4+
-	{
-		$starts = array();
-		$ends = array();
-		$rules1 = array();
-		$rules2 = array();
-		array_multisort($data1[0],SORT_ASC,SORT_NUMERIC,$data1[1],$data1[2]);
-		array_multisort($data2[0],SORT_ASC,SORT_NUMERIC,$data2[1],$data2[2]);
-		//determine $data1,$data2 intersects & corresponding rule(s)
-		$i = 0;
-		$ic = count($data1[0]);
-		$j = 0;
-		$jc = count($data2[0]);
-		while ($i < $ic || $j < $jc) {
-			$st1 = ($i < $ic) ? $data1[0][$i] : ~PHP_INT_MAX; //aka PHP_INT_MIN
-			$nd1 = ($i < $ic) ? $data1[1][$i] : ~PHP_INT_MAX;
-			$st2 = ($j < $jc) ? $data2[0][$j] : ~PHP_INT_MAX;
-			$nd2 = ($j < $jc) ? $data2[1][$j] : ~PHP_INT_MAX;
-			if (($st1 >= $st2 && $st1 < $nd2) || ($st2 >= $st1 && $st2 < $nd1)) { //$st1..$nd1 overlaps with $st2..$nd2
-				$stb = max($st1,$st2);
-				$ndb = min($nd1,$nd2);
-				if ($data1[2][$i] || $data2[2][$j]) {
-					$starts[] = $stb;
-					$ends[] = $ndb;
-					$rules1[] = $data1[2][$i]; //maybe empty
-					$rules2[] = $data2[2][$j]; //maybe empty
-				}
-				if ($ndb = $data1[1][$i]) { //data1 block is ended
-					if (++$i == $ic) {
-						if ($ndb < $data2[1][$j] && $data2[2][$j]) {
-							//rest of current data2
-							$starts[] = $ndb;
-							$ends[] = $data2[1][$j];
-							$rules1[] = NULL; //data1 N/A here
-							$rules2[] = $data2[2][$j];
-						}
-						$j++;
-						break;
-					}
-				}
-				if ($ndb = $data2[1][$j]) { //data2 block is ended
-					if (++$j == $jc) {
-						if ($ndb < $data1[1][$i] && $data1[2][$i]) {
-							//rest of current data1
-							$starts[] = $ndb;
-							$ends[] = $data1[1][$i];
-							$rules1[] = $data1[2][$i];
-							$rules2[] = NULL; //data2 N/A here
-						}
-						$i++;
-						break;
-					}
-				}
-			} elseif ($data1[1][$i] < $data2[0][$j]) { //data2 starts after data1 end
-				if ($data1[2][$i]) { //rule exists
-					$starts[] = $data1[0][$i];
-					$ends[] = $data1[1][$i];
-					$rules1[] = $data1[2][$i];
-					$rules2[] = NULL; //data2 N/A here
-				}
-				if (++$i == $ic) {
-					break;
-				}
-			} elseif ($data1[0][$i] >= $data2[1][$j]) { //data1 starts at or after data2 end
-				if ($data2[2][$j]) { //rule exists
-					$starts[] = $data2[0][$j];
-					$ends[] = $data2[1][$j];
-					$rules1[] = NULL; //data1 N/A here
-					$rules2[] = $data2[2][$j];
-				}
-				if (++$j == $jc) {
-					break;
-				}
-			}
-		}
-		//left-overs (never from both data1 and data2)
-		for (; $i<$ic; $i++) {
-			if ($data1[2][$i]) { //rule exists
-				$starts[] = $data1[0][$i];
-				$ends[] = $data1[1][$i];
-				$rules1[] = $data1[2][$i];
-				$rules2[] = NULL; //data2 N/A here
-			}
-		}
-		for (; $j<$jc; $j++) {
-			if ($data2[2][$j]) { //rule exists
-				$starts[] = $data2[0][$j];
-				$ends[] = $data2[1][$j];
-				$rules1[] = NULL; //data1 N/A here
-				$rules2[] = $data2[2][$j];
-			}
-		}
-
-		$total = 0.0;
-		foreach ($starts as $i=>$st) {
-			$slen = $ends[$i] - $st;
-			$total += $calcer($slen,$rules1[$i],$rules2[$i]);
-		}
-		return $total;
-	}
-
 	//Interpret each array-member's slottype,slotcount parameters
-	//into corresponding seconds, stored in 'slotlen' parameter
+	//into (approximate) corresponding seconds, stored in 'slotlen' parameter
 	private function ParseIntervals(&$rules)
 	{
 		//slotype = 0..5 per Utils::TimeIntervals() i.e. for minute,hour,day,week,month,year
@@ -211,16 +130,22 @@ EOS;
 
 		if ($udata) {
 			if ($dtdata) {
-				$grossfee = $this->IntersectsTotal($udata,$dtdata,
+				$grossfee = $this->IntersectsTotal($udata,$dtdata,$funcs,
 					function($slen,$urule,$drule) use ($booker_id)
 					{
 						return 0.0; //TODO interpret & calc
+						if ($drule) {
+						}
+						if ($urule) {
+						}
 					});
 			} else {
 				$grossfee = $this->RulesTotal($udata,
 					function($slen,$rule) use ($booker_id)
 					{
 						return 0.0; //TODO interpret & calc
+						if ($rule) {
+						}
 					});
 			}
 		} elseif ($dtdata) {
@@ -228,6 +153,8 @@ EOS;
 				function($slen,$rule)
 				{
 					return 0.0; //TODO interpret & calc
+					if ($rule) {
+					}
 				});
 		} else {
 			$grossfee = 0.0;
@@ -245,15 +172,39 @@ EOS;
 	{
 		$amount = 0.0;
 		$sql = 'SELECT netfee FROM '.$mod->HistoryTable.
-		' WHERE booker_id=? AND status IN('.implode(',',array(
-		\Booker::STATCREDITADDED,
-		\Booker::STATCREDITPART
-		)).')';
+		' WHERE booker_id=? AND status='.\Booker::STATCREDITADDED;
 		$rows = $mod->dbHandle->GetCol($sql,array($booker_id));
 		foreach ($rows as $one) {
 			$amount .= (float)$one;
 		}
 		return $amount;
+	}
+
+	/**
+	AddCredit:
+	@mod: reference to Booker module object
+	@booker_id: booker identifier
+	@amount: amount of credit to be added
+	*/
+	public function AddCredit(&$mod, $booker_id, $amount)
+	{
+		if ($amount > 0.0) {
+			//the 'fee' field retains original credit, 'netfee' field will be used for adjustments
+			$sql = 'INSERT INTO '.$mod->HistoryTable.
+' (history_id,booker_id,lodged,fee,netfee,status) VALUES (?,?,?,?,?,?)';
+			$hid = $mod->dbHandle->GenID($mod->HistoryTable.'_seq');
+			$dt = new \DateTime('now',new \DateTimeZone('UTC'));
+			$st = $dt->getTimestamp();
+			$args = array(
+				$hid,
+				$booker_id,
+				$st,
+				$amount,
+				$amount,
+				\Booker::STATCREDITADDED
+			);
+			$mod->dbHandle->Execute($sql,$args);
+		}
 	}
 
 	/**
@@ -265,28 +216,22 @@ EOS;
 	public function UseCredit(&$mod, $booker_id, $amount)
 	{
 		$sql = 'SELECT history_id,netfee FROM '.$mod->HistoryTable.
-		' WHERE booker_id=? AND status IN('.implode(',',array(
-		\Booker::STATCREDITADDED,
-		\Booker::STATCREDITPART
-		)).') ORDER BY lodged';
+		' WHERE booker_id=? AND status='.\Booker::STATCREDITADDED.' ORDER BY lodged';
 		$data = $mod->dbHandle->GetArray($sql,array($booker_id));
 		if ($data) {
-			//TODO this is CRAP for reporting
-			$sql = 'UPDATE '.$mod->HistoryTable.' SET netfee=?,status=? WHERE history_id=?';
+			$sql = 'UPDATE '.$mod->HistoryTable.' SET netfee=? WHERE history_id=?';
 			foreach ($data as $row) {
-				$pay = (float)$row['netfee'];
-				$amount -= $pay;
+				$now = (float)$row['netfee'];
+				$amount -= $now;
 				if ($amount >= 0.01) {
-					$pay = 0;
-					$stat = \Booker::STATCREDITFULL;
-					$stop = !($amount > 0.01);
+					$now = 0;
+					$stop = ($amount <= 0.01);
 				} else { //$amount < 0.0 approx.
-					$pay += $amount;
-					$stat = \Booker::STATCREDITPART;
+					$now += $amount;
 					$stop = TRUE;
 				}
 				//TODO build arrays, then $utils->SafeExec($sql[],$args[]);
-				$mod->dbHandle->Execute($sql,array($pay,$stat,$row['history_id']));
+				$mod->dbHandle->Execute($sql,array($now,$row['history_id']));
 				if ($stop) {
 					break;
 				}
@@ -305,37 +250,7 @@ EOS;
 	public function ExpireCredit(&$mod, $booker_id, $oldest)
 	{
 		$sql = 'UPDATE '.$mod->HistoryTable.' SET status='.\Booker::STATCREDITEXPIRED.
-		' WHERE booker_id=? AND status IN('.implode(',',array(
-		\Booker::STATCREDITADDED,
-		\Booker::STATCREDITPART
-		)).') AND lodged<?';
+		' WHERE booker_id=? AND status='.\Booker::STATCREDITADDED.' AND lodged<?';
 		$mod->dbHandle->Execute($sql,array($booker_id,$limit));
-	}
-
-	/**
-	AddCredit:
-	@mod: reference to Booker module object
-	@booker_id: booker identifier
-	@amount: amount of credit to be added
-	*/
-	public function AddCredit(&$mod, $booker_id, $amount)
-	{
-		if ($amount > 0.0) {
-			$sql = 'INSERT INTO '.$mod->HistoryTable.
-' (history_id,booker_id,lodged,approved,fee,netfee,status) VALUES (?,?,?,?,?,?,?)';
-			$hid = $mod->dbHandle->GenID($mod->HistoryTable.'_seq');
-			$dt = new \DateTime('now',new \DateTimeZone('UTC'));
-			$st = $dt->getTimestamp();
-			$args = array(
-				$hid,
-				$booker_id,
-				$st,
-				$st,
-				$amount,
-				$amount,
-				\Booker::STATCREDITADDED
-			);
-			$mod->dbHandle->Execute($sql,$args);
-		}
 	}
 }
