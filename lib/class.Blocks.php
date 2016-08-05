@@ -1,16 +1,14 @@
 <?php
 #----------------------------------------------------------------------
 # Module: Booker - a resource booking module
-# Library file: Inherit - functions for dealing with property-inheritance
+# Library file: Blocks - functions for dealing with timestamp-blocks
 #----------------------------------------------------------------------
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
 namespace Booker;
 
-class Inherit
+class Blocks
 {
-	//TODO consider migrating some of the Utils getters - GetItemProperty() etc
-
 	/**
 	BlockIntersects:
 	@starts1: array of first-block start-stamps, sorted ascending
@@ -312,95 +310,120 @@ class Inherit
 		return FALSE;
 	}
 
-	/**
-	RangeInherit:
-	@slotstart: UTC timestamp for start of range
-	@slotlen: length of range (seconds)
-	@rules: single rule, or array of rules sorted in order of decreasing priority,
-		[each] rule being a date/time 'condition'
-	Returns: 2-member array,
-		[0] has sorted block-start timestamps in @slotstart..@slotstart+@slotlen
-		[1] has respective block-end timestamps in @slotstart..@slotstart+@slotlen
-	OR returns FALSE if nothing is relevant
-	*/
-	public function RangeInherit($slotstart, $slotlen, $rules)
+	//Interpret $dtrule into stamp-block(s) covering $st..$nd
+	private function BlocksforCalendarRule($st, $nd, $dtrule)
 	{
 		$starts = array();
 		$ends = array();
-		//DEBUG
-		$starts[] = $slotstart;
-		$ends[] = $slotstart+$slotlen+1;
-
-		if (!is_array($rules)) {
-			$rules = array($rules);
-		}
-		foreach ($rules as $one) {
-		/* TODO
-		get blocks in $slotstart..$slotstart+$slotlen not yet recorded and
-			covered by condition $one
-		record those in $starts[] and $ends[]
-		? cleanup $starts[] and $ends[] to facilitate next inclusion-check
-		*/
-		}
-		if ($starts) {
-			if (count($starts) > 1) {
-				array_multisort($starts,SORT_ASC,SORT_NUMERIC,$ends);
-				//? extend almost-adjacent blocks before & after midnight
-				//TODO coalesce adjacent blocks
-				//c.f. Display::Coalesce($slots) & Repeats::MergeBlocks($starts,$ends)
-			}
+		//TODO
+		$ic = count($starts);
+		if ($ic > 0) {
 			return array($starts,$ends);
 		}
 		return FALSE;
 	}
 
-	/**
-	RangeInheritRuled:
+	/*
+	BlocksRuled:
 	@slotstart: UTC timestamp for start of range
 	@slotlen: length of range (seconds)
-	@id: identifier for rule-comparisons e.g. item_id, booker_id
+	@rules: single rule, or array of rules sorted in order of decreasing priority,
+		[each] rule being a condition recognised by RepeatLexer
+	Returns: 3-member array,
+		[0] has sorted block-start timestamps in @slotstart..@slotstart+@slotlen
+		[1] has respective block-end timestamps in @slotstart..@slotstart+@slotlen
+		[2] has respective members of @rules
+	OR returns FALSE if nothing is relevant
+	*/
+	private function BlocksRuled($slotstart, $slotlen, $rules)
+	{
+		if (!is_array($rules)) {
+			$rules = array($rules);
+		}
+		$ic = count($rules);
+		$i = 0;
+
+		$chkstarts = array($slotstart);
+		$chkends = array($slotstart+$slotlen+1);
+		$starts = array();
+		$ends = array();
+		$blkrules = array();
+
+		while ($i < $ic && ($bst = reset($chkstarts)) < ($bnd = end($chkends))) {
+			$res = $this->BlocksforCalendarRule($bst,$bnd,$rules[$i]);
+			if ($res) {
+				list($rulestarts,$ruleends) = $res;
+				$res = $this->BlockIntersects($chkstarts,$chkends,$rulestarts,$ruleends);
+				if ($res) {
+					list($rulestarts,$ruleends) = $res;
+					foreach ($rulestarts as $j=>$st) {
+						$starts[] = $st;
+						$chkends[] = $st;
+						$nd = $ruleends[$j];
+						$ends[] = $nd;
+						$chkstarts[] = $nd;
+						$blkrules[] = $rules[$i];
+					}
+					sort($chkstarts,SORT_NUMERIC);
+					sort($chkends,SORT_NUMERIC);
+				}
+			}
+			if (++$i == $ic)
+				break; //no more rules to process
+		}
+
+		$ic = count($starts);
+		if ($ic > 0) {
+			if ($ic > 1) {
+				array_multisort($starts,SORT_ASC,SORT_NUMERIC,$ends,$blkrules);
+				$ic--;
+				for ($i=0; $i<$ic; $i++) {
+					$j = $i+1;
+					if ($ends[$i] >= $starts[$j]-1) {
+						if ($blkrules[$i] == $blkrules[$j]) {
+							$starts[$j] = $starts[$i];
+							unset($starts[$i]);
+							unset($ends[$i]);
+							unset($blkrules[$i]);
+						}
+					}
+				}
+			}
+			return array($starts,$ends,$blkrules);
+		}
+		return FALSE;
+	}
+
+	/**
+	BlocksRuled2:
+	@slotstart: UTC timestamp for start of range
+	@slotlen: length of range (seconds)
 	@rules: single rule, or array of rules sorted in order of decreasing priority,
 		[each] rule being an array with members 'slotlen','fee','feecondition'
 	 'slotlen' = -1 signals a fixed fee, otherwise it's the no. of seconds that
 	 a payment of 'fee' covers
 	Returns: 3-member array,
-		[0] has sorted block-start timestamps in @slotstart..@slotstart+@slotlen
-		[1] has respective block-end timestamps in @slotstart..@slotstart+@slotlen
-		[2] has respective rules that apply from [0] to [1]-1, inclusive
-	OR returns FALSE if nothing is relevant
+		[0] has block-start timestamps @slotstart
+		[1] has block-end timestamps @slotstart+@slotlen+1
+		[2] has a member of @rules, to apply for the whole block
 	*/
-	public function RangeInheritRuled($slotstart, $slotlen, $id, $rules)
+	public function BlocksRuled2($slotstart, $slotlen, $rules)
 	{
-		$starts = array();
-		$ends = array();
-		$blkrules = array();
-		//DEBUG
-		$starts[] = $slotstart;
-		$ends[] = $slotstart+$slotlen+1;
-		$blkrules[] = 20.0;
-
-		if (!is_array($rules)) {
-			$rules = array($rules);
-		}
-		foreach ($rules as $one) {
-		/* TODO
-		get blocks in $slotstart..$slotstart+$slotlen not yet recorded and
-			covered by $one['feecondition']
-		record those in $starts[] and $ends[]
-		AND if $one['feecondition'] is date/time related, $blkrules[] = $blocklen/$one['slotlen']*$one['fee'])
-		OR if $one['feecondition'] is id-related, $blkrules[] = func($one['feecondition'],$id)
-		? cleanup arrays to facilitate next inclusion-check
-		*/
-		}
-		if ($starts) {
-			if (count($starts) > 1) {
-				array_multisort($starts,SORT_ASC,SORT_NUMERIC,$ends,$blkrules);
-				//? extend almost-adjacent blocks before & after midnight
-				//TODO coalesce adjacent blocks with same condition
-				//c.f. Display::Coalesce($slots) & Repeats::MergeBlocks($starts,$ends)
+		$nd = $slotstart + $slotlen + 1;
+		if (is_array($rules)) {
+			$starts = array();
+			$ends = array();
+			$blkrules = array();
+			foreach ($rules as $one) {
+				$starts[] = $slotstart;
+				$ends[] = $nd;
+				$blkrules[] = $one;
 			}
 			return array($starts,$ends,$blkrules);
+		} elseif ($rules) {
+			return array(array($slotstart),array($nd),array($rules));
+		} else { //should never happen
+			return FALSE;
 		}
-		return FALSE;
 	}
 }
