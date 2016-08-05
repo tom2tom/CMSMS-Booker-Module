@@ -311,31 +311,39 @@ class Blocks
 	}
 
 	//Interpret $dtrule into stamp-block(s) covering $st..$nd
-	private function BlocksforCalendarRule($st, $nd, $dtrule)
+	private function BlocksforCalendarRule(&$mod, $st, $nd, $dtrule, $idata)
 	{
-		$starts = array();
-		$ends = array();
-		//TODO
-		$ic = count($starts);
-		if ($ic > 0) {
-			return array($starts,$ends);
+		$funcs = new Repeats($mod);
+		if ($funcs->ParseCondition($dtrule)) {
+			$dts = new \DateTime('1900-1-1',new \DateTimeZone('UTC'));//CHECKME local?
+			$dte = clone $dts;
+			$dts->setTimestamp($st);
+			$dte->setTimestamp($nd);
+			$sunparms = $funcs->SunParms($idata);//TODO sunparms offset may change during interval
+			list($starts,$ends) = $funcs->GetBlocks($dts,$dte,$sunparms);
+			if ($starts) {
+				return array($starts,$ends);
+			}
 		}
 		return FALSE;
 	}
 
-	/*
-	BlocksRuled:
+	/**
+	RepeatRuledBlocks:
+	@mod: reference to Booker module object
+	@idata: array of parameters for the resource being processed
 	@slotstart: UTC timestamp for start of range
 	@slotlen: length of range (seconds)
 	@rules: single rule, or array of rules sorted in order of decreasing priority,
-		[each] rule being a condition recognised by RepeatLexer
+		[each] rule being an array with members 'slotlen','fee','feecondition',
+		the latter being a rule recognised by RepeatLexer
 	Returns: 3-member array,
-		[0] has sorted block-start timestamps in @slotstart..@slotstart+@slotlen
-		[1] has respective block-end timestamps in @slotstart..@slotstart+@slotlen
+		[0] has sorted block-start timestamps in @slotstart..@slotstart+@slotlen+1
+		[1] has respective block-end timestamps in @slotstart..@slotstart+@slotlen+1
 		[2] has respective members of @rules
 	OR returns FALSE if nothing is relevant
 	*/
-	private function BlocksRuled($slotstart, $slotlen, $rules)
+	public function RepeatRuledBlocks(&$mod, $idata, $slotstart, $slotlen, $rules)
 	{
 		if (!is_array($rules)) {
 			$rules = array($rules);
@@ -349,8 +357,9 @@ class Blocks
 		$ends = array();
 		$blkrules = array();
 
+		//TODO make this support 'except' rules too - subtract from blocks previously accepted 
 		while ($i < $ic && ($bst = reset($chkstarts)) < ($bnd = end($chkends))) {
-			$res = $this->BlocksforCalendarRule($bst,$bnd,$rules[$i]);
+			$res = $this->BlocksforCalendarRule($mod, $bst,$bnd,$rules[$i]['feecondition'],$idata);
 			if ($res) {
 				list($rulestarts,$ruleends) = $res;
 				$res = $this->BlockIntersects($chkstarts,$chkends,$rulestarts,$ruleends);
@@ -380,7 +389,7 @@ class Blocks
 				for ($i=0; $i<$ic; $i++) {
 					$j = $i+1;
 					if ($ends[$i] >= $starts[$j]-1) {
-						if ($blkrules[$i] == $blkrules[$j]) {
+						if ($blkrules[$i] == $blkrules[$j]) { //non-strict array comparison
 							$starts[$j] = $starts[$i];
 							unset($starts[$i]);
 							unset($ends[$i]);
@@ -395,19 +404,18 @@ class Blocks
 	}
 
 	/**
-	BlocksRuled2:
+	UserRuledBlocks:
 	@slotstart: UTC timestamp for start of range
 	@slotlen: length of range (seconds)
 	@rules: single rule, or array of rules sorted in order of decreasing priority,
-		[each] rule being an array with members 'slotlen','fee','feecondition'
-	 'slotlen' = -1 signals a fixed fee, otherwise it's the no. of seconds that
-	 a payment of 'fee' covers
+		[each] rule being an array with members 'slotlen','fee','feecondition',
+		the latter being a rule for discimination among users
 	Returns: 3-member array,
 		[0] has block-start timestamps @slotstart
 		[1] has block-end timestamps @slotstart+@slotlen+1
 		[2] has a member of @rules, to apply for the whole block
 	*/
-	public function BlocksRuled2($slotstart, $slotlen, $rules)
+	public function UserRuledBlocks($slotstart, $slotlen, $rules)
 	{
 		$nd = $slotstart + $slotlen + 1;
 		if (is_array($rules)) {
