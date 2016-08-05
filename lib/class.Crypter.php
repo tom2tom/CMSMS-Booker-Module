@@ -17,7 +17,7 @@ class Crypter
 		if ($mod)
 			$this->mod = $mod;
 		else
-			$this->mod = cms_utils::get_module(self::MODNAME);
+			$this->mod = \cms_utils::get_module(self::MODNAME);
 	}
 
 	public function fusc($str)
