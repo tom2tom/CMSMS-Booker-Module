@@ -54,9 +54,9 @@ class Itemops
 
 	/*
 	ClearRecursive:
-	@mod reference to current module-object
-	@shares reference to bkrshared-object
-	@gid identifier of group to be cleared
+	@mod: reference to current module-object
+	@utils: reference to Booker\Utils-object
+	@gid: identifier of group to be cleared
 	*/
 	private function ClearRecursive(&$mod, &$utils, $gid)
 	{
