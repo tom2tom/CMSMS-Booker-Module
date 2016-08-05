@@ -1017,9 +1017,9 @@ match-array(s) have
 			$this->mod->Lang('every'),
 			$this->mod->Lang('sunrise'),
 			$this->mod->Lang('sunset'),
-			$this->mod->Lang('day'), //for use with 'each' OR bkrshared::RangeNames($this->mod,0)
-			$this->mod->Lang('week'), //OR bkrshared::RangeNames($this->mod,1)
-			$this->mod->Lang('month'), //for use with 'each' OR bkrshared::RangeNames($this->mod,2)
+			$this->mod->Lang('day'), //for use with 'each' OR Booker\Utils::RangeNames($this->mod,0)
+			$this->mod->Lang('week'), //OR Booker\Utils::RangeNames($this->mod,1)
+			$this->mod->Lang('month'), //for use with 'each' OR Booker\Utils::RangeNames($this->mod,2)
 		);
 	/*		if ($oldloc)
 			setlocale(LC_TIME,$oldloc);
