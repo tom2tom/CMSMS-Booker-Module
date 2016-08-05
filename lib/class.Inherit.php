@@ -101,7 +101,7 @@ class Inherit
 	{
 		$starts = array();
 		$ends = array();
-		$rules2 = array();
+		$userules = array();
 		$i = 0;
 		$ic = count($starts1);
 		$j = 0;
@@ -117,7 +117,7 @@ class Inherit
 				if ($rules2[$j]) {
 					$starts[] = $stb;
 					$ends[] = $ndb;
-					$rules2[] = $rules2[$j];
+					$userules[] = $rules2[$j];
 				}
 				if ($ndb = $ends1[$i]) { //1-block block is ended
 					if (++$i == $ic) {
@@ -125,7 +125,7 @@ class Inherit
 							//rest of current 2-block
 							$starts[] = $ndb;
 							$ends[] = $ends2[$j];
-							$rules2[] = $rules2[$j];
+							$userules[] = $rules2[$j];
 						}
 						$j++;
 						break;
@@ -145,7 +145,7 @@ class Inherit
 				if ($rules2[$j]) { //rule exists
 					$starts[] = $starts2[$j];
 					$ends[] = $ends2[$j];
-					$rules2[] = $rules2[$j];
+					$userules[] = $rules2[$j];
 				}
 				if (++$j == $jc) {
 					break;
@@ -157,7 +157,7 @@ class Inherit
 			if ($rules2[$j]) { //rule exists
 				$starts[] = $starts2[$j];
 				$ends[] = $ends2[$j];
-				$rules2[] = $rules2[$j];
+				$userules[] = $rules2[$j];
 			}
 		}
 
@@ -173,12 +173,12 @@ class Inherit
 							$starts[$j] = $starts[$i];
 							unset($starts[$i]);
 							unset($ends[$i]);
-							unset($rules2[$i]);
+							unset($userules[$i]);
 						}
 					}
 				}
 			}
-			return array($starts,$ends,$rules2);
+			return array($starts,$ends,$userules);
 		}
 		return FALSE;
 	}
@@ -203,8 +203,8 @@ class Inherit
 	{
 		$starts = array();
 		$ends = array();
-		$rules1 = array();
-		$rules2 = array();
+		$userules1 = array();
+		$userules2 = array();
 		$i = 0;
 		$ic = count($starts1);
 		$j = 0;
@@ -220,8 +220,8 @@ class Inherit
 				if ($rules1[$i] || $rules2[$j]) {
 					$starts[] = $stb;
 					$ends[] = $ndb;
-					$rules1[] = $rules1[$i]; //maybe empty
-					$rules2[] = $rules2[$j]; //maybe empty
+					$userules1[] = $rules1[$i]; //maybe FALSE
+					$userules2[] = $rules2[$j]; //maybe FALSE
 				}
 				if ($ndb = $ends1[$i]) { //1-block block is ended
 					if (++$i == $ic) {
@@ -229,8 +229,8 @@ class Inherit
 							//rest of current 2-block
 							$starts[] = $ndb;
 							$ends[] = $ends2[$j];
-							$rules1[] = NULL; //1-block N/A here
-							$rules2[] = $rules2[$j];
+							$userules1[] = NULL; //1-block N/A here
+							$userules2[] = $rules2[$j];
 						}
 						$j++;
 						break;
@@ -242,8 +242,8 @@ class Inherit
 							//rest of current 1-block
 							$starts[] = $ndb;
 							$ends[] = $ends1[$i];
-							$rules1[] = $rules1[$i];
-							$rules2[] = NULL; //2-block N/A here
+							$userules1[] = $rules1[$i];
+							$userules2[] = NULL; //2-block N/A here
 						}
 						$i++;
 						break;
@@ -253,8 +253,8 @@ class Inherit
 				if ($rules1[$i]) { //rule exists
 					$starts[] = $starts1[$i];
 					$ends[] = $ends1[$i];
-					$rules1[] = $rules1[$i];
-					$rules2[] = NULL; //2-block N/A here
+					$userules1[] = $rules1[$i];
+					$userules2[] = NULL; //2-block N/A here
 				}
 				if (++$i == $ic) {
 					break;
@@ -263,8 +263,8 @@ class Inherit
 				if ($rules2[$j]) { //rule exists
 					$starts[] = $starts2[$j];
 					$ends[] = $ends2[$j];
-					$rules1[] = NULL; //1-block N/A here
-					$rules2[] = $rules2[$j];
+					$userules1[] = NULL; //1-block N/A here
+					$userules2[] = $rules2[$j];
 				}
 				if (++$j == $jc) {
 					break;
@@ -276,16 +276,16 @@ class Inherit
 			if ($rules1[$i]) { //rule exists
 				$starts[] = $starts1[$i];
 				$ends[] = $ends1[$i];
-				$rules1[] = $rules1[$i];
-				$rules2[] = NULL; //2-block N/A here
+				$userules1[] = $rules1[$i];
+				$userules2[] = NULL; //2-block N/A here
 			}
 		}
 		for (; $j<$jc; $j++) {
 			if ($rules2[$j]) { //rule exists
 				$starts[] = $starts2[$j];
 				$ends[] = $ends2[$j];
-				$rules1[] = NULL; //1-block N/A here
-				$rules2[] = $rules2[$j];
+				$userules1[] = NULL; //1-block N/A here
+				$userules2[] = $rules2[$j];
 			}
 		}
 
@@ -297,17 +297,17 @@ class Inherit
 				for ($i=0; $i<$ic; $i++) {
 					$j = $i+1;
 					if ($ends[$i] >= $starts[$j]-1) {
-						if ($rules1[$i] == $rules1[$j] && $rules2[$i] == $rules2[$j]) {
+						if ($userules1[$i] == $userules1[$j] && $userules2[$i] == $userules2[$j]) {
 							$starts[$j] = $starts[$i];
 							unset($starts[$i]);
 							unset($ends[$i]);
-							unset($rules1[$i]);
-							unset($rules2[$i]);
+							unset($userules1[$i]);
+							unset($userules2[$i]);
 						}
 					}
 				}
 			}
-			return array($starts,$ends,$rules1,$rules2);
+			return array($starts,$ends,$userules1,$userules2);
 		}
 		return FALSE;
 	}
