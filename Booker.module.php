@@ -49,7 +49,7 @@ class Booker extends CMSModule
 	const RANGEWEEK = 1;
 	const RANGEMTH = 2;
 	const RANGEYR = 3;
-	//request status codes
+	//HistoryTable status codes
 	const STATNONE = 0;//unknown/normal/default
 	//request-stage
 	const STATNEW = 1;//new, approver consideration pending
@@ -58,28 +58,31 @@ class Booker extends CMSModule
 	const STATTELL = 4;//further information submitted
 	const STATASK = 5;//booker queried, waiting for response
  	const STATCANCEL = 6;//abandoned by user or admin on user's behalf
-	//fees
-	const STATPAYABLE = 10;//booking requires payment, not yet paid
-	const STATPAID = 11;//paid for, pre- or post-
-	const STATCREDITED = 12;//to be paid for
-	const STATCREDITUSED = 13;//past credit offset against other use
-	const STATCREDITEXPIRED = 14;//past credit timed out
-	const STATCREDITADDED = 15;//user-prepayment amount
- 	const STATNOTPAID = 19;//payable but unpaid for some non-credit-related reason
+	const STATMAXREQ = 9;//last-recognised request-status value
 	//later status
 	const STATOK = 20;//aka APPROVED done/processed
-	const STATTEMP = 21;//new and already recorded, pending confirmation
-	const STATRECORDED = 20; //add 0..19 to this to flag records for recorded bookings
-	const STATDEFERRED = 40; //ditto for aborted/pre-empted booking records
+	const STATADMINREC = 21;//booking recorded by admin
+	const STATSELFREC = 22;//recorded by approved user (i.e. no request)
+	const STATTEMP = 23;//user-recorded, pending admin confirmation
+	const STATDEFERRED = 40;//booking to be re-scheduled, per user request or admin imposition
  	const STATGONE = 90;//deletion pending, while its historical data needed
 	//problems
 	const STATBIG = 80;//too many slots requested
 	const STATDEFER = 81;//request not yet processed cuz' too far ahead
 	const STATLATE = 82;//request past or not far-enough ahead
-	const STATNA = 83; //resouce N/A at requested time, cannot accept
+	const STATNA = 83;//resouce N/A at requested time, cannot accept
 	const STATDUP = 84;//duplicate request, cannot accept
  	const STATERR = 85;//system error while processing
 	const STATFAILED = 89;//generic request-failure
+	//HistoryTable payment codes
+	const STATFREE = 0;//no fee for use
+	const STATPAYABLE = 1;//fee applies, not yet paid
+	const STATPAID = 2;//fee pre- or post-paid
+	const STATCREDITED = 3;//fee to be paid upon request
+ 	const STATNOTPAID = 9;//payable but unpaid for some non-credit-related reason
+	const STATCREDITUSED = 10;//past credit offset against other use
+	const STATCREDITEXPIRED = 11;//past credit timed out
+	const STATCREDITADDED = 12;//prepayment amount
 
 	const CARTKEY = 'bkr_Cart'; //cache-key seed/prefix
 	const PARMKEY = 'bkr_Params'; //cache-key seed/prefix
@@ -382,6 +385,8 @@ class Booker extends CMSModule
 		$this->SetParameterType('searchsel',CLEAN_NONE);
 		$this->SetParameterType('slide',CLEAN_INT); //value matches button label
 		$this->SetParameterType('slotid',CLEAN_STRING);
+//		$this->SetParameterType('slotlen',CLEAN_INT);
+//		$this->SetParameterType('slotstart',CLEAN_INT);
 		$this->SetParameterType('startat',CLEAN_STRING);
 		$this->SetParameterType('storedparams',CLEAN_STRING);
 		$this->SetParameterType('subgrpcount',CLEAN_INT);
@@ -397,14 +402,12 @@ class Booker extends CMSModule
 		these regexes translate url-parameter(s) to $param[](s) be supplied
 		to the specified actions (default calls ->DisplayModuleOutput())
 		so the routes need to conform to parameter-usage in handler-func(s).
+		(?P<name>regex) captures the text matched by "regex" into the group "name",
+		which can contain letters and numbers but must start with a letter.
 		See also: Booker\Utils->GetLink() which needs to conform to this.
 		*/
-		// for showing the contents of a specific group
-		$this->RegisterRoute('/[Bb]ookings?\/group(?P<group>.*?)\/(?P<returnid>[0-9]+)$/',array('action' => 'default'));
-		// for showing all the details for a specific item
-		$this->RegisterRoute('/[Bb]ookings?\/item(?P<item>.*?)\/(?P<returnid>[0-9]+)$/',array('action' => 'default'));
-		// for doing nothing i.e. ignored links
-		$this->RegisterRoute('/[Bb]ookings?\/(?P<returnid>[0-9]+)$/',array('action' => 'default'));
+		// display bookings for a specific group/item TODO make this work
+		$this->RegisterRoute('/[Bb]ook(ings)?\/(group|item)?(?P<item>.+)$/',array('action' => 'default'));
 	}
 
 	/*
@@ -698,11 +701,11 @@ class Booker extends CMSModule
 
 	/**
 	_ActivateItem:
-	@id:
-	@params:
+	@id: module identifier
+	@params: array of parameters for the action
 	@returnid:
 	[de]activate the item passed in @params
-	See also: bkritemops::ToggleItemActive()
+	See also: Booker\Itemops::ToggleItemActive()
 	*/
 	public function _ActivateItem($id, &$params, $returnid)
 	{
