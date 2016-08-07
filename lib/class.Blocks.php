@@ -16,11 +16,13 @@ class Blocks
 	@ends1: array of corresponding end-stamps
 	@starts2: array of other-block start-stamps, sorted ascending
 	@ends2: array of corresponding end-stamps
-	Returns: array:
-		[0] = array of start-stamps for subblocks in both first-block and other-block
-		[1] = array of corresponding end-stamps
-	OR returns FALSE if nothing applies
-	The returned arrays have corresponding, but not necessarily contiguous, numeric keys
+	Returns: 2-member array,
+	 [0] = array of start-stamps for subblocks in both first-block and other-block
+	 [1] = array of corresponding end-stamps
+	 The arrays have corresponding, but not necessarily contiguous, numeric keys
+	OR if nothing applies
+	 [0] = FALSE
+	 [1] = FALSE
 	*/
 	public function BlockIntersects($starts1, $ends1, $starts2, $ends2)
 	{
@@ -32,9 +34,9 @@ class Blocks
 		$jc = count($starts2);
 		while ($i < $ic || $j < $jc) {
 			$st1 = ($i < $ic) ? $starts1[$i] : ~PHP_INT_MAX; //aka PHP_INT_MIN
-			$nd1 = ($i < $ic) ? $ends1[$i] : ~PHP_INT_MAX;
+			$nd1 = ($i < $ic) ? $ends1[$i] : PHP_INT_MAX;
 			$st2 = ($j < $jc) ? $starts2[$j] : ~PHP_INT_MAX;
-			$nd2 = ($j < $jc) ? $ends2[$j] : ~PHP_INT_MAX;
+			$nd2 = ($j < $jc) ? $ends2[$j] : PHP_INT_MAX;
 			if (($st1 >= $st2 && $st1 < $nd2) || ($st2 >= $st1 && $st2 < $nd1)) { //$st1..$nd1 overlaps with $st2..$nd2
 				$stb = max($st1,$st2);
 				$ndb = min($nd1,$nd2);
@@ -52,7 +54,7 @@ class Blocks
 						break;
 					}
 				}
-			} elseif ($ends1[$i] < $starts2[$j]) { //2-block starts after 1-block end
+			} elseif ($ends1[$i] <= $starts2[$j]) { //2-block starts at or after 1-block end
 				if (++$i == $ic) {
 					break;
 				}
@@ -66,8 +68,8 @@ class Blocks
 		$ic = count($starts);
 		if ($ic > 0) {
 			if ($ic > 1) {
-				$ic--;
 				//merge adjacent blocks
+				$ic--;
 				for ($i=0; $i<$ic; $i++) {
 					$j = $i+1;
 					if ($ends[$i] >= $starts[$j]-1) {
@@ -79,7 +81,7 @@ class Blocks
 			}
 			return array($starts,$ends);
 		}
-		return FALSE;
+		return array(FALSE,FALSE);
 	}
 
 	/**
@@ -89,12 +91,15 @@ class Blocks
 	@starts2: array of other-block start-stamps, sorted ascending
 	@ends2: array of corresponding end-stamps
 	@rules2: array of corresponding rules, FALSE represents no rule
-	Returns: array:
-		[0] = array of start-stamps for subblocks in both first-block and other-block
-		[1] = array of corresponding end-stamps
-		[2] = array of corresponding @rules2[] members
-	OR returns FALSE if nothing applies
-	The returned arrays have corresponding, but not necessarily contiguous, numeric keys
+	Returns: 3-member array,
+	 [0] = array of start-stamps for subblocks in both first-block and other-block
+	 [1] = array of corresponding end-stamps
+	 [2] = array of corresponding @rules2[] members
+	 The arrays have corresponding, but not necessarily contiguous, numeric keys
+	OR if nothing applies
+	 [0] = FALSE
+	 [1] = FALSE
+	 [2] = FALSE
 	*/
 	public function BlockIntersectsRuled($starts1, $ends1, $starts2, $ends2, $rules2)
 	{
@@ -179,7 +184,7 @@ class Blocks
 			}
 			return array($starts,$ends,$userules);
 		}
-		return FALSE;
+		return array(FALSE,FALSE,FALSE);
 	}
 
 	/**
@@ -190,13 +195,17 @@ class Blocks
 	@starts2: array of other-block start-stamps, sorted ascending
 	@ends2: array of corresponding end-stamps
 	@rules2: array of corresponding rules, FALSE represents no rule
-	Returns: array:
-		[0] = array of start-stamps for subblocks in both first-block and other-block
-		[1] = array of corresponding end-stamps
-		[2] = array of corresponding @rules1[] members, with NULL's where @rules1[] doesn't apply
-		[3] = array of corresponding @rules2[] members, with NULL's where @rules2[] doesn't apply
-	OR returns FALSE if nothing applies
-	The returned arrays have corresponding, but not necessarily contiguous, numeric keys
+	Returns: 4-member array,
+	 [0] = array of start-stamps for subblocks in both first-block and other-block
+	 [1] = array of corresponding end-stamps
+	 [2] = array of corresponding @rules1[] members, with NULL's where @rules1[] doesn't apply
+	 [3] = array of corresponding @rules2[] members, with NULL's where @rules2[] doesn't apply
+	 The arrays have corresponding, but not necessarily contiguous, numeric keys
+	OR if nothing applies
+	 [0] = FALSE
+	 [1] = FALSE
+	 [2] = FALSE
+	 [3] = FALSE
 	*/
 	public function BlockIntersects2Ruled($starts1, $ends1, $rules1, $starts2, $ends2, $rules2)
 	{
@@ -308,7 +317,7 @@ class Blocks
 			}
 			return array($starts,$ends,$userules1,$userules2);
 		}
-		return FALSE;
+		return array(FALSE,FALSE,FALSE,FALSE);
 	}
 
 	//Interpret $dtrule into stamp-block(s) covering $st..$nd
@@ -316,17 +325,17 @@ class Blocks
 	{
 		$funcs = new Repeats($mod);
 		if ($funcs->ParseCondition($dtrule)) {
-			$dts = new \DateTime('1900-1-1',new \DateTimeZone('UTC'));//CHECKME local?
+			$dts = new \DateTime('1900-1-1',new \DateTimeZone('UTC'));
 			$dte = clone $dts;
 			$dts->setTimestamp($st);
 			$dte->setTimestamp($nd);
 			$sunparms = $funcs->SunParms($idata);//TODO sunparms offset may change during interval
-			list($starts,$ends) = $funcs->GetBlocks($dts,$dte,$sunparms);
+			list($starts,$ends) = $funcs->GetBlocks($dts,$dte,$sunparms); //$defaultall FALSE
 			if ($starts) {
 				return array($starts,$ends);
 			}
 		}
-		return FALSE;
+		return array(FALSE,FALSE);
 	}
 
 	/**
@@ -338,11 +347,13 @@ class Blocks
 	@slotstart: UTC timestamp for start of range
 	@slotlen: length of range (seconds)
 	@rules: single rule, or array of rules sorted in order of decreasing priority,
-		[each] rule being a rule recognised by RepeatLexer (or FALSE)
+		[each] rule being a descriptor recognisable by RepeatLexer (or FALSE)
 	Returns: 2-member array,
-		[0] has sorted block-start timestamps in @slotstart..@slotstart+@slotlen+1
-		[1] has respective block-end timestamps in @slotstart..@slotstart+@slotlen+1
-	OR returns FALSE if nothing is relevant
+	 [0] = sorted array of block-start timestamps in @slotstart..@slotstart+@slotlen
+	 [1] = array of respective block-end timestamps in @slotstart..@slotstart+@slotlen
+	OR if nothing is relevant
+	 [0] = FALSE
+	 [1] = FALSE
 	*/
 	public function RepeatBlocks(&$mod, $idata, $slotstart, $slotlen, $rules)
 	{
@@ -361,12 +372,10 @@ class Blocks
 			if ($rules[$i]) { //something to interpret
 				$st = reset($chkstarts);
 				$nd = end($chkends);
-				$res = $this->BlocksforCalendarRule($mod,$st,$nd,$rules[$i],$idata); //NOT default to entire current blocks
-				if ($res) {
-					list($rulestarts,$ruleends) = $res;
-					$res = $this->BlockIntersects($chkstarts,$chkends,$rulestarts,$ruleends);
-					if ($res) {
-						list($rulestarts,$ruleends) = $res;
+				list($rulestarts,$ruleends) = $this->BlocksforCalendarRule($mod,$st,$nd,$rules[$i],$idata); //NOT default to entire current blocks
+				if ($rulestarts) {
+					list($rulestarts,$ruleends) = $this->BlockIntersects($chkstarts,$chkends,$rulestarts,$ruleends);
+					if ($rulestarts) {
 						foreach ($rulestarts as $j=>$st) {
 							$starts[] = $st;
 							$chkends[] = $st;
@@ -390,8 +399,6 @@ class Blocks
 							}
 						}
 					}
-//.			} else {
-//				$c = 43; //DEBUG placeholder TODO
 				}
 			}
 			$i++;
@@ -413,7 +420,7 @@ class Blocks
 			}
 			return array($starts,$ends);
 		}
-		return FALSE;
+		return array(FALSE,FALSE);
 	}
 
 	/**
@@ -426,12 +433,15 @@ class Blocks
 	@slotlen: length of range (seconds)
 	@rules: single rule, or array of rules sorted in order of decreasing priority,
 		[each] rule being an array including a member 'feecondition' which is a
-		rule recognised by RepeatLexer (or FALSE)
+		descriptor recognisable by RepeatLexer (or FALSE)
 	Returns: 3-member array,
-		[0] has sorted block-start timestamps in @slotstart..@slotstart+@slotlen+1
-		[1] has respective block-end timestamps in @slotstart..@slotstart+@slotlen+1
-		[2] has respective members of @rules
-	OR returns FALSE if nothing is relevant
+	 [0] = sorted array of block-start timestamps in @slotstart..@slotstart+@slotlen+1
+	 [1] = array of respective block-end timestamps in @slotstart..@slotstart+@slotlen+1
+	 [2] = array of respective members of @rules
+	OR if nothing is relevant
+	 [0] = FALSE
+	 [1] = FALSE
+	 [2] = FALSE
 	*/
 	public function RepeatRuledBlocks(&$mod, $idata, $slotstart, $slotlen, $rules)
 	{
@@ -452,12 +462,10 @@ class Blocks
 			if ($rules[$i]) { //something to interpret
 				$st = reset($chkstarts);
 				$nd = end($chkends);
-				$res = $this->BlocksforCalendarRule($mod, $bst,$bnd,$rules[$i]['feecondition'],$idata); //NOT default to entire current blocks
-				if ($res) {
-					list($rulestarts,$ruleends) = $res;
-					$res = $this->BlockIntersects($chkstarts,$chkends,$rulestarts,$ruleends);
-					if ($res) {
-						list($rulestarts,$ruleends) = $res;
+				list($rulestarts,$ruleends) = $this->BlocksforCalendarRule($mod,$bst,$bnd,$rules[$i]['feecondition'],$idata); //NOT default to entire current blocks
+				if ($rulestarts) {
+					list($rulestarts,$ruleends) = $this->BlockIntersects($chkstarts,$chkends,$rulestarts,$ruleends);
+					if ($rulestarts) {
 						foreach ($rulestarts as $j=>$st) {
 							$starts[] = $st;
 							$chkends[] = $st;
@@ -506,7 +514,7 @@ class Blocks
 			}
 			return array($starts,$ends,$blkrules);
 		}
-		return FALSE;
+		return array(FALSE,FALSE,FALSE);
 	}
 
 	/**
@@ -517,9 +525,13 @@ class Blocks
 		[each] rule being an array with members 'slotlen','fee','feecondition',
 		the latter being a rule for discimination among users
 	Returns: 3-member array,
-		[0] has block-start timestamps @slotstart
-		[1] has block-end timestamps @slotstart+@slotlen+1
-		[2] has a member of @rules, to apply for the whole block
+	 [0] = array of block-start timestamps all @slotstart
+	 [1] = array of corresponding block-end timestamps all @slotstart+@slotlen+1
+	 [2] = array of members of @rules, to apply to the corresponding (whole) block
+	OR if @rules is FALSE
+	 [0] = FALSE
+	 [1] = FALSE
+	 [2] = FALSE
 	*/
 	public function UserRuledBlocks($slotstart, $slotlen, $rules)
 	{
@@ -533,11 +545,11 @@ class Blocks
 				$ends[] = $nd;
 				$blkrules[] = $one;
 			}
-			return array($starts,$ends,$blkrules);
+			if ($starts)
+				return array($starts,$ends,$blkrules);
 		} elseif ($rules) {
 			return array(array($slotstart),array($nd),array($rules));
-		} else { //should never happen
-			return FALSE;
 		}
+		return array(FALSE,FALSE,FALSE);
 	}
 }
