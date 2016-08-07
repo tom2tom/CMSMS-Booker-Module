@@ -83,9 +83,10 @@ class Booker extends CMSModule
 	const STATCREDITUSED = 10;//past credit offset against other use
 	const STATCREDITEXPIRED = 11;//past credit timed out
 	const STATCREDITADDED = 12;//prepayment amount
-
-	const CARTKEY = 'bkr_Cart'; //cache-key seed/prefix
-	const PARMKEY = 'bkr_Params'; //cache-key seed/prefix
+	//cache-key seed/prefixes
+	const CARTKEY = 'bkr_Cart';
+	const PARMKEY = 'bkr_Parm';
+	const SESSIONKEY = 'bkr_Sess';
 
 	public $dbHandle; //cached connection to adodb
 	public $BookerTable; //booker details
