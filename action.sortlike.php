@@ -106,7 +106,7 @@ $type = $params['sort'];
 if ($type == 'members')
 	$members = $funcs->GetGroupItems($this,$item_id,TRUE);
 else
-	$members = $funcs->GetItemGroups($this,$db,$item_id);
+	$members = $funcs->GetItemGroups($this,$item_id);
 if ($members) {
 	if (count($members) > 1) {
 		$data = array();
