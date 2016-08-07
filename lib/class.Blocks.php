@@ -5,6 +5,7 @@
 #----------------------------------------------------------------------
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
+//See also: Display::Coalesce($slots), Repeats::MergeBlocks(&$starts,&$ends)
 namespace Booker;
 
 class Blocks
@@ -39,13 +40,13 @@ class Blocks
 				$ndb = min($nd1,$nd2);
 				$starts[] = $stb;
 				$ends[] = $ndb;
-				if ($ndb = $ends1[$i]) { //1-block block is ended
+				if ($ndb == $ends1[$i]) { //1-block is ended
 					if (++$i == $ic) {
 						$j++;
 						break;
 					}
 				}
-				if ($ndb = $ends2[$j]) { //2-block block is ended
+				if ($ndb == $ends2[$j]) { //2-block is ended
 					if (++$j == $jc) {
 						$i++;
 						break;
@@ -117,7 +118,7 @@ class Blocks
 					$ends[] = $ndb;
 					$userules[] = $rules2[$j];
 				}
-				if ($ndb = $ends1[$i]) { //1-block block is ended
+				if ($ndb == $ends1[$i]) { //1-block block is ended
 					if (++$i == $ic) {
 						if ($ndb < $ends2[$j] && $rules2[$j]) {
 							//rest of current 2-block
@@ -129,7 +130,7 @@ class Blocks
 						break;
 					}
 				}
-				if ($ndb = $ends2[$j]) { //2-block block is ended
+				if ($ndb == $ends2[$j]) { //2-block block is ended
 					if (++$j == $jc) {
 						$i++;
 						break;
@@ -221,7 +222,7 @@ class Blocks
 					$userules1[] = $rules1[$i]; //maybe FALSE
 					$userules2[] = $rules2[$j]; //maybe FALSE
 				}
-				if ($ndb = $ends1[$i]) { //1-block block is ended
+				if ($ndb == $ends1[$i]) { //1-block block is ended
 					if (++$i == $ic) {
 						if ($ndb < $ends2[$j] && $rules2[$j]) {
 							//rest of current 2-block
@@ -234,7 +235,7 @@ class Blocks
 						break;
 					}
 				}
-				if ($ndb = $ends2[$j]) { //2-block block is ended
+				if ($ndb == $ends2[$j]) { //2-block block is ended
 					if (++$j == $jc) {
 						if ($ndb < $ends1[$i] && $rules1[$i]) {
 							//rest of current 1-block
@@ -329,14 +330,103 @@ class Blocks
 	}
 
 	/**
-	RepeatRuledBlocks:
+	RepeatBlocks:
+	This replicates RepeatRuledBlocks() except @rules is string(s), and
+	rules-members are not returned.
 	@mod: reference to Booker module object
 	@idata: array of parameters for the resource being processed
 	@slotstart: UTC timestamp for start of range
 	@slotlen: length of range (seconds)
 	@rules: single rule, or array of rules sorted in order of decreasing priority,
-		[each] rule being an array with members 'slotlen','fee','feecondition',
-		the latter being a rule recognised by RepeatLexer
+		[each] rule being a rule recognised by RepeatLexer (or FALSE)
+	Returns: 2-member array,
+		[0] has sorted block-start timestamps in @slotstart..@slotstart+@slotlen+1
+		[1] has respective block-end timestamps in @slotstart..@slotstart+@slotlen+1
+	OR returns FALSE if nothing is relevant
+	*/
+	public function RepeatBlocks(&$mod, $idata, $slotstart, $slotlen, $rules)
+	{
+		if (!is_array($rules)) {
+			$rules = array($rules);
+		}
+		$ic = count($rules);
+		$i = 0;
+
+		$chkstarts = array($slotstart);
+		$chkends = array($slotstart+$slotlen);
+		$starts = array();
+		$ends = array();
+		//TODO make this support 'except' rules too - subtract from blocks previously accepted
+		while ($i < $ic) {
+			if ($rules[$i]) { //something to interpret
+				$st = reset($chkstarts);
+				$nd = end($chkends);
+				$res = $this->BlocksforCalendarRule($mod,$st,$nd,$rules[$i],$idata); //NOT default to entire current blocks
+				if ($res) {
+					list($rulestarts,$ruleends) = $res;
+					$res = $this->BlockIntersects($chkstarts,$chkends,$rulestarts,$ruleends);
+					if ($res) {
+						list($rulestarts,$ruleends) = $res;
+						foreach ($rulestarts as $j=>$st) {
+							$starts[] = $st;
+							$chkends[] = $st;
+							$nd = $ruleends[$j];
+							$ends[] = $nd;
+							$chkstarts[] = $nd;
+						}
+						//eliminate blocks already dealt with from further checks
+						sort($chkstarts,SORT_NUMERIC);
+						sort($chkends,SORT_NUMERIC);
+						$cc = count($chkstarts) - 1;
+						for ($c=0; $c<$cc; $c++) {
+							$j = $c+1;
+							if ($chkstarts[$j] <= $chkstarts[$c]) {
+								unset($chkstarts[$c]);
+								unset($chkends[$c]);
+								unset($chkstarts[$j]);
+								unset($chkends[$j]);
+								$c = $j; //next loop will deal with follower
+								$cc -= 2;
+							}
+						}
+					}
+//.			} else {
+//				$c = 43; //DEBUG placeholder TODO
+				}
+			}
+			$i++;
+		}
+
+		$ic = count($starts);
+		if ($ic > 0) {
+			if ($ic > 1) {
+				array_multisort($starts,SORT_ASC,SORT_NUMERIC,$ends);
+				$ic--;
+				for ($i=0; $i<$ic; $i++) {
+					$j = $i+1;
+					if ($ends[$i] >= $starts[$j]-1) {
+						$starts[$j] = $starts[$i];
+						unset($starts[$i]);
+						unset($ends[$i]);
+					}
+				}
+			}
+			return array($starts,$ends);
+		}
+		return FALSE;
+	}
+
+	/**
+	RepeatRuledBlocks:
+	This replicates RepeatBlocks() except @rules is array(s), and rules-members
+	are returned.
+	@mod: reference to Booker module object
+	@idata: array of parameters for the resource being processed
+	@slotstart: UTC timestamp for start of range
+	@slotlen: length of range (seconds)
+	@rules: single rule, or array of rules sorted in order of decreasing priority,
+		[each] rule being an array including a member 'feecondition' which is a
+		rule recognised by RepeatLexer (or FALSE)
 	Returns: 3-member array,
 		[0] has sorted block-start timestamps in @slotstart..@slotstart+@slotlen+1
 		[1] has respective block-end timestamps in @slotstart..@slotstart+@slotlen+1
@@ -357,28 +447,44 @@ class Blocks
 		$ends = array();
 		$blkrules = array();
 
-		//TODO make this support 'except' rules too - subtract from blocks previously accepted 
-		while ($i < $ic && ($bst = reset($chkstarts)) < ($bnd = end($chkends))) {
-			$res = $this->BlocksforCalendarRule($mod, $bst,$bnd,$rules[$i]['feecondition'],$idata);
-			if ($res) {
-				list($rulestarts,$ruleends) = $res;
-				$res = $this->BlockIntersects($chkstarts,$chkends,$rulestarts,$ruleends);
+		//TODO make this support 'except' rules too - subtract from blocks previously accepted
+		while ($i < $ic) {
+			if ($rules[$i]) { //something to interpret
+				$st = reset($chkstarts);
+				$nd = end($chkends);
+				$res = $this->BlocksforCalendarRule($mod, $bst,$bnd,$rules[$i]['feecondition'],$idata); //NOT default to entire current blocks
 				if ($res) {
 					list($rulestarts,$ruleends) = $res;
-					foreach ($rulestarts as $j=>$st) {
-						$starts[] = $st;
-						$chkends[] = $st;
-						$nd = $ruleends[$j];
-						$ends[] = $nd;
-						$chkstarts[] = $nd;
-						$blkrules[] = $rules[$i];
+					$res = $this->BlockIntersects($chkstarts,$chkends,$rulestarts,$ruleends);
+					if ($res) {
+						list($rulestarts,$ruleends) = $res;
+						foreach ($rulestarts as $j=>$st) {
+							$starts[] = $st;
+							$chkends[] = $st;
+							$nd = $ruleends[$j];
+							$ends[] = $nd;
+							$chkstarts[] = $nd;
+							$blkrules[] = $rules[$i];
+						}
+						//eliminate blocks already dealt with from further checks
+						sort($chkstarts,SORT_NUMERIC);
+						sort($chkends,SORT_NUMERIC);
+						$cc = count($chkstarts) - 1;
+						for ($c=0; $c<$cc; $c++) {
+							$j = $c+1;
+							if ($chkstarts[$j] <= $chkstarts[$c]) {
+								unset($chkstarts[$c]);
+								unset($chkends[$c]);
+								unset($chkstarts[$j]);
+								unset($chkends[$j]);
+								$c = $j; //next loop will deal with follower
+								$cc -= 2;
+							}
+						}
 					}
-					sort($chkstarts,SORT_NUMERIC);
-					sort($chkends,SORT_NUMERIC);
 				}
 			}
-			if (++$i == $ic)
-				break; //no more rules to process
+			$i++;
 		}
 
 		$ic = count($starts);
