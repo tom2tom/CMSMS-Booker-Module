@@ -208,17 +208,17 @@ class Utils
 	/**
 	GetItemFamily:
 	Get array of 'parents' and 'siblings' of @item_id e.g. for populating a
-	dropdown-object. Unlike GetItemGroups() and GetGroupItems(), no recursion
-	upwards or downwards.
+	dropdown-object. Unlike GetItemGroups() and GetGroupItems(), no further
+	recursion upwards or downwards.
 	@mod: reference to Booker module object
-	@db: reference to current database-connection-object
 	@item_id: identifier of item whose alternates are wanted
 	Returns: array, keys = item_id, values = corresponding name (no empty-check)
 		partitioned between groups (if any) and non-groups (if any), either or both
 		such partition(s) sorted (if the system supports the locale) by name
 	*/
-	public function GetItemFamily(&$mod, &$db, $item_id)
+	public function GetItemFamily(&$mod, $item_id)
 	{
+		$db = $mod->dbHandle;
 		$sql = 'SELECT DISTINCT parent FROM '.$mod->GroupTable.' WHERE child=?';
 		$grps = $db->GetCol($sql,array($item_id));
 		if ($item_id >= \Booker::MINGRPID)
@@ -276,21 +276,21 @@ class Utils
 
 	/**
 	GetItemGroups:
+	Get proximity-sorted array of 'ancestors' of @item_id i.e. closest-ancestor-first
 	@mod: reference to Booker module object
-	@db: reference to current database-connection-object
 	@item_id: identifier of item whose ancestors are wanted
-	Returns: array of unique item_id's, sorted on closest-ancestor-first basis,
-	 or empty array
+	Returns: array of unique item_id's, or empty array
 	*/
-	public function GetItemGroups(&$mod, &$db, $item_id)
+	public function GetItemGroups(&$mod, $item_id)
 	{
 		$ret = array();
-		$sql = 'SELECT DISTINCT parent FROM '.$mod->GroupTable.' WHERE child=? ORDER BY parent,proximity,likeorder';
+		$db = $mod->dbHandle;
+		$sql = 'SELECT DISTINCT parent FROM '.$mod->GroupTable.' WHERE child=? ORDER BY proximity,likeorder';
 		$all = $db->GetCol($sql,array($item_id));
 		while ($all) {
 			$ret = array_merge($ret,$all);
-			$fillers = str_repeat('?,',count($all)-1).'?';
-			$sql = 'SELECT DISTINCT parent FROM '.$mod->GroupTable.' WHERE child IN ('.$fillers.') ORDER BY parent,child,proximity,likeorder';
+			$fillers = str_repeat('?,',count($all)-1);
+			$sql = 'SELECT DISTINCT parent FROM '.$mod->GroupTable.' WHERE child IN ('.$fillers.'?) ORDER BY proximity,likeorder';
 			$all = $db->GetCol($sql,$all);
 			if ($all)
 				$all = array_diff($all,$ret);
@@ -300,10 +300,11 @@ class Utils
 
 	/**
 	GetGroupItems:
+	Get reverse-proximity-ordered array of 'descendants' of @gid
 	@mod: reference to current module-object
 	@gid: identifier of group to be interrogated (non-groups are ignored)
-	@withgrps: optional boolean, whether to include group-ids in the result, default FALSE
-	Returns: array of item-ids from depth-first scan, proximity-ordered
+	@withgrps: optional boolean, whether to include groups in the result, default FALSE
+	Returns: array of item-ids from depth-first scan
 	*/
 	public function GetGroupItems(&$mod, $gid, $withgrps=FALSE, $down=0)
 	{
@@ -331,7 +332,7 @@ class Utils
 
 		if ($down == 0) {
 			if ($withgrps && !in_array($gid,$ids))
-					array_unshift($ids,(int)$gid);
+				array_unshift($ids,(int)$gid);
 			if (count($ids) > 1)
 				$ids = array_unique($ids);
 		}
@@ -386,10 +387,10 @@ class Utils
 	Re-sequence likeorder and proximity fields in GroupTable
 
 	@mod reference to current module-object
-	@db reference to current database-connection-object
 	*/
-	public function OrderGroups(&$mod, &$db)
+	public function OrderGroups(&$mod)
 	{
+		$db = $mod->dbHandle;
 		$rows = $db->GetAssoc('SELECT gid,parent FROM '.$mod->GroupTable.' ORDER BY parent,likeorder,proximity');
 		if ($rows) {
 			//for each distinct parent, renumber likeorder ascending from 1
@@ -507,132 +508,148 @@ class Utils
 	/**
 	GetItemProperty:
 	@mod: reference to current Booker module object
-	@item_id: identifier of item (resource or group) for which property is/are sought
-	@propname: dbase table column-name for property sought (no checks here!)
-		or '*' or array of such names
+	@item_id: identifier of resource or group for which property/ies is/are sought
+	@propname: ItemTable field-name for property sought or '*' or ','-separated
+		series of such names or array of such names (no checks here!)
 	@same: optional boolean, whether all requested properties must come from the same database record, default FALSE
 	@search: optional boolean, whether to check for missing values in ancestor groups (if any), default TRUE
-	Returns: array with key(s) = $propnames, value(s) = corresponding property value(s) if available,
+	Returns: array with key(s) = $propnames, value(s) = corresponding property value(s) if available or NULL,
 		or empty array upon error
 	*/
 	public function GetItemProperty(&$mod, $item_id, $propname, $same=FALSE, $search=TRUE)
 	{
-		$multi = is_array($propname);
-		if ($multi)
-			$getcols = implode(',',$propname);
-		else
-			$getcols = $propname;
+		if ($search) {
+			$found = $this->GetHeritableProperty($mod,$item_id,$propname);
+			if (!$found)
+				return array();
+			if (!is_array($propname)) {
+				$propname = explode(',',$propname);
+			}
 
-		$ret = array();
+			if ($propname[0] == '*') {
+				$gets = array_fill_keys(array_keys(reset($found)),NULL);
+			} else {
+				$gets = array_fill_keys(array_filter($propname),NULL);//no name-validation, only presence-checks
+			}
+			if ($same)
+				$rc = count($gets);
+			$ret = array();
+			foreach ($found as $row) {
+				foreach ($gets as $k=>$val) {
+					if (!isset($ret[$k]) && $row[$k]) {
+						$ret[$k] = $row[$k];
+					}
+				}
+				if ($same) {
+					if (count($ret) < $rc)
+						$ret = array(); //keep looking
+					else
+						break;
+				}
+			}
+			return array_merge($gets,$ret);
+		} else { //no search
+			if (!is_array($propname)) {
+				$propname = explode(',',$propname);
+			}
+			$getcols = implode(',',array_filter($propname)); //no name-validation, only presence-checks
+
+			$db = $mod->dbHandle;
+			$sql = 'SELECT '.$getcols.' FROM '.$mod->ItemTable.' WHERE item_id=?';
+			$found = $db->GetRow($sql,array($item_id));
+			if ($found)
+				return $found;
+			return array();
+		}
+	}
+
+	/**
+	GetHeritableProperty:
+	@mod: reference to current Booker module object
+	@item_id: identifier of resource or group for which property/ies is/are sought
+	@propname: ItemTable field-name for property sought or '*' or ','-separated
+		series of such names or array of such names (no checks here!)
+	Returns: proximity-ordered array with members = property-values for $item_id
+		and all its ancestors and corresponding module-preference values
+	*/
+	public function GetHeritableProperty(&$mod, $item_id, $propname)
+	{
+		if (!is_array($propname)) {
+			$propname = explode(',',$propname);
+		}
+		$getcols = implode(',',array_filter($propname)); //no name-validation, only presence-checks
+
+		$getids = array($item_id);
 		$db = $mod->dbHandle;
-		//first try for the requested data specific to the item
-		$sql = "SELECT $getcols FROM $mod->ItemTable WHERE item_id=? AND active=1";
-		$rs = $db->Execute($sql,array($item_id));
-		if ($rs) {
-			while ($row = $rs->FetchRow()) {
-				if ($multi) {
-					foreach ($propname as $one) {
-						$ret[$one] = NULL;
-					}
-					foreach ($propname as $one) {
-						$t = $row[$one];
-						if ($same && is_null($t)) //this one not supplied
-							break 2; //abort
-						elseif (!is_null($t))
-							$ret[$one] = $t;  //record it
-					}
-					$rs->Close();
-					if (!in_array(NULL,$ret,TRUE))
-						return $ret;
-				} elseif ($getcols == '*') {
-					foreach ($row as $one=>$t)
-						$ret[$one] = NULL;
-					foreach ($row as $one=>$t) {
-						if ($same && is_null($t)) //this one not supplied
-							break 2; //abort
-						elseif (!is_null($t))
-							$ret[$one] = $t;  //record it
-					}
-					if (!in_array(NULL,$ret,TRUE)) {
-						$rs->Close();
-						return $ret;
-					}
-				} else { //single property
-					$t = $row[$propname];
-					if (!is_null($t)) {
-						$ret[$propname] = $t;
-						$rs->Close();
-						return $ret;
-					}
-					$ret[$propname] = NULL;
+		$sql = 'SELECT DISTINCT parent FROM '.$mod->GroupTable.' WHERE child=? ORDER BY proximity,likeorder';
+		$all = $db->GetCol($sql,array($item_id));
+		while ($all) {
+			$getids = array_merge($getids,$all);
+			$fillers = str_repeat('?,',count($all)-1);
+			$sql = 'SELECT DISTINCT parent FROM '.$mod->GroupTable.' WHERE child IN ('.$fillers.'?) ORDER BY proximity,likeorder';
+			$all = $db->GetCol($sql,$all);
+			if ($all)
+				$all = array_diff($all,$getids);
+		}
+
+		if ($getcols != '*')
+			$getcols = 'item_id,'.$getcols;
+		$sql = 'SELECT '.$getcols.' FROM '.$mod->ItemTable.' WHERE item_id IN('.implode(',',$getids).')';
+		$found = $db->GetAssoc($sql);
+		if ($found) {
+			if ($getcols != '*')
+				$getcols = substr($getcols,8); //strip the prepended 'item_id,'
+			if (!is_array(reset($found))) {
+				foreach ($found as &$val) {
+					$val = array($getcols=>$val);
 				}
+				unset($val);
 			}
-			$rs->Close();
+			if ($getcols == '*') {
+				//put id's back into returned values
+				foreach ($found as $k=>&$val) {
+					$val['item_id'] = $k;
+				}
+				unset($val);
+			}
+
+			$all = array_flip($getids);
+			uksort($found,function($a,$b) use($all) {
+				return ($all[$a] - $all[$b]);
+			});
+			$prefs = reset($found);
 		} else {
-			//TODO error
-			return $ret; //empty
+			$found = array();
+			$prefs = array_flip($propname);
 		}
 
-		if (!$search)
-			return $ret; //empty or part-filled with values
+		foreach ($prefs as $k=>&$val) {
+			$val = $mod->GetPreference('pref_'.$k);
+			if (!$val)
+				$val = NULL;
+		}
+		unset($val);
+		$found[-1] = $prefs; //append preferences
+		return array_values($found);
+	}
 
-		//revert to data for closest group in which $item_id is an [in]direct member
-		$family = array();
-		$finds = array($item_id);
-		$sql = 'SELECT child,parent FROM '.$mod->GroupTable.' WHERE child=? ORDER BY proximity ASC';
-		//sluggish one-by-one queries to preserve relations-order
-		while ($finds) {
-			$parents = array();
-			foreach ($finds as $one) {
-				$rows = $db->GetAll($sql,array($one));
-				if ($rows) {
-					$family = array_merge($family,$rows);
-					$t = array_map(function($item)
-					{
-						return $item['parent'];
-					}, $rows);
-					$parents = array_merge($parents,$t);
-				}
+	/**
+	GetOneHeritableProperty:
+	Wrapper for GetHeritableProperty() which collapses results for @propname
+	into a non-associative array
+	@mod: reference to current Booker module object
+	@item_id: identifier of resource or group for which property/ies is/are sought
+	@propname: ItemTable field-name for property sought or '*' or ','-separated
+		series of such names or array of such names (no checks here!)
+	*/
+	public function GetOneHeritableProperty(&$mod, $item_id, $propname)
+	{
+		$propdata = $this->GetHeritableProperty($mod, $item_id, $propname);
+		$ret = array();
+		if ($propdata) {
+			foreach ($propdata as $one) {
+				$ret[] = $one[$propname];
 			}
-			$finds = $parents;
-		}
-		if ($family) {
-			$relations = array();
-			self::collapse_links($family,$relations,$item_id);
-			if ($relations) {
-				$path = self::breadth_first($relations,$item_id);
-				array_shift($path); //current item has already been checked
-				$what = ($getcols == '*') ? '*' : 'item_id,'.$getcols;
-				$sql = "SELECT $what FROM $mod->ItemTable WHERE item_id IN(".implode(',',$path).') AND active>0';
-				$rows = $db->GetAll($sql);
-				if ($rows) {
-					foreach ($path as $id) {
-						if (!empty($rows[$id])) {
-							$nc = 0;
-							$row = $rows[$id];
-							if ($same) {
-								foreach ($row as $one=>$t) {
-									if (is_null($ret[$one]) && is_null($t))
-										$nc++; //force this row to be skipped
-								}
-							}
-							if ($nc == 0) {
-								foreach ($row as $one=>$t) {
-									if (is_null($ret[$one]) && !is_null($t))
-										$ret[$one] = $t;
-								}
-								if (!in_array(NULL,$ret,TRUE))
-									return $ret;
-							}
-						}
-					}
-				}
-			}
-		}
-		//revert to global preference value(s)
-		foreach ($ret as $one=>$t) {
-			if (is_null($t))
-				$ret[$one] = $mod->GetPreference('pref_'.$one,NULL);
 		}
 		return $ret;
 	}
@@ -694,7 +711,7 @@ class Utils
 	{
 		$db = $mod->dbHandle;
 		if ($search) {
-			$args = self::GetItemGroups($mod,$db,$item_id);
+			$args = self::GetItemGroups($mod,$item_id);
 			array_unshift($args, $item_id); //priority-ordered for checking
 			$fillers = str_repeat('?,',count($args)-1);
 			$sql = 'SELECT item_id,fee,feecondition,condorder FROM '.$mod->FeeTable.
@@ -813,17 +830,17 @@ class Utils
 	/**
 	TrimRange:
 
-	Rationalise slot start and end times in objects @dtstart and @dtend
-	@dtstart if 'near' either extreme of a slot will be rounded to that extreme.
-	@dtend if 'near' the end of a slot will be rounded up. The minimum difference
+	Rationalise slot start and end times in objects @dts and @dte
+	@dts if 'near' either extreme of a slot will be rounded to that extreme.
+	@dte if 'near' the end of a slot will be rounded up. The minimum difference
 	between the pair will be @slen.
 
-	@dtstart: populated DateTime object
-	@dtend: ditto, may be <= @ststart
+	@dts: populated DateTime object
+	@dte: ditto, may be <= @ststart
 	@slen: slot length, in seconds
 	@part: optional boolean, whether to accept intra-slot times for @slen >= 3600, default FALSE
 	*/
-	public function TrimRange($dtstart, $dtend, $slen, $part=FALSE)
+	public function TrimRange($dts, $dte, $slen, $part=FALSE)
 	{
 		if ($slen >= 3600 && $part) {
 			if ($slen <= 86400) {
@@ -838,8 +855,8 @@ class Utils
 			$rounder = 1; //unused
 		}
 
-		$st = $dtstart->getTimestamp();
-		$nd = $dtend->getTimestamp();
+		$st = $dts->getTimestamp();
+		$nd = $dte->getTimestamp();
 		if ($st > $nd) {
 			$t = $nd;
 			$nd = $st;
@@ -854,7 +871,7 @@ class Utils
 			$st = $st + $slen - $t;
 		else
 			$st = ceil($nd/$rounder) * $rounder;
-		$dtstart->setTimestamp($st);
+		$dts->setTimestamp($st);
 
 		$t = ($nd-$st) % $slen;
 		if ($t < $slop)
@@ -867,7 +884,7 @@ class Utils
 		if ($nd-$st < $slen-1)
 			$nd = $st + $slen - 1;
 
-		$dtend->setTimestamp($nd);
+		$dte->setTimestamp($nd);
 	}
 
 	/**
@@ -1183,27 +1200,27 @@ class Utils
 	*/
 	public function RangeStamps($start, $range)
 	{
-		$sdt = new \DateTime('1900-1-1 0:0:0',new \DateTimeZone('UTC'));
+		$dts = new \DateTime('1900-1-1',new \DateTimeZone('UTC'));
 		//start of day including start
-		$sdt->setTimestamp($start);
-		$sdt->setTime(0,0,0); //in case
+		$dts->setTimestamp($start);
+		$dts->setTime(0,0,0);
 		//start of day after end
-		$ndt = clone $sdt;
+		$dte = clone $dts;
 		switch ($range) {
 		 case \Booker::RANGEDAY:
-			$ndt->modify('+1 day');
+			$dte->modify('+1 day');
 			break;
 		 case \Booker::RANGEWEEK:
-			$ndt->modify('+7 days');
+			$dte->modify('+7 days');
 			break;
 		 case \Booker::RANGEMTH:
-			$ndt->modify('+1 month');
+			$dte->modify('+1 month');
 			break;
 		 case \Booker::RANGEYR:
-			$ndt->modify('+1 year');
+			$dte->modify('+1 year');
 			break;
 		}
-		return array($sdt,$ndt);
+		return array($dts,$dte);
 	}
 
 /*	public function GetBookingItemName(&$mod, $bkg_id)
@@ -1436,7 +1453,7 @@ class Utils
 
 	@mod: reference to current module-object
 	@which: index 0 (for 'day'), 1 (for 'week') .. 3 (for 'year'), or
-		array of such indices consistent with namespace\Shared::DisplayIntervals()
+		array of such indices consistent with Utils::DisplayIntervals()
 	@plural: optional, whether to get plural form of the interval name(s), default FALSE
 	@cap: optional, whether to capitalise the first character of the name(s), default FALSE
 	*/
@@ -1685,6 +1702,6 @@ class Utils
 				$ifuncs->ShowForm($id,$returnid,$args); //redirects
 				exit;
 			}
-		}	
+		}
 	}
 }
