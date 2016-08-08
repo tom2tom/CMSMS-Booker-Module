@@ -160,9 +160,7 @@ TODO support 'past' data without both date/time $params[]
 			if ($timely && isset($params['item_id'])) {
 				$idata = $utils->GetItemProperty($mod,$params['item_id'],'timezone');
 				$t = $utils->GetZoneTime($idata['timezone']);
-				$dtn = clone $dts;
-				$dtn->setTimestamp($t);
-				$timely = ($dts >= $dtn);
+				$timely = ($dts->getTimestamp() >= $t);
 			}
 
 			if ($timely) {
