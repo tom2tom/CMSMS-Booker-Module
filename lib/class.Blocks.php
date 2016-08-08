@@ -19,7 +19,7 @@ class Blocks
 	Returns: 2-member array,
 	 [0] = array of start-stamps for subblocks in both first-block and other-block
 	 [1] = array of corresponding end-stamps
-	 The arrays have corresponding, but not necessarily contiguous, numeric keys
+	 The arrays have corresponding numeric keys
 	OR if nothing applies
 	 [0] = FALSE
 	 [1] = FALSE
@@ -38,17 +38,17 @@ class Blocks
 			$st2 = ($j < $jc) ? $starts2[$j] : ~PHP_INT_MAX;
 			$nd2 = ($j < $jc) ? $ends2[$j] : PHP_INT_MAX;
 			if (($st1 >= $st2 && $st1 < $nd2) || ($st2 >= $st1 && $st2 < $nd1)) { //$st1..$nd1 overlaps with $st2..$nd2
-				$stb = max($st1,$st2);
-				$ndb = min($nd1,$nd2);
-				$starts[] = $stb;
-				$ends[] = $ndb;
-				if ($ndb == $ends1[$i]) { //1-block is ended
+				$bst = max($st1,$st2);
+				$bnd = min($nd1,$nd2);
+				$starts[] = $bst;
+				$ends[] = $bnd;
+				if ($bnd == $ends1[$i]) { //1-block is ended
 					if (++$i == $ic) {
 						$j++;
 						break;
 					}
 				}
-				if ($ndb == $ends2[$j]) { //2-block is ended
+				if ($bnd == $ends2[$j]) { //2-block is ended
 					if (++$j == $jc) {
 						$i++;
 						break;
@@ -78,6 +78,8 @@ class Blocks
 						unset($ends[$i]);
 					}
 				}
+				$starts = array_values($starts);
+				$ends = array_values($ends);
 			}
 			return array($starts,$ends);
 		}
@@ -95,7 +97,7 @@ class Blocks
 	 [0] = array of start-stamps for subblocks in both first-block and other-block
 	 [1] = array of corresponding end-stamps
 	 [2] = array of corresponding @rules2[] members
-	 The arrays have corresponding, but not necessarily contiguous, numeric keys
+	 The arrays have corresponding numeric keys
 	OR if nothing applies
 	 [0] = FALSE
 	 [1] = FALSE
@@ -116,18 +118,18 @@ class Blocks
 			$st2 = ($j < $jc) ? $starts2[$j] : ~PHP_INT_MAX;
 			$nd2 = ($j < $jc) ? $ends2[$j] : ~PHP_INT_MAX;
 			if (($st1 >= $st2 && $st1 < $nd2) || ($st2 >= $st1 && $st2 < $nd1)) { //$st1..$nd1 overlaps with $st2..$nd2
-				$stb = max($st1,$st2);
-				$ndb = min($nd1,$nd2);
+				$bst = max($st1,$st2);
+				$bnd = min($nd1,$nd2);
 				if ($rules2[$j]) {
-					$starts[] = $stb;
-					$ends[] = $ndb;
+					$starts[] = $bst;
+					$ends[] = $bnd;
 					$userules[] = $rules2[$j];
 				}
-				if ($ndb == $ends1[$i]) { //1-block block is ended
+				if ($bnd == $ends1[$i]) { //1-block block is ended
 					if (++$i == $ic) {
-						if ($ndb < $ends2[$j] && $rules2[$j]) {
+						if ($bnd < $ends2[$j] && $rules2[$j]) {
 							//rest of current 2-block
-							$starts[] = $ndb;
+							$starts[] = $bnd;
 							$ends[] = $ends2[$j];
 							$userules[] = $rules2[$j];
 						}
@@ -135,7 +137,7 @@ class Blocks
 						break;
 					}
 				}
-				if ($ndb == $ends2[$j]) { //2-block block is ended
+				if ($bnd == $ends2[$j]) { //2-block block is ended
 					if (++$j == $jc) {
 						$i++;
 						break;
@@ -181,6 +183,9 @@ class Blocks
 						}
 					}
 				}
+				$starts = array_values($starts);
+				$ends = array_values($ends);
+				$userules = array_values($userules);
 			}
 			return array($starts,$ends,$userules);
 		}
@@ -200,7 +205,7 @@ class Blocks
 	 [1] = array of corresponding end-stamps
 	 [2] = array of corresponding @rules1[] members, with NULL's where @rules1[] doesn't apply
 	 [3] = array of corresponding @rules2[] members, with NULL's where @rules2[] doesn't apply
-	 The arrays have corresponding, but not necessarily contiguous, numeric keys
+	 The arrays have corresponding numeric keys
 	OR if nothing applies
 	 [0] = FALSE
 	 [1] = FALSE
@@ -223,19 +228,19 @@ class Blocks
 			$st2 = ($j < $jc) ? $starts2[$j] : ~PHP_INT_MAX;
 			$nd2 = ($j < $jc) ? $ends2[$j] : ~PHP_INT_MAX;
 			if (($st1 >= $st2 && $st1 < $nd2) || ($st2 >= $st1 && $st2 < $nd1)) { //$st1..$nd1 overlaps with $st2..$nd2
-				$stb = max($st1,$st2);
-				$ndb = min($nd1,$nd2);
+				$bst = max($st1,$st2);
+				$bnd = min($nd1,$nd2);
 				if ($rules1[$i] || $rules2[$j]) {
-					$starts[] = $stb;
-					$ends[] = $ndb;
+					$starts[] = $bst;
+					$ends[] = $bnd;
 					$userules1[] = $rules1[$i]; //maybe FALSE
 					$userules2[] = $rules2[$j]; //maybe FALSE
 				}
-				if ($ndb == $ends1[$i]) { //1-block block is ended
+				if ($bnd == $ends1[$i]) { //1-block block is ended
 					if (++$i == $ic) {
-						if ($ndb < $ends2[$j] && $rules2[$j]) {
+						if ($bnd < $ends2[$j] && $rules2[$j]) {
 							//rest of current 2-block
-							$starts[] = $ndb;
+							$starts[] = $bnd;
 							$ends[] = $ends2[$j];
 							$userules1[] = NULL; //1-block N/A here
 							$userules2[] = $rules2[$j];
@@ -244,11 +249,11 @@ class Blocks
 						break;
 					}
 				}
-				if ($ndb == $ends2[$j]) { //2-block block is ended
+				if ($bnd == $ends2[$j]) { //2-block block is ended
 					if (++$j == $jc) {
-						if ($ndb < $ends1[$i] && $rules1[$i]) {
+						if ($bnd < $ends1[$i] && $rules1[$i]) {
 							//rest of current 1-block
-							$starts[] = $ndb;
+							$starts[] = $bnd;
 							$ends[] = $ends1[$i];
 							$userules1[] = $rules1[$i];
 							$userules2[] = NULL; //2-block N/A here
@@ -314,6 +319,10 @@ class Blocks
 						}
 					}
 				}
+				$starts = array_values($starts);
+				$ends = array_values($ends);
+				$userules1 = array_values($userules1);
+				$userules2 = array_values($userules2);
 			}
 			return array($starts,$ends,$userules1,$userules2);
 		}
@@ -325,9 +334,8 @@ class Blocks
 	{
 		$funcs = new Repeats($mod);
 		if ($funcs->ParseCondition($dtrule)) {
-			$dts = new \DateTime('1900-1-1',new \DateTimeZone('UTC'));
+			$dts = new \DateTime('@'.$st,new \DateTimeZone('UTC'));
 			$dte = clone $dts;
-			$dts->setTimestamp($st);
 			$dte->setTimestamp($nd);
 			$sunparms = $funcs->SunParms($idata);//TODO sunparms offset may change during interval
 			list($starts,$ends) = $funcs->GetBlocks($dts,$dte,$sunparms); //$defaultall FALSE
@@ -367,7 +375,7 @@ class Blocks
 		$chkends = array($slotstart+$slotlen);
 		$starts = array();
 		$ends = array();
-		//TODO make this support 'except' rules too - subtract from blocks previously accepted
+		//TODO this must also support 'except' rules - subtract from blocks previously accepted
 		while ($i < $ic) {
 			if ($rules[$i]) { //something to interpret
 				$st = reset($chkstarts);
@@ -417,6 +425,8 @@ class Blocks
 						unset($ends[$i]);
 					}
 				}
+				$starts = array_values($starts);
+				$ends = array_values($ends);
 			}
 			return array($starts,$ends);
 		}
@@ -455,9 +465,9 @@ class Blocks
 		$chkends = array($slotstart+$slotlen+1);
 		$starts = array();
 		$ends = array();
-		$blkrules = array();
+		$userules = array();
 
-		//TODO make this support 'except' rules too - subtract from blocks previously accepted
+		//TODO this must also support 'except' rules - subtract from blocks previously accepted
 		while ($i < $ic) {
 			if ($rules[$i]) { //something to interpret
 				$st = reset($chkstarts);
@@ -472,7 +482,7 @@ class Blocks
 							$nd = $ruleends[$j];
 							$ends[] = $nd;
 							$chkstarts[] = $nd;
-							$blkrules[] = $rules[$i];
+							$userules[] = $rules[$i];
 						}
 						//eliminate blocks already dealt with from further checks
 						sort($chkstarts,SORT_NUMERIC);
@@ -498,21 +508,24 @@ class Blocks
 		$ic = count($starts);
 		if ($ic > 0) {
 			if ($ic > 1) {
-				array_multisort($starts,SORT_ASC,SORT_NUMERIC,$ends,$blkrules);
+				array_multisort($starts,SORT_ASC,SORT_NUMERIC,$ends,$userules);
 				$ic--;
 				for ($i=0; $i<$ic; $i++) {
 					$j = $i+1;
 					if ($ends[$i] >= $starts[$j]-1) {
-						if ($blkrules[$i] == $blkrules[$j]) { //non-strict array comparison
+						if ($userules[$i] == $userules[$j]) { //non-strict array comparison
 							$starts[$j] = $starts[$i];
 							unset($starts[$i]);
 							unset($ends[$i]);
-							unset($blkrules[$i]);
+							unset($userules[$i]);
 						}
 					}
 				}
+				$starts = array_values($starts);
+				$ends = array_values($ends);
+				$userules = array_values($userules);
 			}
-			return array($starts,$ends,$blkrules);
+			return array($starts,$ends,$userules);
 		}
 		return array(FALSE,FALSE,FALSE);
 	}
@@ -539,14 +552,14 @@ class Blocks
 		if (is_array($rules)) {
 			$starts = array();
 			$ends = array();
-			$blkrules = array();
+			$userules = array();
 			foreach ($rules as $one) {
 				$starts[] = $slotstart;
 				$ends[] = $nd;
-				$blkrules[] = $one;
+				$userules[] = $one;
 			}
 			if ($starts)
-				return array($starts,$ends,$blkrules);
+				return array($starts,$ends,$userules);
 		} elseif ($rules) {
 			return array(array($slotstart),array($nd),array($rules));
 		}
