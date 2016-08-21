@@ -11,20 +11,9 @@ class Userops
 {
 	const DEFAULTPASS = 'changethis';
 
-	private $dbHandle;
-	private $table; //bookers-data table name
-	private $history; //history-data table name
-
-	public function __construct (&$mod)
+	private function gettype(&$mod, $booker_id)
 	{
-		$this->dbHandle = $mod->dbHandle;
-		$this->table = $mod->BookerTable;
-		$this->history = $mod->HistoryTable;
-	}
-
-	private function gettype($booker_id)
-	{
-		$r = $this->dbHandle->GetOne('SELECT type FROM '.$this->table.' WHERE booker_id=? AND active=1',
+		$r = $mod->dbHandle->GetOne('SELECT type FROM '.$mod->BookerTable.' WHERE booker_id=? AND active=1',
 			array($booker_id));
 		return ($r) ? $r:FALSE;
 	}
@@ -97,26 +86,27 @@ class Userops
 */
 	/**
 	AddUser:
-	@name:
-	@account: optional account identifier
+	@mod: reference to current Booker module object
+	@name: user name
+	@account: optional login/account identifier
 	@passwd: optional plaintext password
 	Returns: booker_id, OR FALSE if user exists and/or no password is provided
 	*/
-	public function AddUser($name, $account=FALSE, $passwd=FALSE)
+	public function AddUser(&$mod, $name, $account=FALSE, $passwd=FALSE)
 	{
 		if (!($name || $account))
 			return FALSE;
 		if ($account) {
 			if (!$passwd)
 				return FALSE;
-			$r = $this->dbHandle->GetOne('SELECT name FROM '.$this->table.' WHERE publicid=?',array($account));
+			$r = $mod->dbHandle->GetOne('SELECT name FROM '.$mod->BookerTable.' WHERE publicid=?',array($account));
 			if ($r)
 				return FALSE;
 		}
 		$fields = array();
 		$args = array();
 		$fields[] = 'booker_id';
-		$bid = $this->dbHandle->GenId($this->table.'_seq');
+		$bid = $mod->dbHandle->GenId($mod->BookerTable.'_seq');
 		$args[] = $bid;
 
 		if ($name) {
@@ -134,44 +124,78 @@ class Userops
 		$dt = new \DateTime('now', new \DateTimeZone('UTC'));
 		$args[] = $dt->getTimestamp();
 
-		$sql = 'INSERT INTO '.$this->table.' ('.implode(',',$fields).
+		$sql = 'INSERT INTO '.$mod->BookerTable.' ('.implode(',',$fields).
 		') VALUES ('.str_repeat('?,',count($fields)-1).'?)';
-		$r = $this->dbHandle->Execute($sql,$args);
+		//TODO $utils->SafeExec()
+		$r = $mod->dbHandle->Execute($sql,$args);
 		return ($r != FALSE) ? $bid : FALSE;
 	}
 
 	/**
 	DeleteUser:
-	@booker_id: numeric identifier
+	@mod: reference to current Booker module object
+	@booker_id: booker identifier, or array of them, or '*'
 	Returns: boolean indicating success
 	*/
-	public function DeleteUser($booker_id)
+	public function DeleteUser(&$mod, $booker_id)
 	{
-		$r = $this->dbHandle->Execute('DELETE FROM '.$this->table.' WHERE booker_id=?',array($booker_id));
+		$sql = 'DELETE FROM '.$mod->BookerTable;
+		if (is_array($booker_id)) {
+			$fillers = str_repeat('?,',count($booker_id)-1);
+			$sql .= ' WHERE booker_id IN('.$fillers.'?)';
+			$args = $booker_id;
+		} elseif ($booker_id == '*') {
+			$args = array();
+		} else {
+			$sql .= ' WHERE booker_id=?';
+			$args = array($booker_id);
+		}
+		//TODO $utils->SafeExec()
+		$r = $mod->dbHandle->Execute($sql,$args);
 		if ($r) {
-			$r = $this->dbHandle->Execute('DELETE FROM '.$this->history.' WHERE booker_id=?',array($booker_id));
+			$sql = str_replace($mod->BookerTable,$mod->HistoryTable,$sql);
+			$r = $mod->dbHandle->Execute($sql,$args);
 		}
 		return ($r != FALSE);
 	}
 
 	/**
-	Register:
+	ExportUser:
+	Export data for one or more bookers
+	@mod: reference to current Booker module object
+	@booker_id: booker identifier, or array of them, or '*'
+	Returns: 2-member array, 1st is T/F indicating success, 2nd '' or error message
+	*/
+	public function ExportUser(&$mod, $booker_id)
+	{
+		$funcs = new CSV();
+		list($res,$key) = $funcs->ExportBookers($mod,$booker_id);
+		if ($res)
+			return array(TRUE,'');
+		return array(FALSE,$mod->Lang($key));
+	}
+
+	/**
+	RegisterUser:
 	Record account/login and password for an existing booker
+	@mod: reference to current Booker module object
+	@booker_id: booker identifier
 	@account: account identifier
 	@passwd: optional plaintext password
 	 */
-	public function Register($booker_id, $account, $passwd=DEFAULTPASS)
+	public function RegisterUser(&$mod, $booker_id, $account, $passwd=DEFAULTPASS)
 	{
 		if ($account) {
 			if (!$paswd)
 				return FALSE;
-			$r = $this->dbHandle->GetOne('SELECT name FROM '.$this->table.' WHERE publicid=?',array($account));
+			$r = $mod->dbHandle->GetOne('SELECT name FROM '.$mod->BookerTable.' WHERE publicid=?',array($account));
 			if ($r)
 				return FALSE;
 		}
-		$r = $this->dbHandle->Execute('UPDATE '.$this->table.' SET publicid=? WHERE booker_id=?',
+			//TODO $utils->SafeExec()
+		$r = $mod->dbHandle->Execute('UPDATE '.$mod->BookerTable.' SET publicid=? WHERE booker_id=?',
 			array($account,booker_id));
-		$this->SetPassword ($booker_id,'FORCE',$passwd);
+		$this->SetPassword($mod,$booker_id,'FORCE',$passwd);
 	}
 
 /* TODO support FEU-permissions
@@ -197,17 +221,19 @@ class Userops
 
 	/**
 	SetPassword:
+	@mod: reference to current Booker module object
 	@booker_id: numeric identifier
 	@current: current password (plaintext), or string 'FORCE' to force the change
 	@passwd: optional new plaintext password, default 'changethis'
 	Returns: boolean indicating success
 	*/
-	public function SetPassword($booker_id, $current, $passwd=DEFAULTPASS)
+	public function SetPassword(&$mod, $booker_id, $current, $passwd=DEFAULTPASS)
 	{
-		$row = $this->dbHandle->GetRow('SELECT passhash FROM '.$this->table.' WHERE booker_id=?',array($booker_id));
+		$row = $mod->dbHandle->GetRow('SELECT passhash FROM '.$mod->BookerTable.' WHERE booker_id=?',array($booker_id));
 		if ($row) {
 			if ($current == 'FORCE' || $this->matchpass($row['passhash'],$current)) {
-				$r = $this->dbHandle->Execute('UPDATE '.$this->table.' SET passhash=? WHERE booker_id=?',
+			//TODO $utils->SafeExec()
+				$r = $mod->dbHandle->Execute('UPDATE '.$mod->BookerTable.' SET passhash=? WHERE booker_id=?',
 					array($this->HashPassword($passwd),$booker_id));
 				return ($r != FALSE);
 			}
@@ -216,20 +242,21 @@ class Userops
 	}
 
 	/* *
-	GetID:
+	GetUserID:
 	Get existing or new booker enumerator representing @main and @supp
+	@mod: reference to current Booker module object
 	@main: user name or account identifier
 	@supp: email-address or phone-number for username, or password for account
 	Returns: 2-member array, 1st is booker_id or FALSE, 2nd is boolean representing id-is-new
 	*/
-/*	private function GetID($main, $supp)
+/*	private function GetUserID(&$mod, $main, $supp)
 	{
-		$booker_id = $this->IsKnown($main,$supp);
+		$booker_id = $this->IsKnown($mod,$main,$supp);
 		if ($booker_id === FALSE) {
 			if (empty($params['publicid'])) {
 				$is_new = TRUE;
-				$booker_id = $this->AddUser($main);
-				$this->SetContact($booker_id,$supp);
+				$booker_id = $this->AddUser($mod,$main);
+				$this->SetContact($mod,$booker_id,$supp);
 			} else {
 				$is_new = FALSE;
 				$booker_id = FALSE; //report password failure
@@ -243,10 +270,11 @@ class Userops
 	/**
 	GetParamsID:
 	Get existing or new booker enumerator representing the relevant members of @params
+	@mod: reference to current Booker module object
 	@params: reference to array of parameters
 	Returns: 2-member array, 1st is booker_id or FALSE(bad P/W), 2nd is boolean representing id-is-new
 	*/
-	public function GetParamsID(&$params)
+	public function GetParamsID(&$mod, &$params)
 	{
 		if (!empty($params['publicid'])) {
 			$main = $params['publicid'];
@@ -257,12 +285,12 @@ class Userops
 		}
 //		return $this->GetID($main,$supp);
 		//TODO support FEU-permissions
-		$booker_id = $this->IsKnown($main,$supp);
+		$booker_id = $this->IsKnown($mod,$main,$supp);
 		if ($booker_id === FALSE) {
 			if (empty($params['publicid'])) {
 				$is_new = TRUE;
-				$booker_id = $this->AddUser($main);
-				$this->SetContact($booker_id,$supp);
+				$booker_id = $this->AddUser($mod,$main);
+				$this->SetContact($mod,$booker_id,$supp);
 			} else {
 				$is_new = FALSE;
 				$booker_id = FALSE; //report password failure
@@ -275,12 +303,13 @@ class Userops
 
 	/**
 	GetName:
+	@mod: reference to current Booker module object
 	@booker_id: numeric identifier
 	Returns: recorded booker-name or ''
 	*/
-	public function GetName($booker_id)
+	public function GetName(&$mod, $booker_id)
 	{
-		$r = $this->dbHandle->GetOne('SELECT name FROM '.$this->table.' WHERE booker_id=? AND active=1',
+		$r = $mod->dbHandle->GetOne('SELECT name FROM '.$mod->BookerTable.' WHERE booker_id=? AND active=1',
 			array($booker_id));
 		if (!$r) $r = '';
 		return $r;
@@ -288,11 +317,12 @@ class Userops
 
 	/**
 	SetContact:
+	@mod: reference to current Booker module object
 	@booker_id: numeric identifier
 	@contact: new email-address, or phone number, or associative array with email-address and/or phone-number
 	Returns: boolean indicating success
 	*/
-	public function SetContact($booker_id, $contact)
+	public function SetContact(&$mod, $booker_id, $contact)
 	{
 		$patn = '/^(\+\d{1,4} *)?[\d ]{5,15}$/';
 		if (is_array($contact)) {
@@ -313,19 +343,21 @@ class Userops
 			}
 			$args = array($contact,$booker_id);
 		}
-		$r = $this->dbHandle->Execute('UPDATE '.$this->table.' SET '.$sql.' WHERE booker_id=?',
+		//TODO $utils->SafeExec()
+		$r = $mod->dbHandle->Execute('UPDATE '.$mod->BookerTable.' SET '.$sql.' WHERE booker_id=?',
 			$args);
 		return ($r != FALSE);
 	}
 
 	/**
 	GetContact:
+	@mod: reference to current Booker module object
 	@booker_id: numeric identifier
 	Returns: 2-member associative array (stored contact-address and phone), or '';
 	*/
-	public function GetContact($booker_id)
+	public function GetContact(&$mod, $booker_id)
 	{
-		$r = $this->dbHandle->GetRow('SELECT address,phone '.$this->table.' WHERE booker_id=? AND active=1',
+		$r = $mod->dbHandle->GetRow('SELECT address,phone '.$mod->BookerTable.' WHERE booker_id=? AND active=1',
 			array($booker_id));
 		if ($r == FALSE) $r = '';
 		return $r;
@@ -333,14 +365,15 @@ class Userops
 
 	/**
 	IsKnown:
+	@mod: reference to current Booker module object
 	@main: user name or account identifier
 	@supp: email-address or phone-number for username, or password for account
 	Returns: booker_id or FALSE if no match or password is wrong
 	*/
-	public function IsKnown($main, $supp)
+	public function IsKnown(&$mod, $main, $supp)
 	{
-		$rows = $this->dbHandle->GetAll('SELECT booker_id,publicid,passhash,address,phone FROM '.
-			$this->table.' WHERE (name=? OR publicid=?) AND active=1 ORDER BY addwhen DESC',
+		$rows = $mod->dbHandle->GetArray('SELECT booker_id,publicid,passhash,address,phone FROM '.
+			$mod->BookerTable.' WHERE (name=? OR publicid=?) AND active=1 ORDER BY addwhen DESC',
 			array($id,$id));
 		if ($rows) {
 			foreach ($rows as $one) {
@@ -358,26 +391,28 @@ class Userops
 
 	/**
 	IsRegistered:
-	@name:
+	@mod: reference to current Booker module object
+	@login: identifier
 	Returns: booker_id or FALSE
 	*/
-	public function IsRegistered($name)
+	public function IsRegistered(&$mod, $login)
 	{
-		$r = $this->dbHandle->GetOne('SELECT booker_id FROM '.$this->table.
-		' WHERE publicid=? AND passhash IS NOT NULL AND passhash<>\'\' AND ACTIVE=1',array($name));
+		$r = $mod->dbHandle->GetOne('SELECT booker_id FROM '.$mod->BookerTable.
+		' WHERE publicid=? AND passhash IS NOT NULL AND passhash<>\'\' AND ACTIVE=1',array($login));
 		return ($r != FALSE) ? $r : FALSE;
 	}
 
 	/**
 	IsAccepted:
+	@mod: reference to current Booker module object
 	@name: login/account identifier, or recorded name
 	@passwd: plaintext password, if @name is for an account
 	Returns: booker_id or FALSE
 	*/
-	public function IsAccepted($name, $passwd)
+	public function IsAccepted(&$mod, $name, $passwd)
 	{
-		$rows = $this->dbHandle->GetAll('SELECT booker_id,publicid,name,passhash FROM '
-			.$this->table.' WHERE publicid=? or name=? AND active=1',array($name,$name));
+		$rows = $mod->dbHandle->GetArray('SELECT booker_id,publicid,name,passhash FROM '
+			.$mod->BookerTable.' WHERE publicid=? or name=? AND active=1',array($name,$name));
 		if ($rows) {
 			$row = reset($rows);
 			$r = $row['publicid'];
@@ -393,15 +428,16 @@ class Userops
 
 	/**
 	SetRights:
+	@mod: reference to current Booker module object
 	@booker_id: numeric identifier
 	@rights: array of $name=>boolean
 	@type: optional enumerator, to avoid lookup
 	Returns: nothing
 	*/
-	public function SetRights($booker_id, $rights, $type=FALSE)
+	public function SetRights(&$mod, booker_id, $rights, $type=FALSE)
 	{
 		if ($type === FALSE) {
-			$type = $this->gettype($booker_id);
+			$type = $this->gettype($mod,$booker_id);
 		}
 		if ($type === FALSE)
 			return;
@@ -428,22 +464,24 @@ class Userops
 			}
 		}
 		$newtype = ($newflags | $oldflags) * 10 + $base;
-		$r = $this->dbHandle->Execute('UPDATE '.$this->table.' SET type=? WHERE booker_id=?',
+		//TODO $utils->SafeExec()
+		$r = $mod->dbHandle->Execute('UPDATE '.$mod->BookerTable.' SET type=? WHERE booker_id=?',
 			array($newtype,$booker_id));
 		return ($r != FALSE);
 	}
 
 	/**
 	HasRight:
+	@mod: reference to current Booker module object
 	@booker_id: numeric identifier
 	@right: descriptor string, 'postpay' etc
 	@type: optional enumerator, to avoid lookup
 	Returns: boolean
 	*/
-	public function HasRight($booker_id, $right, $type=FALSE)
+	public function HasRight(&$mod, $booker_id, $right, $type=FALSE)
 	{
 		if ($type === FALSE) {
-			$type = $this->gettype($booker_id);
+			$type = $this->gettype($mod,$booker_id);
 		}
 		if ($type === FALSE)
 			return FALSE;
@@ -462,15 +500,16 @@ class Userops
 
 	/**
 	GetRights:
+	@mod: reference to current Booker module object
 	@booker_id: numeric identifier
 	@rights: array of descriptor strings ('postpay' etc), or NULL
 	@type: optional enumerator, to avoid lookup
 	Returns: array, or FALSE
 	*/
-	public function GetRights($booker_id, $rights=NULL, $type=FALSE)
+	public function GetRights(&$mod, $booker_id, $rights=NULL, $type=FALSE)
 	{
 		if ($type === FALSE) {
-			$type = $this->gettype($booker_id);
+			$type = $this->gettype($mod,$booker_id);
 		}
 		if ($type === FALSE)
 			return FALSE;
@@ -503,14 +542,15 @@ class Userops
 
 	/**
 	GetBaseType:
+	@mod: reference to current Booker module object
 	@booker_id: numeric identifier
 	@type: optional enumerator, to avoid lookup
 	Returns: enum 0..9, or FALSE
 	*/
-	public function GetBaseType($booker_id, $type=FALSE)
+	public function GetBaseType(&$mod, $booker_id, $type=FALSE)
 	{
 		if ($type === FALSE) {
-			$type = $this->gettype($booker_id);
+			$type = $this->gettype($mod,$booker_id);
 		}
 		if ($type !== FALSE)
 			return $type % 10;
@@ -519,12 +559,13 @@ class Userops
 
 	/**
 	GetDisplayClass:
+	@mod: reference to current Booker module object
 	@booker_id: numeric identifier
 	Returns: enum 1..MAX
 	*/
-	public function GetDisplayClass($booker_id)
+	public function GetDisplayClass(&$mod, $booker_id)
 	{
-		$r = $this->dbHandle->GetOne('SELECT displayclass FROM '.$this->table.' WHERE booker_id=? AND active=1',
+		$r = $mod->dbHandle->GetOne('SELECT displayclass FROM '.$mod->BookerTable.' WHERE booker_id=? AND active=1',
 			array($booker_id));
 		if (!$r) $r = 1;
 		return $r;
