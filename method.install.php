@@ -489,7 +489,7 @@ array(10004,'Nightplay fee',1,1,'10.00','0..sunrise,sunset..23:59'),
 		$i++;
 	}
 
-	$funcs = new \Booker\Userops($this);
+	$funcs = new Booker\Userops();
 	//name,publicid,passhash,address,phone,addwhen,type,displayclass
 	$data = array(
 array('Repeater','','','tpgww@onepost.net','0417394479','2016-1-1',0,5),
@@ -507,7 +507,7 @@ array('Comp2','','','tpgww@onepost.net','0417394479','2016-3-4',0,4)
 );
 	$sql = 'UPDATE '.$this->BookerTable.' SET address=?,phone=?,addwhen=?,type=?,displayclass=? WHERE booker_id=?';
 	foreach ($data as $dummy) {
-		$bid = $funcs->AddUser($dummy[0],$dummy[1],$dummy[2]);
+		$bid = $funcs->AddUser($this,$dummy[0],$dummy[1],$dummy[2]);
 		$dt->modify($dummy[5]);
 		$args = array($dummy[3],$dummy[4],$dt->getTimestamp(),$dummy[6],$dummy[7],$bid);
 		$db->Execute($sql,$args);
