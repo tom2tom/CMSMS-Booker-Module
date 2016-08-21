@@ -4,7 +4,7 @@
 {$start_data_tab}
 {$startform1}
 {if $dcount > 0}
-<h4 style="margin-left:5%;">{$title_pending}</h4>
+<h4 style="margin-left:0;">{$title_pending}</h4>
 {if !empty($hasnav1)}<div class="browsenav">{$first1}&nbsp;|&nbsp;{$prev1}&nbsp;&lt;&gt;&nbsp;{$next1}&nbsp;|&nbsp;{$last1}&nbsp;({$pageof1})&nbsp;&nbsp;{$rowchanger1}</div>
 {/if}
 <div style="overflow:auto;">
@@ -56,7 +56,7 @@
 <div id="dataacts" class="pageoptions" style="margin-top:1em;">
 {if $bmod}{$addbooking}<span style="margin-left:5em;">{$importbtn1} {/if}{$findbtn}
 {if $dcount > 0}
-{if $bmod} {$approvbtn} {$rejectbtn} {/if}{if $tell}{$notifybtn}{/if}{if $del} {$deletebtn1}{/if}
+{if $bmod} {$approvbtn} {$rejectbtn} {/if}{if $tell}{$notifybtn}{/if}{if $del} {$deletebtn1}{/if} {$bexportbtn1}
 {if $bmod}</span>{/if}
 {/if}
 </div>
@@ -118,7 +118,7 @@
 {if $per}{$addbooker}{/if}
 {if $pcount > 0}
 <span style="margin-left:5em;">
-{if $per}{$importbtn2} {/if}{$exportbtn2}{if $per} {$ablebtn2} {$deletebtn2}{/if}
+{if $per}{$importbtn2} {/if}{$exportbtn2}{if $per} {$ablebtn2} {$deletebtn2}{/if} {$bexportbtn2}
 </span>
 {else}
 {if $per}<span style="margin-left:3em">{$importbtn2}</span>{/if}
@@ -172,13 +172,13 @@
 </div>
 {if !empty($hasnav3)}<div class="browsenav">{$first3}&nbsp;|&nbsp;{$prev3}&nbsp;&lt;&gt;&nbsp;{$next3}&nbsp;|&nbsp;{$last3}</div>{/if}
 {else}
- <p class="pagetext" style="font-weight:normal;">{$noitems}</p>
+ <p class="pageinput">{$noitems}</p>
 {/if}
-<div id="itemacts" class="pageoptions">
+<div id="itemacts" class="pageoptions" style="margin-top:1em;">
 {if $add}{$additem}{/if}
 {if $icount > 0}
 <span style="margin-left:5em;">
-{if $add}{$importbtn3} {/if}{$exportbtn3} {$feebtn3}{if $mod}{if $icount > 1} {$sortbtn3}{/if} {$ablebtn3}{/if}{if $del} {$deletebtn3}{/if}
+{if $add}{$importbtn3} {/if}{$exportbtn3} {$feebtn3}{if $mod}{if $icount > 1} {$sortbtn3}{/if} {$ablebtn3}{/if}{if $del} {$deletebtn3}{/if} {$bexportbtn3}
 </span>
 {else}
 {if $add}<span style="margin-left:3em">{$importbtn3}</span>{/if}
@@ -234,13 +234,13 @@
 </div>
 {if !empty($hasnav4)}<div class="browsenav">{$first4}&nbsp;|&nbsp;{$prev4}&nbsp;&lt;&gt;&nbsp;{$next4}&nbsp;|&nbsp;{$last4}</div>{/if}
 {else}
-  <p class="pagetext" style="font-weight:normal;">{$nogroups}</p>
+  <p class="pageinput">{$nogroups}</p>
 {/if}
-<div id="groupacts" class="pageoptions">
+<div id="groupacts" class="pageoptions" style="margin-top:1em;">
 {if $add}{$addgrp}{/if}
 {if $gcount > 0}
 <span style="margin-left:5em;">
-{if $add}{$importbtn4} {/if}{$exportbtn4} {$feebtn4}{if $mod}{if $gcount > 1} {$sortbtn4}{/if} {$ablebtn4}{/if}{if $del} {$deletebtn4}{/if}
+{if $add}{$importbtn4} {/if}{$exportbtn4} {$feebtn4}{if $mod}{if $gcount > 1} {$sortbtn4}{/if} {$ablebtn4}{/if}{if $del} {$deletebtn4}{/if} {$bexportbtn4}
 </span>
 {else}
 {if $add}<span style="margin-left:3em">{$importbtn4}</span>{/if}
@@ -272,7 +272,7 @@ NOT YET IMPLEMENTED
 <div class="pageinput" style="margin-top:1em;">{$submitbtn4} {$cancel}</div>
 {$endform}
 {else}
-<p class="pagetext" style="font-weight:normal;">{$nopermission}</p>
+<p class="pageinput">{$nopermission}</p>
 {/if}
 {$end_tab}
 
