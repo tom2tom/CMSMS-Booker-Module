@@ -20,7 +20,7 @@
 <table id="scroller" class="booker {$tableclass}">
  <thead><tr>
 {section name=c loop=$columns}
-{if !empty($columns[c])}<th {$columns[c][0]->style}>{$columns[c][0]->data}{else}<th>{/if}</th>{/section}
+{if !empty($columns[c])}<th {$columns[c][0]->style} iso="{$columns[c][0]->iso}">{$columns[c][0]->data}{else}<th>{/if}</th>{/section}
  </tr></thead>
  <tbody>
 {section name=rows start=1 loop=$rowcount}{*smarty3 for $r=1 to $rowcount*}
@@ -29,7 +29,8 @@
 {section name=c loop=$columns}
 {if !empty($columns[c])}<td{if !empty($columns[c][$r]->bid)} id="{$columns[c][$r]->bid}"{/if}
 {if !empty($columns[c][$r]->style)} {$columns[c][$r]->style}{/if}
-{if !empty($columns[c][$r]->tip)} title="{$columns[c][$r]->tip}"{/if}>{$columns[c][$r]->data}
+{if !empty($columns[c][$r]->tip)} title="{$columns[c][$r]->tip}"{/if}
+{if !empty($columns[c][$r]->iso)} iso="{$columns[c][$r]->iso}"{/if}>{$columns[c][$r]->data}
 {else}<td>{/if}</td>
 {/section}
  </tr>
