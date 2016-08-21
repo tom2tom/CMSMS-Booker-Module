@@ -80,6 +80,7 @@ $lang['end'] = 'End';
 $lang['err_badend'] = 'Cannot use the end-time';
 $lang['err_badstart'] = 'Missing or unusable start-time';
 $lang['err_badtime'] = 'Something is wrong with booking time(s)';
+$lang['err_baduser'] = 'Missing or unrecognised user';
 $lang['err_captcha'] = 'The entered captcha text was wrong';
 $lang['err_data'] = 'No data';
 $lang['err_dup'] = 'Nominated time already booked';
@@ -99,9 +100,8 @@ $lang['error'] = 'Error!';
 $lang['every'] = 'every';
 $lang['except'] = 'except';
 $lang['export'] = 'Export';
+$lang['exportbook'] = 'Export Bookings';
 $lang['export_filename'] = '%s-Export-%s.csv';
-$lang['exportsel'] = 'export bookings data for selected %s';
-$lang['exporttype'] = 'export %s bookings data';
 $lang['false'] = 'no';
 $lang['fee_multi'] = 'fee(s)';
 $lang['feeintro'] = 'Introduction'; //TODO >> 'intro'
@@ -173,18 +173,40 @@ Any actual comma in a field should be represented by '&amp;#44;'.
 Each line in the file (except the header line, discussed below) represents one booking.</p>
 <h4>Header line</h4>
 <p>The first line of the file names the fields in the file, as follows. Names prefixed by a '#' represent compulsory values.<br />
-<code>#ID,#Start,End,#User,Class,Contact,Paid</code></p>
+<code>#ID,#Start,End,#User,Status,Paid,Update</code></p>
 <h4>Other lines</h4>
 <p>The data in each line must conform to the header columns, of course. Any non-compulsory field, or entire line, may be empty.<br />
-The #ID field must provide the relevant name, alias or identifying number<br />
+The #ID field must provide the relevant name, alias or identifying number.<br />
 #Start and End fields must be numeric timestamps like YYYY-[M]M-[D]D [H]H:[M]M ([] is optional). When an End is not provided, it is assumed to be 1-hour after the corresponding #Start.<br />
-The Class field controls display styling for the user, and if provided should be a number, 1&nbsp;to&nbsp;5.<br />
-The Paid field will be treated as TRUE if it contains something other than 0 or 'no' or 'NO' (no quotes, untranslated).</p>
+The #User field must provide the name or login of a recorded user.<br />
+The Paid and Update fields will be treated as TRUE if they contain something other than 0 or 'no' or 'NO' (no quotes, untranslated).</p>
 <h3>Problems</h3>
 <p>The import process will fail if:<ul>
 <li>the first line field names are are not as expected</li>
+<li>a compulsory-field value is not provided</li>
 <li>a specified resource is not recognised</li>
 <li>a start or end field is malformed</li>
+</ul></p>
+EOS;
+$lang['help_importbooker'] = <<<EOS
+<h3>File format</h3>
+<p>The input file must be in ASCII format with data fields separated by commas.
+Any actual comma in a field should be represented by '&amp;#44;'.
+Each line in the file (except the header line, discussed below) represents one booker.</p>
+<h4>Header line</h4>
+<p>The first line of the file names the fields in the file, as follows. Names prefixed by a '#' represent compulsory values.<br />
+<code>#Name,Login,Password,Passhash,#Email,Phone,Usertype,Postpayer,Recorder,Displaytype,Update</code></p>
+<h4>Other lines</h4>
+<p>The data in each line must conform to the header columns, of course. Any non-compulsory field, or entire line, may be empty.<br />
+If a Login value is provided, a Password or (previously-exported) Passhash value should also be provided.<br />
+The Postpayer, Recorder and Update fields will be treated as TRUE if they contain something other than 0 or 'no' or 'NO' (no quotes, untranslated).<br />
+The Usertype field discriminates among user-types 0..9.<br />
+The Displaytype field controls display styling for the user, and if provided should be a number, 1&nbsp;to&nbsp;5.<br />
+<h3>Problems</h3>
+<p>The import process will fail if:<ul>
+<li>the first line field names are are not as expected</li>
+<li>a compulsory-field value is not provided</li>
+<li>an email address or mobile/cell phone number is malformed</li>
 </ul></p>
 EOS;
 $lang['help_importitem'] = <<<EOS
@@ -197,7 +219,7 @@ Each line in the file (except the header line, discussed below) represents one r
 <code>#Isgroup,#Name,Alias,Description,Keywords,Image,Available,Slottype,Slotcount,BookingSlots,<br />
 Leadtype,Leadcount,Rationcount,Keeptype,Keepcount,Fee1,Fee1condition,Fee2,Fee2condition,PayInterface,<br />
 SMSprefix,SMSpattern,Latitude,Longitude,Timezone,Dateformat,Timeformat,Listformat,Stylesfile,<br />
-Approver,Approvercontact,FormInterface,Feugroup,Owner,Cleargroup,Allocategroup,Membersnamed,Ingroups</code></p>
+Approver,Approvercontact,FormInterface,Feugroup,Owner,Cleargroup,Allocategroup,Membersnamed,Ingroups,Update</code></p>
 <h4>Other lines</h4>
 <p>The data in each line must conform to the header columns, of course. Any non-compulsory field, or entire line, may be empty.<br />
 The #Isgroup field will be treated as TRUE if it contains something other than 0 or 'no' or 'NO' (no quotes, untranslated).<br />
@@ -206,6 +228,7 @@ TODO explain</p>
 <p>The import process will fail if:<ul>
 <li>the first line field names are are not as expected</li>
 <li>the #Name field is not the first or second field</li>
+<li>a compulsory-field value is not provided</li>
 </ul></p>
 EOS;
 $lang['help_item'] = 'Display bookings for this resource or group (name or alias or id-number)';
@@ -432,6 +455,10 @@ $lang['tip_down'] = 'move down';
 $lang['tip_editreq'] = 'edit booking request';
 $lang['tip_edittype'] = 'edit %s';
 $lang['tip_export_selected_records'] = 'export data for selected items';
+$lang['tip_exportbookseltype'] = 'export bookings data for selected %s';
+$lang['tip_exportbooktype'] = 'export %s bookings data';
+$lang['tip_exportseltype'] = 'export data for selected %s';
+//$lang['tip_exporttype'] = 'export %s';
 $lang['tip_find'] = 'find matching booking';
 $lang['tip_findbkg'] = 'find a specific booking';
 $lang['tip_finditm'] = 'find a comparable resource to use instead of this';
@@ -532,6 +559,7 @@ $lang['title_hours'] = 'Hours';
 $lang['title_howmany'] = 'How many of the %s?';
 $lang['title_id'] = 'ID';
 $lang['title_image'] = 'Descriptive image(s)';
+$lang['title_importbookers'] = 'Import bookers';
 $lang['title_importbooks'] = 'Import bookings';
 $lang['title_importitems'] = 'Import items';
 $lang['title_item'] = 'Resource';
