@@ -86,7 +86,7 @@ class Cache_database extends CacheBase implements CacheInterface
 	{
 		$items = array();
 		$db = cmsms()->GetDb();
-		$info = $db->GetAll('SELECT * FROM '.$this->table);
+		$info = $db->GetArray('SELECT * FROM '.$this->table);
 		if ($info) {
 			foreach ($info as $row) {
 				$keyword = $row['keyword'];
@@ -133,7 +133,7 @@ class Cache_database extends CacheBase implements CacheInterface
 	{
 		$ret = TRUE;
 		$db = cmsms()->GetDb();
-		$info = $db->GetAll('SELECT cache_id,keyword,value FROM '.$this->table);
+		$info = $db->GetArray('SELECT cache_id,keyword,value FROM '.$this->table);
 		if ($info) {
 			$sql = 'DELETE FROM '.$this->table.' WHERE cache_id=?';
 			foreach ($info as $row) {
