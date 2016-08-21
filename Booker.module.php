@@ -283,8 +283,8 @@ class Booker extends CMSModule
 		//and when processing an ajax call
 		if (isset($request['mact'])) {
 			if (strpos($request['mact'],'exportbooking',6)) return TRUE;
-			if (strpos($request['mact'],'multibooking',6)
-				&& isset($request['m1_export'])) return TRUE;
+			if (isset($request['m1_export'])) return TRUE;
+			if (isset($request['m1_exportbkg'])) return TRUE;
 			if (strpos($request['mact'],'sortlike',6)) return TRUE;
 		}
 		return FALSE;
@@ -468,7 +468,6 @@ class Booker extends CMSModule
 			$action = 'defaultadmin';
 			break;
 		 case 'administer':
-		 case 'adminbooker':
 		 case 'default':
 		 case 'defaultadmin':
 		 case 'delete':
@@ -481,12 +480,18 @@ class Booker extends CMSModule
 		 case 'openitem':
 		 case 'openbooking':
 		 case 'openrequest':
+		 case 'processrequest':
 		 case 'requestbooking':
+		 case 'requestfinish':
 		 case 'openfees':
 		 case 'opencart':
 		 case 'setprefs':
 		 case 'swapgroups':
 		 case 'sortlike':
+			break;
+		 case 'adminbooker':
+			if (isset($params['importbkr']))
+				$action = 'import';
 			break;
 /*		 case 'adminbooking':
 			if (isset($params['importbkg']))
