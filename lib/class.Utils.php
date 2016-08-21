@@ -125,7 +125,7 @@ class Utils
 				$ret = $db->GetAssoc($sql,$args);
 				break;
 			 default:
-				$ret = $db->GetAll($sql,$args);
+				$ret = $db->GetArray($sql,$args);
 				break;
 			}
 			if ($db->CompleteTrans())
@@ -352,7 +352,7 @@ class Utils
 	@anyowner TRUE return all groups
 	@anyowner FALSE return groups whose owner is 0 or matches the current user
 	*/
-/*	public function GetGroups(&$mod,$id=0, $returnid=0, $full=FALSE, $anyowner=TRUE)
+/*	public function GetGroups(&$mod, $id=0, $returnid=0, $full=FALSE, $anyowner=TRUE)
 	{
 		$grparray = array();
 
@@ -394,6 +394,7 @@ class Utils
 		$rows = $db->GetAssoc('SELECT gid,parent FROM '.$mod->GroupTable.' ORDER BY parent,likeorder,proximity');
 		if ($rows) {
 			//for each distinct parent, renumber likeorder ascending from 1
+			//TODO use self::SafeExec()
 			$nt = 10;
 			while ($nt > 0) {
 				$m = '-999'; //unmatchable
@@ -415,6 +416,7 @@ class Utils
 
 			$rows = $db->GetAssoc('SELECT gid,child FROM '.$mod->GroupTable.' ORDER BY child,proximity,likeorder');
 			//for each distinct child, renumber proximity ascending from 1
+			//TODO use self::SafeExec()
 			$nt = 10;
 			while ($nt > 0) {
 				$m = '-999'; //unmatchable
@@ -716,14 +718,14 @@ class Utils
 			$fillers = str_repeat('?,',count($args)-1);
 			$sql = 'SELECT item_id,fee,feecondition,condorder FROM '.$mod->FeeTable.
 			' WHERE item_id IN ('.$fillers.'?) AND active=1 ORDER BY item_id,condorder'; //a bit of downstream sorting might help ...
-			$fees = $db->GetAll($sql,$args); //NB ordered by item_id prob not what we want: $args has it
+			$fees = $db->GetArray($sql,$args); //NB ordered by item_id prob not what we want: $args has it
 			if ($fees) {
 				usort($fees,array(new bkrfee_cmp($args),'feecmp'));
 			}
 		} else {
 			$sql = 'SELECT fee,feecondition FROM '.$mod->FeeTable.
 			' WHERE item_id=? AND active=1 ORDER BY condorder';
-			$fees = $db->GetAll($sql,array($item_id));
+			$fees = $db->GetArray($sql,array($item_id));
 		}
 
 		if ($fees) {
@@ -1106,9 +1108,8 @@ class Utils
 		if ($when === FALSE)
 			$when = 'now';
 		if (is_numeric($when)) {
+			$dt = new \DateTime('@'.$when,$tz);
 			$stamp = $when;
-			$dt = new \DateTime('1900-1-1',$tz);
-			$dt->setTimestamp($stamp);
 		} else {
 			try {
 				$dt = new \DateTime($when,$tz);
@@ -1117,7 +1118,6 @@ class Utils
 			}
 			$stamp = $dt->getTimestamp();
 		}
-//$this->Crash();
 		try {
 			$tz = new \DateTimeZone($zonename);
 			$offt = $tz->getOffset($dt);
@@ -1193,16 +1193,15 @@ class Utils
 
 	/**
 	RangeStamps:
-	@start: UTC timestamp for start of range
+	@st: UTC timestamp for start of range
 	@range: enum 0..3 indicating span of range
 	Returns: pair of UTC DateTime objects, first represents start of
 	  day including @start, second is for start of day one-past end of range
 	*/
-	public function RangeStamps($start, $range)
+	public function RangeStamps($st, $range)
 	{
-		$dts = new \DateTime('1900-1-1',new \DateTimeZone('UTC'));
-		//start of day including start
-		$dts->setTimestamp($start);
+		//start of day including $st
+		$dts = new \DateTime('@'.$st,new \DateTimeZone('UTC'));
 		$dts->setTime(0,0,0);
 		//start of day after end
 		$dte = clone $dts;
@@ -1305,14 +1304,16 @@ class Utils
 
 	/**
 	IntervalFormat:
-	Construct formatted string representing @dt, after replacing any D,l,F,M
-		in @format to translated names
+	Construct formatted string representing @dt, after replacing any D,l,F,M in
+	@format to translated names, and if $withyear is TRUE, ensuring that a Y is
+	present	(by appending if need be)
 	@mod reference to current module-object
 	@dt: UTC DateTime object to be interpreted
 	@format: date-format string recognised by PHP date(), or empty
+	@withyear: whether to add a year-value, if not already present
 	Returns: string
 	*/
-	public function IntervalFormat(&$mod, $dt, $format)
+	public function IntervalFormat(&$mod, $dt, $format, $withyear=FALSE)
 	{
 		if (!$format)
 			$format = 'j M Y';
@@ -1343,6 +1344,10 @@ class Utils
 			$placers[] = '4Q4';
 			$repls[] = self::MonthNames($mod,$indx);
 		}
+		if ($withyear && strpos($format,'Y') === FALSE) { //no year of any sort
+			$format .= ' Y';
+		}
+
 		if ($finds) {
 			$format = preg_replace($finds,$placers,$format);
 			$interval = $dt->format($format);
@@ -1499,10 +1504,8 @@ class Utils
 	*/
 	public function RangeDescriptor(&$mod, $st, $nd, &$daynames=NULL)
 	{
-		$tz = new \DateTimeZone('UTC');
-		$dts = new \DateTime('1900-1-1',$tz);
+		$dts = new \DateTime('@'.$st,new \DateTimeZone('UTC'));
 		$dte = clone $dts;
-		$dts->setTimestamp($st);
 		$dte->setTimestamp($nd);
 		if ($daynames == NULL) {
 			$daynames = $this->DayNames($mod,range(0,6),TRUE);
@@ -1678,12 +1681,13 @@ class Utils
 				 'payer'=>'who',
 				 'payfor'=>'what',
 //				 'surcharge'=>TRUE,
-				 'cachekey'=>'storedparams',
 				 'errmsg'=>'msg',
 				 'success'=>'result',
-				 'transactid'=>'identifier'
+				 'transactid'=>'identifier',
+				 'passthru'=>'storedparams'
 				),
-				array($mod->GetName(),'requestfinish')
+				array($mod->GetName(),'requestfinish'),
+				array($id,'default',$returnid)
 			)) {
 				$num = $cart->countItems(); //TODO count only the payable items
 				if ($num < 2) {
