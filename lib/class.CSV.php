@@ -10,44 +10,67 @@ namespace Booker;
 
 class CSV
 {
-	/**
-	ExportName:
-	Construct filename based on name of [first] item and current date/time
+	/*
+	NameDetail:
 	@mod: reference to current Booker module object
-	@item_id: enumerator of the item to process, or array of such, or FALSE if @bkg_id is provided
-	@bkg_id: enumerator of the booking to process, or array of such, or FALSE if @item_id is provided
-	@bkr_id: enumerator of the booker to process, or array of such, or '*', or FALSE
+	@utils: reference to Utils-class object
+	@id: enumerator of the thing being exported, or array of such, or '*'
+	@mode: one of: 'item','booker','booking','fee','history'
+	Returns: string
 	*/
-	public function ExportName(&$mod, $item_id=FALSE, $bkg_id=FALSE, $bkr_id=FALSE)
+	private function NameDetail(&$mod, &$utils, $id, $mode)
 	{
-		$utils = new Utils();
 		$multi = FALSE;
-		if ($item_id) {
-			if (is_array($item_id)) {
-				$item_id = reset($item_id);
-				$multi = TRUE;
-			}
-			$iname = $utils->GetItemNameForID($mod,$item_id);
-		} elseif ($bkg_id) {
-			if (is_array($bkg_id))
-				$bkg_id = reset($bkg_id);
-			$item_id = $utils->GetBookingItemID($mod,$bkg_id);
-			$iname = $utils->GetItemNameForID($mod,$item_id);
-		} elseif ($bkr_id) {
-			if (is_array($bkr_id)) {
-				$bkr_id = reset($bkr_id).'_plus';
-			} elseif ($bkr_id == '*') {
-				$bkr_id = '_all';
-			}
-			$iname = 'Booker'.$bkr_id;
-		} else {
-			return FALSE;
+		if (is_array($id)) {
+			$id = reset($id);
+			$xtra = '_plus';
+		} elseif ($id == '*') {
+			$id = '';
+			$xtra = '_all';
 		}
-		$sname = preg_replace('/\W/','_',$iname);
-		if ($multi)
-			$sname .= '_plus';
-		$datestr = date('Y-m-d-H-i'); //server time
-		return $mod->GetName().$mod->Lang('export').'-'.$sname.'-'.$datestr.'.csv';
+		switch ($mode) {
+		 case 'item':
+		 	if ($id)
+				$name = $utils->GetItemNameForID($mod,$id);
+			else
+				$name = $mod->Lang('title_items');
+			break;
+		 case 'booker':
+		 	if ($id)
+				$name = 'Booker'.$id; //TODO
+			else
+				$name = $mod->Lang('title_bookers');
+			break;
+		 case 'booking':
+		 	if ($id) {
+				if (is_numeric($id))
+					$name = trim($mod->Lang('title_booksfor',$utils->GetItemNameForID($mod,$id),''));
+				else
+					$name = $id;
+			} else
+				$name = $mod->Lang('title_bookings');
+			break;
+		 case 'fee':
+		 case 'history':
+			$name = 'TODO';
+			break;
+		}
+		return $name.$extra;
+	}
+
+	/*
+	FullName:
+	Construct filename based on @detail and current (server) date/time
+	@mod: reference to current Booker module object
+	@detail: specific descriptor
+	Returns: filename string
+	*/
+	private function FullName(&$mod, $detail)
+	{
+		$name = $mod->GetName().$mod->Lang('export');
+		$detail = preg_replace('/\W/','_',$detail);
+		$when = date('Y-m-d-H-i');
+		return $name.'-'.$detail.'-'.$when.'.csv';
 	}
 
 	/*
@@ -110,6 +133,38 @@ class CSV
 				echo $csv;
 			return array(TRUE,'');
 		}
+	}
+
+	/**
+	ExportFees:
+	Export fee(s) properties
+	To avoid field-corruption, existing separators in headings or data are converted
+	to something else, generally like &#...;
+	(except when the separator is '&', '#' or ';', those become %...%)
+	@mod: reference to current Booker module object
+	@fee_id: enumerator of the item to process, or array of such, or '*'
+	@sep: optional field-separator for exported content, assumed single-byte ASCII, default ','
+	Returns: 2-member array, 1st is T/F indicating success, 2nd '' or lang key for message
+	*/
+	public function ExportFees(&$mod, $fee_id, $sep=',')
+	{
+		return array(FALSE,'err_data');
+	}
+
+	/**
+	ExportHistory:
+	Export history data
+	To avoid field-corruption, existing separators in headings or data are converted
+	to something else, generally like &#...;
+	(except when the separator is '&', '#' or ';', those become %...%)
+	@mod: reference to current Booker module object
+	@history_id: enumerator of the item to process, or array of such, or '*'
+	@sep: optional field-separator for exported content, assumed single-byte ASCII, default ','
+	Returns: 2-member array, 1st is T/F indicating success, 2nd '' or lang key for message
+	*/
+	public function ExportHistory(&$mod, $history_id, $sep=',')
+	{
+		return array(FALSE,'err_data');
 	}
 
 	/**
@@ -274,7 +329,8 @@ EOS;
 				//TODO fees and fee-conditions to be appended
 				$outstr .= implode($sep,$stores)."\n";
 			} //foreach $all
-			$fname = self::ExportName($mod,$item_id);
+			$detail = self::NameDetail($mod,$utils,$item_id,'item');
+			$fname = self::FullName($mod,$detail);
 			return self::ExportContent($mod,$fname,$outstr);
 		} //$all
 		return array(FALSE,'err_data');
@@ -392,15 +448,17 @@ EOS;
 				} //foreach $translates
 				$outstr .= implode($sep,$stores).$sep."\n"; //extra $sep for Update column
 			} //foreach $all
-			$fname = self::ExportName($mod,FALSE,FALSE,$booker_id);
+			$detail = self::NameDetail($mod,$utils,$booker_id,'booker');
+			$fname = self::FullName($mod,$detail);
 			return self::ExportContent($mod,$fname,$outstr);
 		} //$all
 		return array(FALSE,'err_data');
 	}
 
-	private function ExtraSQL($bkg_id, $bkr_id, $joiner='AND')
+	private function ExtraSQL($bkg_id, $bkr_id, $xtra=TRUE)
 	{
 		$sql = '';
+		$joiner = ($xtra) ? 'AND':'WHERE';
 		$args = array();
 		if (is_array($bkg_id)) {
 			$fillers = str_repeat('?,',count($bkg_id)-1);
@@ -457,7 +515,7 @@ EOS;
 				$sql .= ' ORDER BY item_id,slotstart';
 			} elseif ($item_id == '*') {
 				if ($bkg_id || $bkr_id) {
-					list($xql,$args) = self::ExtraSQL($bkg_id,$bkr_id,'WHERE');
+					list($xql,$args) = self::ExtraSQL($bkg_id,$bkr_id,FALSE);
 					$sql .= $xql;
 				} else {
 					$args = array();
@@ -477,21 +535,22 @@ EOS;
 		if (!$item_id && $bkg_id) {
 			if (is_array($bkg_id)) {
 				if ($bkr_id) {
-					list($xql,$xarg) = self::ExtraSQL(FALSE,$bkr_id,'WHERE');
+					list($xql,$xarg) = self::ExtraSQL(FALSE,$bkr_id,FALSE);
 					$sql .= $xql.' ORDER BY booker_id,slotstart';
 					$args = array_merge($bkg_id,$xarg);
 				} else
 					$all = $bkg_id;
 			} elseif ($bkg_id == '*') {
 				if ($bkr_id) {
-					list($xql,$args) = self::ExtraSQL(FALSE,$bkr_id,'WHERE');
+					list($xql,$args) = self::ExtraSQL(FALSE,$bkr_id,FALSE);
 					$sql .= $xql.' ORDER BY booker_id,slotstart';
-				} else
+				} else {
 					$args = array();
-				$sql .= ' ORDER BY slotstart';
+					$sql .= ' ORDER BY slotstart';
+				}
 			} else {
 				if ($bkr_id) {
-					list($xql,$xarg) = self::ExtraSQL(FALSE,$bkr_id,'WHERE');
+					list($xql,$xarg) = self::ExtraSQL(FALSE,$bkr_id,FALSE);
 					$sql .= $xql.' ORDER BY booker_id,slotstart';
 					$args = array_merge($args,$xarg);
 				} else
@@ -598,7 +657,19 @@ EOS;
 				}
 				$outstr .= implode($sep,$stores).$sep."\n"; //extra $sep for Update column
 			}
-			$fname = self::ExportName($mod,$item_id,$bkg_id,$bkr_id);
+
+			if($item_id) {
+				$detail = self::NameDetail($mod,$utils,$item_id,'item');
+				if($bkr_id)
+					$detail .= '_'.self::NameDetail($mod,$utils,$bkr_id,'booker');
+				if($bkg_id)
+					$detail .= '_'.self::NameDetail($mod,$utils,$bkg_id,'booking');
+			}
+			elseif($bkr_id)
+				$detail = self::NameDetail($mod,$utils,$bkr_id,'booker');
+			elseif($bkg_id)
+				$detail = self::NameDetail($mod,$utils,$bkg_id,'booking');
+			$fname = self::FullName($mod,$detail);
 			return self::ExportContent($mod,$fname,$outstr);
 		}
 		return array(FALSE,'err_data');
@@ -636,6 +707,30 @@ EOS;
 		if ($some)
 			return $fields;
 		return FALSE; //ignore lines with all fields empty
+	}
+
+	/**
+	ImportFees:
+	Import fees data from uploaded CSV file. Can handle re-ordered columns.
+	@mod: reference to current Booker module object
+	@id: module identifier
+	Returns: 2-member array, 1st is T/F indicating success, 2nd is count of imports or lang key for message
+	*/
+	public function ImportFees(&$mod, $id)
+	{
+			return array(FALSE,'none');
+	}
+
+	/**
+	ImportHistory:
+	Import history data from uploaded CSV file. Can handle re-ordered columns.
+	@mod: reference to current Booker module object
+	@id: module identifier
+	Returns: 2-member array, 1st is T/F indicating success, 2nd is count of imports or lang key for message
+	*/
+	public function ImportHistory(&$mod, $id)
+	{
+			return array(FALSE,'none');
 	}
 
 	/**
@@ -951,7 +1046,7 @@ EOS;
 			//for update checks
 			$exist = $utils->SafeGet('SELECT booker_id,name,publicid FROM '.$mod->BookerTable.' ORDER BY bkr_id',FALSE);
 
-			$funcs = new Userops($mod);
+			$funcs = new Userops();
 			$dt = new \DateTime('now',new \DateTimeZone('UTC'));
 			$st = $dt->getTimestamp();
 //			$skip = FALSE;
