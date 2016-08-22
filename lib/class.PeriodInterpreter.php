@@ -160,25 +160,25 @@ class PeriodInterpreter
 			$t2 = self::MonthDay($ndyear,$ndmonth,$dmax,$c,$dow);
 			$ndday = ($t2 >= 0) ? $t2 : $dmax; //default to end
 		}
-		//DateTime::diff, DateInterval need PHP 5.3+ ATM we allow 5.2
+		$tz = new \DateTimeZone('UTC');
 		$st = gmmktime(0,0,0,$stmonth,$stday,$styear);
-		$stdt = new \DateTime('@'.$st); //zone irrelevant
+		$dts = new \DateTime('@'.$st,$tz);
 		$st = gmmktime(0,0,0,$ndmonth,$ndday,$ndyear);
-		$nddt = new \DateTime('@'.$st);
+		$dte = new \DateTime('@'.$st,$tz);
 		$diff = ($interval == 1) ? '+1 day':'+'.$interval.' days';
 		$yn = FALSE;
 		$doy = FALSE;
 		$ret = array();
-		while ($stdt <= $nddt) {
-			$yt = (int)$stdt->format('Y');
+		while ($dts <= $dte) {
+			$yt = (int)$dts->format('Y');
 			if ($yt != $yn) {
 				if ($doy)
 					$ret[] = array($yn,$doy);
 				$yn = $yt;
 				$doy = array();
 			}
-			$doy[] = (int)$stdt->format('z');
-			$stdt->modify($diff);
+			$doy[] = (int)$dts->format('z');
+			$dts->modify($diff);
 		}
 		if ($doy)
 			$ret[] = array($yn,$doy);
@@ -426,7 +426,7 @@ class PeriodInterpreter
 	public function tester($year, $month, $week, $day)
 	{
 		$ret = array();
-		$dt = new \DateTime('1900-1-1',new \DateTimeZone('UTC'));
+		$dt = new \DateTime('@0',new \DateTimeZone('UTC'));
 		$data = self::YearDays($year,$month,$week,$day);
 		foreach ($data as $row) {
 			$yr = $row[0];
@@ -447,7 +447,7 @@ class PeriodInterpreter
 		$ndyear=FALSE, $ndmonth=FALSE, $ndday=FALSE)
 	{
 		$ret = array();
-		$dt = new \DateTime('1900-1-1',new \DateTimeZone('UTC'));
+		$dt = new \DateTime('@0',new \DateTimeZone('UTC'));
 		$data = self::SuccessiveDays($interval,$styear,$stmonth,$stday,$ndyear,$ndmonth,$ndday);
 		foreach ($data as $row) {
 			$yr = $row[0];
