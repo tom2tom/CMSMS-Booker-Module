@@ -61,7 +61,7 @@ class Itemops
 	private function ClearRecursive(&$mod, &$utils, $gid)
 	{
 		$db = $mod->dbHandle;
-		$members = $db->GetCol('SELECT child FROM '.$mod->GroupTable.' WHERE parent=? ORDER BY proximity DESC',array($gid));
+		$members = $db->GetCol('SELECT child FROM '.$mod->GroupTable.' WHERE parent=? ORDER BY likeorder DESC',array($gid));
 		if ($members) {
 			foreach ($members as $mid) {
 				if ($mid >= \Booker::MINGRPID) {
@@ -73,6 +73,7 @@ class Itemops
 				} else
 					self::ClearItem($mod,$utils,$mid);
 
+			//TODO $utils->SafeExec()
 				$db->Execute('DELETE FROM '.$mod->GroupTable.' WHERE child=? AND parent=?',array($mid,$gid));
 			}
 			unset($members);
@@ -96,7 +97,7 @@ class Itemops
 					self::ClearRecursive($mod,$utils,$one);
 				else
 					self::ClearItem($mod,$utils,$one);
-				$utils->OrderGroups($mod,$db); //cleanup remaining ordinals
+				$utils->OrderGroups($mod); //cleanup remaining ordinals
 			} else {
 				self::ClearItem($mod,$utils,$one);
 			}
@@ -125,7 +126,7 @@ class Itemops
 				$onemore = array(); //lazy recursion!!
 				while ($one >= \Booker::MINGRPID) {
 					$rows = $mod->dbHandle->GetCol('SELECT child FROM '.$mod->GroupTable.
-					' WHERE parent=? ORDER BY proximity',array($one));
+					' WHERE parent=? ORDER BY likeorder',array($one));
 					foreach ($rows as $one) {
 						if ($one >= \Booker::MINGRPID)
 							$onemore[] = $one;
@@ -162,6 +163,7 @@ class Itemops
 		$inact = $db->GetOne($sql,$args);
 		$newstate = ($inact === FALSE || (int)$inact !== 0) ? '1':'0';
 		$sql = 'UPDATE '.$mod->ItemTable.' SET active='.$newstate.' WHERE item_id IN ('.$fillers.') AND active<>2';
+		//TODO $utils->SafeExec()
 		$db->Execute($sql,$args);
 	}
 }
