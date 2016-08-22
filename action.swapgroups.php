@@ -43,7 +43,7 @@ if ($thisargs[0] && $otherargs[0]) {
 		$sql = 'UPDATE '.$this->GroupTable.' SET proximity=? WHERE gid=?';
 	else
 		$sql = 'UPDATE '.$this->GroupTable.' SET likeorder=? WHERE gid=?';
-
+	//TODO $utils->SafeExec()
 	$db->Execute($sql,$thisargs);
 	$db->Execute($sql,$otherargs);
 }
