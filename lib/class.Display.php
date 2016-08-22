@@ -418,11 +418,11 @@ class Display
 				//log distinct users until count users > 1
 				if (!isset($users[1])) {
 					$t = $row['booker_id'];
-					$n = $ufuncs->GetName($t);
+					$n = $ufuncs->GetName($this->mod,$t);
 					if (!in_array($n,$users)) {
 						$users[] = $n;
 						//log corresponding displayclass
-						$displayclass[] = $ufuncs->GetDisplayClass($t);
+						$displayclass[] = $ufuncs->GetDisplayClass($this->mod,$t);
 					}
 				}
 				//log distinct resource id's
@@ -616,7 +616,7 @@ class Display
 		} else {
 			$bookob = FALSE;
 		}
-		$funcs = new Userops($this->mod);
+		$funcs = new Userops();
 
 		$this->rangefmt = $this->mod->Lang('showrange'); //cache for CellFill()
 		$rels = array('+1 day','+7 days','+1 month','+1 year');
