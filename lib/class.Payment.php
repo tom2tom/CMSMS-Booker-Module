@@ -10,18 +10,16 @@ namespace Booker;
 class Payment
 {
 	//$data1,$data2 are arrays of 3 arrays, respective start-stamps, end-stamps, rules
-	//$funcs is reference to Inherit-class object
+	//$funcs is reference to Blocks-class object
 	private function IntersectsTotal($data1, $data2, &$funcs, $calcer) //PHP 5.4+ supports callable typehint
 	{
 		array_multisort($data1[0],SORT_ASC,SORT_NUMERIC,$data1[1],$data1[2]);
 		array_multisort($data2[0],SORT_ASC,SORT_NUMERIC,$data2[1],$data2[2]);
 		//determine $data1,$data2 intersects & corresponding rule(s)
-		$res = $funcs->BlockIntersects2Ruled(
+		list($starts,$ends,$rules1,$rules2) = $funcs->BlockIntersects2Ruled(
 			$data1[0],$data1[1],$data1[2],$data2[0],$data2[1],$data2[2]);
-
 		$total = 0.0;
-		if ($res) {
-			list($starts,$ends,$rules1,$rules2) = $res;
+		if ($starts) {
 			foreach ($starts as $i=>$st) {
 				$slen = $ends[$i] - $st;
 				$total += $calcer($slen,$rules1[$i],$rules2[$i]);
@@ -101,7 +99,7 @@ class Payment
 	*/
 	public function Amounts(&$mod,$item_id,$booker_id,$slotstart,$slotlen)
 	{
-		$funcs = new Booker\Inherit();
+		$funcs = new Blocks();
 		$sql = <<<EOS
 SELECT slottype,slotcount,fee,feecondition FROM {$mod->FeeTable}
 WHERE condtype=0 AND active>0
@@ -110,7 +108,11 @@ EOS;
 		$rules = $mod->dbHandle->GetArray($sql);
 		if ($rules) {
 			$this->ParseIntervals($rules);
-			$dtdata = $funcs->RangeInheritRuled($slotstart,$slotlen,$item_id,$rules);
+			$utils = new Utils();
+			$idata = $utils->GetItemProperty($mod,$item_id,'*');
+			$dtdata = $funcs->RepeatRuledBlocks($mod,$idata,$slotstart,$slotlen,$rules);
+			if ($dtdata[0] == FALSE)
+				$dtdata = FALSE;
 		} else {
 			$dtdata = FALSE;
 		}
@@ -123,7 +125,9 @@ EOS;
 		$rules = $mod->dbHandle->GetArray($sql);
 		if ($rules) {
 			$this->ParseIntervals($rules);
-			$udata = $funcs->RangeInheritRuled($slotstart,$slotlen,$booker_id,$rules);
+			$udata = $funcs->UserRuledBlocks($slotstart,$slotlen,$rules);
+			if ($udata[0] == FALSE)
+				$udata = FALSE;
 		} else {
 			$udata = FALSE;
 		}
@@ -203,6 +207,7 @@ EOS;
 				$amount,
 				\Booker::STATCREDITADDED
 			);
+			//TODO $utils->SafeExec()
 			$mod->dbHandle->Execute($sql,$args);
 		}
 	}
@@ -251,6 +256,7 @@ EOS;
 	{
 		$sql = 'UPDATE '.$mod->HistoryTable.' SET status='.\Booker::STATCREDITEXPIRED.
 		' WHERE booker_id=? AND status='.\Booker::STATCREDITADDED.' AND lodged<?';
+		//TODO $utils->SafeExec()
 		$mod->dbHandle->Execute($sql,array($booker_id,$limit));
 	}
 }
