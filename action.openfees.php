@@ -14,7 +14,7 @@ if (!function_exists('getfeedata')) {
 	if (!isset($params['condition_id'])) {
 		global $db;
 		$sql = 'SELECT * FROM '.$mod->FeeTable.' WHERE item_id=? ORDER BY condorder';
-		return $db->GetAll($sql,array($item_id));
+		return $db->GetArray($sql,array($item_id));
 	}
 	return mergefeedata($params,$item_id);
  }
@@ -135,7 +135,7 @@ $params = array of all item/group properties, including 'active_tab'
 	$sel = FALSE;
 }
 
-$funcs = new Booker\Utils();
+$utils = new Booker\Utils();
 
 if (isset($params['submit'])) {
 /*$params = array
@@ -167,7 +167,7 @@ feecondition,
 condorder,
 active
 ) VALUES (?,?,?,?,?,?,?,?,?,?)';
-		$sql2 = 'UPDATE '.$mod->FeeTable.' SET 
+		$sql2 = 'UPDATE '.$mod->FeeTable.' SET
 signature=?
 description=?,
 slottype=?,
@@ -208,7 +208,7 @@ WHERE condition_id=?';
 				$cid = $db->GenID($this->FeeTable.'_seq');
 				if ($relfee)
 					$one['fee'] = NULL; //no basis for relative fee in new conditions
-				$sig = $funcs->GetFeeSignature($one);
+				$sig = $utils->GetFeeSignature($one);
 				$allargs[] = array(
 				 $cid,
 				 $item_id,
@@ -224,7 +224,7 @@ WHERE condition_id=?';
 			} else { //existing fee-item
 				$allsql[] = $sql2;
 				if ($relfee) {
-					$now = $funcs->GetItemFee($this,$item_id,TRUE,'ID<:>'.$one['condition_id']);//re-get current fee, inherited if needed
+					$now = $utils->GetItemFee($this,$item_id,TRUE,'ID<:>'.$one['condition_id']);//re-get current fee, inherited if needed
 					if ($now !== FALSE) {
 						$t = trim($one['fee']);
 						$r = preg_replace('/(%|'.$lp.')$/','',$t);
@@ -236,7 +236,7 @@ WHERE condition_id=?';
 					} else
 						$one['fee'] = NULL;
 				}
-				$sig = $funcs->GetFeeSignature($one);
+				$sig = $utils->GetFeeSignature($one);
 				$allargs[] = array(
 				 $sig,
 				 $one['description'],
@@ -277,16 +277,16 @@ WHERE condition_id=?';
 				}
 			}
 		}
-		$funcs->SafeExec($allsql,$allargs);
+		$utils->SafeExec($allsql,$allargs);
 	} else { //no fee-data now, clear from table
 		if (isset($params['sel'])) {
 			$sel = json_decode($params['sel']); //array
 			$fillers = str_repeat('?,',count($sel)-1);
 			$sql = $sql0.$fillers.'?)';
-			$db->Execute($sql,$sel);
+			$utils->SafeExec($sql,$sel);
 		} else {
 			$sql = $sql0.'?)';
-			$db->Execute($sql,array($item_id));
+			$utils->SafeExec($sql,array($item_id));
 		}
 	}
 	if (isset($params['sel'])) {
@@ -350,7 +350,7 @@ if ($pmod) {
 	$key = ($is_group) ? 'title_feesee2' : 'title_feesee';
 }
 
-$t = $funcs->GetItemNameForID($this,$item_id);
+$t = $utils->GetItemNameForID($this,$item_id);
 $tplvars['title'] = $this->Lang($key,$t);
 
 $jsloads = array();
@@ -431,7 +431,7 @@ if ($pdata) {
 		}
 		$items[] = $oneset;
 	}
-	
+
 	$tplvars = $tplvars + array(
 	//'intro' => $this->Lang('feeintro'),
 	'intro' => $this->Lang('help_fees').'<br />'.$this->Lang('help_feeconditions'),
@@ -465,8 +465,7 @@ if ($pmod) {
 			$tplvars['selectall'] = $this->CreateInputCheckbox($id,'item',1,-1,
 			'title="'.$this->Lang('selectall').'" onclick="select_all_itm(this)"');
 			$jsfuncs[] = <<<EOS
-function select_all_itm(b)
-{
+function select_all_itm(b) {
  var st = $(b).attr('checked');
  if (!st) st = false;
  $('input[name^="{$id}selfees"][type="checkbox"]').attr('checked', st);
@@ -475,20 +474,17 @@ function select_all_itm(b)
 EOS;
 		$tplvars['dndhelp'] = $this->Lang('help_dnd');
 		}
-	
+
 		$t = $this->Lang('delsel_confirm',$t);
 		$jsfuncs[] = <<<EOS
-function selitm_count()
-{
+function selitm_count() {
  var cb = $('input[name^="{$id}selfees"]:checked');
  return cb.length;
 }
-function confirm_selitm_count()
-{
+function confirm_selitm_count() {
  return (selitm_count() > 0);
 }
-function confirm_delete_item()
-{
+function confirm_delete_item() {
  if (selitm_count() > 0)
   return confirm('{$t}');
  return false;
@@ -530,7 +526,7 @@ EOS;
   var to = now.indexOf('hover');
   $(this).attr('class', now.substring(0,to));
  });
- 
+
 EOS;
 	}//$count > 0
 } else {
