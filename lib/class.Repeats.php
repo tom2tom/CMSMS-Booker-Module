@@ -336,7 +336,7 @@ no FALSE in $ends[]
 	Returns: array of parameters: latitude, longitude, zoneoffset-hours
 	 the latter is determined as of @at
 	*/
-	public function SunParms(&$idata,$at='now')
+	public function SunParms(&$idata, $at='now')
 	{
 		$zone = $idata['timezone'];
 		if (!$zone)
