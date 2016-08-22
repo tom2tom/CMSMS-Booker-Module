@@ -965,6 +965,72 @@ match-array(s) have
 	}
 
 	/*
+	AdminMonthNames:
+
+	Get one, or array of, localised month-name(s).
+	This is for admin use, the frontend locale may not be the same and/or supported
+	by the server.
+
+	@which: 1 (for January) .. 12 (for December), or array of such indices
+	@full: optional, whether to get long-form name, default TRUE
+	*/
+	private function AdminMonthNames($which, $full=TRUE)
+	{
+		$ret = array();
+		//OK to use non-localised times in this context
+		$stamp = time();
+		$thism = date('n',$stamp); //1 to 12 representing January .. December
+		if (!is_array($which))
+			$which = array($which);
+		$f = ($full) ? 'F' : 'M';
+		foreach ($which as $month) {
+			$offs = $month-$thism;
+			if ($offs < 0)
+				$ret[] = date($f,strtotime($offs.' months',$stamp));
+			elseif ($offs > 0)
+				$ret[] = date($f,strtotime('+'.$offs.' months',$stamp));
+			else
+				$ret[] = date($f,$stamp);
+		}
+		if (count($which) > 1)
+			return $ret;
+		return(reset($ret));
+	}
+
+	/*
+	AdminDayNames:
+
+	Get one, or array of, localised day-name(s).
+	This is for admin use, the frontend locale may not be the same and/or supported
+	by the server.
+
+	@which: 1 (for Sunday) .. 7 (for Saturday), or array of such indices
+	@full: optional whether to get long-form name default TRUE
+	*/
+	private function AdminDayNames($which, $full=TRUE)
+	{
+		$ret = array();
+		//OK to use non-localised times in this context
+		$stamp = time();
+		$today = date('w',$stamp); //0 to 6 representing the day of the week Sunday = 0 .. Saturday = 6
+		if (!is_array($which))
+			$which = array($which);
+		$f = ($full) ? 'l' : 'D';
+		foreach ($which as $day) {
+			$offs = $day-$today-1;
+			if ($offs < 0)
+				$ret[] = date($f,strtotime($offs.' days',$stamp));
+			elseif ($offs > 0)
+				$ret[] = date($f,strtotime('+'.$offs.' days',$stamp));
+			else
+				$ret[] = date($f,$stamp);
+		}
+		if (count($which) > 1)
+			return $ret;
+		return(reset($ret));
+	}
+
+	/*
 	Lex:
 
 	Parse repeition-descriptor @descriptor into $this->conds.
@@ -1307,72 +1373,6 @@ match-array(s) have
 	}
 
 	//========== PUBLIC FUNCS ===========
-
-	/**
-	AdminMonthNames:
-
-	Get one, or array of, localised month-name(s).
-	This is for admin use, the frontend locale may not be the same and/or supported
-	by the server.
-
-	@which: 1 (for January) .. 12 (for December), or array of such indices
-	@full: optional, whether to get long-form name, default TRUE
-	*/
-	public function AdminMonthNames($which, $full=TRUE)
-	{
-		$ret = array();
-		//OK to use non-localised times in this context
-		$stamp = time();
-		$thism = date('n',$stamp); //1 to 12 representing January .. December
-		if (!is_array($which))
-			$which = array($which);
-		$f = ($full) ? 'F' : 'M';
-		foreach ($which as $month) {
-			$offs = $month-$thism;
-			if ($offs < 0)
-				$ret[] = date($f,strtotime($offs.' months',$stamp));
-			elseif ($offs > 0)
-				$ret[] = date($f,strtotime('+'.$offs.' months',$stamp));
-			else
-				$ret[] = date($f,$stamp);
-		}
-		if (count($which) > 1)
-			return $ret;
-		return(reset($ret));
-	}
-
-	/**
-	AdminDayNames:
-
-	Get one, or array of, localised day-name(s).
-	This is for admin use, the frontend locale may not be the same and/or supported
-	by the server.
-
-	@which: 1 (for Sunday) .. 7 (for Saturday), or array of such indices
-	@full: optional whether to get long-form name default TRUE
-	*/
-	public function AdminDayNames($which, $full=TRUE)
-	{
-		$ret = array();
-		//OK to use non-localised times in this context
-		$stamp = time();
-		$today = date('w',$stamp); //0 to 6 representing the day of the week Sunday = 0 .. Saturday = 6
-		if (!is_array($which))
-			$which = array($which);
-		$f = ($full) ? 'l' : 'D';
-		foreach ($which as $day) {
-			$offs = $day-$today-1;
-			if ($offs < 0)
-				$ret[] = date($f,strtotime($offs.' days',$stamp));
-			elseif ($offs > 0)
-				$ret[] = date($f,strtotime('+'.$offs.' days',$stamp));
-			else
-				$ret[] = date($f,$stamp);
-		}
-		if (count($which) > 1)
-			return $ret;
-		return(reset($ret));
-	}
 
 	/**
 	ParseCondition:
