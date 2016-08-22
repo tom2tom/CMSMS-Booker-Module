@@ -169,6 +169,7 @@ EOS;
 
 	/**
 	TotalCredit:
+	see also Histops::TotalCredit()
 	@mod: reference to Booker module object
 	@booker_id: booker identifier
 	*/
@@ -214,6 +215,7 @@ EOS;
 
 	/**
 	UseCredit:
+	see also Histops::UseCredit()
 	@mod: reference to Booker module object
 	@booker_id: booker identifier
 	@amount: amount of credit to be adjusted
@@ -248,11 +250,12 @@ EOS;
 
 	/**
 	ExpireCredit:
+	see also Histops::ExpireCredit()
 	@mod: reference to Booker module object
 	@booker_id: booker identifier
-	@oldest: UTC timestamp for oldest remaining credit
+	@before: UTC timestamp for limit on remaining credit
 	*/
-	public function ExpireCredit(&$mod, $booker_id, $oldest)
+	public function ExpireCredit(&$mod, $booker_id, $before)
 	{
 		$sql = 'UPDATE '.$mod->HistoryTable.' SET status='.\Booker::STATCREDITEXPIRED.
 		' WHERE booker_id=? AND status='.\Booker::STATCREDITADDED.' AND lodged<?';
