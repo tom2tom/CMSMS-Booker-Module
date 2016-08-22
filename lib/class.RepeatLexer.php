@@ -264,7 +264,7 @@ class RepeatLexer
 	single value L(==H) or FALSE upon error.
 	The second/middle array value '.' is a flag, for further processors, that the
 	array represents a range. L and/or H are not interpreted in any way, except
-that incomplete date-values will be populated.
+	that incomplete date-values will be populated.
 	*/
 	private function ParsePeriodSequence($str, $getstr=TRUE)
 	{
@@ -965,40 +965,7 @@ match-array(s) have
 	}
 
 	/*
-	AdminMonthNames:
-
-	Get one, or array of, localised month-name(s).
-	This is for admin use, the frontend locale may not be the same and/or supported
-	by the server.
-
-	@which: 1 (for January) .. 12 (for December), or array of such indices
-	@full: optional, whether to get long-form name, default TRUE
-	*/
-	private function AdminMonthNames($which, $full=TRUE)
-	{
-		$ret = array();
-		//OK to use non-localised times in this context
-		$stamp = time();
-		$thism = date('n',$stamp); //1 to 12 representing January .. December
-		if (!is_array($which))
-			$which = array($which);
-		$f = ($full) ? 'F' : 'M';
-		foreach ($which as $month) {
-			$offs = $month-$thism;
-			if ($offs < 0)
-				$ret[] = date($f,strtotime($offs.' months',$stamp));
-			elseif ($offs > 0)
-				$ret[] = date($f,strtotime('+'.$offs.' months',$stamp));
-			else
-				$ret[] = date($f,$stamp);
-		}
-		if (count($which) > 1)
-			return $ret;
-		return(reset($ret));
-	}
-
-	/*
-	AdminDayNames:
+	DayNames:
 
 	Get one, or array of, localised day-name(s).
 	This is for admin use, the frontend locale may not be the same and/or supported
@@ -1007,7 +974,7 @@ match-array(s) have
 	@which: 1 (for Sunday) .. 7 (for Saturday), or array of such indices
 	@full: optional whether to get long-form name default TRUE
 	*/
-	private function AdminDayNames($which, $full=TRUE)
+	private function DayNames($which, $full=TRUE)
 	{
 		$ret = array();
 		//OK to use non-localised times in this context
@@ -1022,6 +989,39 @@ match-array(s) have
 				$ret[] = date($f,strtotime($offs.' days',$stamp));
 			elseif ($offs > 0)
 				$ret[] = date($f,strtotime('+'.$offs.' days',$stamp));
+			else
+				$ret[] = date($f,$stamp);
+		}
+		if (count($which) > 1)
+			return $ret;
+		return(reset($ret));
+	}
+
+	/*
+	MonthNames:
+
+	Get one, or array of, localised month-name(s).
+	This is for admin use, the frontend locale may not be the same and/or supported
+	by the server.
+
+	@which: 1 (for January) .. 12 (for December), or array of such indices
+	@full: optional, whether to get long-form name, default TRUE
+	*/
+	private function MonthNames($which, $full=TRUE)
+	{
+		$ret = array();
+		//OK to use non-localised times in this context
+		$stamp = time();
+		$thism = date('n',$stamp); //1 to 12 representing January .. December
+		if (!is_array($which))
+			$which = array($which);
+		$f = ($full) ? 'F' : 'M';
+		foreach ($which as $month) {
+			$offs = $month-$thism;
+			if ($offs < 0)
+				$ret[] = date($f,strtotime($offs.' months',$stamp));
+			elseif ($offs > 0)
+				$ret[] = date($f,strtotime('+'.$offs.' months',$stamp));
 			else
 				$ret[] = date($f,$stamp);
 		}
@@ -1068,11 +1068,11 @@ match-array(s) have
 		}
 	*/
 		//NB some of these may be wrong, due to locale race on threaded web-server
-		$longdays = self::AdminDayNames($gets);
-		$shortdays = self::AdminDayNames($gets,FALSE);
+		$longdays = self::DayNames($gets);
+		$shortdays = self::DayNames($gets,FALSE);
 		$gets = range(1,12);
-		$longmonths = self::AdminMonthNames($gets);
-		$shortmonths = self::AdminMonthNames($gets,FALSE);
+		$longmonths = self::MonthNames($gets);
+		$shortmonths = self::MonthNames($gets,FALSE);
 		unset($gets);
 		//TODO caseless match for these, based on locale from somewhere
 		$specials = array(
