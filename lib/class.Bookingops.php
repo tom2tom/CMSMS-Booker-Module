@@ -234,16 +234,6 @@ EOS;
 		return array(FALSE,$mod->Lang('err_data'));
 	}
 
-	private function CurrentBookingUser(&$mod, &$params)
-	{
-		$sql = <<<EOS
-SELECT B.name FROM {$mod->BookerTable} B
-JOIN {$mod->DataTable} D ON B.booker_id=D.booker_id
-WHERE D.bkg_id=?
-EOS;
-		return $mod->dbHandle->GetOne($sql,array($params['bkg_id']));
-	}
-
 	/**
 	ConformBookingData:
 	Conform tabled values: contact,displayclass and/or user according to @params values
@@ -254,10 +244,11 @@ EOS;
 	public function ConformBookingData(&$mod, &$params)
 	{
 		$utils = new Utils();
+		$funcs = new Userops();
 		$old = FALSE;
 		$ret = TRUE;
 		if (!empty($params['conformuser'])) {
-			$old = self::CurrentBookingUser($mod,$params);
+			$old = $funcs->GetName($mod,$params['bkg_id']);
 			if (!$old) return FALSE;
 			$sql2 = '';
 			$args = array();
@@ -272,30 +263,24 @@ EOS;
 			if (!$utils->SafeExec($sql,$args)) {
 				$ret = FALSE;
 			} elseif(!(empty($params['publicid']) || empty($params['passwd']))) {
-					$ufuncs->SetPassword ($old,'FORCE',$params['passwd']); //TODO ufuncs
+				$ret = $funcs->SetPassword($mod,$old,'FORCE',$params['passwd']);
 			}
 		}
 
 		if (!empty($params['conformcontact'])) {
 			if (!$old) {
-				$old = self::CurrentBookingUser($mod,$params);
+				$old = $funcs->GetName($mod,$params['bkg_id']);
 				if (!$old) return FALSE;
 			}
-			$sql = 'UPDATE '.$mod->BookerTable.' SET address=?,phone=? WHERE booker_id=?';
-			$args = array(trim($params['address']),trim($params['phone']),$old);
-			if (!$utils->SafeExec($sql,$args))
-				$ret = FALSE;
+			$ret = $ret && $funcs->SetContact($mod,$old,array(trim($params['address']),trim($params['phone'])));
 		}
 
 		if (!empty($params['conformstyle'])) {
 			if (!$old) {
-				$old = self::CurrentBookingUser($mod,$params);
+				$old = $funcs->GetName($mod,$params['bkg_id']);
 				if (!$old) return FALSE;
 			}
-			$sql = 'UPDATE '.$mod->BookerTable.' SET displayclass=? WHERE booker_id=?';
-			$args = array((int)$params['displayclass'],$old);
-			if (!$utils->SafeExec($sql,$args))
-				$ret = FALSE;
+			$ret = $ret && $funcs->SetDisplayClass($mod,$old,(int)$params['displayclass']);
 		}
 		return $ret;
 	}
@@ -311,8 +296,8 @@ EOS;
 	public function SaveBkg(&$mod, &$params, $is_new)
 	{
 		if (empty($params['booker_id'])) {
-	 		$funcs = new Userops($mod);
-			list($booker_id,$newbooker) = $funcs->GetParamsID($params);
+	 		$funcs = new Userops();
+			list($booker_id,$newbooker) = $funcs->GetParamsID($mod,$params);
 			if ($booker_id === FALSE) {
 				//TODO nicely handle bad password e.g. message
 				sleep(2);
