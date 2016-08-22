@@ -21,7 +21,7 @@ class Repeats extends RepeatLexer
 
 	@cond: member of parent::conds[] with parsed components of an interval-descriptor
 		=>['P'] will be populated, =>['T'] may be populated
-	@dtbase:  resource-local DateTime object representing start of period-segment,
+	@dts: resource-local DateTime object representing start of period-segment,
 		providing base for relative calcs
 	@ss: stamp for start of period being processed
 	@se: stamp for one-past-end of period being processed
@@ -29,7 +29,7 @@ class Repeats extends RepeatLexer
 	@starts: reference to array of block-start timestamps to be updated
 	@ends: reference to array of block-end timestamps to be updated
 	*/
-	private function AllBlocks($cond, $dtbase, $ss, $se, &$sunparms, &$starts, &$ends)
+	private function AllBlocks($cond, $dts, $ss, $se, &$sunparms, &$starts, &$ends)
 	{
 /*TODO convert $cond e.g.
  array
@@ -148,9 +148,9 @@ no FALSE in $ends[]
 	@starts: reference to array of block-start timestamps to be updated
 	@ends: reference to array of block-end timestamps to be updated
 	*/
-	private function TimeBlocks($timedata, $dtbase, $ss, $se, &$sunparms, &$starts, &$ends)
+	private function TimeBlocks($timedata, $dts, $ss, $se, &$sunparms, &$starts, &$ends)
 	{
-		$dtw = clone $dtbase;
+		$dtw = clone $dts;
 		if (is_array($timedata))
 			$parts = array($timedata[0][0],$timedata[0][2]); //TODO CHECKME
 		elseif (strpos($timedata,'..') !== FALSE)
@@ -162,7 +162,7 @@ no FALSE in $ends[]
 			$dtw->modify('+1 hour');
 			$parts = array($timedata,$dtw->format('G:i'));
 		}
-		$tbase = $dtbase->getTimestamp();
+		$tbase = $dts->getTimestamp();
 		//block-start
 		if (strpos($parts[0],'R') !== FALSE) {
 			$revert = $tbase;
@@ -208,50 +208,62 @@ no FALSE in $ends[]
 			$ends[] = $se;
 	}
 
-	/*
+	/**
 	GetBlocks:
-	Interpret $this->conds into 2 arrays of timestamps, representing starts and
-	corresponding ends of datetime-blocks conforming to parent::conds[] and
-	in interval from @dtstart to immediately before @dtend
-	@dtstart: datetime object representing resource-local start of period being
+	Interpret parent::conds into seconds-blocks covering the interval from
+	@dts to immediately (1-sec) before @dte.
+	@dts: datetime object representing resource-local start of period being
 		processed, not necessarily a midnight
-	@dtend: datetime object representing resource-local one-past-end of the period,
+	@dte: datetime object representing resource-local one-past-end of the period,
 		not necessarily a midnight
 	@sunparms: reference to array of parameters for sun-related time calcs
+	@defaultall: optional boolean, whether to return, if parent::conds is not set,
+	the whole interval as one block instead of empty arrays, default FALSE
+	Returns: 2-member array:
+	 [0] = timestamps representing block-starts
+	 [1] = timestamps for corresponding block-ends (NOT 1-past)
+	BUT both arrays will be empty upon error
 	*/
-	private function GetBlocks($dtstart, $dtend, &$sunparms)
+	public function GetBlocks($dts, $dte, &$sunparms, $defaultall=FALSE)
 	{
 		$starts = array();
 		$ends = array();
-		if ($dtstart >= $dtend)
+		if ($dts >= $dte)
 			return array($starts,$ends);
 		//assuming there may be specific time(s) involved, we use day-wise interrogation
 		//day-walker
-		$dws = clone $dtstart;
+		$dws = clone $dts;
 		$dws->SetTime(0,0,0); //ensure that-day-start
 		//end-checker
-		$dwe = clone $dtend;
+		$dwe = clone $dte;
 		$dwe->SetTime(0,0,0);
-		if ($dwe != $dtend) //ensure next-day-start
+		if ($dwe != $dte) //ensure next-day-start
 			$dwe->modify('+1 day');
 		//worker
 		$dtw = clone $dws;
 		//stamps for period limit checks
-		$ss = $dtstart->getTimestamp();
-		$se = $dtend->getTimestamp();
-		//get parameters for time interpretation
+		$ss = $dts->getTimestamp();
+		$se = $dte->getTimestamp();
+		if ($this->conds) {
+			//get parameters for time interpretation
 //	$maxhours = self::GetSlotHours($item_id); TODO $item_id
-		while ($dws < $dwe) {
-			//update scratchpad for offsets from $dws
-			$dtw->setTimestamp($dws->getTimestamp());
-			foreach ($this->conds as &$one) {
-				if ($one['T'] && !$one['P']) {
-					//time only, any period (BUT maybe day-specific due to sun-related times)
-					self::TimeBlocks($one['T'],$dtw,$ss,$se,$sunparms,$starts,$ends); } else {
-					self::AllBlocks($one,$dtw,$ss,$se,$sunparms,$starts,$ends); }
+			while ($dws < $dwe) {
+				//update scratchpad for offsets from $dws
+				$dtw->setTimestamp($dws->getTimestamp());
+				foreach ($this->conds as &$one) {
+					if ($one['T'] && !$one['P']) {
+						//time only, any period (BUT maybe day-specific due to sun-related times)
+						self::TimeBlocks($one['T'],$dtw,$ss,$se,$sunparms,$starts,$ends);
+					} else {
+						self::AllBlocks($one,$dtw,$ss,$se,$sunparms,$starts,$ends);
+					}
+				}
+				unset($one);
+				$dws->modify('+1 day'); //CHECKME longer interval in some cases?
 			}
-			unset($one);
-			$dws->modify('+1 day'); //CHECKME longer interval in some cases?
+		} elseif ($defaultall) {
+			$starts[] = $ss;
+			$ends[] = $se-1;
 		}
 		return array($starts,$ends);
 	}
@@ -368,11 +380,11 @@ Astronomical twilight $zenith=108.0;
 	parent::CheckCondition() or ::ParseCondition() must be called before this func.
 
 	@idata: reference to array of data (possibly inherited) for a resource or group
-	@dtstart: datetime object resource-local preferred/first start time
-	@dtend: optional, datetime object resource-local preferred/first end time, default FALSE
+	@dts: datetime object resource-local preferred/first start time
+	@dte: optional, datetime object resource-local preferred/first end time, default FALSE
 	@length: optional length (seconds) of time period to be checked, default 0
 	*/
-/*	public function IntervalComplies(&$idata, $dtstart, $dtend=FALSE, $length=0)
+/*	public function IntervalComplies(&$idata, $dts, $dte=FALSE, $length=0)
 	{
 		if ($this->conds == FALSE)
 			return FALSE;
@@ -401,11 +413,11 @@ Astronomical twilight $zenith=108.0;
 	parent::CheckCondition() or ::ParseCondition() must be called before this func.
 
 	@idata: reference to array of data (possibly inherited) for a resource or group
-	@dtstart: datetime object resource-local preferred/first start time
-	@dtend: optional, datetime object resource-local preferred/first start time, default FALSE
+	@dts: datetime object resource-local preferred/first start time
+	@dte: optional, datetime object resource-local preferred/first start time, default FALSE
 	@length: optional length (seconds) of time period to be discovered, default 0
 	*/
-/*	public function NextInterval(&$idata, $dtstart, $dtend=FALSE, $length=0)
+/*	public function NextInterval(&$idata, $dts, $dte=FALSE, $length=0)
 	{
 		if ($this->conds == FALSE)
 			return FALSE;
@@ -454,61 +466,54 @@ Astronomical twilight $zenith=108.0;
 	/**
 	AllIntervals:
 	Get array of pairs of timestamps representing conforming time-blocks in the
-	 interval starting at @dtstart and ending 1-second before @dtend
+	 interval starting at @dts and ending 1-second before @dte
 	@descriptor: interval-language string to be interpreted, or some variety of FALSE
-	@dtstart: datetime object for UTC start (midnight) of 1st day of period being processed
-	@dtend: datetime object representing 1-second after the end of the period of interest
+	@dts: datetime object for UTC start (midnight) of 1st day of period being processed
+	@dte: datetime object representing 1-second after the end of the period of interest
 	@sunparms: reference to array of parameters from self::SunParms, used in sun-related time calcs
 	@defaultall: optional boolean, whether to return, upon some sort of problem,
-		a single-pair array covering the whole period, instead of empty array, default FALSE
-	Returns: array of pair[s] of UTC timestamps, [each pair] having
-	 1st-member = first second of a complying interval during the period
-	 2nd-member = corresponding last second
-	 OR OPTIONALLY
-	 empty array if no descriptor, or parsing fails
+		arrays representing the whole period instead of FALSE, default FALSE
+	Returns: array with 2 members
+	 [0] = array of UTC timestamps for starts of complying intervals during the period
+	 [1] = array of corresponding stamps for interval-last-seconds (NOT 1-past)
+	 OR FALSE if no descriptor, or parsing fails, and @defaultall is FALSE
 	*/
-	public function AllIntervals($descriptor, $dtstart, $dtend, &$sunparms, $defaultall=FALSE)
+	public function AllIntervals($descriptor, $dts, $dte, &$sunparms, $defaultall=FALSE)
 	{
 		//limiting timestamps
-		$st = $dtstart->getTimestamp();
-		$nd = $dtend->getTimestamp();
+		$st = $dts->getTimestamp();
+		$nd = $dte->getTimestamp();
 		if ($descriptor) {
-			if (parent::ParseCondition($descriptor/*,$locale*/)) {
+			if (parent::ParseCondition($descriptor)) {
 				//get block-ends timestamps for $descriptor and over time-interval
-				list($starts,$ends) = self::GetBlocks($dtstart,$dtend,$sunparms); //TODO sunparms offset may change during interval
+				list($starts,$ends) = self::GetBlocks($dts,$dte,$sunparms,$defaultall); //TODO sunparms offset may change during interval
 				//sort block-pairs, merge when needed
 				self::MergeBlocks($starts,$ends);
-				//migrate
-				$stamps = array();
-				foreach ($starts as $i=>$one) {
-					$stamps[] = $one;
-					$stamps[] = $ends[$i];
-				}
-				return $stamps;
+				return array($starts,$ends);
 			}
 		}
 		//nothing to report
 		if ($defaultall)
-			return array((int)$st,(int)$nd-1);
-		return array();
+			return array(array($st),array($nd));
+		return FALSE;
 	}
 
 	/**
 	NextInterval:
 	Get pair of timestamps representing the earliest conforming time-block in the
-	 interval starting at @dtstart and ending 1-second before @dtend
+	 interval starting at @dts and ending 1-second before @dte
 	@descriptor: interval-language string to be interpreted, or some variety of FALSE
 	@slotlen: length (seconds) of wanted block
-	@dtstart: datetime object for UTC start (midnight) of 1st day of period being processed
-	@dtend: datetime object representing 1-second after the end of the period of interest
+	@dts: datetime object for UTC start (midnight) of 1st day of period being processed
+	@dte: datetime object representing 1-second after the end of the period of interest
 	@sunparms: reference to array of parameters from self::SunParms, used in sun-related time calcs
 	Returns: array with 2 timestamps, or FALSE
 	*/
-	public function NextInterval($descriptor, $slotlen, $dtstart, $dtend, &$sunparms)
+	public function NextInterval($descriptor, $slotlen, $dts, $dte, &$sunparms)
 	{
 		//limiting timestamps
-		$st = $dtstart->getTimestamp();
-		$nd = $dtend->getTimestamp();
+		$st = $dts->getTimestamp();
+		$nd = $dte->getTimestamp();
 		if ($descriptor) {
 			if (parent::ParseCondition($descriptor/*,$locale*/)) {
 			//TODO
@@ -522,15 +527,15 @@ Astronomical twilight $zenith=108.0;
 
 	/**
 	IntervalComplies:
-	Determine whether the time-block starting at @dtstart and ending 1-second
-	 before @dtend is consistent with @descriptor
+	Determine whether the time-block starting at @dts and ending 1-second
+	 before @dte is consistent with @descriptor
 	@descriptor: interval-language string to be interpreted, or some variety of FALSE
-	@dtstart: datetime object for UTC start (midnight) of 1st day of period being processed
-	@dtend: datetime object representing 1-second after the end of the period of interest
+	@dts: datetime object for UTC start (midnight) of 1st day of period being processed
+	@dte: datetime object representing 1-second after the end of the period of interest
 	@sunparms: reference to array of parameters from self::SunParms, used in sun-related time calcs
 	Returns: boolean
 	*/
-	public function IntervalComplies($descriptor, $dtstart, $dtend, &$sunparms)
+	public function IntervalComplies($descriptor, $dts, $dte, &$sunparms)
 	{
 		if ($descriptor) {
 			if (parent::ParseCondition($descriptor/*,$locale*/)) {
