@@ -13,7 +13,7 @@ class Userops
 
 	private function gettype(&$mod, $booker_id)
 	{
-		$r = $mod->dbHandle->GetOne('SELECT type FROM '.$mod->BookerTable.' WHERE booker_id=? AND active=1',
+		$r = $mod->dbHandle->GetOne('SELECT type FROM '.$mod->BookerTable.' WHERE booker_id=?',
 			array($booker_id));
 		return ($r) ? $r:FALSE;
 	}
@@ -309,7 +309,7 @@ class Userops
 	*/
 	public function GetName(&$mod, $booker_id)
 	{
-		$r = $mod->dbHandle->GetOne('SELECT name FROM '.$mod->BookerTable.' WHERE booker_id=? AND active=1',
+		$r = $mod->dbHandle->GetOne('SELECT name FROM '.$mod->BookerTable.' WHERE booker_id=?',
 			array($booker_id));
 		if (!$r) $r = '';
 		return $r;
@@ -357,7 +357,7 @@ class Userops
 	*/
 	public function GetContact(&$mod, $booker_id)
 	{
-		$r = $mod->dbHandle->GetRow('SELECT address,phone '.$mod->BookerTable.' WHERE booker_id=? AND active=1',
+		$r = $mod->dbHandle->GetRow('SELECT address,phone '.$mod->BookerTable.' WHERE booker_id=?',
 			array($booker_id));
 		if ($r == FALSE) $r = '';
 		return $r;
@@ -373,7 +373,7 @@ class Userops
 	public function IsKnown(&$mod, $main, $supp)
 	{
 		$rows = $mod->dbHandle->GetArray('SELECT booker_id,publicid,passhash,address,phone FROM '.
-			$mod->BookerTable.' WHERE (name=? OR publicid=?) AND active=1 ORDER BY addwhen DESC',
+			$mod->BookerTable.' WHERE (name=? OR publicid=?) ORDER BY addwhen DESC',
 			array($id,$id));
 		if ($rows) {
 			foreach ($rows as $one) {
@@ -398,7 +398,7 @@ class Userops
 	public function IsRegistered(&$mod, $login)
 	{
 		$r = $mod->dbHandle->GetOne('SELECT booker_id FROM '.$mod->BookerTable.
-		' WHERE publicid=? AND passhash IS NOT NULL AND passhash<>\'\' AND ACTIVE=1',array($login));
+		' WHERE publicid=? AND passhash IS NOT NULL AND passhash<>\'\' AND active=1',array($login));
 		return ($r != FALSE) ? $r : FALSE;
 	}
 
@@ -434,7 +434,7 @@ class Userops
 	@type: optional enumerator, to avoid lookup
 	Returns: nothing
 	*/
-	public function SetRights(&$mod, booker_id, $rights, $type=FALSE)
+	public function SetRights(&$mod, $booker_id, $rights, $type=FALSE)
 	{
 		if ($type === FALSE) {
 			$type = $this->gettype($mod,$booker_id);
@@ -541,6 +541,25 @@ class Userops
 	}
 
 	/**
+	SetBaseType:
+	@mod: reference to current Booker module object
+	@booker_id: numeric identifier
+	@type: enum 0..9
+	Returns: boolean indicating success
+	*/
+	public function SetBaseType(&$mod, $booker_id, $type)
+	{
+		$current = $this->gettype($mod,$booker_id);
+		if ($current !== FALSE) {
+			$type = $type % 10 + (int)($current/10) * 10;
+			$r = $mod->dbHandle->Execute('UPDATE '.$mod->BookerTable.' SET type=? WHERE booker_id=?',
+				array($type,$booker_id));
+			return ($r != FALSE);
+		}
+		return FALSE;
+	}
+
+	/**
 	GetBaseType:
 	@mod: reference to current Booker module object
 	@booker_id: numeric identifier
@@ -558,16 +577,38 @@ class Userops
 	}
 
 	/**
+	SetDisplayClass:
+	@mod: reference to current Booker module object
+	@booker_id: numeric identifier
+	@class: enum 0 = set default, or 1..Booker::USERSTYLES
+	Returns: boolean indicating success
+	*/
+	public function SetDisplayClass(&$mod, $booker_id, $class)
+	{
+		if ($class >= 0 && $class <= \Booker::USERSTYLES) {
+			if ($class == 0)
+				$class = 1; //set default
+			$r = $mod->dbHandle->Execute('UPDATE '.$mod->BookerTable.' SET displayclass=? WHERE booker_id=?',
+				array($class,$booker_id));
+			return ($r != FALSE);
+		}
+		return FALSE;
+	}
+
+	/**
 	GetDisplayClass:
 	@mod: reference to current Booker module object
 	@booker_id: numeric identifier
-	Returns: enum 1..MAX
+	Returns: enum 1..Booker::USERSTYLES
 	*/
 	public function GetDisplayClass(&$mod, $booker_id)
 	{
-		$r = $mod->dbHandle->GetOne('SELECT displayclass FROM '.$mod->BookerTable.' WHERE booker_id=? AND active=1',
+		$r = $mod->dbHandle->GetOne('SELECT displayclass FROM '.$mod->BookerTable.' WHERE booker_id=?',
 			array($booker_id));
-		if (!$r) $r = 1;
+		if ($r)
+			$r = (int)$r;
+		else
+			$r = 1;
 		return $r;
 	}
 }
