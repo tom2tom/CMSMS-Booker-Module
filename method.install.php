@@ -243,7 +243,7 @@ $db->CreateSequence($this->FeeTable.'_seq');
  phone: cell-phone number, preferred for messaging
  addwhen: UTC timestamp when this record added
  type: combination of 10 generic types and permission-flags - see class.Userops
- displayclass: display-stying enum 0..Booker::USERSTYLES
+ displayclass: display-stying enum 1..Booker::USERSTYLES
  active: whether currently enabled
 */
 $fields = "
