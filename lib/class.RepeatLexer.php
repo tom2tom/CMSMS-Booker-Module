@@ -669,7 +669,7 @@ that incomplete date-values will be populated.
 		} else
 			return FALSE;
 	}
-	
+
 	/**
 	ParseTimeSequence:
 
