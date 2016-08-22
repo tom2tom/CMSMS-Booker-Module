@@ -1384,7 +1384,7 @@ match-array(s) have
 	@descriptor: interval-descriptor string
 	@locale: UNUSED optional, locale identifier string for correct capitalising of day/month names
 	  possibly present in @descriptor, default ''
-	Returns TRUE upon success, or if no constraint applies, otherwise FALSE.
+	Returns: TRUE upon success or if @descriptor is FALSE, otherwise FALSE.
 	*/
 	public function ParseCondition($descriptor/*, $locale=''*/)
 	{
@@ -1405,8 +1405,8 @@ match-array(s) have
 	@descriptor: availability-condition string
 	@locale: UNUSED optional, locale identifier string for correct capitalising of day/month names
 	  possibly present in @descriptor, default ''
-	Returns '' if @descriptor is FALSE (no constraint applies), or a cleaned-up
-	variant of @descriptor, or FALSE if @descriptor is bad.
+	Returns: '' if @descriptor is FALSE, or a cleaned-up variant of @descriptor,
+	or FALSE if @descriptor is bad.
 	*/
 	public function CheckCondition($descriptor/*, $locale=''*/)
 	{
@@ -1415,5 +1415,4 @@ match-array(s) have
 		$this->conds = FALSE;
 		return '';
 	}
-
 }
