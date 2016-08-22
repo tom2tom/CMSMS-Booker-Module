@@ -148,7 +148,7 @@ array('0..sunrise,sunset..11:59',	1),
 
 	public function Run()
 	{
-		$funcs = new namespace\RepeatLexer($this->mod);
+		$funcs = new RepeatLexer($this->mod);
 //		$funcs2 = new PeriodInterpreter();
 		$ares = array();
 		foreach ($this->testscripts as &$test) {
