@@ -377,7 +377,7 @@ Astronomical twilight $zenith=108.0;
 	Determine whether the interval @start to @start + @length satisfies constraints
 	specified in relevant fields in @itemdata. Also returns FALSE if the
 	interval-descriptor string is malformed.
-	parent::CheckCondition() or ::ParseCondition() must be called before this func.
+	parent::CheckDescriptor() or ::ParseDescriptor() must be called before this func.
 
 	@idata: reference to array of data (possibly inherited) for a resource or group
 	@dts: datetime object resource-local preferred/first start time
@@ -410,7 +410,7 @@ Astronomical twilight $zenith=108.0;
 	the one including @start, and where the available time is at least @length.
 	Returns FALSE if no such time is available within the specified interval (or
 	the availability-descriptor string is malformed).
-	parent::CheckCondition() or ::ParseCondition() must be called before this func.
+	parent::CheckDescriptor() or ::ParseDescriptor() must be called before this func.
 
 	@idata: reference to array of data (possibly inherited) for a resource or group
 	@dts: datetime object resource-local preferred/first start time
@@ -484,7 +484,7 @@ Astronomical twilight $zenith=108.0;
 		$st = $dts->getTimestamp();
 		$nd = $dte->getTimestamp();
 		if ($descriptor) {
-			if (parent::ParseCondition($descriptor)) {
+			if (parent::ParseDescriptor($descriptor)) {
 				//get block-ends timestamps for $descriptor and over time-interval
 				list($starts,$ends) = self::GetBlocks($dts,$dte,$sunparms,$defaultall); //TODO sunparms offset may change during interval
 				//sort block-pairs, merge when needed
@@ -515,7 +515,7 @@ Astronomical twilight $zenith=108.0;
 		$st = $dts->getTimestamp();
 		$nd = $dte->getTimestamp();
 		if ($descriptor) {
-			if (parent::ParseCondition($descriptor/*,$locale*/)) {
+			if (parent::ParseDescriptor($descriptor/*,$locale*/)) {
 			//TODO
 			}
 			return FALSE;
@@ -538,7 +538,7 @@ Astronomical twilight $zenith=108.0;
 	public function IntervalComplies($descriptor, $dts, $dte, &$sunparms)
 	{
 		if ($descriptor) {
-			if (parent::ParseCondition($descriptor/*,$locale*/)) {
+			if (parent::ParseDescriptor($descriptor/*,$locale*/)) {
 			//TODO
 			}
 			return FALSE;

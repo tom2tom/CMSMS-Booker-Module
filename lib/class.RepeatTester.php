@@ -152,7 +152,7 @@ array('0..sunrise,sunset..11:59',	1),
 //		$funcs2 = new PeriodInterpreter();
 		$ares = array();
 		foreach ($this->testscripts as &$test) {
-			$res = $funcs->CheckCondition($test[0]);
+			$res = $funcs->CheckDescriptor($test[0]);
 			$clean = ($res == $test[0]) ? 'Samestring' : $res;
 			$parsed = $funcs->conds;
 			if (isset($parsed[0]['F'])) {
