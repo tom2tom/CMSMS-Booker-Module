@@ -420,7 +420,7 @@ EOS;
 	/**
 	GetTableBooked:
 	Get data for bookings which cover any part of the interval
-	 @startstamp to @endstamp inclusive
+	 @startstamp to @endstamp inclusive, to suit tabular display (no booker info)
 	@mod: reference to current Booker module
 	@item_id: item_identifier, or array of them
 	@startstamp: timestamp representing start of period to check
@@ -449,7 +449,7 @@ EOS;
 	/**
 	GetListBooked:
 	Get data for bookings which cover any part of the interval
-	 @startstamp to @endstamp inclusive
+	 @startstamp to @endstamp inclusive, arranged to suit textform display
 	@mod: reference to current Booker module
 	@is_group: boolean, whether processing a resource-group
 	@item_id: item_identifier, or array of them
