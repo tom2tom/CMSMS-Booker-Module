@@ -258,10 +258,9 @@ EOS;
 			 'Allocategroup'=>'subgrpalloc',
 			 'Membersnamed'=>'membersname',
 			 'Ingroups'=>'ingroups', //not a real field
-			 'Update'=>'fake' //not a real field
+			 'Update'=>'item_id' //not a real field
 			);
 			/* non-public
-			'item_id'
 			'repeatsuntil'
 			'subgrpdata'
 			'active'
@@ -301,6 +300,7 @@ EOS;
 							 case 'rationcount':
 							 case 'keeptype':
 							 case 'keepcount':
+							 case 'item_id':
 								$fv = (int)$fv;
 								break;
 							}
@@ -396,15 +396,15 @@ EOS;
 			 'Postpayer'=>'poster', //not real
 			 'Recorder'=>'recorder', //not real
 			 'Displaytype'=>'displayclass',
+			 'Update'=>'booker_id' //not real
 			);
 			/* non-public fields
-			 =>'booker_id'
 			 =>'addwhen'
 			 =>'active'
 			 */
 			//header line
 			$outstr = implode($sep,array_keys($translates));
-			$outstr .= $sep."Update\n"; //extra column for use when importing
+			$outstr .= "\n";
 			//data lines(s)
 			foreach ($all as $data) {
 				//accumulator
@@ -424,6 +424,7 @@ EOS;
 								$fv	= $fv % 10; //base type
 								break;
 							 case 'displayclass':
+							 case 'booker_id':
 								$fv = (int)$fv;
 								break;
 							}
@@ -446,7 +447,7 @@ EOS;
 					}
 					$stores[] = $fv;
 				} //foreach $translates
-				$outstr .= implode($sep,$stores).$sep."\n"; //extra $sep for Update column
+				$outstr .= implode($sep,$stores)."\n";
 			} //foreach $all
 			$detail = self::NameDetail($mod,$utils,$booker_id,'booker');
 			$fname = self::FullName($mod,$detail);
@@ -604,15 +605,15 @@ EOS;
 			 'End'=>'slotlen', //ditto
 			 '#User'=>'name',
 			 'Status'=>'status',
-			 'Paid'=>'paid'
+			 'Paid'=>'paid',
+			 'Update'=>'bkg_id' //not real
 			);
 			/* non-public fields
-			=>'bkg_id'
 			*/
 			$dt = new \DateTime('@0',NULL);
 			//header line
 			$outstr = implode($sep,array_keys($translates));
-			$outstr .= $sep."Update\n"; //extra column for use when importing
+			$outstr .= $sep."\n";
 			$sql = <<<EOS
 SELECT D.*,B.name,B.publicid
 FROM {$mod->DataTable} D
@@ -647,6 +648,7 @@ EOS;
 						$fv = str_replace($sep,$r,$fv);
 					 	break;
 					 case 'status':
+					 case 'bkg_id':
 					 	$fv = (int)$fv;
 					 	break;
 					 case 'paid':
@@ -655,7 +657,7 @@ EOS;
 					}
 					$stores[] = preg_replace('/[\n\t\r]/',$sep2,$fv);
 				}
-				$outstr .= implode($sep,$stores).$sep."\n"; //extra $sep for Update column
+				$outstr .= implode($sep,$stores)."\n";
 			}
 
 			if($item_id) {
@@ -901,7 +903,11 @@ EOS;
 								$in_grps = $one; //parse later
 								break;
 							 case 'update':
-								$update = !($one == 'no' || $one == 'NO');
+							 	if (is_numeric($one)) {
+									$update = (int)$one;
+								} else {
+									$update = !($one == 'no' || $one == 'NO');
+								}
 								break;
 							 default:
 								return array(FALSE,'err_file');
@@ -926,7 +932,15 @@ EOS;
 					if ($save) {
 						$done = FALSE;
 						if ($update) { //TODO robust UPSERT
-							$item_id = $utils->GetItemID($mod,$data['name']);
+							if (is_numeric($update)) {
+								$sql = 'SELECT item_id FROM '.$mod->ItemTable.' WHERE item_id=?';
+								$item_id = $utils->SafeGet($sql,array($update),'one');
+							} else {
+								$item_id = FALSE;
+							}
+							if (!$item_id) {
+								$item_id = $utils->GetItemID($mod,$data['name']);
+							}
 							if ($item_id) {
 								$namers = implode('=?,',array_keys($data));
 								$sql = 'UPDATE '.$mod->ItemTable.' SET '.$namers.'=? WHERE item_id=?';
@@ -1127,7 +1141,11 @@ EOS;
 								$save = TRUE;
 								break;
 							 case 'update':
-								$update = !($one == 'no' || $one == 'NO');
+							 	if (is_numeric($one)) {
+									$update = (int)$one;
+								} else {
+									$update = !($one == 'no' || $one == 'NO');
+								}
 								break;
 							default:
 								return array(FALSE,'err_file');
@@ -1153,22 +1171,27 @@ EOS;
 					if ($save) {
 						$done = FALSE;
 						if ($update) { //TODO robust UPSERT
+							if (is_numeric($update)) {
+								$sql = 'SELECT booker_id FROM '.$mod->BookerTable.' WHERE booker_id=?';
+								$bid = $utils->SafeGet($sql,array($update))
+							} else {
+								$bid = FALSE;
+							}
+							if (!$bid) {
 								$sql = 'SELECT booker_id FROM '.$mod->BookerTable;
 								if ($data['publicid']) {
 									$sql .= ' WHERE publicid=?';
 									$args = array($data['publicid']);
+									$bid = $utils->SafeGet($sql,$args,'one');
 								} elseif ($data['name']) {
 									$sql .= ' WHERE name=?';
 									$args = array($data['name']);
+									$bid = $utils->SafeGet($sql,$args,'one');
 								} else {
-									return array(FALSE,'err_baduser');
+									$bid = FALSE;
 								}
-								$bid = $mod->dbHandle->GetOne($sql,$args);
-								if ($bid) {
-									$bid = (int)$bid;
-								} else {
-									return array(FALSE,'err_baduser');
-								}
+							}
+							if ($bid) {
 								$namers = implode('=?,',array_keys($data));
 								$sql = 'UPDATE '.$mod->BookerTable.' SET '.$namers.'=? WHERE booker_id=?';
 								$args = array_values($data);
@@ -1177,6 +1200,7 @@ EOS;
 									$icount++;
 									$done = TRUE;
 								}
+							}
 						}
 						if (!$done) {
 							$namers = implode(',',array_keys($data));
@@ -1348,7 +1372,11 @@ EOS;
 								$save = TRUE;
 								break;
 							 case 'update':
-								$update = !($one == 'no' || $one == 'NO');
+							 	if (is_numeric($one)) {
+									$update = (int)$one;
+								} else {
+									$update = !($one == 'no' || $one == 'NO');
+								}
 								break;
 							default:
 								return array(FALSE,'err_file');
@@ -1380,22 +1408,28 @@ EOS;
 					}
 					if ($save) {
 						$done = FALSE;
-						if (0) { //$update) { //TODO robust UPSERT
-							$sql = $TODO; //get relevant bkg_id
-							$args = $TODO;
-							$bid = $mod->dbHandle->GetOne($sql,$args);
-							if ($bid) {
-								$bid = (int)$bid;
+						if ($update) { //TODO robust UPSERT
+							if (is_numeric($update)) {
+								$sql = 'SELECT bkg_id FROM '.$mod->DataTable.' WHERE bkg_id=?';
+								$bid = $utils->SafeGet($sql,array($update),'one');
 							} else {
-								return array(FALSE,'err_data');
+								$bid = FALSE;
 							}
-							$namers = implode('=?,',array_keys($data));
-							$sql = 'UPDATE '.$mod->DataTable.' SET '.$namers.'=? WHERE bkg_id=?';
-							$args = array_values($data);
-							$args[] = $bid;
-							if ($utils->SafeExec($sql,$args)) {
-								$icount++;
-								$done = TRUE;
+/*						if (!$bid) {
+								$sql = $TODO; //get relevant bkg_id
+								$args = $TODO;
+								$bid = $utils->SafeGet($sql,$args,'one');
+							}
+*/
+							if ($bid) {
+								$namers = implode('=?,',array_keys($data));
+								$sql = 'UPDATE '.$mod->DataTable.' SET '.$namers.'=? WHERE bkg_id=?';
+								$args = array_values($data);
+								$args[] = $bid;
+								if ($utils->SafeExec($sql,$args)) {
+									$icount++;
+									$done = TRUE;
+								}
 							}
 						}
 						if (!$done) {
