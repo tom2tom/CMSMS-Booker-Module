@@ -187,7 +187,7 @@ TODO support 'past' data without both date/time $params[]
 		if (!$params['user'])
 			$msg[] = $mod->Lang('err_nosender');
 
-		if (!$params['contact'])
+		if (!$params['contactuser'])
 			$msg[] = $mod->Lang('err_nocontact');
 
 		if (isset($params['subgrpcount'])) {
