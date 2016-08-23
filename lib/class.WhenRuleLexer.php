@@ -1,7 +1,7 @@
 <?php
 #----------------------------------------------------------------------
 # Module: Booker - a resource booking module
-# Library file: RepeatLexer
+# Library file: WhenRuleLexer
 # Uses CMSMS-specific string-translation method
 #----------------------------------------------------------------------
 # See file Booker.module.php for full details of copyright, licence, etc.
@@ -97,7 +97,7 @@ Time descriptors
 */
 namespace Booker;
 
-class RepeatLexer
+class WhenRuleLexer
 {
 	protected $mod; //reference to current module-object
 	/*

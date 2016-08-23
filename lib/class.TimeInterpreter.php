@@ -11,7 +11,7 @@ class TimeInterpreter
 {
 	/*No checks here for valid parameters - assumed done before
 		$start is bracket-local timestamp
-	c.f. Booker\Repeats::SunParms()
+	c.f. Booker\WhenRules::SunParms()
 	*/
 	public function GetSunData(&$bdata, $start)
 	{

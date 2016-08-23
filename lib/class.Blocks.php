@@ -5,7 +5,7 @@
 #----------------------------------------------------------------------
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
-//See also: Display::Coalesce($slots), Repeats::MergeBlocks(&$starts,&$ends)
+//See also: Display::Coalesce($slots), WhenRules::MergeBlocks(&$starts,&$ends)
 namespace Booker;
 
 class Blocks
@@ -332,8 +332,8 @@ class Blocks
 	//Interpret $dtrule into stamp-block(s) covering $st..$nd
 	private function BlocksforCalendarRule(&$mod, $st, $nd, $dtrule, $idata)
 	{
-		$funcs = new Repeats($mod);
-		if ($funcs->ParseCondition($dtrule)) {
+		$funcs = new WhenRules($mod);
+		if ($funcs->ParseDescriptor($dtrule)) {
 			$dts = new \DateTime('@'.$st,new \DateTimeZone('UTC'));
 			$dte = clone $dts;
 			$dte->setTimestamp($nd);
@@ -355,7 +355,7 @@ class Blocks
 	@slotstart: UTC timestamp for start of range
 	@slotlen: length of range (seconds)
 	@rules: single rule, or array of rules sorted in order of decreasing priority,
-		[each] rule being a descriptor recognisable by RepeatLexer (or FALSE)
+		[each] rule being a descriptor recognisable by WhenRuleLexer (or FALSE)
 	Returns: 2-member array,
 	 [0] = sorted array of block-start timestamps in @slotstart..@slotstart+@slotlen
 	 [1] = array of respective block-end timestamps in @slotstart..@slotstart+@slotlen
@@ -443,7 +443,7 @@ class Blocks
 	@slotlen: length of range (seconds)
 	@rules: single rule, or array of rules sorted in order of decreasing priority,
 		[each] rule being an array including a member 'feecondition' which is a
-		descriptor recognisable by RepeatLexer (or FALSE)
+		descriptor recognisable by WhenRuleLexer (or FALSE)
 	Returns: 3-member array,
 	 [0] = sorted array of block-start timestamps in @slotstart..@slotstart+@slotlen+1
 	 [1] = array of respective block-end timestamps in @slotstart..@slotstart+@slotlen+1

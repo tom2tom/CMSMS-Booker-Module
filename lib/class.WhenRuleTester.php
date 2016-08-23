@@ -1,13 +1,13 @@
 <?php
 #----------------------------------------------------------------------
 # Module: Booker - a resource booking module
-# Library file: RepeatTester
+# Library file: WhenRuleTester
 #----------------------------------------------------------------------
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
 namespace Booker;
 
-class RepeatTester
+class WhenRuleTester
 {
 	protected $mod; //reference to current module-object
 	public $testscripts = array (
@@ -148,7 +148,7 @@ array('0..sunrise,sunset..11:59',	1),
 
 	public function Run()
 	{
-		$funcs = new RepeatLexer($this->mod);
+		$funcs = new WhenRuleLexer($this->mod);
 //		$funcs2 = new PeriodInterpreter();
 		$ares = array();
 		foreach ($this->testscripts as &$test) {

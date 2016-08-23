@@ -1,13 +1,13 @@
 <?php
 #----------------------------------------------------------------------
 # Module: Booker - a resource booking module
-# Library file: Repeats
+# Library file: WhenRules
 #----------------------------------------------------------------------
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
 namespace Booker;
 
-class Repeats extends RepeatLexer
+class WhenRules extends WhenRuleLexer
 {
 	public function __construct(&$mod)
 	{

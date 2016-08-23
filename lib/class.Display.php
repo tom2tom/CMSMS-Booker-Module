@@ -11,14 +11,14 @@ class Display
 {
 	private $mod; //Booker module-object reference
 	private $utils; //Utils-class object
-	private $reps; //Repeats-class object
+	private $reps; //WhenRules-class object
 	private $rangefmt; //cache for translated string used in cell-tips
 
 	public function __construct(&$mod)
 	{
 		$this->mod = $mod;
 		$this->utils = new Utils();
-		$this->reps = new Repeats($mod);
+		$this->reps = new WhenRules($mod);
 	}
 
 	/*
@@ -311,7 +311,7 @@ class Display
 
 	/*
 	Coalesce:
-	Merge overlapping slots in @slots c.f. Repeats::MergeBlocks($starts,$ends)
+	Merge overlapping slots in @slots c.f. WhenRules::MergeBlocks($starts,$ends)
 	@slots: array with members each an array($bs,$be) for slot start,end
 	Returns: array with mergers done
 	*/
@@ -581,7 +581,7 @@ class Display
 		$st = $dts->getTimestamp();
 		$nd = $dte->getTimestamp();
 		$rules = $this->utils->GetOneHeritableProperty($this->mod,$item_id,'available');
-		//TODO ','-merge $rules, send as one to Repeats::AllIntervals()
+		//TODO ','-merge $rules, send as one to WhenRules::AllIntervals()
 		$funcs = new Blocks();
 		list($starts,$ends) = $funcs->RepeatBlocks($this->mod,$idata,$st,$nd-$st,$rules);
 		if (!$starts) {
