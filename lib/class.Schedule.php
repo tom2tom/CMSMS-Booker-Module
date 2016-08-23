@@ -25,8 +25,8 @@ class Schedule
 	@utils: reference to Booker\Utils object
 	@session_id: identifier for cache-interrogation
 	@item_id: resource (not group) identifier
-	@dtstart: DateTime object populated for booking start
-	@dtend: ditto for end (i.e. NOT 1-past-end)
+	@dts: DateTime object populated for booking start
+	@dte: ditto for end (i.e. NOT 1-past-end)
 	flags:
 	 b0: set if slot is 'busy' i.e. being considered for booking by another thread
 	 b1: set if slot is NOT available
@@ -34,7 +34,7 @@ class Schedule
 	 b3: set if slot is requested (unused here)
 	Returns: integer with flags set as appropriate
 	*/
-	private function GetSlotStatus(&$mod, &$utils, $session_id, $item_id, $dtstart, $dtend)
+	private function GetSlotStatus(&$mod, &$utils, $session_id, $item_id, $dts, $dte)
 	{
 /*		$cache = Booker\Cache::GetCache($mod);
 		if ($cache && )	//$cache->
@@ -44,9 +44,9 @@ class Schedule
 			$slotstatus = $X;
 		} else {
 			$slotstatus = 0;
-			if (!self::ItemAvailable($mod,$utils,$item_id,$dtstart,$dtend))
+			if (!self::ItemAvailable($mod,$utils,$item_id,$dts,$dte))
 				$slotstatus += 2;
-			if (self::ItemBooked($mod,$item_id,$dtstart,$dtend))
+			if (self::ItemBooked($mod,$item_id,$dts,$dte))
 				$slotstatus += 4;
 //			if (0) //slot is requested
 //				$slotstatus += 8;
@@ -56,17 +56,15 @@ class Schedule
 		return $slotstatus;
 	}
 
-	//Try to match displayclass with an existing booking
-	private function MatchUserClass(&$mod, &$utils, $item_id, $user)
+	//Try to match displayclass with an existing booker, or else return default class 1
+	//c.f. Userops::GetDisplayClass()
+	private function GetDisplayClass(&$mod, &$utils, $item_id, $user)
 	{
-		$sql = 'SELECT item_id,userlass FROM '.$mod->DataTable.' WHERE user=?';
-		$rows = $utils->SafeGet($sql,array($user),'assoc');
-		if ($rows) {
-			if (isset($rows[$item_id]))
-				return (int)$rows[$item_id];
-			return (int)reset($rows);
-		}
-		return 0; //default to unknown
+		$sql = 'SELECT displayclass FROM '.$mod->BookerTable.' WHERE name=? OR publicid=?';
+		$r = $mod->dbHandle->GetOne($sql,array($user,$user));
+		if ($r)
+			return (int)$r;
+		return 1; //default
 	}
 
 	/*
@@ -75,81 +73,88 @@ class Schedule
 	 specific bookings in bookings table
 	This is low-level method, normally UpdateRepeats() would be more appropriate
 	@mod: reference to current Booker module
-	@utils: reference to Booker\Utils object
-	@reps: reference to bkrrepeats object
+	@utils: reference to Utils object
+	@reps: reference to WhenRules object
 	@idata: reference to array of item parameters, including at least
 		'item_id','timezone','latitude','longitude'
-	@dtstart: resource-local datetime object for beginning of 1st day of period to be processed
-	@dtend: resource-local datetime object for beginning of DAY AFTER last day of period
+	@dts: resource-local datetime object for beginning of 1st day of period to be processed
+	@dte: resource-local datetime object for beginning of DAY AFTER last day of period
 	Returns: boolean indicating complete success
 	*/
-	private function GetRepeats(&$mod, &$utils, &$reps, &$idata, $dtstart, $dtend)
+	private function GetRepeats(&$mod, &$utils, &$reps, &$idata, $dts, $dte)
 	{
 		$ret = TRUE;
 		$item_id = (int)$idata['item_id'];
-		$sql = 'SELECT bkg_id,formula,user,contact,displayclass,subgrpcount,paid FROM '.
-			$mod->RepeatTable.' WHERE item_id=? AND active=1';
+		$sql = <<<EOS
+SELECT R.bkg_id,R.formula,R.subgrpcount,R.paid,B.booker_id,B.name,B.address,B.phone,B.displayclass FROM {$mod->RepeatTable} R
+JOIN {$mod->BookerTable} B ON R.booker_id=B.booker_id
+WHERE R.item_id=? AND R.active=1
+EOS;
 		$rows = $utils->SafeGet($sql,array($item_id));
 		if ($rows) {
 			$times = array();
 			$parms = array();
 			$sunparms = $reps->SunParms($idata); //TODO extra arg current date/time
 			foreach ($rows as &$one) {
-				$utimes = $reps->AllIntervals($one['formula'],$dtstart,$dtend,$sunparms);
-				if ($utimes) {
-					$user = $one['user'];
+				$res = $reps->AllIntervals($one['formula'],$dts,$dte,$sunparms);
+				if ($res) {
+					$user = $one['name'];
+					$contact = trim($one['address']);
+					if (!$contact)
+						$contact = $one['phone'];
 					if (!array_key_exists($user,$times))
-						$times[$user] = $utimes;
-					else
-						$times[$user] = $times[$user] + $utimes;
+						$times[$user] = $res; //aka array($starts,$ends)
+					else {
+						$times[$user][0] = array_merge($times[$user][0],$res[0]); //merge starts
+						$times[$user][1] = array_merge($times[$user][1],$res[1]); //and ends
+					}
 					if (!array_key_exists($user,$parms)) {
 						$parms[$user] = array(
 							(int)$one['displayclass'], //0
-							trim($one['contact']), //1
+							$contact, //1 address or phone
 							(int)$one['paid']); //2
 					} else {
 						if ($parms[$user][0] == 0); //keep first non-0 class
 							$parms[$user][0] = (int)$one['displayclass'];
 						if ($parms[$user][1] == FALSE); //keep first non-empty contact
-							$parms[$user][1] = trim($one['contact']);
+							$parms[$user][1] = $contact;
 						if (!$one['paid'])
 							$parms[$user][2] = 0; //part-paid reported as unpaid
 					}
 				}
 			}
 			unset($one);
+
 			if ($times) {
 				foreach ($times as $user=>$utimes) {
-					$data = array(
+					//data to mimic a request, to populate HistoryTable etc
+					$reqdata = array(
+					 'booker_id'=>$one['booker_id'],
+//				 'item_id'=>$one['item_id'],
+//				 'subgrpcount'=>1,
+//				 'lodged'=>0,
+//				 'approved'=>0,
 					 'slotstart'=>0,
 					 'slotlen'=>0,
-					 'sender'=>$user,
-					 'displayclass'=>$parms[$user][0],
-					 'contact'=>$parms[$user][1],
-					 'paid'=>$parms[$user][2]
+//				 'status'=>0
+					 'payment'=>func($parms[$user][2]) //TODO
 					);
-					//rationalise $times into valid pairs of times
-					$c = count($utimes);
-					$starts = array();
-					$ends = array();
-					for ($i=0; $i<$c; $i+=2) {
-						$starts = $utimes[$i];
-						$ends = $utimes[$i+1];
-					}
+					$starts = $utimes[0];
+					$ends = $utimes[1];
 					$reps->MergeBlocks($starts,$ends);
-					$c = count($starts);
+					$ic = count($starts);
 
-					$session_id = 0; //TODO $mod->dbHandle->GenID($some.'_seq'); //uid for cached slotstatus data
-					for ($i=0; $i<$c; $i++) {
+					for ($i=0; $i<$ic; $i++) {
 						$sb = $starts[$i];
-						$data['slotstart'] = $sb;
-						$data['slotlen'] = $ends[$i] - $sb + 1;
+						$reqdata['slotstart'] = $sb;
+						$reqdata['slotlen'] = $ends[$i] - $sb + 1; //AllIntervals() suppies last-seconds, not 1-past
 						if ($one['subgrpcount'] < 2) {
-							if (!self::Schedule1($mod,$utils,$session_id,$item_id,$data))
+							$session_id = Cache::GetKey(\Booker::SESSIONKEY);//identifier for cached slotstatus data
+							if (!self::Schedule1($mod,$utils,$session_id,$item_id,$reqdata)) {
 								$ret = FALSE;
-						} else {
-							if (!self::ScheduleGroup($mod,$utils,$item_id,$data))
-								$ret = FALSE;
+							}
+						} elseif (!self::ScheduleGroup($mod,$utils,$item_id,$reqdata)) {
+							$ret = FALSE;
 						}
 					}
 				}
@@ -171,30 +176,43 @@ class Schedule
 			if ($se > $max)
 				$max = $se;
 		}
-		$ndt = new \DateTime('1900-1-1',new \DateTimeZone('UTC'));
-		$ndt->setTimestamp($max);
-		$ndt->setTime(0,0,0);
-		$ndt->modify('+1 day');
-		self::UpdateRepeats($mod,$item_id,$ndt);
+		$dte = new \DateTime('@'.$max,new \DateTimeZone('UTC'));
+		$dte->setTime(0,0,0);
+		$dte->modify('+1 day');
+		self::UpdateRepeats($mod,$item_id,$dte);
 	}
 
 	/*
 	Process a request for a single resource
-	Updates DataTable if possible, but not HistoryTable.
+	Updates DataTable if possible, but not BookerTable or HistoryTable.
 	The status field in @reqdata will be updated to indicate what precisely has been done
 	@mod: reference to current Booker module object
 	@utils: reference to Booker\Utils object
 	@session_id: identifier for cache-interrogation
 	@item_id: resource-identifier
 	@reqdata: reference to one row of data from HistoryTable, or equivalent constructed array
+	 history_id I(4) KEY,
+	 booker_id I(4),
+	 item_id I(4),
+	 subgrpcount I(1) DEFAULT 1,
+	 lodged I,
+	 approved I,
+	 slotstart I,
+	 slotlen I(4),
+	 comment C(64),
+	 fee N(8.2),
+	 netfee N(8.2),
+	 status I(1) DEFAULT ".Booker::STATNONE.",
+	 payment I(1) DEFAULT ".Booker::STATFREE.",
+	 gatetransaction C(48),
+	 gatedata B
 	Returns: boolean indicating success
 	*/
 	private function Schedule1(&$mod, &$utils, $session_id, $item_id, &$reqdata)
 	{
 		$idata = $utils->GetItemProperty($mod,$item_id,array('bookcount','timezone'));
 		$sb = $reqdata['slotstart'];
-		$dts = new \DateTime('1900-1-1',new \DateTimeZone('UTC'));
-		$dts->setTimestamp($sb);
+		$dts = new \DateTime('@'.$sb,new \DateTimeZone('UTC'));
 		$sl = $utils->GetInterval($mod,$item_id,'slot');
 		if (empty($reqdata['slotlen']))
 			$reqdata['slotlen'] = $sl;
@@ -215,6 +233,7 @@ class Schedule
 			return FALSE;
 		}
 
+		$booker_id = (int)$reqdata['booker_id'];
 		//TODO use cache that's public
 		$slotstatus = self::GetSlotStatus($mod,$utils,$session_id,$item_id,$dts,$dte);
 		$cando = (($slotstatus & 7) == 0); //slot not busy, and available, and not booked
@@ -225,25 +244,21 @@ class Schedule
 				$this->slotsdone[] = $sig;
 				//record booking
 				$bid = $mod->dbHandle->GenID($mod->DataTable.'_seq');
-				$class = (!empty($reqdata['displayclass'])) ? $reqdata['displayclass'] :
-					self::MatchUserClass($mod,$utils,$item_id,$reqdata['sender']);
 				$status = \Booker::STATNONE; //TODO or STATNOTPAID etc
 				$args = array(
 					$bid,
 					$item_id,
 					$sb, //slotstart
 					$se-$sb+1, //slotlen
-					$reqdata['sender'], //assume is also user, change later if needed
-					$reqdata['contact'],
-					$class,
+					$booker_id,
 					$status,
-					!empty($reqdata['paid'])
+					!empty($reqdata['paid']) //TODO func($reqdata['payment'])
 				);
 				$sql = 'INSERT INTO '.$mod->DataTable.
-' (bkg_id,item_id,slotstart,slotlen,user,contact,displayclass,status,paid) VALUES (?,?,?,?,?,?,?,?,?)';
+' (bkg_id,item_id,slotstart,slotlen,booker_id,status,paid) VALUES (?,?,?,?,?,?,?)';
 				if ($utils->SafeExec($sql,$args)) {
 					$reqdata['status'] = $status;
-					$reqdata['approved'] = TRUE;
+					$reqdata['approved'] = 0; //TODO current timestamp
 					return TRUE;
 				} else {
 					$reqdata['status'] = \Booker::STATERR; //system error? RETRY?
@@ -268,7 +283,7 @@ class Schedule
 
 	//Compare arrays of request-data
 	//for sorting on resources-count DESC, lodge-time ASC
-	private function cmp_reqscount($a,$b)
+	private function cmp_reqscount($a, $b)
 	{
 		$d = $a['subgrpcount'] - $b['subgrpcount'];
 		if ($d != 0)
@@ -361,8 +376,8 @@ class Schedule
 	@allocdata: reference to supporting data for some values of @alloctype
 	Returns: array of resource id's, or FALSE
 	*/
-	private function ClusterPick(&$mod, &$utils, $session_id, $likes,
-		$dts, $dte, $rescount, $alloctype, &$allocdata)
+	private function ClusterPick(&$mod, &$utils, $session_id, $likes, $dts, $dte,
+		$rescount, $alloctype, &$allocdata)
 	{
 		$lcount = count($likes);
 		if ($lcount == 1) {
@@ -448,13 +463,14 @@ class Schedule
 		self::UpdateRequestedRepeats($mod,$item_id,$sl,$reqdata);
 
 		$ret = TRUE;
-		$session_id = 0; //TODO $mod->dbHandle->GenID($some.'_seq'); //uid for cached slotstatus data
+		$session_id = Cache::GetKey(\Booker::SESSIONKEY); //identifier for cached slotstatus data
 		foreach ($reqdata as &$one) {
-			if (!self::Schedule1($mod,$utils,$session_id,$item_id,$one))
+			if (!self::Schedule1($mod,$utils,$session_id,$item_id,$one)) {
 				$ret = FALSE;
+			}
 		}
 		unset($one);
-/*	$cache = Booker\Cache::GetCache($mod);
+/*	$cache = Cache::GetCache($mod);
 		TODO clear any cached PUBLIC slotstatus data for this session
 */
 		return $ret;
@@ -496,11 +512,12 @@ class Schedule
 		//limit for advance-bookings (relative to now, not lodged-time)
 		//assume no need for resource-specific leadtimes
 		$limit = $utils->GetZoneTime($idata['timezone']) + $utils->GetInterval($mod,$item_id,'lead');
-		$session_id = 0; //TODO $mod->dbHandle->GenID(cms_db_prefix().'module_bkrcache_seq'); //uid for cached slotstatus data
-//	$cache = Booker\Cache::GetCache($mod);
+//	$cache = Cache::GetCache($mod);
+		$session_id = Cache::GetKey(\Booker::SESSIONKEY); //identifier for cached slotstatus data
 		$sql = 'INSERT INTO '.$mod->DataTable.
-' (bkg_id,item_id,slotstart,slotlen,user,contact,displayclass,status,paid) VALUES (?,?,?,?,?,?,?,?,?)';
+' (bkg_id,item_id,slotstart,slotlen,booker_id,status,paid) VALUES (?,?,?,?,?,?,?)';
 		$ret = TRUE;
+		$booker_id = FALSE;
 
 		foreach ($reqdata as &$one) { //process decreasing subgrpcount
 			if ($one['subgrpcount'] < 2) {
@@ -510,7 +527,7 @@ class Schedule
 					$items = ($full) ? FALSE :
 						self::ClusterPick($mod,$utils,$session_id,$likes,$dts,$dte,1,$idata['subgrpalloc'],$allocdata);
 					if ($items) {
-						if (self::Schedule1($mod,$utils,$session_id,$items[0],$one))
+						if (!self::Schedule1($mod,$utils,$session_id,$items[0],$one))
 							$ret = FALSE;
 					} else {
 						$full = TRUE;
@@ -526,9 +543,9 @@ class Schedule
 				break;
 			}
 
+			$booker_id = (int)$one['booker_id'];
 			$sb = $one['slotstart'];
-			$dts = new \DateTime('1900-1-1',new \DateTimeZone('UTC'));
-			$dts->setTimestamp($sb);
+			$dts = new \DateTime('@'.$sb,new \DateTimeZone('UTC'));
 			if (empty($reqdata['slotlen']))
 				$reqdata['slotlen'] = $sl;
 			$se = $sb + $reqdata['slotlen'] - 1; //last second of the booking
@@ -555,7 +572,7 @@ class Schedule
 				$allargs = array();
 				$bid = $mod->dbHandle->GenID($mod->DataTable.'_seq');
 				$class = (!empty($one['displayclass'])) ? $one['displayclass'] :
-					self::MatchUserClass($mod,$utils,reset($items),$one['sender']);
+					self::GetDisplayClass($mod,$utils,reset($items),$one['name']);
 				$status = \Booker::STATNONE; //TODO or STATNOTPAID etc
 				foreach ($items as $memberid) {
 					//TODO signature(s) for actual slot(s), not booking interval
@@ -568,9 +585,7 @@ class Schedule
 						$memberid,
 						$sb, //slotstart
 						$se-$sb+1, //slotlen
-						$one['sender'], //assume is also user, change later if needed
-						$one['contact'],
-						$class,
+						$booker_id,
 						$status,
 						!empty($one['paid'])
 					);
@@ -593,6 +608,7 @@ class Schedule
 		}
 		unset($one);
 		if ($allocdata != $idata['subgrpdata']) {
+			//TODO $utils->SafeExec()
 			$mod->dbHandle->Execute(
 				'UPDATE '.$mod->ItemTable.' SET subgrpdata=? WHERE item_id=? AND subgrpdata=?',
 				array($allocdata,$item_id,$idata['subgrpdata']));
@@ -609,43 +625,45 @@ class Schedule
 	 specific bookings in bookings table, and do consequential stuff
 	@mod: reference to current Booker module
 	@item_id: resource or group identifier
-	@dtend: datetime object populated for beginning of DAY AFTER last day of
+	@dte: datetime object populated for beginning of DAY AFTER last day of
 		update-period
 	Returns: nothing
 	*/
-	public function UpdateRepeats(&$mod, $item_id, $dtend)
+	public function UpdateRepeats(&$mod, $item_id, $dte)
 	{
-		$dt = clone $dtend;
-		$ndt = clone $dtend; //preserve upstream
-		$ndt->modify('-1 day'); //beginning of last day of update-period
-		$se = $ndt->getTimestamp();
+		$dts = clone $dte;
+		$dtw = clone $dte; //preserve upstream
+		$dtw->modify('-1 day'); //beginning of last day of update-period
+		$se = $dtw->getTimestamp();
 
 		$db = $mod->dbHandle;
 		$sql1 = 'SELECT repeatsuntil FROM '.$mod->ItemTable.' WHERE item_id=? AND active>0';
 		$sql2 = 'UPDATE '.$mod->ItemTable.' SET repeatsuntil=? WHERE item_id=?';
 
 		$utils = new Utils();
-		$reps = new Repeats($mod);
+		$reps = new WhenRules($mod);
 
 		if ($item_id >= \Booker::MINGRPID)
 			$all = self::MembersLike($mod,$item_id);
 		else
 			$all = array($item_id);
 		foreach ($all as $one) {
+			//TODO $utils->SafeGet()
 			$stamp = $db->GetOne($sql1,array($one));
 			//one day after last-processed = possible start of further interpretation
 			if (!is_null($stamp)) {
-				$dt->setTimestamp($stamp);
-				$dt->setTime(0,0,0);
-				$dt->modify('+1 day');
+				$dts->setTimestamp($stamp);
+				$dts->setTime(0,0,0);
+				$dts->modify('+1 day');
 			} else {
-				$dt->modify('midnight');
+				$dts->modify('midnight');
 			}
-			if ($dt < $ndt) {
+			if ($dts < $dtw) {
 				$idata = $utils->GetItemProperty($mod,$one,array('timezone','latitude','longitude'));
 				$idata['item_id'] = $one;
-				self::GetRepeats($mod,$utils,$reps,$idata,$dt,$ndt); //TODO don't ignore failure
+				self::GetRepeats($mod,$utils,$reps,$idata,$dts,$dtw); //TODO don't ignore failure
 				//log last-interpreted date
+			//TODO $utils->SafeExec()
 				$db->Execute($sql2,array($se,$one));
 			}
 		}
@@ -654,36 +672,35 @@ class Schedule
 	/**
 	ItemAvailable:
 	Determine whether the item represented by @item_id is available for	use
-	over the whole time-interval @dtstart to @dtend inclusive
+	over the whole time-interval @dts to @dte inclusive. If there's no relevant
+	availability-condition, the item is regarded as available.
 	@mod reference to current module-object
-	@utils: reference to Booker\Utils object
+	@utils: reference to Utils object
 	@item_id: resource or group identifier
-	@dtstart: UTC DateTime object for start of range
-	@dtend: ditto for end
-	Returns: boolean
+	@dts: UTC DateTime object for start of range
+	@dte: ditto for end
+	Returns: boolean for resource or entire group, ?? for part-available group
 	*/
-	public function ItemAvailable(&$mod, &$utils, $item_id, $dtstart, $dtend)
+	public function ItemAvailable(&$mod, &$utils, $item_id, $dts, $dte)
 	{
-		if ($item_id >= \Booker::MINGRPID);
-		{
-			//TODO decide how to interrogate & report on group-members
+		$is_group = ($item_id >= \Booker::MINGRPID);
+		if ($is_group) {
+			//TODO get resources in group, check them all
 		}
 		$idata = $utils->GetItemProperty($mod,$item_id,'*');
-		if (empty($idata['available']))
-			return TRUE;
-		$funcs = new Repeats($mod);
-		$sunparms = $funcs->SunParms($idata); //TODO extra arg current date/time
-		$dtw = clone $dtend;
-		$dtw->modify('+1 second'); //past the end
-		$avail = $funcs->AllIntervals($idata['available'],$dtstart,$dtw,$sunparms);
-		if ($avail) {
-			$sb = $dtstart->getTimestamp();
-			$se = $dtend->getTimestamp();
-			$c = count($avail);
-			for ($i=0; $i<$c; $i+=2) {
-				if ($avail[$i] < $se && $avail[$i+1] > $sb) //ignore possible 1-sec overlaps
-					return FALSE;
-			}
+		$bst = $dts->getTimestamp();
+		$bnd = $dte->getTimestamp() + 1;
+		$rules = $utils->GetOneHeritableProperty($mod,$item_id,'available'); //TODO nearest-only
+		//TODO ','-merge $rules, send as one to WhenRules::AllIntervals()
+		//TODO deal with e.g. multi-day blocks when slotlen is <day  - ignore periods around midnight
+		$funcs = new Blocks();
+		list($starts,$ends) = $funcs->RepeatBlocks($mod,$idata,$bst,$bnd-$bst,$rules);
+		if ($is_group) {
+			//TODO decide how to report on results
+		}
+		if ($starts) {
+			if (reset($starts) > $bst || end($ends) < $bnd)//anything left over
+				return FALSE;
 		}
 		return TRUE;
 	}
@@ -691,32 +708,39 @@ class Schedule
 	/**
 	ItemBooked:
 	Determine whether the item represented by @item_id is already booked during
-	part or all of the period @dtstart to @dtend inclusive
+	part or all of the period @dts to @dte inclusive
 	@mod reference to current module-object
 	@item_id: resource or group identifier
-	@dtstart: UTC DateTime object for start of range
-	@dtend: ditto for end
+	@dts: DateTime object representing UTC start of range
+	@dte: ditto for end
 	@bkg_id: optional booking id to be ignored during the check, default FALSE
 	(a valid id when updating an existing booking, FALSE when inserting a new one)
-	Returns: boolean
+	Returns: boolean for resource or entire group, ?? for part-booked group
 	*/
-	public function ItemBooked(&$mod, $item_id, $dtstart, $dtend, $bkg_id=FALSE)
+	public function ItemBooked(&$mod, $item_id, $dts, $dte, $bkg_id=FALSE)
 	{
 		$utils = new Utils();
-		if ($item_id >= \Booker::MINGRPID) {
-			//TODO decide how to interrogate & report on group-members
+		$is_group = ($item_id >= \Booker::MINGRPID);
+		if ($is_group) {
+			//TODO get resources in group, check them all
+			$sql = 'SELECT bkg_id FROM '.$mod->DataTable.' WHERE item_id IN(TODO)';
+			$args = array($TODO);
+		} else {
+			$sql = 'SELECT bkg_id FROM '.$mod->DataTable.' WHERE item_id=?';
+			$args = array($item_id);
 		}
-		$args = array($item_id);
-		$sql = 'SELECT bkg_id FROM '.$mod->DataTable.' WHERE item_id=?';
 		if ($bkg_id) {
 			$args[] = (int)$bkg_id;
 			$sql .= ' AND bgk_id!=?';
 		}
-		$args[] = $dtend->getTimestamp();
-		$args[] = $dtstart->getTimestamp();
+		$args[] = $dte->getTimestamp();
+		$args[] = $dts->getTimestamp();
 		 //ignore possible 1-sec overlaps
 		$sql .= ' AND slotstart < ? AND (slotstart + slotlen) > ?';
 		$used = $utils->SafeGet($sql,$args,'one');
+		if ($is_group) {
+			//TODO decide how to report on results
+		}
 		return ($used != FALSE);
 	}
 }
