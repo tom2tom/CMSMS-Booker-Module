@@ -51,8 +51,16 @@ class Export
 				$name = $mod->Lang('title_bookings');
 			break;
 		 case 'fee':
+		 	if ($id)
+				$name = $mod->Lang('title_fee').$id;
+			else
+				$name = $mod->Lang('title_fees');
+			break;
 		 case 'history':
-			$name = 'TODO';
+		 	if ($id)
+				$name = $mod->Lang('TODO').$id;
+			else
+				$name = $mod->Lang('TODO');
 			break;
 		}
 		return $name.$extra;
@@ -133,38 +141,6 @@ class Export
 				echo $csv;
 			return array(TRUE,'');
 		}
-	}
-
-	/**
-	ExportFees:
-	Export fee(s) properties
-	To avoid field-corruption, existing separators in headings or data are converted
-	to something else, generally like &#...;
-	(except when the separator is '&', '#' or ';', those become %...%)
-	@mod: reference to current Booker module object
-	@fee_id: enumerator of the item to process, or array of such, or '*'
-	@sep: optional field-separator for exported content, assumed single-byte ASCII, default ','
-	Returns: 2-member array, 1st is T/F indicating success, 2nd '' or lang key for message
-	*/
-	public function ExportFees(&$mod, $fee_id, $sep=',')
-	{
-		return array(FALSE,'err_data');
-	}
-
-	/**
-	ExportHistory:
-	Export history data
-	To avoid field-corruption, existing separators in headings or data are converted
-	to something else, generally like &#...;
-	(except when the separator is '&', '#' or ';', those become %...%)
-	@mod: reference to current Booker module object
-	@history_id: enumerator of the item to process, or array of such, or '*'
-	@sep: optional field-separator for exported content, assumed single-byte ASCII, default ','
-	Returns: 2-member array, 1st is T/F indicating success, 2nd '' or lang key for message
-	*/
-	public function ExportHistory(&$mod, $history_id, $sep=',')
-	{
-		return array(FALSE,'err_data');
 	}
 
 	/**
@@ -260,7 +236,7 @@ EOS;
 			 'Ingroups'=>'ingroups', //not a real field
 			 'Update'=>'item_id' //not a real field
 			);
-			/* non-public
+			/* non-public fields
 			'repeatsuntil'
 			'subgrpdata'
 			'active'
@@ -337,6 +313,115 @@ EOS;
 	}
 
 	/**
+	ExportFees:
+	Export fee(s) properties
+	To avoid field-corruption, existing separators in headings or data are converted
+	to something else, generally like &#...;
+	(except when the separator is '&', '#' or ';', those become %...%)
+	@mod: reference to current Booker module object
+	@condition_id: enumerator of the item to process, or array of such, or '*'
+	@sep: optional field-separator for exported content, assumed single-byte ASCII, default ','
+	Returns: 2-member array, 1st is T/F indicating success, 2nd '' or lang key for message
+	*/
+	public function ExportFees(&$mod, $condition_id, $sep=',')
+	{
+		if (!$condition_id)
+			return array(FALSE,'err_system');
+
+		$sql =<<<EOS
+SELECT F.*,I.name FROM {$mod->FeeTable} F
+JOIN {$mod->ItemTable} I ON F.item_id=I.item_id
+EOS;
+		if (is_array($condition_id)) {
+			$fillers = str_repeat('?,',count($condition_id)-1);
+			$sql .= ' WHERE F.condition_id IN('.$fillers.'?) ORDER BY F.item_id,F.condorder';
+			$args = $condition_id;
+		} elseif ($condition_id == '*') {
+			$sql .= ' ORDER BY F.item_id,F.condorder';
+			$args = array();
+		} else {
+			$sql .= ' WHERE F.condition_id=?';
+			$args = array($condition_id);
+		}
+		$utils = new Utils();
+		$all = $utils->SafeGet($sql,$args);
+		if ($all) {
+			$sep2 = ($sep != ' ')?' ':',';
+			switch ($sep) {
+			 case '&':
+				$r = '%38%';
+				break;
+			 case '#':
+				$r = '%35%';
+				break;
+			 case ';':
+				$r = '%59%';
+				break;
+			 default:
+				$r = '&#'.ord($sep).';';
+				break;
+			}
+
+			$strip = $mod->GetPreference('pref_stripexport');
+			//file-column-name to fieldname translation
+			$translates = array(
+			 '#ID'=>'name',
+			 'Description'=>'description',
+			 'Duration'=>'slottype', //interpreted
+			 'Count'=>'slotcount',
+			 '#Fee'=>'fee',
+			 'Condition'=>'feecondition',
+			 'Type'=>'condtype',
+			 'Update'=>'condition_id' //not real
+			);
+			/* non-public fields
+			'item_id'
+			'signature'
+			'condorder'
+			'active'
+			*/
+			$periods = $utils->TimeIntervals();
+			//header line
+			$outstr = implode($sep,array_keys($translates));
+			$outstr .= "\n";
+			//data lines(s)
+			foreach ($all as $data) {
+				//accumulator
+				$stores = array();
+				foreach ($translates as $one) {
+					$fv = $data[$one];
+					switch ($one) {
+					 case 'name':
+					 case 'description':
+						$fv = preg_replace('/[\n\t\r]/',$sep2,$fv);
+						//no break here
+					 case 'feecondition':
+						$fv = str_replace($sep,$r,$fv);
+						break;
+					 case 'fee':
+						$fv = (float)$fv;
+						break;
+					 case 'condition_id':
+					 case 'slotcount':
+					 case 'condtype':
+						$fv = int($fv);
+						break;
+					 case 'slottype':
+						$fv = $periods[$fv];
+						break;
+					}
+					$stores[] = $fv;
+				} //foreach $translates
+				$outstr .= implode($sep,$stores)."\n";
+			} //foreach $all
+			$detail = self::NameDetail($mod,$utils,$condition_id,'fee');
+			$fname = self::FullName($mod,$detail);
+			return self::ExportContent($mod,$fname,$outstr);
+		} //$all
+		return array(FALSE,'err_data');
+	}
+
+	/**
 	ExportBookers:
 	Export booker(s) properties
 	To avoid field-corruption, existing separators in headings or data are converted
@@ -399,8 +484,8 @@ EOS;
 			 'Update'=>'booker_id' //not real
 			);
 			/* non-public fields
-			 =>'addwhen'
-			 =>'active'
+			 'addwhen'
+			 'active'
 			 */
 			//header line
 			$outstr = implode($sep,array_keys($translates));
@@ -677,4 +762,136 @@ EOS;
 		return array(FALSE,'err_data');
 	}
 
+	/**
+	ExportHistory:
+	Export history data
+	To avoid field-corruption, existing separators in headings or data are converted
+	to something else, generally like &#...;
+	(except when the separator is '&', '#' or ';', those become %...%)
+	@mod: reference to current Booker module object
+	@history_id: enumerator of the item to process, or array of such, or '*'
+	@sep: optional field-separator for exported content, assumed single-byte ASCII, default ','
+	Returns: 2-member array, 1st is T/F indicating success, 2nd '' or lang key for message
+	*/
+	public function ExportHistory(&$mod, $history_id, $sep=',')
+	{
+		if (!$history_id)
+			return array(FALSE,'err_system');
+
+		$sql =<<<EOS
+SELECT H.*,I.name,B.name AS user FROM {$mod->HistoryTable} H
+JOIN {$mod->ItemTable} I ON H.item_id=I.item_id
+JOIN {$mod->BookerTable} B ON H.booker_id=B.booker_id
+EOS;
+		if (is_array($history_id)) {
+			$fillers = str_repeat('?,',count($history_id)-1);
+			$sql .= ' WHERE history_id IN('.$fillers.'?) ORDER BY H.item_id,H.slotstart';
+			$args = $history_id;
+		} elseif ($history_id == '*') {
+			$sql .= ' ORDER BY H.item_id,H.slotstart';
+			$args = array();
+		} else {
+			$sql .= ' WHERE H.history_id=?';
+			$args = array($history_id);
+		}
+		$utils = new Utils();
+		$all = $utils->SafeGet($sql,$args);
+		if ($all) {
+			$sep2 = ($sep != ' ')?' ':',';
+			switch ($sep) {
+			 case '&':
+				$r = '%38%';
+				break;
+			 case '#':
+				$r = '%35%';
+				break;
+			 case ';':
+				$r = '%59%';
+				break;
+			 default:
+				$r = '&#'.ord($sep).';';
+				break;
+			}
+
+			$strip = $mod->GetPreference('pref_stripexport');
+			//file-column-name to fieldname translation
+			$translates = array(
+			 '#ID'=>'name',
+			 'Count'=>'subgrpcount',
+			 '#User'=>'user',
+			 'Lodged'=>'lodged',
+			 'Approved'=>'approved',
+			 '#Start'=>'slotstart',
+			 'End'=>'slotlen',
+			 'Comment'=>'comment',
+			 'FeeDue'=>'fee',
+			 'Feepaid'=>'netfee',
+			 'Status'=>'status',
+			 'Feestatus'=>'payment',
+			 'Transaction'=>'gatetransaction',
+			 'Update'=>'history_id'
+			);
+			/* non-public fields
+			'item_id'
+			'booker_id'
+			'gatedata'
+			*/
+			$dtw = new \DateTime('@0',new \DateTimeZone('UTC'));
+			//header line
+			$outstr = implode($sep,array_keys($translates));
+			$outstr .= "\n";
+			//data lines(s)
+			foreach ($all as $data) {
+				//accumulator
+				$stores = array();
+				foreach ($translates as $one) {
+					$fv = $data[$one];
+					switch ($one) {
+					case 'name':
+					case 'user':
+					case 'comment':
+					case 'gatetransaction':
+						$fv = preg_replace('/[\n\t\r]/',$sep2,$fv);
+						$fv = str_replace($sep,$r,$fv);
+						break;
+						break;
+					case 'lodged':
+					case 'approved':
+					case 'slotstart':
+						if ($fv) {
+							$dtw->setTimestamp($fv);
+							$fv = $dtw->format('Y-m-d G:i');
+						} else {
+							$fv = '';
+						}
+						break;
+					case 'slotlen':
+						if ($fv && $data['slotstart']) {
+							$dtw->setTimestamp($fv+$data['slotstart']);
+							$fv = $dtw->format('Y-m-d G:i');
+						} else {
+							$fv = '';
+						}
+						break;
+					case 'fee':
+					case 'netfee':
+						$fv = (float)$fv;
+						break;
+					case 'subgrpcount':
+					case 'status':
+					case 'payment':
+					case 'history_id':
+						$fv = (int)$fv;
+						break;
+					}
+					$stores[] = $fv;
+				} //foreach $translates
+				$outstr .= implode($sep,$stores)."\n";
+			} //foreach $all
+			$detail = self::NameDetail($mod,$utils,$history_id,'history');
+			$fname = self::FullName($mod,$detail);
+			return self::ExportContent($mod,$fname,$outstr);
+		} //$all
+		return array(FALSE,'err_data');
+	}
 }
