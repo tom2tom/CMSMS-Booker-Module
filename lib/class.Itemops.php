@@ -113,7 +113,7 @@ class Itemops
 	*/
 /*	public function ExportItem(&$mod, $item_id, $members=TRUE)
 	{
-		$funcs = new CSV();
+		$funcs = new Export();
 		if (!is_array($item_id))
 			$item_id = array($item_id);
 		foreach ($item_id as $one) {

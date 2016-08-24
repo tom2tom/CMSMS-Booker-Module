@@ -159,22 +159,22 @@ class Userops
 		return ($r != FALSE);
 	}
 
-	/**
+	/* *
 	ExportUser:
 	Export data for one or more bookers
 	@mod: reference to current Booker module object
 	@booker_id: booker identifier, or array of them, or '*'
 	Returns: 2-member array, 1st is T/F indicating success, 2nd '' or error message
 	*/
-	public function ExportUser(&$mod, $booker_id)
+/*	public function ExportUser(&$mod, $booker_id)
 	{
-		$funcs = new CSV();
+		$funcs = new Export();
 		list($res,$key) = $funcs->ExportBookers($mod,$booker_id);
 		if ($res)
 			return array(TRUE,'');
 		return array(FALSE,$mod->Lang($key));
 	}
-
+*/
 	/**
 	RegisterUser:
 	Record account/login and password for an existing booker

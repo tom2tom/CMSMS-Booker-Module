@@ -129,7 +129,7 @@ EOS;
 	*/
 	public function ExportBkg(&$mod, $bkg_id)
 	{
-		$funcs = new CSV();
+		$funcs = new Export();
 		list($res,$key) = $funcs->ExportBookings($mod,FALSE,$bkg_id);
 		if ($res)
 			return array(TRUE,'');
