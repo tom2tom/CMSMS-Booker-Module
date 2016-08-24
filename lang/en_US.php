@@ -209,6 +209,38 @@ The Displaytype field controls display styling for the user, and if provided sho
 <li>an email address or mobile/cell phone number is malformed</li>
 </ul></p>
 EOS;
+$lang['help_importfee'] = <<<EOS
+<h3>File format</h3>
+<p>The input file must be in ASCII format with data fields separated by commas.
+Any actual comma in a field should be represented by '&amp;#44;'.
+Each line in the file (except the header line, discussed below) represents one resource or group.</p>
+<h4>Header line</h4>
+<p>The first line of the file names the fields in the file, as follows. Names prefixed by a '#' represent compulsory values.<br />
+<code>#ID,Description,Duration,Count,#Fee,Condition,Type,Update</code></p>
+<h4>Other lines</h4>
+<p>The data in each line must conform to the header columns, of course. Any non-compulsory field, or entire line, may be empty.<br />
+TODO explain</p>
+<h3>Problems</h3>
+<p>The import process will fail if:<ul>
+<li>TODO</li>
+</ul></p>
+EOS;
+$lang['help_importhistory'] = <<<EOS
+<h3>File format</h3>
+<p>The input file must be in ASCII format with data fields separated by commas.
+Any actual comma in a field should be represented by '&amp;#44;'.
+Each line in the file (except the header line, discussed below) represents one resource or group.</p>
+<h4>Header line</h4>
+<p>The first line of the file names the fields in the file, as follows. Names prefixed by a '#' represent compulsory values.<br />
+<code>#ID,Count,#User,Lodged,Approved,#Start,End,Comment,FeeDue,Feepaid,Status,Feestatus,Transaction,Update</code></p>
+<h4>Other lines</h4>
+<p>The data in each line must conform to the header columns, of course. Any non-compulsory field, or entire line, may be empty.<br />
+TODO explain</p>
+<h3>Problems</h3>
+<p>The import process will fail if:<ul>
+<li>TODO</li>
+</ul></p>
+EOS;
 $lang['help_importitem'] = <<<EOS
 <h3>File format</h3>
 <p>The input file must be in ASCII format with data fields separated by commas.
@@ -308,6 +340,7 @@ One or more (in which case, comma-separated) user-classes, like TODO.<br />
 If multiple conditions are specified, it will be sufficient for any of them to be satisfied.
 If blank, fees apply always.
 EOS;
+$lang['history_multi'] = 'history record(s)';
 
 $lang['import'] = 'Import';
 $lang['import_result'] = '%d %s imported';
@@ -561,6 +594,8 @@ $lang['title_id'] = 'ID';
 $lang['title_image'] = 'Descriptive image(s)';
 $lang['title_importbookers'] = 'Import bookers';
 $lang['title_importbooks'] = 'Import bookings';
+$lang['title_importfees'] = 'Import fee details';
+$lang['title_importhists'] = 'Import history records';
 $lang['title_importitems'] = 'Import items';
 $lang['title_item'] = 'Resource';
 $lang['title_items'] = 'Resources';
