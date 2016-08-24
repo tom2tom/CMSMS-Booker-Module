@@ -110,16 +110,17 @@ EOS;
 					}
 					if (!array_key_exists($user,$parms)) {
 						$parms[$user] = array(
-							(int)$one['displayclass'], //0
-							$contact, //1 address or phone
-							(int)$one['paid']); //2
+							(int)$one['booker_id'], //0
+							(int)$one['displayclass'], //1
+							$contact, //2 address or phone
+							(int)$one['paid']); //3
 					} else {
-						if ($parms[$user][0] == 0); //keep first non-0 class
-							$parms[$user][0] = (int)$one['displayclass'];
-						if ($parms[$user][1] == FALSE); //keep first non-empty contact
-							$parms[$user][1] = $contact;
+						if ($parms[$user][1] == 0); //keep first non-0 class
+							$parms[$user][1] = (int)$one['displayclass'];
+						if ($parms[$user][2] == FALSE); //keep first non-empty contact
+							$parms[$user][2] = $contact;
 						if (!$one['paid'])
-							$parms[$user][2] = 0; //part-paid reported as unpaid
+							$parms[$user][3] = 0; //part-paid reported as unpaid
 					}
 				}
 			}
@@ -129,15 +130,15 @@ EOS;
 				foreach ($times as $user=>$utimes) {
 					//data to mimic a request, to populate HistoryTable etc
 					$reqdata = array(
-					 'booker_id'=>$one['booker_id'],
-//				 'item_id'=>$one['item_id'],
-//				 'subgrpcount'=>1,
-//				 'lodged'=>0,
-//				 'approved'=>0,
+					 'booker_id'=>$parms[$user][0],
+//					 'item_id'=>$one['item_id'],
+//					 'subgrpcount'=>1,
+//					 'lodged'=>0,
+//					 'approved'=>0,
 					 'slotstart'=>0,
 					 'slotlen'=>0,
-//				 'status'=>0
-					 'payment'=>func($parms[$user][2]) //TODO
+//					 'status'=>0
+					 'payment'=>0 //TODO Booker:STAT* = func($parms[$user][3]) etc
 					);
 					$starts = $utimes[0];
 					$ends = $utimes[1];
