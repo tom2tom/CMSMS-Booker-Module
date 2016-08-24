@@ -5,7 +5,6 @@
 #----------------------------------------------------------------------
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
-# needs Multibyte String extension
 namespace Booker;
 
 class Import
@@ -42,30 +41,6 @@ class Import
 		if ($some)
 			return $fields;
 		return FALSE; //ignore lines with all fields empty
-	}
-
-	/**
-	ImportFees:
-	Import fees data from uploaded CSV file. Can handle re-ordered columns.
-	@mod: reference to current Booker module object
-	@id: module identifier
-	Returns: 2-member array, 1st is T/F indicating success, 2nd is count of imports or lang key for message
-	*/
-	public function ImportFees(&$mod, $id)
-	{
-			return array(FALSE,'none');
-	}
-
-	/**
-	ImportHistory:
-	Import history data from uploaded CSV file. Can handle re-ordered columns.
-	@mod: reference to current Booker module object
-	@id: module identifier
-	Returns: 2-member array, 1st is T/F indicating success, 2nd is count of imports or lang key for message
-	*/
-	public function ImportHistory(&$mod, $id)
-	{
-			return array(FALSE,'none');
 	}
 
 	/**
@@ -275,6 +250,7 @@ class Import
 								$item_id = $utils->GetItemID($mod,$data['name']);
 							}
 							if ($item_id) {
+								//TODO cache $item_id=>$data['name']
 								$namers = implode('=?,',array_keys($data));
 								$sql = 'UPDATE '.$mod->ItemTable.' SET '.$namers.'=? WHERE item_id=?';
 								$args = array_values($data);
@@ -307,12 +283,11 @@ class Import
 							foreach ($data as $i=>$one) {
 								//find id of this name
 								$t = $utils->GetItemID($mod,$one);
-								if ($t !== FALSE) {
-									$sql[] = $sqlg;
-									$args[] = array($item_id,$t,-1,$i+1); //likeorder unknowable in this context, proximity assumes blank canvas!
-								} else {
+								if ($t === FALSE) {
 									return array(FALSE,'err_file');
 								}
+								$sql[] = $sqlg;
+								$args[] = array($item_id,$t,-1,$i+1); //likeorder unknowable in this context, proximity assumes blank canvas!
 							}
 							$utils->SafeExec($sql,$args);
 						}
@@ -325,6 +300,196 @@ class Import
 			return array(FALSE,'none');
 		}
 		return array(FALSE,'error');
+	}
+
+	/**
+	ImportFees:
+	Import fee-rules data from uploaded CSV file. Can handle re-ordered columns.
+	@mod: reference to current Booker module object
+	@id: module identifier
+	Returns: 2-member array, 1st is T/F indicating success, 2nd is count of imports or lang key for message
+	*/
+	public function ImportFees(&$mod, $id)
+	{
+		$filekey = $id.'csvfile';
+		if (isset($_FILES) && isset($_FILES[$filekey])) {
+			$file_data = $_FILES[$filekey];
+			$parts = explode('.',$file_data['name']);
+			$ext = end($parts);
+			if ($file_data['type'] != 'text/csv'
+			 || !($ext == 'csv' || $ext == 'CSV')
+				 || $file_data['size'] <= 0 || $file_data['size'] > 25600 //arbitrary size
+				 || $file_data['error'] != 0) {
+				return array(FALSE,'err_file');
+			}
+			$fh = fopen($file_data['tmp_name'],'r');
+			if (!$fh)
+				return array(FALSE,'err_perm');
+			//basic validation of file-content
+			$firstline = self::GetSplitLine($fh);
+			if ($firstline == FALSE) {
+				return array(FALSE,'err_file');
+			}
+			//file-column-name to fieldname translation
+			$translates = array(
+			 '#ID'=>'item_id', //interpreted
+			 'Description'=>'description',
+			 'Duration'=>'slottype', //interpreted
+			 'Count'=>'slotcount',
+			 '#Fee'=>'fee',
+			 'Condition'=>'feecondition',
+			 'Type'=>'condtype',
+			 'Update'=>'update' //not a real field
+			);
+			/* non-public
+			 =>'signature'
+			 =>'condorder,
+			 =>'active'
+			*/
+			$t = count($firstline);
+			if ($t < 1 || $t > count($translates)) {
+				return array(FALSE,'err_file');
+			}
+			//setup for interpretation
+			$offers = array(); //column-index to fieldname translator
+			foreach ($translates as $pub=>$priv) {
+				$col = array_search($pub,$firstline);
+				if ($col !== FALSE)
+					$offers[$col] = $priv;
+				elseif ($pub[0] == '#') {
+					//name of compulsory fields has '#' prefix
+					return array(FALSE,'err_file');
+				}
+			}
+
+			$utils = new Utils();
+			$periods = $utils->TimeIntervals();
+			$icount = 0;
+
+			while (!feof($fh)) {
+				$imports = self::GetSplitLine($fh);
+				if ($imports) {
+					$data = array();
+					$save = FALSE;
+					$update = FALSE;
+					foreach ($imports as $i=>$one) {
+						$k = $offers[$i];
+						if ($one) {
+							switch ($k) {
+							 case 'item_id':
+								$t = $utils->GetItemID($mod,trim($one));
+								if ($t === FALSE) {
+ 									return array(FALSE,'err_file');
+								}
+								$data[$k] = $t;
+								$save = TRUE;
+								break;
+							 case 'description':
+							 case 'feecondition': //no validation here!
+								$data[$k] = trim($one);
+								$save = TRUE;
+								break;
+							 case 'fee':
+							 	$t = (float)number_format((float)$one,2,'.','');
+								if ($t < 1.0) //TODO support selectable min. payment
+									$t = 0.0;
+								$data[$k] = $t;
+								$save = TRUE;
+							 	break;
+							 case 'slottype':
+								$t = array_search(trim($one),$periods);
+								if ($t === FALSE)
+									$t = 1; //default = hour TODO something more specific
+								$data[$k] = $t;
+								$save = TRUE;
+								break;
+							 case 'condtype':
+							 case 'slotcount':
+								$data[$k] = int($one);
+								$save = TRUE;
+								break;
+							 case 'update':
+							 	if (is_numeric($one)) {
+									$update = (int)$one;
+								} else {
+									$update = !($one == 'no' || $one == 'NO');
+								}
+								break;
+							default:
+								return array(FALSE,'err_file');
+							}
+						} else {
+							switch ($k) {
+							 case 'slottype':
+ 								$data[$k] = 1; //default = hour TODO something more specific
+								break;
+							 case 'slotcount':
+ 								$data[$k] = 1;
+								break;
+							 case 'condtype':
+ 								$data[$k] = 0;
+								break;
+							 case 'update': //ignore this
+								break;
+//							 case 'feecondition':
+//							 case 'description':
+							 default:
+ 								$data[$k] = NULL;
+								break;
+							}
+						}
+					}
+					if ($save) {
+						$done = FALSE;
+						if ($update) { //TODO robust UPSERT
+							if (is_numeric($update)) {
+								$sql = 'SELECT condition_id FROM '.$mod->FeeTable.' WHERE condition_id=?';
+								$cid = $utils->SafeGet($sql,array($update),'one');
+							} else {
+								$cid = FALSE;
+							}
+/*							if (!$cid) {
+								$sql = 'SELECT condition_id FROM '.$mod->FeeTable.' WHERE TODO';
+								$args = $TODO;
+								$cid = $utils->SafeGet($sql,$args,'one');
+							}
+*/
+							if ($cid) {
+								//TODO cache $cid=>X
+								$namers = implode('=?,',array_keys($data));
+								$sql = 'UPDATE '.$mod->FeeTable.' SET '.$namers.'=? WHERE condition_id=?';
+								$args = array_values($data);
+								$args[] = $cid;
+								if ($utils->SafeExec($sql,$args)) {
+									$icount++;
+									$done = TRUE;
+								}
+							}
+						}
+						if (!$done) {
+							$namers = implode(',',array_keys($data));
+							$fillers = str_repeat('?,',count($data)-1);
+							$sql = 'INSERT INTO '.$mod->FeeTable.' (condition_id,,signature,'.$namers.',condorder,active) VALUES (?,?,'.$fillers.'?,?,1)';
+							$args = array_values($data);
+							$cid = $mod->dbHandle->GenID($mod->FeeTable.'_seq');
+							$sig = $utils->GetFeeSignature($data);
+							array_unshift($args,$cid,$sig);
+							$args[] = -1; //TODO useful order
+							if ($utils->SafeExec($sql,$args)) {
+								$icount++;
+							} else {
+								return array(FALSE,'err_system');
+							}
+						}
+					}
+				}
+			}
+			fclose($fh);
+			if ($icount)
+				return array(TRUE,$icount);
+			return array(FALSE,'none');
+		}
+		return array(FALSE,'err_system');
 	}
 
 	/**
@@ -506,7 +671,7 @@ class Import
 						if ($update) { //TODO robust UPSERT
 							if (is_numeric($update)) {
 								$sql = 'SELECT booker_id FROM '.$mod->BookerTable.' WHERE booker_id=?';
-								$bid = $utils->SafeGet($sql,array($update))
+								$bid = $utils->SafeGet($sql,array($update),'one');
 							} else {
 								$bid = FALSE;
 							}
@@ -525,6 +690,7 @@ class Import
 								}
 							}
 							if ($bid) {
+								//TODO cache $bid=>$data['name'].$data['publicid']
 								$namers = implode('=?,',array_keys($data));
 								$sql = 'UPDATE '.$mod->BookerTable.' SET '.$namers.'=? WHERE booker_id=?';
 								$args = array_values($data);
@@ -661,29 +827,32 @@ class Import
 								}
 								break;
 							 case 'slotstart':
-								if (empty($data['item_id'])) {
-									return array(FALSE,'err_file');
-								}
+//								if (empty($data['item_id'])) {
+//									return array(FALSE,'err_file');
+//								}
 								try {
 									$dts->modify($one);
 								} catch (Exception $e) {
 									return array(FALSE,'err_badstart');
 								}
-								$data['slotstart'] = $dts->getTimestamp(); //store UTC timestamp
+								$data[$k] = $dts->getTimestamp(); //store UTC timestamp
+								if (isset($data['slotlen'])) {
+									$data['slotlen'] -= $data[$k]; //later we will extend to last-second of slot
+								}
 								break;
 							 case 'slotlen': //proxy for #End
-								if (empty($data['item_id'])) {
-									return array(FALSE,'err_file');
-								}
+//								if (empty($data['item_id'])) {
+//									return array(FALSE,'err_file');
+//								}
 								try {
 									$dte->modify($one);
 								} catch (Exception $e) {
 									return array(FALSE,'err_badend');
 								}
 								if (isset($data['slotstart']))
-									$data['slotlen'] = $dte->getTimestamp() - $data['slotstart'];
+									$data[$k] = $dte->getTimestamp() - $data['slotstart'];
 								else
-									$data['slotlen'] = $dte->getTimestamp(); //interim value cached
+									$data[$k] = $dte->getTimestamp(); //interim value cached
 								break;
 							 case 'booker_id':
 								if (array_key_exists($one,$bookers)) {
@@ -748,13 +917,14 @@ class Import
 							} else {
 								$bid = FALSE;
 							}
-/*						if (!$bid) {
+/*							if (!$bid) {
 								$sql = $TODO; //get relevant bkg_id
 								$args = $TODO;
 								$bid = $utils->SafeGet($sql,$args,'one');
 							}
 */
 							if ($bid) {
+								//TODO cache $bid=>X
 								$namers = implode('=?,',array_keys($data));
 								$sql = 'UPDATE '.$mod->DataTable.' SET '.$namers.'=? WHERE bkg_id=?';
 								$args = array_values($data);
@@ -794,4 +964,239 @@ class Import
 		return array(FALSE,'err_system');
 	}
 
+	/**
+	ImportHistory:
+	Import history data from uploaded CSV file. Can handle re-ordered columns.
+	@mod: reference to current Booker module object
+	@id: module identifier
+	Returns: 2-member array, 1st is T/F indicating success, 2nd is count of imports or lang key for message
+	*/
+	public function ImportHistory(&$mod, $id)
+	{
+		$filekey = $id.'csvfile';
+		if (isset($_FILES) && isset($_FILES[$filekey])) {
+			$file_data = $_FILES[$filekey];
+			$parts = explode('.',$file_data['name']);
+			$ext = end($parts);
+			if ($file_data['type'] != 'text/csv'
+			 || !($ext == 'csv' || $ext == 'CSV')
+				 || $file_data['size'] <= 0 || $file_data['size'] > 25600 //$max*1000
+				 || $file_data['error'] != 0) {
+				return array(FALSE,'err_file');
+			}
+			$fh = fopen($file_data['tmp_name'],'r');
+			if (!$fh)
+				return array(FALSE,'err_perm');
+			//basic validation of file-content
+			$firstline = self::GetSplitLine($fh);
+			if ($firstline == FALSE) {
+				return array(FALSE,'err_file');
+			}
+			//file-column-name to fieldname translation
+			$translates = array(
+			 '#ID'=>'item_id', //interpreted
+			 'Count'=>'subgrpcount',
+			 '#User'=>'booker_id', //interpreted
+			 'Lodged'=>'lodged',
+			 'Approved'=>'approved',
+			 '#Start'=>'slotstart',
+			 'End'=>'slotlen', //interpreted
+			 'Comment'=>'comment',
+			 'FeeDue'=>'fee',
+			 'Feepaid'=>'netfee',
+			 'Status'=>'status',
+			 'Feestatus'=>'payment',
+			 'Transaction'=>'gatetransaction',
+			 'Update'=>'update'
+			);
+			/* non-public fields
+			'item_id'
+			'booker_id'
+			'gatedata'
+			*/
+			$t = count($firstline);
+			if ($t < 1 || $t > count($translates)) {
+				return array(FALSE,'err_file');
+			}
+			//setup for interpretation
+			$offers = array(); //column-index to fieldname translator
+			foreach ($translates as $pub=>$priv) {
+				$col = array_search($pub,$firstline);
+				if ($col !== FALSE)
+					$offers[$col] = $priv;
+				elseif ($pub[0] == '#') {
+					//name of compulsory fields has '#' prefix
+					return array(FALSE,'err_file');
+				}
+			}
+			$utils = new Utils();
+			//for update checks
+//			$exist = $utils->SafeGet('SELECT booker_id,name,publicid FROM '.$mod->BookerTable.' ORDER BY bkr_id',FALSE);
+
+			$dtw = new \DateTime('@0',new \DateTimeZone('UTC'));
+			$icwount = 0;
+
+			while (!feof($fh)) {
+				$imports = self::GetSplitLine($fh);
+				if ($imports) {
+					$data = array();
+					$save = FALSE;
+					$update = FALSE;
+					foreach ($imports as $i=>$one) {
+						$k = $offers[$i];
+						$one = trim($one);
+						if ($one || is_numeric($one)) {
+							switch ($k) {
+							 case 'item_id': //interpret name
+								$t = $utils->GetItemID($mod,$one);
+								if ($t === FALSE) {
+									return array(FALSE,'err_file');
+								}
+								$data[$k] = $t;
+								$save = TRUE;
+								break;
+ 							 case 'comment':
+ 								$data[$k] = $one;
+								$save = TRUE;
+								break;
+							 case 'subgrpcount':
+							 case 'status':
+							 case 'payment':
+ 								$data[$k] = (int)$one;
+								$save = TRUE;
+								break;
+							 case 'booker_id': //interpreted
+								break;
+							 case 'lodged':
+							 case 'approved':
+							 case 'slotstart':
+								try {
+									$dtw->modify($one);
+								} catch (Exception $e) {
+									return array(FALSE,'err_badstart');
+								}
+								$data[$k] = $dtw->getTimestamp();
+								if ($k == 'slotstart' && isset($data['slotlen'])) {
+									$data['slotlen'] -= $data[$k]; //TODO extend to last-second of slot
+								}
+								$save = TRUE;
+								break;
+							 case 'slotlen': //interpret end-time
+								try {
+									$dtw->modify($one);
+								} catch (Exception $e) {
+									return array(FALSE,'err_badend');
+								}
+								if (isset($data['slotstart'])) {
+									$data[$k] = $dtw->getTimestamp() - $data['slotstart']; //TODO extend to last-second of slot
+								} else {
+									$data[$k] = $dtw->getTimestamp(); //cache the end
+								}
+								$save = TRUE;
+ 								break;
+							 case 'fee':
+							 case 'netfee':
+							 	$t = (float)number_format((float)$one,2,'.','');
+								if ($t < 1.0) //TODO support selectable min. payment
+									$t = 0.0;
+								$data[$k] = $t;
+								$save = TRUE;
+ 								break;
+							 case 'gatetransaction':
+								$data[$k] = $one;
+								$save = TRUE;
+								break;
+							 case 'update':
+							 	if (is_numeric($one)) {
+									$update = (int)$one;
+								} else {
+									$update = !($one == 'no' || $one == 'NO');
+								}
+								break;
+							default:
+								return array(FALSE,'err_file');
+							}
+						} else { //non-numeric FALSE
+							switch ($k) {
+							 case 'subgrpcount':
+								$data[$k] = 1;
+								break;
+							 case 'lodged':
+							 case 'approved':
+								$dtw->modify('now');
+								$data[$k] = $dtw->getTimestamp();
+								break;
+							 case 'slotlen': //interpreted
+								$data[$k] = 3599; //TODO something contect-related
+							 	break;
+							 case 'fee':
+							 case 'netfee':
+								$data[$k] = 0.0;
+							 	break;
+							 case 'status':
+							 case 'payment':
+								$data[$k] = 0;
+								break;
+							 case 'update': //ignore this
+								break;
+//compulsory				 case 'item_id':
+//compulsory				 case 'booker_id':
+//compulsory				 case 'slotstart':
+							 default:
+ 								$data[$k] = NULL;
+								break;
+							}
+						}
+					}
+					if ($save) {
+						$done = FALSE;
+						if ($update) { //TODO robust UPSERT
+							if (is_numeric($update)) {
+								$sql = 'SELECT history_id FROM '.$mod->HistoryTable.' WHERE history_id=?';
+								$hid = $utils->SafeGet($sql,array($update),'one');
+								//TODO cache this
+							} else {
+								$hid = FALSE;
+							}
+/* TODO						if (!$hid) {
+								$sql = $TODO;
+								$args = $TODO;
+								$hid = $utils->SafeGet($sql,$args,'one');
+							}
+*/
+							if ($hid) {
+								//TODO cache $hid=>X
+								$namers = implode('=?,',array_keys($data));
+								$sql = 'UPDATE '.$mod->HistoryTable.' SET '.$namers.'=? WHERE condition_id=?';
+								$args = array_values($data);
+								$args[] = $bid;
+								if ($utils->SafeExec($sql,$args)) {
+									$icount++;
+									$done = TRUE;
+								}
+							}
+						}
+						if (!$done) {
+							$namers = implode(',',array_keys($data));
+							$fillers = str_repeat('?,',count($data)-1);
+							$sql = 'INSERT INTO '.$mod->HistoryTable.' (condition_id,'.$namers.') VALUES (?,'.$fillers.'?)';
+							$args = array_values($data);
+							$hid = $mod->dbHandle->GenID($mod->HistoryTable.'_seq');
+							array_unshift($args,$hid);
+							if ($utils->SafeExec($sql,$args)) {
+								$icount++;
+							} else {
+								return array(FALSE,'err_system');
+							}
+						}
+					}
+				}
+			}
+			fclose($fh);
+			if ($icount)
+				return array(TRUE,$icount);
+			return array(FALSE,'none');
+		}
+		return array(FALSE,'err_system');
+	}
 }
