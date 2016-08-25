@@ -135,7 +135,7 @@ class Import
 			}
 
 			$utils = new Utils();
-			$periods = $utils->TimeIntervals();
+			$periods = array(-3=>'any',-2=>'all',-1=>'fixed') + $utils->TimeIntervals();
 			$icount = 0;
 			$db = $mod->dbHandle;
 			$sqlg = 'INSERT INTO '.$mod->GroupTable.' (child,parent,likeorder,proximity) VALUES (?,?,?,?)';
@@ -177,14 +177,28 @@ class Import
 							 case 'slottype':
 							 case 'leadtype':
 							 case 'keeptype':
-								$data[$k] = array_search(trim($one),$periods);
+								$t = array_search(trim($one),$periods);
+								if ($t < 0)
+									$t = -1;
+								elseif ($t === FALSE)
+									$t = 1; //default hour TODO something context-related
+								$data[$k] = $t;
 								$save = TRUE;
 								break;
 							 case 'slotcount':
-							 case 'bookcount':
+								$data[$k] = ($data['slottype'] >= 0) ? (int)$one : NULL;
+								$save = TRUE;
+								break;
 							 case 'leadcount':
-							 case 'rationcount':
+								$data[$k] = ($data['leadtype'] >= 0) ? (int)$one : NULL;
+								$save = TRUE;
+								break;
 							 case 'keepcount':
+								$data[$k] = ($data['keeptype'] >= 0) ? (int)$one : NULL;
+								$save = TRUE;
+								break;
+							 case 'bookcount':
+							 case 'rationcount':
 							 case 'listformat':
 							 case 'subgrpalloc':
 								$data[$k] = (int)$one;
@@ -224,6 +238,11 @@ class Import
 							switch ($k) {
 							 case 'listformat':
 								$data[$k] = ($is_group) ? \Booker::LISTSR:\Booker::LISTSU;
+								break;
+							 case 'slottype':
+							 case 'leadtype':
+							 case 'keeptype':
+								$data[$k] = 1; //hour
 								break;
 							 case 'cleargroup':
 								$data[$k] = 0; //no clear group
@@ -363,7 +382,7 @@ class Import
 			}
 
 			$utils = new Utils();
-			$periods = $utils->TimeIntervals();
+			$periods = array(-3=>'any',-2=>'all',-1=>'fixed') + $utils->TimeIntervals();
 			$icount = 0;
 
 			while (!feof($fh)) {
@@ -398,14 +417,23 @@ class Import
 							 	break;
 							 case 'slottype':
 								$t = array_search(trim($one),$periods);
-								if ($t === FALSE)
+								if ($t < 0)
+									$t = -1;
+								elseif ($t === FALSE)
 									$t = 1; //default = hour TODO something more specific
 								$data[$k] = $t;
 								$save = TRUE;
 								break;
-							 case 'condtype':
 							 case 'slotcount':
-								$data[$k] = int($one);
+							if (isset($data['slottype']) && $data['slottype'] < 0) {
+									$data[$k] = NULL;
+								} else {
+									$data[$k] = (int)$one;
+								}
+								$save = TRUE;
+								break;
+							 case 'condtype':
+								$data[$k] = (int)$one;
 								$save = TRUE;
 								break;
 							 case 'update':
@@ -424,7 +452,11 @@ class Import
  								$data[$k] = 1; //default = hour TODO something more specific
 								break;
 							 case 'slotcount':
- 								$data[$k] = 1;
+							if (isset($data['slottype']) && $data['slottype'] < 0) {
+									$data[$k] = NULL;
+								} else {
+									$data[$k] = 1;
+								}
 								break;
 							 case 'condtype':
  								$data[$k] = 0;
@@ -469,7 +501,7 @@ class Import
 						if (!$done) {
 							$namers = implode(',',array_keys($data));
 							$fillers = str_repeat('?,',count($data)-1);
-							$sql = 'INSERT INTO '.$mod->FeeTable.' (condition_id,,signature,'.$namers.',condorder,active) VALUES (?,?,'.$fillers.'?,?,1)';
+							$sql = 'INSERT INTO '.$mod->FeeTable.' (condition_id,signature,'.$namers.',condorder,active) VALUES (?,?,'.$fillers.'?,?,1)';
 							$args = array_values($data);
 							$cid = $mod->dbHandle->GenID($mod->FeeTable.'_seq');
 							$sig = $utils->GetFeeSignature($data);
@@ -795,7 +827,6 @@ class Import
 			$dte = clone $dts;
 			$item_lens = array();
 			$bookers = array();
-			$sql = 'SELECT booker_id FROM '.$mod->BookerTable.' WHERE name=? OR publicid=?';
 			$skip = FALSE;
 			$icount = 0;
 			while (!feof($fh)) {
@@ -812,7 +843,7 @@ class Import
 						if ($one) {
 							switch ($k) {
 							 case 'item_id':
-								$t = $utils->GetItemID($mod,$one);
+								$t = $utils->GetItemID($mod,$one); //TODO cache result & lookup there first
 								if ($t === FALSE) {
 									return array(FALSE,'err_file');
 								}
@@ -858,6 +889,7 @@ class Import
 								if (array_key_exists($one,$bookers)) {
 									$data[$k] = $bookers[$one];
 								} else {
+									$sql = 'SELECT booker_id FROM '.$mod->BookerTable.' WHERE name=? OR publicid=?';
 									$t = $mod->dbHandle->GetOne($sql,array($one,$one));
 									if ($t) {
 										$t = (int)$t;
@@ -885,8 +917,11 @@ class Import
 							}
 						} else {
 							switch ($k) {
-							 case 'slotstart':
+//compusory					 case 'slotstart':
 							 case 'slotlen':
+								$data[$k] = 3599;
+								break;
+							 case 'status':
 							 case 'paid':
 								$data[$k] = 0;
 							 case 'update':
@@ -910,6 +945,18 @@ class Import
 					}
 					if ($save) {
 						$done = FALSE;
+						//TODO define once
+						$histfields = array(
+						 'history_id',
+						 'booker_id',
+						 'item_id',
+						 'subgrpcount',
+						 'lodged',
+						 'approved',
+						 'slotstart',
+						 'slotlen',
+						 'status',
+						 'payment');
 						if ($update) { //TODO robust UPSERT
 							if (is_numeric($update)) {
 								$sql = 'SELECT bkg_id FROM '.$mod->DataTable.' WHERE bkg_id=?';
@@ -925,10 +972,15 @@ class Import
 */
 							if ($bid) {
 								//TODO cache $bid=>X
+								$sql = array();
+								$args = array();
 								$namers = implode('=?,',array_keys($data));
-								$sql = 'UPDATE '.$mod->DataTable.' SET '.$namers.'=? WHERE bkg_id=?';
-								$args = array_values($data);
-								$args[] = $bid;
+								$sql[] = 'UPDATE '.$mod->DataTable.' SET '.$namers.'=? WHERE bkg_id=?';
+								$args[] = array_values($data) + array(-1=>$bid);
+//TODO update HistoryTable too
+//								$sql[] = 'UPDATE '.$mod->HistoryTable.' SET WHERE =?'
+//								$args[] =
+
 								if ($utils->SafeExec($sql,$args)) {
 									$icount++;
 									$done = TRUE;
@@ -936,13 +988,25 @@ class Import
 							}
 						}
 						if (!$done) {
+							$sql = array();
+							$args = array();
 							$namers = implode(',',array_keys($data));
 							$fillers = str_repeat('?,',count($data)-1);
-//TODO HistoryTable too
-							$sql = 'INSERT INTO '.$mod->DataTable.' (bkg_id,'.$namers.') VALUES (?,'.$fillers.'?)';
-							$args = array_values($data);
+							$sql[] = 'INSERT INTO '.$mod->DataTable.' (bkg_id,'.$namers.') VALUES (?,'.$fillers.'?)';
 							$bid = $mod->dbHandle->GenID($mod->DataTable.'_seq');
-							array_unshift($args,$bid);
+							$args[] = array(-1=>$bid) + array_values($data);
+
+							$namers = implode(',',$histfields);
+							$fillers = str_repeat('?,',count($histfields)-1);
+							$sql[] = 'INSERT INTO '.$mod->HistoryTable.' ('.$namers.') VALUES ('.$fillers.'?)';
+							$bid = $mod->dbHandle->GenID($mod->HistoryTable.'_seq');
+							$dts->modify('now');
+							$st = $dts->getTimestamp();
+//TODO useful status, payment codes
+							$status = \Booker::STATOK;
+							$payment = ($data['paid']) ? \Booker::STATPAID : \Booker::STATFREE;
+							$args[] = array($bid,$data['booker_id'],$data['item_id'],1,$st,$st,$data['slotstart'],$data['slotlen'],$status,$payment);
+
 							if ($utils->SafeExec($sql,$args)) {
 								$icount++;
 							} else {
