@@ -153,13 +153,15 @@ class Utils
 			$db->Execute('SET TRANSACTION ISOLATION LEVEL SERIALIZABLE'); //this isn't perfect!
 			$db->StartTrans();
 			if (is_array($sql)) {
+				$res = TRUE;
 				foreach ($sql as $i=>$cmd) {
-					$db->Execute($cmd,$args[$i]);
+					$res = $res && $db->Execute($cmd,$args[$i]);
 				}
-			} else
-				$db->Execute($sql,$args);
+			} else {
+				$res = ($db->Execute($sql,$args) != FALSE);
+			}
 			if ($db->CompleteTrans())
-				return TRUE;
+				return $res;
 			else {
 				$nt--;
 				usleep(50000);
