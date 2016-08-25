@@ -194,7 +194,8 @@ $lang['help_importbooker'] = <<<EOS
 Any actual comma in a field should be represented by '&amp;#44;'.
 Each line in the file (except the header line, discussed below) represents one booker.</p>
 <h4>Header line</h4>
-<p>The first line of the file names the fields in the file, as follows. Names prefixed by a '#' represent compulsory values.<br />
+<p>The first line of the file names the fields in the file, as follows.
+The supplied names may be in any order. Those prefixed by a '#' represent compulsory values.<br />
 <code>#Name,Login,Password,Passhash,#Email,Phone,Usertype,Postpayer,Recorder,Displaytype,Update</code></p>
 <h4>Other lines</h4>
 <p>The data in each line must conform to the header columns, of course. Any non-compulsory field, or entire line, may be empty.<br />
@@ -213,32 +214,39 @@ $lang['help_importfee'] = <<<EOS
 <h3>File format</h3>
 <p>The input file must be in ASCII format with data fields separated by commas.
 Any actual comma in a field should be represented by '&amp;#44;'.
-Each line in the file (except the header line, discussed below) represents one resource or group.</p>
+Each line in the file (except the header line, discussed below) represents one fee.</p>
 <h4>Header line</h4>
-<p>The first line of the file names the fields in the file, as follows. Names prefixed by a '#' represent compulsory values.<br />
+<p>The first line of the file names the fields in the file, as follows.
+The supplied names may be in any order. Those prefixed by a '#' represent compulsory values.<br />
 <code>#ID,Description,Duration,Count,#Fee,Condition,Type,Update</code></p>
 <h4>Other lines</h4>
 <p>The data in each line must conform to the header columns, of course. Any non-compulsory field, or entire line, may be empty.<br />
-TODO explain</p>
+TODO explain fields</p>
 <h3>Problems</h3>
 <p>The import process will fail if:<ul>
-<li>TODO</li>
+<li>the first line field names are are not as expected</li>
+<li>a compulsory-field value is not provided</li>
+<li>a resource is not recognised</li>
 </ul></p>
 EOS;
 $lang['help_importhistory'] = <<<EOS
 <h3>File format</h3>
 <p>The input file must be in ASCII format with data fields separated by commas.
 Any actual comma in a field should be represented by '&amp;#44;'.
-Each line in the file (except the header line, discussed below) represents one resource or group.</p>
+Each line in the file (except the header line, discussed below) represents one record.</p>
 <h4>Header line</h4>
-<p>The first line of the file names the fields in the file, as follows. Names prefixed by a '#' represent compulsory values.<br />
+<p>The first line of the file names the fields in the file, as follows.
+The supplied names may be in any order. Those prefixed by a '#' represent compulsory values.<br />
 <code>#ID,Count,#User,Lodged,Approved,#Start,End,Comment,FeeDue,Feepaid,Status,Feestatus,Transaction,Update</code></p>
 <h4>Other lines</h4>
 <p>The data in each line must conform to the header columns, of course. Any non-compulsory field, or entire line, may be empty.<br />
-TODO explain</p>
+TODO explain fields</p>
 <h3>Problems</h3>
 <p>The import process will fail if:<ul>
-<li>TODO</li>
+<li>the first line field names are are not as expected</li>
+<li>a compulsory-field value is not provided</li>
+<li>a resource or user is not recognised</li>
+<li>a date-time value is malformed</li>
 </ul></p>
 EOS;
 $lang['help_importitem'] = <<<EOS
@@ -247,7 +255,8 @@ $lang['help_importitem'] = <<<EOS
 Any actual comma in a field should be represented by '&amp;#44;'.
 Each line in the file (except the header line, discussed below) represents one resource or group.</p>
 <h4>Header line</h4>
-<p>The first line of the file names the fields in the file, as follows. Names prefixed by a '#' represent compulsory values.<br />
+<p>The first line of the file names the fields in the file, as follows.
+The supplied names may be in any order. Those prefixed by a '#' represent compulsory values.<br />
 <code>#Isgroup,#Name,Alias,Description,Keywords,Image,Available,Slottype,Slotcount,BookingSlots,<br />
 Leadtype,Leadcount,Rationcount,Keeptype,Keepcount,Fee1,Fee1condition,Fee2,Fee2condition,PayInterface,<br />
 SMSprefix,SMSpattern,Latitude,Longitude,Timezone,Dateformat,Timeformat,Listformat,Stylesfile,<br />
@@ -343,6 +352,7 @@ EOS;
 $lang['history_multi'] = 'history record(s)';
 
 $lang['import'] = 'Import';
+$lang['import_fees'] = 'Import Fees';
 $lang['import_result'] = '%d %s imported';
 $lang['inherit'] = 'Inherit';
 $lang['inspect'] = 'Inspect';
@@ -499,6 +509,7 @@ $lang['tip_forw1'] = 'forward 1 %s';
 $lang['tip_forwN'] = 'forward %d %s';
 $lang['tip_importbkr'] = 'import bookers data from file';
 $lang['tip_importbkg'] = 'import bookings data from file';
+$lang['tip_importfee'] = 'import item-fees data from file';
 $lang['tip_importitm'] = 'import items data from file';
 $lang['tip_interval'] = 'select different display-range';
 $lang['tip_listtype'] = 'list style';
