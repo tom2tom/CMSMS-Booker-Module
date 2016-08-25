@@ -54,11 +54,12 @@
  <p class="pageinput">{$nodata}</p>
 {/if}
 <div id="dataacts" class="pageoptions" style="margin-top:1em;">
-{if $bmod}{$addbooking}<span style="margin-left:5em;">{$importbtn1} {/if}{$findbtn}
+{if $bmod}{$addbooking}<span style="margin-left:5em;"> {/if}{$findbtn}
 {if $dcount > 0}
-{if $bmod} {$approvbtn} {$rejectbtn} {/if}{if $tell}{$notifybtn}{/if}{if $del} {$deletebtn1}{/if} {$bexportbtn1}
+{if $bmod} {$approvbtn} {$rejectbtn}{/if}{if $tell} {$notifybtn}{/if}{if $del} {$deletebtn1}{/if}
 {if $bmod}</span>{/if}
 {/if}
+{if $bmod}<br /><span style="margin-left:12em;">{$importbtn1} {/if} {$bexportbtn1}
 </div>
 {$endform}
 {$end_tab}
@@ -117,9 +118,8 @@
 <div id="peopleacts" class="pageoptions" style="margin-top:1em;">
 {if $per}{$addbooker}{/if}
 {if $pcount > 0}
-<span style="margin-left:5em;">
-{if $per}{$importbtn2} {/if}{$exportbtn2}{if $per} {$ablebtn2} {$deletebtn2}{/if} {$bexportbtn2}
-</span>
+<span style="margin-left:5em;">{if $per} {$ablebtn2} {$deletebtn2}{/if}</span>
+<br /><span style="margin-left:12em;">{$exportbtn2}{if $per} {$importbtn2}</span>{/if} {$bexportbtn2}
 {else}
 {if $per}<span style="margin-left:3em">{$importbtn2}</span>{/if}
 {/if}
@@ -178,8 +178,9 @@
 {if $add}{$additem}{/if}
 {if $icount > 0}
 <span style="margin-left:5em;">
-{if $add}{$importbtn3} {/if}{$exportbtn3} {$feebtn3}{if $mod}{if $icount > 1} {$sortbtn3}{/if} {$ablebtn3}{/if}{if $del} {$deletebtn3}{/if} {$bexportbtn3}
+{$feebtn3}{if $mod}{if $icount > 1} {$sortbtn3}{/if} {$ablebtn3}{/if}{if $del} {$deletebtn3}{/if}
 </span>
+{if $add}<br /><span style="margin-left:12em;">{$importbtn3} {$fimportbtn3}</span>{/if} {$exportbtn3} {$bexportbtn3}
 {else}
 {if $add}<span style="margin-left:3em">{$importbtn3}</span>{/if}
 {/if}
@@ -240,7 +241,8 @@
 {if $add}{$addgrp}{/if}
 {if $gcount > 0}
 <span style="margin-left:5em;">
-{if $add}{$importbtn4} {/if}{$exportbtn4} {$feebtn4}{if $mod}{if $gcount > 1} {$sortbtn4}{/if} {$ablebtn4}{/if}{if $del} {$deletebtn4}{/if} {$bexportbtn4}
+{$feebtn4}{if $mod}{if $gcount > 1} {$sortbtn4}{/if} {$ablebtn4}{/if}{if $del} {$deletebtn4}{/if}
+{if $add}<br /><span style="margin-left:12em;">{$importbtn4} {$fimportbtn4}</span>{/if} {$exportbtn4} {$bexportbtn4}
 </span>
 {else}
 {if $add}<span style="margin-left:3em">{$importbtn4}</span>{/if}
