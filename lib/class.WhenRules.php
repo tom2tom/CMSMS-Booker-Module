@@ -113,12 +113,12 @@ no FALSE in $ends[]
 
 	/*
 	RelTime:
-	Get stamp for adjusted value of @dtbase consistent with @timestr. @dtbase changed
+	Adjust @dtbase consistent with @timestr.
+	@dtbase: DateTime object representing 'base' datetime
 	@timestr: relative time descriptor like [+1][H]H:[M]M
-	@dtbase: resource-local DateTime object
-	Returns: stamp of (probably modified) @dtbase
+	Returns: nothing, but @dtbase is probably changed
 	*/
-	private function RelTime($timestr, $dtbase)
+	private function RelTime($dtbase, $timestr)
 	{
 		$str = '';
 		$nums = explode(':',$timestr,3);
@@ -126,41 +126,40 @@ no FALSE in $ends[]
 			$str .= ' '.$nums[0].' hours';
 		if (!empty($nums[1]) && $nums[1] != '00')
 			$str .= ' '.$nums[1].' minutes';
-		if (!empty($str))
+		if ($str)
 			$dtbase->modify('+'.$str);
-		return $dtbase->getTimestamp();
 	}
 
 	/*
 	TimeBlocks:
-	Append to @starts[] and @ends[] pair(s) of timestamps consistent with @timedata
-		and @ss and @se
-
-	@timedata: a time-descriptor string representing a single time (in which case
-		end-time is assumed to be start + 1 hour), or a time-range including '..'
+	Append to @starts[] and @ends[] pair(s) of timestamps consistent with
+	@descriptor and @ss and @se
+	@descriptor: a time-descriptor string representing a single time (in which
+		case end-time is assumed to be start + 1 hour), or
+		a time-range including '..', or
+		an array which represents an interpreted string-descriptor
 	TODO support multiple values e.g. T1,T2... OR (T1,T2....)
+	TODO support 'except' values e.g. !T1,!T2... OR !(T1,T2....)
 	TODO support roll-over to contiguous segment(s) & time(s)
-	@dtbase:  resource-local DateTime object representing start of period-segment,
-		providing base for relative calcs
+	@dts: DateTime object to be cloned for use in relative calcs
 	@ss: stamp for start of period being processed
 	@se: stamp for one-past-end of period being processed
 	@sunparms: reference to array of parameters from self::SunParms, used in sun-related time calcs
 	@starts: reference to array of block-start timestamps to be updated
 	@ends: reference to array of block-end timestamps to be updated
 	*/
-	private function TimeBlocks($timedata, $dts, $ss, $se, &$sunparms, &$starts, &$ends)
+	private function TimeBlocks($descriptor, $dts, $ss, $se, &$sunparms, &$starts, &$ends)
 	{
 		$dtw = clone $dts;
-		if (is_array($timedata))
-			$parts = array($timedata[0][0],$timedata[0][2]); //TODO CHECKME
-		elseif (strpos($timedata,'..') !== FALSE)
-			$parts = explode('..',$timedata,2);
-		else {
+		if (is_array($descriptor))
+			$parts = array($descriptor[0][0],$descriptor[0][2]); //TODO CHECKME interpreted descriptor?
+		elseif (strpos($descriptor,'..') !== FALSE)
+			$parts = explode('..',$descriptor,2);
+		else { //default to 1-hour block
 			$dtw->setTime(0,0,0);
-			$st = self::RelTime($timedata,$dtw);
-			$dtw->setTimestamp($st);
+			self::RelTime($dtw,$descriptor);
 			$dtw->modify('+1 hour');
-			$parts = array($timedata,$dtw->format('G:i'));
+			$parts = array($descriptor,$dtw->format('G:i'));
 		}
 		$tbase = $dts->getTimestamp();
 		//block-start
@@ -181,7 +180,8 @@ no FALSE in $ends[]
 			$revert = FALSE;
 
 		$dtw->setTimestamp($tbase);
-		$st = self::RelTime($parts[0],$dtw);
+		self::RelTime($dtw,$parts[0]);
+		$st = $dtw->getTimestamp();
 		if ($st >= $ss && $st < $se)
 			$starts[] = $st;
 		else
@@ -201,7 +201,8 @@ no FALSE in $ends[]
 				$parts[1] = '+0:0';
 		}
 		$dtw->setTimestamp($tbase);
-		$st = self::RelTime($parts[1],$dtw);
+		self::RelTime($dtw,$parts[1]);
+		$st = $dtw->getTimestamp();
 		if ($st >= $ss && $st < $se)
 			$ends[] = $st;
 		else
@@ -503,13 +504,13 @@ Astronomical twilight $zenith=108.0;
 	Get pair of timestamps representing the earliest conforming time-block in the
 	 interval starting at @dts and ending 1-second before @dte
 	@descriptor: interval-language string to be interpreted, or some variety of FALSE
-	@slotlen: length (seconds) of wanted block
 	@dts: datetime object for UTC start (midnight) of 1st day of period being processed
 	@dte: datetime object representing 1-second after the end of the period of interest
 	@sunparms: reference to array of parameters from self::SunParms, used in sun-related time calcs
+	@slotlen: length (seconds) of wanted block
 	Returns: array with 2 timestamps, or FALSE
 	*/
-	public function NextInterval($descriptor, $slotlen, $dts, $dte, &$sunparms)
+	public function NextInterval($descriptor, $dts, $dte, &$sunparms, $slotlen)
 	{
 		//limiting timestamps
 		$st = $dts->getTimestamp();
