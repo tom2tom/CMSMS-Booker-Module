@@ -16,7 +16,7 @@
 # for more details
 #-----------------------------------------------------------------------
 
-define('DBGBKG', TRUE);
+define('DBGBKG', FALSE);
 
 class Booker extends CMSModule
 {
@@ -89,6 +89,7 @@ class Booker extends CMSModule
 	const SESSIONKEY = 'bkr_Sess';
 
 	public $dbHandle; //cached connection to adodb
+	public $AvailTable; //resource-availabilty cache
 	public $BookerTable; //booker details
 	public $DataTable; //non-repeated bookings-data
 	public $FeeTable; //payment amounts/rates and associated conditions
@@ -118,6 +119,7 @@ class Booker extends CMSModule
 
 		$this->dbHandle = cmsms()->GetDb();
 		$pre = cms_db_prefix();
+		$this->AvailTable = $pre.'module_bkr_avail';
 		$this->BookerTable = $pre.'module_bkr_bookers';
 		$this->DataTable = $pre.'module_bkr_data';
 		$this->FeeTable = $pre.'module_bkr_fees';
@@ -480,7 +482,6 @@ class Booker extends CMSModule
 		 case 'openitem':
 		 case 'openbooking':
 		 case 'openrequest':
-		 case 'processrequest':
 		 case 'requestbooking':
 		 case 'requestfinish':
 		 case 'openfees':
@@ -505,7 +506,11 @@ class Booker extends CMSModule
 		 case 'process': //multiple/selected/?export?/delete etc
 			if (isset($params['setfees']))
 				$action = 'openfees';
-			elseif (isset($params['importitm']))
+			elseif (isset($params['importitm']) || isset($params['importfee']))
+				$action = 'import';
+			break;
+		 case 'processrequest':
+			if (isset($params['importbkg']))
 				$action = 'import';
 			break;
 		 case 'multibooking':

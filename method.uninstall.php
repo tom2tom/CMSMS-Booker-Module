@@ -27,13 +27,17 @@ function delTree($dir)
 $pre = cms_db_prefix();
 $dict = NewDataDictionary($db);
 // remove table indices
-$sql = $dict->DropIndexSQL('idx_'.$this->GroupTable,$this->GroupTable);
+$sql = $dict->DropIndexSQL('idx_'.$this->AvailTable,$this->AvailTable);
 $dict->ExecuteSQLArray($sql);
 $sql = $dict->DropIndexSQL('idx_'.$this->DataTable,$this->DataTable);
+$dict->ExecuteSQLArray($sql);
+$sql = $dict->DropIndexSQL('idx_'.$this->GroupTable,$this->GroupTable);
 $dict->ExecuteSQLArray($sql);
 $sql = $dict->DropIndexSQL('idx_'.$this->HistoryTable,$this->HistoryTable);
 $dict->ExecuteSQLArray($sql);
 // remove database tables
+$sql = $dict->DropTableSQL($this->AvailTable);
+$dict->ExecuteSQLArray($sql);
 $sql = $dict->DropTableSQL($this->BookerTable);
 $dict->ExecuteSQLArray($sql);
 $sql = $dict->DropTableSQL($this->DataTable);

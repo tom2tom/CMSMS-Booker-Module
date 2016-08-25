@@ -140,7 +140,7 @@ $dict->ExecuteSQLArray($sqlarray);
 
 /*
 non-repeated bookings-data table schema:
- bkg_id: maybe from repeat booking, so not necessarily unique
+ bkg_id: maybe from repeat booking, so not necessarily unique, but is indexed
  item_id: resource or group id
  slotstart: UTC timestamp
  slotlen: seconds booked, NOT seconds-per-slot
@@ -150,7 +150,7 @@ non-repeated bookings-data table schema:
 Booker\CSV::ImportBookings must conform to this
 */
 $fields = "
- bkg_id I(4) KEY,
+ bkg_id I(4),
  item_id I(4),
  slotstart I,
  slotlen I(4),
@@ -195,6 +195,33 @@ if ($sqlarray == FALSE)
 $res = $dict->ExecuteSQLArray($sqlarray, FALSE);
 if ($res != 2)
 	return FALSE;
+
+/*
+resource-availabilty-cache table schema:
+ avl_id: key, not used
+ item_id: resource, NOT a group
+ slotstart: UTC timestamp
+ slotlen: seconds available
+ cond_id: condition identifier
+*/
+$fields = "
+ avl_id I(4) AUTO KEY,
+ item_id I(4),
+ slotstart I,
+ slotlen I(4),
+ cond_id I(4)
+";
+$sqlarray = $dict->CreateTableSQL($this->AvailTable,$fields,$taboptarray);
+if ($sqlarray == FALSE)
+	return FALSE;
+$res = $dict->ExecuteSQLArray($sqlarray, FALSE);
+if ($res != 2)
+	return FALSE;
+//index
+$sqlarray = $dict->CreateIndexSQL('idx_'.$this->AvailTable, $this->AvailTable, 'item_id');
+$dict->ExecuteSQLArray($sqlarray);
+// sequence
+//$db->CreateSequence($this->AvailTable.'_seq');
 
 /*
  Fees for resource usage & related conditions
