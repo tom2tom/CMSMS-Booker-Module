@@ -150,7 +150,7 @@ non-repeated bookings-data table schema:
 Booker\CSV::ImportBookings must conform to this
 */
 $fields = "
- bkg_id I(4),
+ bkg_id I(4) KEY,
  item_id I(4),
  slotstart I,
  slotlen I(4),
