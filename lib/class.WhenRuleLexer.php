@@ -531,7 +531,7 @@ class WhenRuleLexer
 
 	//upstream callers all use the returned value for relative checks,
 	//so no need to work with a DateTime object
-	private function RelTime($timestr)
+	private function TimeofDay($timestr)
 	{
 		$nums = explode(':',$timestr,3);
 		$str = '';
@@ -724,7 +724,7 @@ match-array(s) have
 						$kl = self::MergeTime($loparts);
 						$kh = self::MergeTime($hiparts);
 						if ($kl && $kh) {
-							$swap = (self::RelTime($kh) < self::RelTime($kl));
+							$swap = (self::TimeofDay($kh) < self::TimeofDay($kl));
 							if ($loparts[1] == '-' && $hiparts[1] == '-')
 								$swap = !$swap;
 						} elseif ($kl) { //hi has no time-offset
@@ -745,7 +745,7 @@ match-array(s) have
 					$kl = self::MergeTime($loparts);
 					$kh = self::MergeTime($hiparts);
 					if ($kl && $kh) {
-						$swap = (self::RelTime($kh) < self::RelTime($kl));
+						$swap = (self::TimeofDay($kh) < self::TimeofDay($kl));
 						if ($loparts[1] == '-' && $hiparts[1] == '-')
 							$swap = !$swap;
 					} elseif ($kl) { //hi has no time-offset
@@ -762,7 +762,7 @@ match-array(s) have
 				$swap = FALSE; } //ditto
 			else {
 				//TODO
-				$swap = (self::RelTime($hiparts[1]) < self::RelTime($loparts[1])); }
+				$swap = (self::TimeofDay($hiparts[1]) < self::TimeofDay($loparts[1])); }
 
 			if ($swap) {
 				$t = $parts[0];
