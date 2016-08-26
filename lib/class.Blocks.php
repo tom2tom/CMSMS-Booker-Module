@@ -5,11 +5,72 @@
 #----------------------------------------------------------------------
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
-//See also: Display::Coalesce($slots), WhenRules::MergeBlocks(&$starts,&$ends)
+//See also: Display::Coalesce($slots)
 namespace Booker;
 
 class Blocks
 {
+	/**
+	BlockDiffs:
+	@starts1: array of first-block start-stamps, sorted ascending
+	@ends1: array of corresponding end-stamps
+	@starts2: array of other-block start-stamps, sorted ascending
+	@ends2: array of corresponding end-stamps
+	Returns: 2-member array,
+	 [0] = array of start-stamps for subblocks in first-block and not in other-block
+	 [1] = array of corresponding end-stamps
+	 The arrays have corresponding but not necessarily contiguous numeric keys, or may be empty.
+	 1-second blocks are omitted, so care needed for off-by-1 in supplied arrrays.
+	*/
+	public function BlockDiffs($starts1, $ends1, $starts2, $ends2)
+	{
+		$i = 0;
+		$ic = count($starts1);
+		$j = 0;
+		$jc = count($starts2);
+		while ($i < $ic && $j < $jc) {
+			$s1 = $starts1[$i];
+			$e1 = $ends1[$i];
+			$s2 = $starts2[$j];
+			$e2 = $ends2[$j];
+			if (!(($s2 < $s1 && $e2 <= $s1)
+			   || ($s1 < $s2 && $e1 <= $s2))) { //there's overlap
+				if ($s2 <= $s1 && $e2 <= $e1) {
+					$starts1[$i] = $e2+1;
+				} elseif ($s1 <= $s2 && $e1 <= $e2) {
+					$ends1[$i] = $s2-1;
+				} elseif ($s1 > $s2 && $e1 < $e2) {
+					unset($starts1[$i]);
+					unset($ends1[$i]);
+					$i++;
+					continue;
+				} elseif ($s2 > $s1 && $e2 < $e1) {
+					$t = array_search($i,array_keys($starts1)); //current array-offset
+					array_splice($ends1,$t,0,$s2-1); //insert before $ends1[$i]
+					$t++;
+					array_splice($starts1,$t,0,$e2+1); //insert after $starts1[$i]
+					$i = $t; //arrays have been re-keyed
+					$ic++;
+					continue;
+				}
+			}
+			$t = $j;
+			if ($ends2[$j] <= $ends1[$i]) {
+				$j++;
+			}
+			if ($ends1[$i] <= $ends2[$t]) {
+				$i++;
+			}
+		}
+		foreach ($starts1 as $i=>$t) {
+			if ($ends1[$i] == $t) {
+				unset($starts1[$i]);
+				unset($ends1[$i]);
+			}
+		}
+		return array($starts1,$ends1);
+	}
+
 	/**
 	BlockIntersects:
 	@starts1: array of first-block start-stamps, sorted ascending
@@ -337,7 +398,7 @@ class Blocks
 			$dts = new \DateTime('@'.$st,new \DateTimeZone('UTC'));
 			$dte = clone $dts;
 			$dte->setTimestamp($nd);
-			$sunparms = $funcs->SunParms($idata);//TODO sunparms offset may change during interval
+			$sunparms = $funcs->SunParms($idata);
 			list($starts,$ends) = $funcs->GetBlocks($dts,$dte,$sunparms); //$defaultall FALSE
 			if ($starts) {
 				return array($starts,$ends);
@@ -564,5 +625,61 @@ class Blocks
 			return array(array($slotstart),array($nd),array($rules));
 		}
 		return array(FALSE,FALSE,FALSE);
+	}
+
+	/**
+	MergeBlocks:
+	Coalesce and sort-ascending the timestamp-blocks represented in @starts and @ends.
+	The arrays must be equal-sized, have numeric keys. Returned array keys may be
+	non-contiguous.
+	@starts: reference to array of block-start stamps, any order
+	@ends: reference to array of corresponding block-end stamps, no FALSE value(s)
+	*/
+	public function MergeBlocks(&$starts, &$ends)
+	{
+		$c = count($starts);
+		if ($c > 1) {
+			$p = 0;
+			$q = 1;
+			while (1) {
+				if ($q >= $c)
+					return;
+				if ($starts[$q] >= $starts[$p]) {
+					if ($ends[$q] <= $ends[$p]) {
+						unset($starts[$q]);
+						unset($ends[$q]);
+					} elseif ($starts[$q] <= $ends[$p]) {
+						$ends[$p] = $ends[$q];
+						unset($starts[$q]);
+						unset($ends[$q]);
+					} else {
+						//next base
+						while ($p < $c) {
+							$p++;
+							if (array_key_exists($p,$starts))
+								break;
+						}
+					}
+				} else { //swap & resume (if possible from previous index)
+					list($starts[$p],$starts[$q],$ends[$p],$ends[$q]) = array($starts[$q],$starts[$p],$ends[$q],$ends[$p]);
+					$t = $p;
+					while ($t > -1) { //base back if possible
+						$t--;
+						if (array_key_exists($t,$starts))
+							break;
+					}
+					if ($t > -1)
+						$p = $t;
+					//for new comparator
+					$q = $p;
+				}
+				//next comparator
+				while ($q < $c) {
+					$q++;
+					if (array_key_exists($q,$starts))
+						break;
+				}
+			}
+		}
 	}
 }
