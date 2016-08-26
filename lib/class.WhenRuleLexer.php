@@ -126,9 +126,12 @@ class WhenRuleLexer
 		increasing value/range-start (TODO EXCEPT ROLLOVERS?) Negative values
 		in ['P'] are sorted after positives, but not interpreted to corresponding
 		actual values.
-	'T' => FALSE or TIME = array of strings representing time-values and/or
-		time-value-ranges and/or time-value-series, with sun-related ones first,
-		all ordered by increasing value/range-start (TODO EXCEPT ROLLOVERS?)
+	'T' => FALSE or TIME = string or array of strings representing time-value(s),
+		with '!'-prefixed exclusions grouped last, sun-related ones ordered first
+		among grouped includes and/or excludes, all ordered by increasing
+		value/range-start (TODO EXCEPT ROLLOVERS?)
+		For time-ranges, instead of a string, the value will be a 3-member array,
+		range-start-string,'.',range-end-string.
 		Times are not interpreted. Other than sun-related values, they can be
 		converted to midnight-relative seconds, and any overlaps 'coalesced'.
 		Sun-related values must of course be interpreted for each specific day
@@ -143,8 +146,8 @@ class WhenRuleLexer
 
 	Descriptor-string parsing works LTR. Maybe sometime RTL languages will also
 	be supported ?!
-	$conds will be sorted, first on members' ['F']'s, then on their ['P']'s,
-	then on their ['T']'s.
+	$conds will be sorted, first on members' ['F']'s, then on their ['P']'s
+	(with '!'-prefixed exclusions last), then on their ['T']'s.
 	*/
 //	protected
 	public $conds = FALSE;
@@ -571,12 +574,22 @@ class WhenRuleLexer
 		}
 	}
 
-	/*Compare time-strings like [sun*[+-]][h]h[:[m]m]] without expensive
-	time-conversions and putting all sun* before all others.
+	/*Compare time-strings without expensive time-conversions for any
+	[sun*[+-]][h]h[:[m]m]] and putting all '!'-prefixed strings last,
+	and grouping all sun* before others in includes and/or excludes.
 	Either or both time args may be a sequence
 	*/
 	private function cmp_times($a, $b)
 	{
+		if ($a[0] == '!') {
+			if ($b[0] != '!') {
+				return 1;
+			}
+			$a = substr($a,1);
+			$b = substr($b,1);
+		} elseif ($b[0] == '!') {
+			return -1;
+		}
 		$ra = strpos($a,'RS');
 		$rb = strpos($b,'RS');
 		$sa = strpos($a,'SS');
@@ -684,13 +697,21 @@ class WhenRuleLexer
 	*/
 	private function ParseTimeSequence($str, $getstr=TRUE)
 	{
+		if ($str[0] != '!') {
+			$not = '';
+		} else {
+			$not = '!';
+			$str = substr($str,1);
+		}
 		$parts = explode('..',$str,2);
 		while ($parts[1][0] == '.')
 			$parts[1] = substr($parts[1],1);
 		if ($parts[0] === '' || $parts[1] === '') {
-			return FALSE; }
+			return FALSE;
+		}
 		if ($parts[0] == $parts[1]) {
-			return ($getstr) ? $parts[0]:array($parts[0]); }
+			return ($getstr) ? $not.$parts[0]:array($not.$parts[0]);
+		}
 
 		$lorise = (strpos($parts[0],'RS') !== FALSE);
 		$loset = (strpos($parts[0],'SS') !== FALSE);
@@ -770,9 +791,9 @@ match-array(s) have
 				$parts[1] = $t;
 			}
 			if ($getstr)
-				return $parts[0].'..'.$parts[1];
+				return $not.$parts[0].'..'.$parts[1];
 			else
-				return array($parts[0],'.',$parts[1]);
+				return array($not.$parts[0],'.',$parts[1]);
 		}
 		return FALSE;
 	}
@@ -781,6 +802,9 @@ match-array(s) have
 	CleanTime:
 
 	Ensure @str is ordered according to increasing time-order
+	Excluded values are grouped last. Within respective in/excludes, sun-related values
+	are ordered first, other values ordered ascending by value or start of sequence
+	where relevant.
 
 	@str: TIME component of a repetition descriptor '(A[,B...])', containing
 	one or more (and if so, comma-separated) singleton and/or sequence values,
@@ -791,8 +815,6 @@ match-array(s) have
 	contiguous-keyed array(L,...,H), or comma-separated string represenation of
 	that array. A single-member series will return either that single value
 	L(==all others) or its string-equivalent 'L'.
-	Sun-related values are sorted first, other values sorted ascending by
-	value or start of sequence where relevant.
 	FALSE upon error.
 	*/
 	private function CleanTime($str, $getstr=TRUE)
@@ -801,7 +823,7 @@ match-array(s) have
 		if (!$work)
 			return ($getstr) ? '':array('');
 		$parts = explode(',',$work);
-		if (!isset($parts[1])) { //aka count($parts) == 1 i.e.singleton
+		if (!isset($parts[1])) { //i.e.singleton
 			if (strpos($work,'..') !== FALSE)
 				$work = self::ParseTimeSequence($work,$getstr); //reorder if appropriate
 			if ($getstr)
@@ -936,6 +958,15 @@ match-array(s) have
 				$sb = $a['P'][0];
 			else
 				$sb = $b['P'];
+			if ($sa[0] == '!') {
+				if ($sb[0] != '!') {
+					return 1;
+				}
+				$sa = substr($sa,1);
+				$sb = substr($sb,1);
+			} elseif ($sb[0] == '!') {
+				return -1;
+			}
 			if (is_numeric($sa) && is_numeric($sb)) {
 				if ($sa >= 0 && $sb >= 0)
 					return ($sa-$sb);
@@ -955,6 +986,27 @@ match-array(s) have
 				return -1;
 			if ($b['T'] === FALSE)
 				return 1;
+			if (is_array($a['T']))
+				$sa = $a['T'][0];
+			else
+				$sa = $a['T'];
+			if (is_array($sa))
+				$sa = $sa[0];
+			if (is_array($b['T']))
+				$sb = $b['T'][0];
+			else
+				$sb = $b['T'];
+			if (is_array($sb))
+				$sb = $sb[0];
+			if ($sa[0] == '!') {
+				if ($sb[0] != '!') {
+					return 1;
+				}
+				$sa = substr($sa,1);
+				$sb = substr($sb,1);
+			} elseif ($sb[0] == '!') {
+				return -1;
+			}
 			if ($sa-$sb != 0) //lazy string-compare
 				return ($sa-$sb);
 		}
