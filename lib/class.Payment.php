@@ -16,7 +16,7 @@ class Payment
 		array_multisort($data1[0],SORT_ASC,SORT_NUMERIC,$data1[1],$data1[2]);
 		array_multisort($data2[0],SORT_ASC,SORT_NUMERIC,$data2[1],$data2[2]);
 		//determine $data1,$data2 intersects & corresponding rule(s)
-		list($starts,$ends,$rules1,$rules2) = $funcs->BlockIntersects2Ruled(
+		list($starts,$ends,$rules1,$rules2) = $funcs->IntersectBlocks2Ruled(
 			$data1[0],$data1[1],$data1[2],$data2[0],$data2[1],$data2[2]);
 		$total = 0.0;
 		if ($starts) {
