@@ -407,24 +407,24 @@ class Blocks
 		return array(FALSE,FALSE);
 	}
 
-	/**
+	/* *
 	RepeatBlocks:
 	This replicates RepeatRuledBlocks() except @rules is string(s), and
 	rules-members are not returned.
 	@mod: reference to Booker module object
 	@idata: array of parameters for the resource being processed
-	@slotstart: UTC timestamp for start of range
-	@slotlen: length of range (seconds)
+	@blockstart: UTC timestamp for start of range
+	@blocklen: length of range (seconds), extends to 1-past last-usable second 
 	@rules: single rule, or array of rules sorted in order of decreasing priority,
 		[each rule] being a descriptor recognisable by WhenRuleLexer (or FALSE)
 	Returns: 2-member array,
-	 [0] = sorted array of block-start timestamps in @slotstart..@slotstart+@slotlen
-	 [1] = array of respective block-end timestamps in @slotstart..@slotstart+@slotlen
+	 [0] = sorted array of block-start timestamps in @blockstart..@blockstart+@blocklen
+	 [1] = array of respective block-end timestamps in @blockstart..@blockstart+@blocklen
 	OR if nothing is relevant
 	 [0] = FALSE
 	 [1] = FALSE
 	*/
-	public function RepeatBlocks(&$mod, $idata, $slotstart, $slotlen, $rules)
+/*	public function RepeatBlocks(&$mod, $idata, $blockstart, $blocklen, $rules)
 	{
 		if (!is_array($rules)) {
 			$rules = array($rules);
@@ -432,8 +432,8 @@ class Blocks
 		$ic = count($rules);
 		$i = 0;
 
-		$chkstarts = array($slotstart);
-		$chkends = array($slotstart+$slotlen+1); //1-past-end
+		$chkstarts = array($blockstart);
+		$chkends = array($blockstart+$blocklen); //1-past-end
 		$starts = array();
 		$ends = array();
 		//TODO this must also support 'except' rules - subtract from blocks previously accepted
@@ -493,28 +493,28 @@ class Blocks
 		}
 		return array(FALSE,FALSE);
 	}
-
+*/
 	/**
 	RepeatRuledBlocks:
 	This replicates RepeatBlocks() except @rules is array(s), and rules-members
 	are returned.
 	@mod: reference to Booker module object
 	@idata: array of parameters for the resource being processed
-	@slotstart: UTC timestamp for start of range
-	@slotlen: length of range (seconds)
+	@blockstart: UTC timestamp for start of range
+	@blocklen: length of range (seconds), extends to 1-past last-usable second
 	@rules: single rule, or array of rules sorted in order of decreasing priority,
 		[each rule] being an array including a member 'feecondition' which is a
 		descriptor recognisable by WhenRuleLexer (or FALSE)
 	Returns: 3-member array,
-	 [0] = sorted array of block-start timestamps in @slotstart..@slotstart+@slotlen+1
-	 [1] = array of respective block-end timestamps in @slotstart..@slotstart+@slotlen+1
+	 [0] = sorted array of block-start timestamps in @blockstart..@blockstart+@blocklen+1
+	 [1] = array of respective block-end timestamps in @blockstart..@blockstart+@blocklen+1
 	 [2] = array of respective members of @rules
 	OR if nothing is relevant
 	 [0] = FALSE
 	 [1] = FALSE
 	 [2] = FALSE
 	*/
-	public function RepeatRuledBlocks(&$mod, $idata, $slotstart, $slotlen, $rules)
+	public function RepeatRuledBlocks(&$mod, $idata, $blockstart, $blocklen, $rules)
 	{
 		if (!is_array($rules)) {
 			$rules = array($rules);
@@ -522,8 +522,8 @@ class Blocks
 		$ic = count($rules);
 		$i = 0;
 
-		$chkstarts = array($slotstart);
-		$chkends = array($slotstart+$slotlen+1);
+		$chkstarts = array($blockstart);
+		$chkends = array($blockstart+$blocklen+1);
 		$starts = array();
 		$ends = array();
 		$userules = array();
@@ -593,36 +593,36 @@ class Blocks
 
 	/**
 	UserRuledBlocks:
-	@slotstart: UTC timestamp for start of range
-	@slotlen: length of range (seconds)
+	@blockstart: UTC timestamp for start of range
+	@blocklen: length of range (seconds), extends to 1-past last-usable second
 	@rules: single rule, or array of rules sorted in order of decreasing priority,
-		[each rule] being an array with members 'slotlen','fee','feecondition',
+		[each rule] being an array with members 'blocklen','fee','feecondition',
 		the latter being a rule for discimination among users
 	Returns: 3-member array,
-	 [0] = array of block-start timestamps all @slotstart
-	 [1] = array of corresponding block-end timestamps all @slotstart+@slotlen+1
+	 [0] = array of block-start timestamps all @blockstart
+	 [1] = array of corresponding block-end timestamps all @blockstart+@blocklen+1
 	 [2] = array of members of @rules, to apply to the corresponding (whole) block
 	OR if @rules is FALSE
 	 [0] = FALSE
 	 [1] = FALSE
 	 [2] = FALSE
 	*/
-	public function UserRuledBlocks($slotstart, $slotlen, $rules)
+	public function UserRuledBlocks($blockstart, $blocklen, $rules)
 	{
-		$nd = $slotstart + $slotlen + 1;
+		$nd = $blockstart + $blocklen + 1;
 		if (is_array($rules)) {
 			$starts = array();
 			$ends = array();
 			$userules = array();
 			foreach ($rules as $one) {
-				$starts[] = $slotstart;
+				$starts[] = $blockstart;
 				$ends[] = $nd;
 				$userules[] = $one;
 			}
 			if ($starts)
 				return array($starts,$ends,$userules);
 		} elseif ($rules) {
-			return array(array($slotstart),array($nd),array($rules));
+			return array(array($blockstart),array($nd),array($rules));
 		}
 		return array(FALSE,FALSE,FALSE);
 	}
