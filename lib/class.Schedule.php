@@ -693,19 +693,23 @@ $this->Crash();
 		if ($is_group) {
 			//TODO get resources in group, check them all
 		}
-		$idata = $utils->GetItemProperty($mod,$item_id,'*');
-		$bst = $dts->getTimestamp();
-		$bnd = $dte->getTimestamp() + 1;
-		$rules = $utils->GetOneHeritableProperty($mod,$item_id,'available'); //TODO nearest-only
-		//TODO ','-merge $rules, send as one to WhenRules::AllIntervals()
-		//TODO deal with e.g. multi-day blocks when slotlen is <day  - ignore periods around midnight
-		$funcs = new Blocks();
-		list($starts,$ends) = $funcs->RepeatBlocks($mod,$idata,$bst,$bnd-$bst,$rules);
+		$rules = $utils->GetOneHeritableProperty($mod,$item_id,'available');
+		array_filter($rules); //don't want empties
+		if ($rules) {
+			$funcs = new WhenRules($this->mod);
+			$idata = $utils->GetItemProperty($mod,$item_id,'*');
+			$timeparms = $funcs->TimeParms($idata);
+			list($starts,$ends) = $funcs->AllIntervals($rules[0],$dts,$dte,$timeparms); //proximal-rule-only, no ancestor-merging
+			//TODO deal with e.g. multi-day blocks when slotlen is <day  - ignore periods around midnight
+		} else {
+			$starts = array($TODO);
+			$ends = array($TODO);
+		}
 		if ($is_group) {
 			//TODO decide how to report on results
 		}
 		if ($starts) {
-			if (reset($starts) > $bst || end($ends) < $bnd)//anything left over
+			if (0) //anything left over
 				return FALSE;
 		}
 		return TRUE;
