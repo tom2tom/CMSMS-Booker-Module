@@ -311,7 +311,7 @@ class Display
 
 	/*
 	Coalesce:
-	Merge overlapping slots in @slots c.f. WhenRules::MergeBlocks($starts,$ends)
+	Merge overlapping slots in @slots c.f. Blocks::MergeBlocks($starts,$ends)
 	@slots: array with members each an array($bs,$be) for slot start,end
 	Returns: array with mergers done
 	*/
@@ -320,45 +320,34 @@ class Display
 		$c = count($slots);
 		if ($c < 2)
 			return $slots;
+		usort($slots, function ($a, $b)
+		{
+			if ($a[0] == $b[0])
+				return ($a[1] - $b[1]);
+			return ($a[0] - $b[0]);
+		});
 		$i = 0;
-		$j = 1;
-		while ($j < $c) {
-			$a = $slots[$i];
-			$b = $slots[$j];
-			if ($a[0] <= $b[0]) { //merge b into a, or skip b
-				if ($a[1] < $b[0]) {
-					$i++;
-					$j++;
-				} else {
-					if ($a[1] <= $b[1]) {
-						$a[0] = min($a[0],$b[0]);
-						$a[1] = max($a[1],$b[1]);
+		while ($i < $c) {
+			$e1 = $slots[$i][1];
+			for ($j=$i+1; $j<$c; $j++) {
+				if (isset($slots[$j])) {
+					if ($slots[$j][0] > $e1) {
+						break;
+					}
+					$e2 = $slots[$j][1];
+					if ($e2 > $e1) {
+						$slots[$i][1] = $e2;
 					}
 					unset($slots[$j]);
-					$j++;
-				}
-			} else {//(should never happen given asc. sort) merge a into b, or skip a
-				if ($b[1] < $a[0]) {
-					$slots[i] = $b;
-					$slots[j] = $a;
-					$i++;
-					$j++;
-				} else {
-					if ($b[1] <= $a[1]) {
-						$b[0] = min($a[0],$b[0]);
-						$b[1] = max($a[1],$b[1]);
-						unset($slots[$i]);
-					}
-					$i = $j;
-					$j++;
 				}
 			}
+			$i = $j;
 		}
 		return array_values($slots); //contiguous keys again
 	}
 
 	/*
-	CellFill:
+	FillCell:
 	Get object populated with data for a table-cell.
 
 	@idata: reference to array of resource parameters
@@ -375,7 +364,7 @@ class Display
 	@ufuncs: reference to Userops object
 	Returns: 2-member array, 1st is the object, 2nd is replacement position for next call
 	*/
-	private function CellFill(&$idata, $dt, $ss, $se, $celloff, &$bookob, $position, &$allresource, &$ufuncs)
+	private function FillCell(&$idata, $dt, $ss, $se, $celloff, &$bookob, $position, &$allresource, &$ufuncs)
 	{
 		$iter = $bookob->getIterator();
 		try {
@@ -510,7 +499,7 @@ class Display
 	}
 
 	/*
-	TableFill:
+	FillTable:
 	Populates array of data (for passing to smarty then template) representing cells
 	in a table, to show bookings for a single resource over time interval represented
 	by @range.
@@ -523,7 +512,7 @@ class Display
 	Returns: array of columns' data, each member being an array of cells' data,
 	 first column has slot-titles
 	*/
-	private function TableFill(&$idata, $start, $range)
+	private function FillTable(&$idata, $start, $range)
 	{
 		$slotlen = $this->utils->GetInterval($this->mod,$idata['item_id'],'slot');
 		list($dts,$dte) = $this->utils->RangeStamps($start,$range);
@@ -575,9 +564,9 @@ class Display
 		}
 
 		//other parameters
-//		$sunparms = $this->reps->SunParms($idata); //TODO extra arg current date/time
+//		$timeparms = $this->reps->TimeParms($idata);
 		//sorted array of timestamps for resource availability
-//		$res = $this->reps->AllIntervals($idata['available'],$dts,$dte,$sunparms,TRUE);
+//		$res = $this->reps->AllIntervals($idata['available'],$dts,$dte,$timeparms,TRUE);
 		$st = $dts->getTimestamp();
 		$nd = $dte->getTimestamp();
 		$rules = $this->utils->GetOneHeritableProperty($this->mod,$item_id,'available');
@@ -618,7 +607,7 @@ class Display
 		}
 		$funcs = new Userops();
 
-		$this->rangefmt = $this->mod->Lang('showrange'); //cache for CellFill()
+		$this->rangefmt = $this->mod->Lang('showrange'); //cache for FillCell()
 		$rels = array('+1 day','+7 days','+1 month','+1 year');
 		$offs = $rels[$seglen]; //column-adjuster
 
@@ -639,7 +628,7 @@ class Display
 				$se = $ss + $slotlen - 1; //end-stamp of current slot, maybe < end-of-cell
 				$dtw->setTimestamp($ss);
 				if ($bookob) {
-					list($one,$position) = self::CellFill(
+					list($one,$position) = self::FillCell(
 						$idata,$dtw,$ss,$se,$celloff,$bookob,$position,$allresource,$funcs);
 				} else {
 					$one = new \stdClass();
@@ -698,13 +687,13 @@ class Display
 	}
 
 	/*
-	ListFill:
+	FillList:
 	@idata: array of data for resource or group as per table-record, with inherited data where available
 	@start: timestamp for start of first day to be reported
 	@range: enum 0..3 indicating span of report day..year (per Utils::DisplayIntervals())
 	Returns: array of sections' data, each member being an object with array of text-rows
 	*/
-	private function ListFill(&$idata, $start, $range)
+	private function FillList(&$idata, $start, $range)
 	{
 		list($dts,$dte) = $this->utils->RangeStamps($start,$range);
 		$dtw = clone $dts;
@@ -820,7 +809,7 @@ class Display
 	*/
 	public function Tabulate(&$tplvars, &$idata, $start, $range)
 	{
-		$columns = self::TableFill($idata,$start,$range);
+		$columns = self::FillTable($idata,$start,$range);
 		if ($columns) {
 			$tplvars['columns'] = $columns;
 			$rc = count(reset($columns));
@@ -855,7 +844,7 @@ class Display
 	*/
 	public function Listify(&$tplvars, &$idata, $start, $range)
 	{
-		$sections = self::ListFill($idata,$start,$range);
+		$sections = self::FillList($idata,$start,$range);
 		$tplvars['sections'] = $sections; //maybe empty
 		if (!$sections)
 			$tplvars['nobookings'] = $this->mod->Lang('nodata');
