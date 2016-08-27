@@ -74,14 +74,15 @@ class Schedule
 	This is low-level method, normally UpdateRepeats() would be more appropriate
 	@mod: reference to current Booker module
 	@utils: reference to Utils object
-	@reps: reference to WhenRules object
+	@reps: reference to WhenRules-class object
+	@blocks: reference to Blocks-class object
 	@idata: reference to array of item parameters, including at least
 		'item_id','timezone','latitude','longitude'
 	@dts: resource-local datetime object for beginning of 1st day of period to be processed
 	@dte: resource-local datetime object for beginning of DAY AFTER last day of period
 	Returns: boolean indicating complete success
 	*/
-	private function GetRepeats(&$mod, &$utils, &$reps, &$idata, $dts, $dte)
+	private function GetRepeats(&$mod, &$utils, &$reps, &$blocks, &$idata, $dts, $dte)
 	{
 		$ret = TRUE;
 		$item_id = (int)$idata['item_id'];
@@ -94,9 +95,9 @@ EOS;
 		if ($rows) {
 			$times = array();
 			$parms = array();
-			$sunparms = $reps->SunParms($idata); //TODO extra arg current date/time
+			$timeparms = $reps->TimeParms($idata);
 			foreach ($rows as &$one) {
-				$res = $reps->AllIntervals($one['formula'],$dts,$dte,$sunparms);
+				$res = $reps->AllIntervals($one['formula'],$dts,$dte,$timeparms);
 				if ($res) {
 					$user = $one['name'];
 					$contact = trim($one['address']);
@@ -142,7 +143,7 @@ EOS;
 					);
 					$starts = $utimes[0];
 					$ends = $utimes[1];
-					$reps->MergeBlocks($starts,$ends);
+					$blocks->MergeBlocks($starts,$ends);
 					$ic = count($starts);
 
 					for ($i=0; $i<$ic; $i++) {
@@ -643,6 +644,7 @@ EOS;
 
 		$utils = new Utils();
 		$reps = new WhenRules($mod);
+		$blocks = new Blocks();
 
 		if ($item_id >= \Booker::MINGRPID)
 			$all = self::MembersLike($mod,$item_id);
@@ -662,10 +664,13 @@ EOS;
 			if ($dts < $dtw) {
 				$idata = $utils->GetItemProperty($mod,$one,array('timezone','latitude','longitude'));
 				$idata['item_id'] = $one;
-				self::GetRepeats($mod,$utils,$reps,$idata,$dts,$dtw); //TODO don't ignore failure
-				//log last-interpreted date
-			//TODO $utils->SafeExec()
-				$db->Execute($sql2,array($se,$one));
+				if (self::GetRepeats($mod,$utils,$reps,$blocks,$idata,$dts,$dtw)) {
+					//log last-interpreted date
+					$utils->SafeExec($sql2,array($se,$one));
+				} else {
+$this->Crash();
+					//TODO handle error
+				}
 			}
 		}
 	}
