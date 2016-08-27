@@ -128,6 +128,7 @@ array('0..sunrise,sunset..11:59',	1),
 		converted to midnight-relative seconds, and any overlaps 'coalesced'.
 		Sun-related values must of course be interpreted for each specific day
 		evaluated.
+	perhaps - cached interpretation data:
 	'S' => resource-local date which is the earliest for (currently) interpreted data in ['A']
 	'E' => resource-local date which is the latest for (currently) interpreted data in ['A']
 	'A' => array of arrays, each with a pair of members:

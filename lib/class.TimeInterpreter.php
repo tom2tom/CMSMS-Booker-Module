@@ -9,38 +9,22 @@ namespace Booker;
 
 class TimeInterpreter
 {
-	/*No checks here for valid parameters - assumed done before
-		$start is bracket-local timestamp
-	c.f. Booker\WhenRules::SunParms()
-	*/
-	public function GetSunData(&$bdata, $start)
-	{
-		$daystamp = floor($start/84600)*84600; //midnight
-		$lat = $bdata['latitude']; //maybe 0.0
-		$long = $bdata['longitude']; //ditto
-		$zone = $bdata['timezone'];
-		if (!$zone)
-			$zone = $this->mod->GetPreference('time_zone','Europe/London'); //TODO valid pref?
 
-		return array (
-		 'day'=>$daystamp,
-		 'lat'=>$lat,
-		 'long'=>$long,
-		 'zone'=>$zone
-		);
-	}
-
-	/* Get no. in {0.0..24.0} representing the actual or notional slot-length
-		to assist interpretation of ambiguous hour-of-day or day-of-month values
+	/**
+	GetIntervalHours:
+	Get no. in {0.0..24.0} representing the actual or notional slot-length to
+	assist interpretation of ambiguous hour-of-day or day-of-month values
+	@idata: reference to array of item-parameters
+	Returns: float
 	*/
-	public function GetIntervalHours(&$bdata)
+	public function GetIntervalHours(&$idata)
 	{
-		if ($bdata['placegap']) {
-			switch ($bdata['placegaptype']) {
+		if ($idata['placegap']) {
+			switch ($idata['placegaptype']) {
 			 case 1: //minute
-				return MIN($bdata['placegap']/60,24.0);
+				return MIN($idata['placegap']/60,24.0);
 			 case 2: //hour
-				return MIN((float)$bdata['placegap'],24.0);
+				return MIN((float)$idata['placegap'],24.0);
 			 case 3: //>= day
 			 case 4:
 			 case 5:
@@ -55,10 +39,11 @@ class TimeInterpreter
 		return 0.0;
 	}
 
-	/*
-	$times: reference to array of timestamp pairs, each member representing a
+	/**
+	timecheck:
+	@times: reference to array of timestamp pairs, each member representing a
 		period-start and period-end from the relevant interval-descriptor (TODO CHECK end+1??)
-	$sameday: boolean, whether ...
+	@sameday: boolean, whether ...
 	Returns: $X or FALSE
 	*/
 	public function timecheck(&$times, $sameday)
