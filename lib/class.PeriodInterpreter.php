@@ -9,6 +9,52 @@ namespace Booker;
 
 class PeriodInterpreter
 {
+	/**
+	BlockDays:
+	@ss: timestamp for start of block
+	@se: timestamp for 1-past-end of block
+	@dtw: DateTime worker
+	Returns: array, or FALSE upon error. Each array member is itself an array,
+	 [0] a year (4-digit integer)
+	 [1] array of integers, each a 0-based day-of-year in the year in [0]
+	*/
+	public function BlockDays($ss, $se, $dtw)
+	{
+		$dtw->setTimestamp($ss);
+		$dtw->setTime(0,0,0);
+		$ys = (int)$dtw->format('Y');
+		$dte = clone $dtw;
+		$dte->setTimestamp($se-1);
+		$dte->setTime(0,0,0);
+		$ye = (int)$dte->format('Y');
+
+		$dt2 = FALSE;
+		$ret = array();
+
+		while ($ys < $ye) {
+			$doy = array();
+			if (!$dt2)
+				$dt2 = clone $dtw;
+			$t = ($ys+1).'-1-1 0:0:0';
+			$dt2->modify($t);
+			while ($dtw < $dt2) {
+				$doy[] = $dtw->getTimestamp();
+				$dtw->modify('+1 day');
+			}
+			$ret[] = array($ys,$doy);
+			$dtw = $dt2;
+			$ys++;
+		}
+		$doy = array();
+		while ($dtw <= $dte) {
+			$doy[] = $dtw->getTimestamp();
+			$dtw->modify('+1 day');
+		}
+		$ret[] = array($ye,$doy);
+
+		return $ret;
+	}
+
 	/*
 	MonthWeekDays:
 	Get array of each instance of a specific weekday @dow in a specific month
@@ -16,9 +62,11 @@ class PeriodInterpreter
 	@month: numeric month 1..12 in @year
 	@dmax: 1-based index of last day in @month
 	@dow: index of wanted day-of-week, 0 (for Sunday) .. 6 (for Saturday) c.f. date('w'...)
-	Returns: array of integers, each a 0-based day-of-year in @year
+	Returns: array, or FALSE upon error. The array has a single member which is itself an array,
+	 [0] a year (4-digit integer)
+	 [1] array of integers, each a 0-based day-of-year in the year in [0]
 	*/
-	private function MonthWeekDays($year, $month, $dmax, $dow)
+	public function MonthWeekDays($year, $month, $dmax, $dow)
 	{
 		//first day in $year/$month as day-of-year
 		$st = gmmktime(0,0,1,$month,1,$year);
@@ -34,7 +82,7 @@ class PeriodInterpreter
 		for ($i = $d; $i < $dmax; $i += 7) //0-based, so NOT <= $dmax
 			$days[] = $base + $i;
 
-		return $days;
+		return array(array($year,$days));
 	}
 
 	/*
@@ -46,9 +94,11 @@ class PeriodInterpreter
 	@week: array if numeric week(s) -5..-1,1..5 in @year AND @month
 	@dmax: 1-based index of last day in @month
 	@dow: index of wanted day-of-week, 0 (for Sunday) .. 6 (for Saturday) c.f. date('w'...)
-	Returns: array of integers, each a 0-based day-of-year in @year
+	Returns: array, or FALSE upon error. The array has a single member which is itself an array,
+	 [0] a year (4-digit integer)
+	 [1] array of integers, each a 0-based day-of-year in the year in [0]
 	*/
-	private function WeeksDays($year, $month, $week, $dmax, $dow)
+	public function WeeksDays($year, $month, $week, $dmax, $dow)
 	{
 		//first day in $year/$month as day-of-year
 		$st = gmmktime(0,0,1,$month,1,$year);
@@ -72,7 +122,8 @@ class PeriodInterpreter
 			if ($d >= 0 && $d < $dmax) //0-based, so NOT <= $dmax
 				$days[] = $base + $d;
 		}
-		return array_unique($days,SORT_NUMERIC);
+		$days = array_unique($days,SORT_NUMERIC);
+		return array(array($year,$days));
 	}
 
 	/*
@@ -83,9 +134,11 @@ class PeriodInterpreter
 	@dmax: 1-based index of last day in @month
 	@count: index of wanted day-of-month -5..-1,1..5
 	@dow: index of wanted day-of-week, 0 (for Sunday) .. 6 (for Saturday) c.f. date('w'...)
-	Returns: integer, a 0-based day-of-year in @year, or -1 upon error
+	Returns: array, or FALSE upon error. The array has a single member which is itself an array,
+	 [0] a year (4-digit integer)
+	 [1] array of a single integers, a 0-based day-of-year in the year in [0]
 	*/
-	private function MonthDay($year, $month, $dmax, $count, $dow)
+	public function MonthDay($year, $month, $dmax, $count, $dow)
 	{
 		//first day in $year/$month as: 0 = Sunday .. 6 = Saturday
 		$st = gmmktime(0,0,1,$month,1,$year);
@@ -108,7 +161,9 @@ class PeriodInterpreter
 			return -1;
 		//first day in $year/$month as day-of-year
 		$base = (int)date('z',$st);
-		return $d + $base;
+		$base += $d;
+
+		return array(array($year,array($base)));
 	}
 
 	/*
@@ -125,7 +180,7 @@ class PeriodInterpreter
 	 [0] the year (a validated, 4-digit integer)
 	 [1] array of integers, each a 0-based day-of-year in the year in [0]
 	*/
-	private function SuccessiveDays($interval, $styear, $stmonth, $stday,
+	public function SuccessiveDays($interval, $styear, $stmonth, $stday,
 		$ndyear=FALSE, $ndmonth=FALSE, $ndday=FALSE)
 	{
 		if ($ndyear == FALSE)
@@ -186,7 +241,7 @@ class PeriodInterpreter
 		return $ret;
 	}
 
-	/*
+	/**
 	YearDays:
 	Get days-of-year in a specified range
 	@year: year or array of them or ','-separated series of them
@@ -205,7 +260,7 @@ class PeriodInterpreter
 	 [0] the year (a validated, 4-digit integer)
 	 [1] array of integers, each a 0-based day-of-year in the year in [0]
 	*/
-	private function YearDays($year, $month=FALSE, $week=FALSE, $day=FALSE)
+	public function YearDays($year, $month=FALSE, $week=FALSE, $day=FALSE)
 	{
 		//verify and interpret arguments
 		$now = FALSE;
@@ -413,7 +468,7 @@ class PeriodInterpreter
 	 [0] the year (a validated, 4-digit integer)
 	 [1] array of integers, each a 0-based day-of-year in the year in [0]
 	*/
-	private function SuccessiveWeeks($interval, $styear, $stmonth, $stday,
+	public function SuccessiveWeeks($interval, $styear, $stmonth, $stday,
 		$ndyear=FALSE, $ndmonth=FALSE, $ndday=FALSE)
 	{
 	}
@@ -432,7 +487,7 @@ class PeriodInterpreter
 	 [0] the year (a validated, 4-digit integer)
 	 [1] array of integers, each a 0-based day-of-year in the year in [0]
 	*/
-	private function SuccessiveMonths($interval, $styear, $stmonth, $stday,
+	public function SuccessiveMonths($interval, $styear, $stmonth, $stday,
 		$ndyear=FALSE, $ndmonth=FALSE, $ndday=FALSE)
 	{
 	}
@@ -446,7 +501,7 @@ class PeriodInterpreter
 	 @dvalue must be 1-based
 	@dvalue: date-time string consistent with @dformat
 	*/
-	private function isodate_from_format($dformat, $dvalue)
+	public function isodate_from_format($dformat, $dvalue)
 	{
 		$sformat = str_replace(
 			array('Y' ,'M' ,'m' ,'d' ,'H' ,'h' ,'i' ,'s' ,'a' ,'A' ,'z'),
