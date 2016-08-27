@@ -16,64 +16,45 @@ class WhenRules extends WhenRuleLexer
 
 	/*
 	PeriodBlocks:
-	Append to @starts[] and @ends[] pair(s) of timestamps in $ss..$se and consistent with
-		the period-component of @cond
+	Append to @starts[] and @ends[] pair(s) of timestamps in $ss..$se and
+		consistent with @cond
 	@cond: member of parent::conds[] with parsed components of an interval-descriptor
 		=>['P'] will be populated, =>['T'] may be populated
 	@ss: stamp for start of period being processed
 	@se: stamp for one-past-end of period being processed
 	@dtw: modifiable DateTime object for use in relative calcs
-	@sunparms: reference to array of parameters from self::SunParms, used in sun-related time calcs
+	@timeparms: reference to array of parameters from self::TimeParms
 	@starts: reference to array of block-start timestamps to be updated
-	@ends: reference to array of block-end timestamps to be updated
+	@ends: ditto for block-ends
 	*/
-	private function PeriodBlocks($cond, $ss, $se, $dtw, &$sunparms, &$starts, &$ends)
+	private function PeriodBlocks($cond, $ss, $se, $dtw, &$timeparms, &$starts, &$ends)
 	{
-/*TODO convert $cond e.g.
- array
-	'P' =>
-		array  OR SCALAR
-			0 => string 'D2..D6'
-			! => ...
-	'F' => int 4
-	'T' => string '20:00..21:00'
-OR e.g.
- array
-	'P' => boolean FALSE
-	'F' => int 1
-	'T' => string '6:00-23:00'
-to blocks in $ss..$se
-'T' may be FALSE
-no FALSE in $ends[]
-
-		//assuming there may be specific time(s) involved, we use day-wise interrogation
-			//day-walker
-			$dws = clone $dts;
-			$dws->SetTime(0,0,0); //ensure that-day-start
-			//end-checker
-			$dwe = clone $dte;
-			$dwe->SetTime(0,0,0);
-			if ($dwe != $dte) //ensure next-day-start
-				$dwe->modify('+1 day');
-			//worker
-			$dtw = clone $dws;
-			//get parameters for time interpretation
-//	$maxhours = self::GetSlotHours($item_id); TODO $item_id
-			while ($dws < $dwe) {
-				//update scratchpad for offsets from $dws
-				$dtw->setTimestamp($dws->getTimestamp());
-				foreach ($this->conds as &$one) {
-					if ($one['T'] && !$one['P']) {
-						//time only, any period (BUT maybe day-specific due to sun-related times)
-						self::TimeBlocks($one,$ss,$se,$dtw,$sunparms,$starts,$ends);
-					} else {
-						self::PeriodBlocks($one,$ss,$se,$dtw,$sunparms,$starts,$ends);
-						//TODO handle times
+		$sunny = FALSE;
+		if ($cond['T']) {
+			if (!is_array($cond['T']))
+				$cond['T'] = array($cond['T']);
+			foreach ($cond['T'] as $one) {
+				if (is_array($one)) {
+					foreach ($one as $t) {
+						if (strpos($t,'R') !== FALSE || strpos($t,'S') !== FALSE) {
+							$sunny = TRUE;
+							break;
+						}
 					}
+				} elseif (strpos($one,'R') !== FALSE || strpos($one,'S') !== FALSE) {
+					$sunny = TRUE;
+					break;
 				}
-				unset($one);
-				$dws->modify('+1 day'); //CHECKME longer interval in some cases?
 			}
+			$timeparms['sunny'] = $sunny;
+			if (!$sunny) {
+				//no need for day-specific time(s), cache times once
+				list($stimes,$etimes) = self::TimeBlocks($cond['T'],$ss,$dtw,$timeparms);
+			}
+		} else {
+			$stimes = FALSE;
+		}
+/*TODO convert $cond
 $cond['F']:
  1 no period i.e. any (time-only)
  2 month(s) of any year June,July
@@ -93,6 +74,15 @@ OR 10 day(s) of specific month(s) 1(Aug) OR Wed((1,2)(week(June))) OR each 2 day
 		switch ($cond['F']) {
 		 case 1:
 			//whole of $ss, $se
+			//if there are specific time(s) involved, we use day-wise interrogation
+			//for each day of the period ...
+			if ($sunny) {
+				list($stimes,$etimes) = self::TimeBlocks($cond['T'],$daystart,$dtw,$timeparms);
+			}
+			if ($stimes) {
+				//TODO stamps for intra-day block(s) per $stimes,$etimes
+			}
+			//TODO replicate the above for each case
 			break;
 		 case 2:
 			//stamps for months(s) in any year in $ss, $se
@@ -130,6 +120,7 @@ OR 10 day(s) of specific month(s) 1(Aug) OR Wed((1,2)(week(June))) OR each 2 day
 	}
 
 	/*
+These migrated to TimeInterpreter class
 	GetSlotHours:
 	Get float in {0.0..24.0} representing the actual or notional slot-length for
 	@item_id, to assist interpretation of ambiguous hour-of-day or day-of-month values
@@ -165,122 +156,231 @@ OR 10 day(s) of specific month(s) 1(Aug) OR Wed((1,2)(week(June))) OR each 2 day
 
 	/*
 	RelTime:
-	Adjust @dtbase consistent with @timestr.
-	@dtbase: DateTime object representing 'base' datetime
-	@timestr: relative time descriptor like [+1][H]H:[M]M
+	Adjust @dtbase per @timestr
+	@dtw: DateTime object representing 'base' datetime
+	@timestr: relative time descriptor like [+-\d][H]H:[M]M
 	Returns: nothing, but @dtbase is probably changed
 	*/
-	private function RelTime($dtbase, $timestr)
+	private function RelTime($dtw, $timestr)
 	{
-		$str = '';
-		$nums = explode(':',$timestr,3);
-		if (!empty($nums[0]) && $nums[0] != '00')
-			$str .= ' '.$nums[0].' hours';
-		if (!empty($nums[1]) && $nums[1] != '00')
-			$str .= ' '.$nums[1].' minutes';
-		if ($str)
-			$dtbase->modify('+'.$str);
+		if ($timestr) {
+			$str = '';
+			$nums = explode(':',$timestr,3);
+			if (!empty($nums[0]) && $nums[0] != '00')
+				$str .= $nums[0].' hours';
+			if (!empty($nums[1]) && $nums[1] != '00')
+				if ($str)
+					$str .= ' ';
+				$str .= $nums[1].' minutes';
+			if ($str) {
+				if (!($str[0] == '+' || $str[0] == '-'))
+					$str = '+'.$str;
+				$dtw->modify($str);
+			}
+		}
+	}
+
+	/*
+	GetTimeBlock:
+	Get timestamps for start & end of intra-day block represented by @timedata
+	@timedata: a member of a $cond['T'] i.e. a string or 3-member array
+	@ss: stamp for start of day being procesed
+	@se: stamp for 1-past-end of day being procesed
+	@dtw: modifiable DateTime object for use in relative calcs
+	@timeparms: reference to array of parameters from self::TimeParms
+	Returns: array(blockstart,blockend) or array(FALSE,FALSE)
+	*/
+	private function GetTimeBlock($timedata, $ss, $se, $dtw, &$timeparms)
+	{
+		$dtw->setTimestamp($ss);
+		if (is_array($timedata)) {
+			if ($timedata[0][0] == '!') {
+				$timedata[0] = substr($timedata[0],1);
+			}
+			$parts = array($timedata[0],$timedata[2]);
+		} else { //use default block length
+			if ($timedata[0] == '!') {
+				$timedata = substr($timedata,1);
+			}
+			self::RelTime($dtw,$timedata);
+			$dtw->modify('+'.$timedata['len']);
+			$dtw->modify('-1 second');
+			$parts = array($timedata,$dtw->format('G:i'));
+		}
+		//block-start
+		if (strpos($parts[0],'R') !== FALSE) {
+			/*
+			Sunrise $zenith=90+50/60
+			Twilights: see http://www.timeanddate.com/astronomy/about-sun-calculator.html
+			Civilian twilight $zenith=96.0; <<< USE THIS FOR OUTDOORS THO' N/A >= +/-60.5° latitude
+			Nautical twilight $zenith=102.0
+			Astronomical twilight $zenith=108.0
+			*/
+			$tbase = date_sunrise($ss,SUNFUNCS_RET_TIMESTAMP,$timeparms['lat'],$timeparms['long'],96.0,$timeparms['gmtoff']);
+			$parts[0] = str_replace('R','',$parts[0]);
+		} elseif (strpos($parts[0],'S') !== FALSE) {
+			$tbase = date_sunset($ss,SUNFUNCS_RET_TIMESTAMP,$timeparms['lat'],$timeparms['long'],96.0,$timeparms['gmtoff']);
+			$parts[0] = str_replace('S','',$parts[0]);
+		} else {
+			$tbase = $ss;
+		}
+		$dtw->setTimestamp($tbase-$ss);
+		self::RelTime($dtw,$parts[0]);
+		$s = $dtw->getTimestamp();
+		if ($s < 0 || $s >= $se-$ss) {
+			$s = 0;
+		}
+		//block-end
+		if (strpos($parts[1],'R') !== FALSE) {
+			$tbase = date_sunrise($ss,SUNFUNCS_RET_TIMESTAMP,$timeparms['lat'],$timeparms['long'],96.0,$timeparms['gmtoff']);
+			$parts[1] = str_replace('R','',$parts[1]);
+		} elseif (strpos($parts[1],'S') !== FALSE) {
+			$tbase = date_sunset($ss,SUNFUNCS_RET_TIMESTAMP,$timeparms['lat'],$timeparms['long'],96.0,$timeparms['gmtoff']);
+			$parts[1] = str_replace('S','',$parts[1]);
+		} else {
+			$tbase = $ss;
+		}
+		$dtw->setTimestamp($tbase-$ss);
+		self::RelTime($dtw,$parts[1]);
+		$e = $dtw->getTimestamp();
+		if ($e < 0 || $e >= $se-$ss) {
+			$e = $se-$ss-1;
+		}
+		if ($e > $s)
+			return array($s,$e);
+		return array(FALSE,FALSE);
 	}
 
 	/*
 	TimeBlocks:
-	Append to @starts[] and @ends[] pair(s) of timestamps in $ss..$se and consistent with
-		the time-component of @cond
-	@cond: member of parent::conds[] with parsed components of an interval-descriptor
-		=>['P'] may be populated, =>['T'] will be populated
-	@ss: stamp for start of period being processed
-	@se: stamp for one-past-end of period being processed
+	Get block-timestamps consistent with @cond and in $ss..$ss + 1 day - 1 second
+	@cond: reference to 'T'-member of one of parent::conds[]
+	@ss: stamp somwhere in the day being processed
 	@dtw: modifiable DateTime object for use in relative calcs
-	@sunparms: reference to array of parameters from self::SunParms, used in sun-related time calcs
-	@starts: reference to array of block-start timestamps to be updated
-	@ends: reference to array of block-end timestamps to be updated
+	@timeparms: reference to array of parameters from self::TimeParms
+	Returns: 2-member array,
+	 [0] = array of start-stamps for blocks
+	 [1] = array of corresponding end-stamps
+	 The arrays have corresponding but not necessarily contiguous numeric keys,
+	 or may be empty.
 	*/
-	private function TimeBlocks($cond, $ss, $se, $dtw, &$sunparms, &$starts, &$ends)
+	private function TimeBlocks(&$cond, $ss, $dtw, &$timeparms)
 	{
-/*		if (is_array($timedata))
-			$parts = array($timedata[0][0],$timedata[0][2]);
-		elseif (strpos($timedata,'..') !== FALSE)
-			$parts = explode('..',$timedata,2);
-		else { //default to 1-hour block
-			$dtw->setTime(0,0,0);
-			self::RelTime($dtw,$timedata);
-			$dtw->modify('+1 hour');
-			$parts = array($descriptor,$dtw->format('G:i'));
-		}
-		TODO support multiple values e.g. T1,T2... OR (T1,T2....)
-		TODO support 'except' values e.g. !T1,!T2... OR !(T1,T2....)
-		TODO support roll-over to contiguous segment(s) & time(s)
+		$dtw->setTimestamp($ss);
+		//ensure start of day
+		$dtw->setTime(0,0,0);
+		$ss = $dtw->getTimestamp();
 
- old-SunParms extract
-		switch ($sunparms['zone']) {
-		 case FALSE:
-		 case 'UTC':
-		 case 'GMT':
-			$offs = 0;
-			break;
-		 default:
-			try {
-				$at = ;
-				$tz = new \DateTimeZone($zone);
-				$dt = new \DateTime($at,$tz);
-				$offs = $dt->format('Z')/3600; //TODO may change during interval, cuz DST changes
-			} catch (Exception $e) {
+		if ($timeparms['sunny']) {
+			//offset-hours for sun-related calcs
+			switch ($timeparms['zone']) {
+			 case 'UTC':
+			 case 'GMT':
+			 case FALSE:
 				$offs = 0;
+				break;
+			 default:
+				$at = $dtw->format('Y-m-d');
+				try {
+					$tz = new \DateTimeZone($timeparms['zone']);
+					$dt = new \DateTime($at,$tz);
+					$offs = $dt->format('Z')/3600; //DST-specific
+				} catch (Exception $e) {
+					$offs = 0;
+				}
+				break;
 			}
-			break;
+			$timeparms['gmtoff'] = $offs;
 		}
 
-*/
-		$parts = func($cond['T']); //TODO
-		$tbase = $dts->getTimestamp();
-		//block-start
-		if (strpos($parts[0],'R') !== FALSE) {
-			$revert = $tbase;
-			//we use zenith for 'civilian twilight'
-			$tbase = date_sunrise($tbase,SUNFUNCS_RET_TIMESTAMP,$sunparms['lat'],$sunparms['long'],96.0,$sunparms['gmtoff']);
-			$parts[0] = str_replace('R','',$parts[0]);
-			if ($parts[0] == '')
-				$parts[0] = '0:0';
-		} elseif (strpos($parts[0],'S') !== FALSE) {
-			$revert = $tbase;
-			$tbase = date_sunset($tbase,SUNFUNCS_RET_TIMESTAMP,$sunparms['lat'],$sunparms['long'],96.0,$sunparms['gmtoff']);
-			$parts[0] = str_replace('S','',$parts[0]);
-			if ($parts[0] == '')
-				$parts[0] = '0:0';
-		} else
-			$revert = FALSE;
+		$blocks = new Blocks(); //CHECKME pass as arg?
 
-		$dtw->setTimestamp($tbase);
-		self::RelTime($dtw,$parts[0]);
-		$st = $dtw->getTimestamp();
-		if ($st >= $ss && $st < $se)
-			$starts[] = $st;
-		else
-			$starts[] = $ss;
-		//block-end
-		if ($revert !== FALSE)
-			$tbase = $revert;
-		if (strpos($parts[1],'R') !== FALSE) {
-			$tbase = date_sunrise($tbase,SUNFUNCS_RET_TIMESTAMP,$sunparms['lat'],$sunparms['long'],96.0,$sunparms['gmtoff']);
-			$parts[1] = str_replace('R','',$parts[1]);
-			if ($parts[1] == '')
-				$parts[1] = '0:0';
-		} elseif (strpos($parts[1],'S') !== FALSE) {
-			$tbase = date_sunset($tbase,SUNFUNCS_RET_TIMESTAMP,$sunparms['lat'],$sunparms['long'],96.0,$sunparms['gmtoff']);
-			$parts[1] = str_replace('S','',$parts[1]);
-			if ($parts[1] == '')
-				$parts[1] = '+0:0';
+		$dtw->modify('+1 day');
+		$se = $dtw->getTimestamp();
+
+		$starts = array();
+		$ends = array();
+		foreach ($cond as $one) {
+			if (is_array($one)) {
+				if ($one[0][0] == '!') { //exclusive rule
+					continue;
+				}
+			} elseif ($one[0] == '!') {
+				continue;
+			}
+			list($gets,$gete) = self::GetTimeBlock($one,$ss,$se,$dtw,$timeparms);
+			if ($gets) {
+				$starts[] = $gets;
+				$ends[] = $gete;
+			}
 		}
-		$dtw->setTimestamp($tbase);
-		self::RelTime($dtw,$parts[1]);
-		$st = $dtw->getTimestamp();
-		if ($st >= $ss && $st < $se)
-			$ends[] = $st;
-		else
-			$ends[] = $se;
+		if (count($starts) > 1)
+			$blocks->MergeBlocks($starts,$ends); //cleanup
+
+		$nots = array();
+		$note = array();
+		foreach ($cond as $one) {
+			if (is_array($one)) {
+				if ($one[0][0] != '!') { //inclusive rule
+					continue;
+				}
+			} elseif ($one[0] != '!') {
+				continue;
+			}
+			list($gets,$gete) = self::GetTimeBlock($one,$ss,$se,$dtw,$timeparms);
+			if ($gets) {
+				$nots[] = $gets;
+				$note[] = $gete;
+			}
+		}
+		if ($nots) {
+			if (count($nots) > 1)
+				$blocks->MergeBlocks($nots,$note); //cleanup
+			$blocks->DiffBlocks($starts,$ends,$nots,$note);
+		}
+		return array($starts,$ends);
 	}
 
 //~~~~~~~~~~~~~~~~ PUBLIC INTERFACE ~~~~~~~~~~~~~~~~~~
+
+	/*
+	TimeParms:
+	c.f. TimeInterpreter::GetSunData()
+	Get @itemdata-derived parameters for location-specific sunrise/set calcs
+	No checks here for valid parameters in @itemdata - assumed done before
+	@idata: reference to array of data (possibly inherited) for a resource or group
+	@at: optional datetime string for offset calc, default 'now'
+	Returns: array of parameters: latitude, longitude, zoneoffset-hours
+	 the latter is determined as of @at
+	*/
+	public function TimeParms(&$idata)
+	{
+	 	$num = 1;
+		$type = 'hour';
+		if ($idata['placegap']) {
+		 	$num = (int)$idata['placegap'];
+			$utils = new Utils();
+			$periods = $utils->TimeIntervals();
+			$t = (int)$idata['placegaptype'];
+			if ($t > 2)
+				$t = 2; //max interval-type in this context is day
+			$type = $perods[$t];
+			if ($num > 1)
+				$type .= 's'; //plural form
+		}
+
+		$zone = $idata['timezone'];
+		if (!$zone)
+			$zone = $this->mod->GetPreference('pref_timezone','UTC');
+
+		return array (
+		 'len'=>$num.' '.$type, //default slot length, for DateTime modification
+		 'sunny'=>FALSE, //whether sun-related calcs are needed
+		 'lat'=>(float)$idata['latitude'], //maybe 0.0
+		 'long'=>(float)$idata['longitude'], //ditto
+		 'zone'=>$zone
+		);
+	}
 
 	/**
 	GetBlocks:
@@ -290,7 +390,7 @@ OR 10 day(s) of specific month(s) 1(Aug) OR Wed((1,2)(week(June))) OR each 2 day
 		processed, not necessarily a midnight
 	@dte: datetime object representing resource-local one-past-end of the period,
 		not necessarily a midnight
-	@sunparms: reference to array of parameters for sun-related time calcs
+	@timeparms: reference to array of parameters for sun-related time calcs
 	@defaultall: optional boolean, whether to return, if parent::conds is not set,
 	the whole interval as one block instead of empty arrays, default FALSE
 	Returns: 2-member array:
@@ -299,7 +399,7 @@ OR 10 day(s) of specific month(s) 1(Aug) OR Wed((1,2)(week(June))) OR each 2 day
 	BUT both arrays will be empty upon error, or if nothing applies and
 		$defaultall is FALSE
 	*/
-	public function GetBlocks($dts, $dte, &$sunparms, $defaultall=FALSE)
+	public function GetBlocks($dts, $dte, &$timeparms, $defaultall=FALSE)
 	{
 		$starts = array();
 		$ends = array();
@@ -325,13 +425,13 @@ OR 10 day(s) of specific month(s) 1(Aug) OR Wed((1,2)(week(June))) OR each 2 day
 				}
 				$gets = array();
 				$gete = array();
-				self::PeriodBlocks($cond,$ss,$se,$dtw,$sunparms,$gets,$gete);
+				self::PeriodBlocks($cond,$ss,$se,$dtw,$timeparms,$gets,$gete);
 				//merge $starts,$ends,$gets,$gete
 				if ($starts) {
-					list($gets,$gete) = $blocks->BlockIntersects($starts,$ends,$gets,$gete);
+					list($gets,$gete) = $blocks->IntersectBlocks($starts,$ends,$gets,$gete);
 				} else {
 					//want something to compare with
-					list($gets,$gete) = $blocks->BlockIntersects(array($ss),array($se),$gets,$gete);
+					list($gets,$gete) = $blocks->IntersectBlocks(array($ss),array($se),$gets,$gete);
 				}
 				if ($gets !== FALSE) {
 					$starts = $gets;
@@ -358,13 +458,13 @@ OR 10 day(s) of specific month(s) 1(Aug) OR Wed((1,2)(week(June))) OR each 2 day
 					}
 					$gets = array();
 					$gete = array();
-					self::PeriodBlocks($cond,$ss,$se,$dtw,$sunparms,$gets,$gete);
+					self::PeriodBlocks($cond,$ss,$se,$dtw,$timeparms,$gets,$gete);
 					//diff $starts,$ends,$gets,$gete
 					if ($starts) {
-						list($gets,$gete) = $blocks->BlockDiffs($starts,$ends,$gets,$gete);
+						list($gets,$gete) = $blocks->DiffBlocks($starts,$ends,$gets,$gete);
 					} else {
 						//want something to compare with
-						list($gets,$gete) = $blocks->BlockDiffs(array($ss),array($se),$gets,$gete);
+						list($gets,$gete) = $blocks->DiffBlocks(array($ss),array($se),$gets,$gete);
 					}
 					if ($gets !== FALSE) {
 						$starts = $gets;
@@ -388,35 +488,6 @@ OR 10 day(s) of specific month(s) 1(Aug) OR Wed((1,2)(week(June))) OR each 2 day
 		return array($starts,$ends);
 	}
 
-	/*
-	SunParms:
-	c.f. TimeInterpreter::GetSunData()
-	Get @itemdata-derived parameters for location-specific sunrise/set calcs
-	No checks here for valid parameters in @itemdata - assumed done before
-	@idata: reference to array of data (possibly inherited) for a resource or group
-	@at: optional datetime string for offset calc, default 'now'
-	Returns: array of parameters: latitude, longitude, zoneoffset-hours
-	 the latter is determined as of @at
-	*/
-	public function SunParms(&$idata)
-	{
-		$zone = $idata['timezone'];
-		if (!$zone)
-			$zone = $this->mod->GetPreference('pref_timezone','UTC');
-		return array (
-		 'lat'=>(float)$idata['latitude'], //maybe 0.0
-		 'long'=>(float)$idata['longitude'], //ditto
-		 'zone'=>$zone
-		);
-/*
-Sunrise $zenith=90+50/60;
-Twilights: see http://www.timeanddate.com/astronomy/about-sun-calculator.html
-Civilian twilight $zenith=96.0; <<< USE THIS FOR OUTDOORS N/A >= +/-60.5° latitude
-Nautical twilight $zenith=102.0;
-Astronomical twilight $zenith=108.0;
-*/
-	}
-
 	/* *
 	IntervalComplies:
 
@@ -435,7 +506,7 @@ Astronomical twilight $zenith=108.0;
 		if ($this->conds == FALSE)
 			return FALSE;
 / *
-		$sunparms = self::SunParms($idata);
+		$timeparms = self::TimeParms($idata);
 		$maxhours = self::GetSlotHours($idata['item_id']);
 		$dstart = floor($start/86400);
 		$dend = $dstart + $laterdays;
@@ -467,7 +538,7 @@ Astronomical twilight $zenith=108.0;
 	{
 		if ($this->conds == FALSE)
 			return FALSE;
-/ *		$sunparms = self::SunParms($idata);
+/ *		$timeparms = self::TimeParms($idata);
 		$maxhours = self::GetSlotHours($idata['item_id']);
 		$dstart = floor($start/86400);
 		$dend = $dstart + $laterdays;
@@ -516,7 +587,7 @@ Astronomical twilight $zenith=108.0;
 	@descriptor: interval-language string to be interpreted, or some variety of FALSE
 	@dts: datetime object for UTC start (midnight) of 1st day of period being processed
 	@dte: datetime object representing 1-second after the end of the period of interest
-	@sunparms: reference to array of parameters from self::SunParms, used in sun-related time calcs
+	@timeparms: reference to array of parameters from self::TimeParms, used in time calcs
 	@defaultall: optional boolean, whether to return, upon some sort of problem,
 		arrays representing the whole period instead of FALSE, default FALSE
 	Returns: array with 2 members
@@ -524,14 +595,14 @@ Astronomical twilight $zenith=108.0;
 	 [1] = array of corresponding stamps for interval-last-seconds (NOT 1-past)
 	 OR FALSE if no descriptor, or parsing fails, and @defaultall is FALSE
 	*/
-	public function AllIntervals($descriptor, $dts, $dte, &$sunparms, $defaultall=FALSE)
+	public function AllIntervals($descriptor, $dts, $dte, &$timeparms, $defaultall=FALSE)
 	{
 		//limiting timestamps
 		$st = $dts->getTimestamp();
 		$nd = $dte->getTimestamp();
 		if ($descriptor) {
 			if (parent::ParseDescriptor($descriptor)) {
-				return self::GetBlocks($dts,$dte,$sunparms,$defaultall);
+				return self::GetBlocks($dts,$dte,$timeparms,$defaultall);
 			}
 		}
 		//nothing to report
@@ -547,13 +618,13 @@ Astronomical twilight $zenith=108.0;
 	@descriptor: interval-language string to be interpreted, or some variety of FALSE
 	@dts: datetime object for UTC start (midnight) of 1st day of period being processed
 	@dte: datetime object representing 1-second after the end of the period of interest
-	@sunparms: reference to array of parameters from self::SunParms, used in sun-related time calcs
+	@timeparms: reference to array of parameters from self::TimeParms, used in time calcs
 	@slotlen: length (seconds) of wanted block
 	Returns: array with 2 timestamps, or FALSE
 	*/
-	public function NextInterval($descriptor, $dts, $dte, &$sunparms, $slotlen)
+	public function NextInterval($descriptor, $dts, $dte, &$timeparms, $slotlen)
 	{
-		$res = self::AllIntervals($descriptor, $dts, $dte, &$sunparms, TRUE);
+		$res = self::AllIntervals($descriptor,$dts,$dte,$timeparms,TRUE);
 		if ($res) {
 			list($starts,$ends) = $res;
 			foreach ($starts as $i->$st) {
@@ -579,16 +650,16 @@ Astronomical twilight $zenith=108.0;
 	@descriptor: interval-language string to be interpreted, or some variety of FALSE
 	@dts: datetime object for UTC start (midnight) of 1st day of period being processed
 	@dte: datetime object representing 1-second after the end of the period of interest
-	@sunparms: reference to array of parameters from self::SunParms, used in sun-related time calcs
+	@timeparms: reference to array of parameters from self::TimeParms, used in time calcs
 	Returns: boolean representing compliance, or TRUE if @descriptor is FALSE,
 		or FALSE if @descriptor is not parsable
 	*/
-	public function IntervalComplies($descriptor, $dts, $dte, &$sunparms)
+	public function IntervalComplies($descriptor, $dts, $dte, &$timeparms)
 	{
-		$res = self::AllIntervals($descriptor, $dts, $dte, &$sunparms, TRUE);
+		$res = self::AllIntervals($descriptor,$dts,$dte,$timeparms,TRUE);
 		if ($res) {
 			$blocks = new Blocks();
-			list($starts,$ends) = $blocks->BlockDiffs(
+			list($starts,$ends) = $blocks->DiffBlocks(
 				array($dts->getTimestamp()),array($dte->getTimestamp()), //TODO off-by-1 ?
 				$res[0],$res[1]);
 			return (count($starts) == 0); //none of the interval is not covered by $descriptor
