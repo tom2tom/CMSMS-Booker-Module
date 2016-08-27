@@ -48,14 +48,13 @@ class WhenRules extends WhenRuleLexer
 			}
 			$timeparms['sunny'] = $sunny;
 			if (!$sunny) {
-				//no need for day-specific time(s), cache times once
+				//no need for day-specific time(s), cache day-relative timestamps once
 				list($stimes,$etimes) = self::TimeBlocks($cond['T'],$ss,$dtw,$timeparms);
 			}
 		} else {
 			$stimes = FALSE;
 		}
-/*TODO convert $cond
-$cond['F']:
+/* $cond['F']:
  1 no period i.e. any (time-only)
  2 month(s) of any year June,July
  3 week(s) of any month (1,-1)week
@@ -71,88 +70,109 @@ OR 10 day(s) of specific month(s) 1(Aug) OR Wed((1,2)(week(June))) OR each 2 day
 	OR 2(Wed(June)) OR (1,-1)(Sat(June..August))
 11 specfic day/date(s) 2010-6-6 OR 1(Aug(2015..2020))
 */
-		switch ($cond['F']) {
-		 case 1:
-			//whole of $ss, $se
-			//if there are specific time(s) involved, we use day-wise interrogation
-			//for each day of the period ...
-			if ($sunny) {
-				list($stimes,$etimes) = self::TimeBlocks($cond['T'],$daystart,$dtw,$timeparms);
+		if (($stimes || $sunny) && $timeparms['type'] != 'day') { //periods > day not used here
+			$dodays = TRUE;	//daywise analyis needed
+		} else {
+			switch ($cond['F']) {
+				case 4:
+				case 9:
+				case 10:
+				case 11:
+					$dodays = TRUE; //descriptor includes specific day(s)
+					break;
+				default:
+					$dodays = FALSE; //blockwise analyis
 			}
-			if ($stimes) {
-				//TODO stamps for intra-day block(s) per $stimes,$etimes
-			}
-			//TODO replicate the above for each case
-			break;
-		 case 2:
-			//stamps for months(s) in any year in $ss, $se
-			break;
-		 case 3:
-			//stamps for week(s) in any month in any year in $ss, $se
-			break;
-		 case 4:
-			//stamps for day(s) of week or month in any year in $ss, $se
-			break;
-		 case 5:
-			//stamps for year(s) in $ss, $se TODO $cond['T']
-			break;
-		 case 6:
-			//stamps for months(s) in specific year(s) in $ss, $se
-			break;
-		 case 7:
-			//stamps for week(s) in specific [month(s) and] year(s) in $ss, $se
-			break;
-		 case 8:
-			//stamps for week(s) in specific month(s) in $ss, $se
-			break;
-		 case 9:
-			//stamps for day(s) in weeks(s) and specific month(s) and specific year(s) in $ss, $se
-			break;
-		 case 10:
-			//stamps for day(s) in weeks(s) or month(s) in $ss, $se
-			break;
-		 case 11:
-			//stamps for specific day(s) in $ss, $se
-			break;
-		 default:
-			break;
 		}
-	}
 
-	/*
-These migrated to TimeInterpreter class
-	GetSlotHours:
-	Get float in {0.0..24.0} representing the actual or notional slot-length for
-	@item_id, to assist interpretation of ambiguous hour-of-day or day-of-month values
-	@item_id: resource or group identifier
-	*/
-/*	private function GetSlotHours($item_id)
-	{
-		$utils = new Utils();
-		$len = $utils->GetInterval($this->mod,$item_id,'slot');
-		return min($len/3600,24.0);
-	}
-*/
-	/*
-	timecheck:
-	@times: reference to array of ...
-	@sameday: whether ...
-	*/
-/*	private function timecheck(&$times, $sameday)
-	{
-		foreach ($times as &$range) {
-			//TODO interpet any sun-related times
-			$s = ($sameday) ? max($range[0],$tstart) : $range[0];
-			//TODO support roll-over to contiguous day(s) & time(s)
-			if ($range[1] >= $s+$length) {
-				unset($range);
-				return $s;
+		$funcs = new PeriodInterpreter();
+		if (!is_array($cond['P'])) {
+			$cond['P'] = array($cond['P']);
+		}
+		foreach ($cond['P'] as $rule) {
+			if ($dodays) {
+				switch ($cond['F']) {
+				 case 1: //whole of $ss..$se-1
+					$parsed = $funcs->BlockDays($ss,$se,$dtw);
+					break;
+				 case 2: //months(s) in any year in $ss..$se-1
+					$parsed = FALSE;
+					break;
+				 case 3: //week(s) in any month in any year in $ss..$se-1
+					$parsed = FALSE;
+					break;
+				 case 4: //day(s) of week or month in any year in $ss..$se-1
+					$parsed = FALSE;
+					break;
+				 case 5: //year(s) in $ss..$se-1
+					$parsed = FALSE;
+					break;
+				 case 6: //months(s) in specific year(s) in $ss..$se-1
+					break;
+				 case 7: //week(s) in specific [month(s) and] year(s) in $ss..$se-1
+					$parsed = FALSE;
+					break;
+				 case 8: //week(s) in specific month(s) in $ss..$se-1
+					$parsed = FALSE;
+					break;
+				 case 9: //day(s) in weeks(s) and specific month(s) and specific year(s) in $ss..$se-1
+					$parsed = FALSE;
+					break;
+				 case 10: //day(s) in weeks(s) or month(s) in $ss..$se-1
+					$parsed = FALSE;
+					break;
+				 case 11: //specific day(s) in $ss..$se-1
+					$parsed = FALSE;
+					break;
+				 default:
+					$parsed = FALSE;
+					break;
+				}
+
+				if ($parsed) {
+					foreach ($parsed as $year) {
+						foreach ($year[1] as $daystart) {
+							if ($sunny) {
+								list($stimes,$etimes) = self::TimeBlocks($cond['T'],$daystart,$dtw,$timeparms);
+							}
+							if ($stimes) {
+								foreach ($stimes as $i=>$st) {
+									$starts[] = $daystart + $st;
+									$ends[] = $daystart + $etimes[$i];
+								}
+							} else {
+								$starts[] = $daystart;
+								$dtw->setTimestamp($daystart);
+								$dtw->modify('+1 day');
+								$ends[] = $dtw->getTimestamp()-1;
+							}
+						}
+					}
+				}
+			} else { //blockwise analyis
+				switch ($cond['F']) {
+				 case 1: //whole block
+					$starts[] = $ss;
+					$ends[] = $se - 1;
+					break;
+				 case 2: //months(s) in any year in $ss..$se-1
+					break;
+				 case 3: //week(s) in any month in any year in $ss..$se-1
+					break;
+				 case 5: //year(s) in $ss..$se-1
+					break;
+				 case 6: //months(s) in specific year(s) in $ss..$se-1
+					break;
+				 case 7: //week(s) in specific [month(s) and] year(s) in $ss..$se-1
+					break;
+				 case 8: //week(s) in specific month(s) in $ss..$se-1
+					break;
+				 default:
+					break;
+				}
 			}
 		}
-		unset($range);
-		return FALSE;
 	}
-*/
 
 	/*
 	RelTime:
@@ -203,7 +223,10 @@ These migrated to TimeInterpreter class
 				$timedata = substr($timedata,1);
 			}
 			self::RelTime($dtw,$timedata);
-			$dtw->modify('+'.$timedata['len']);
+			$t = '+'.$timedata['count'].' '.$timedata['type'];
+			if ($timedata['count'] > 1)
+				$t .= 's'; //pluralise
+			$dtw->modify($t);
 			$dtw->modify('-1 second');
 			$parts = array($timedata,$dtw->format('G:i'));
 		}
@@ -343,30 +366,25 @@ These migrated to TimeInterpreter class
 
 //~~~~~~~~~~~~~~~~ PUBLIC INTERFACE ~~~~~~~~~~~~~~~~~~
 
-	/*
+	/**
 	TimeParms:
-	c.f. TimeInterpreter::GetSunData()
-	Get @itemdata-derived parameters for location-specific sunrise/set calcs
-	No checks here for valid parameters in @itemdata - assumed done before
+	Get @idata-derived parameters for context-specific time calcs
+	No checks here for valid parameters in @idata - assumed done before
 	@idata: reference to array of data (possibly inherited) for a resource or group
-	@at: optional datetime string for offset calc, default 'now'
-	Returns: array of parameters: latitude, longitude, zoneoffset-hours
-	 the latter is determined as of @at
+	Returns: array of parameters: latitude, longitude, zone etc
 	*/
 	public function TimeParms(&$idata)
 	{
 	 	$num = 1;
 		$type = 'hour';
-		if ($idata['placegap']) {
-		 	$num = (int)$idata['placegap'];
+		if ($idata['slottype']) {
+		 	$num = (int)$idata['slotcount'];
 			$utils = new Utils();
 			$periods = $utils->TimeIntervals();
-			$t = (int)$idata['placegaptype'];
+			$t = (int)$idata['slottype'];
 			if ($t > 2)
 				$t = 2; //max interval-type in this context is day
-			$type = $perods[$t];
-			if ($num > 1)
-				$type .= 's'; //plural form
+			$type = $periods[$t];
 		}
 
 		$zone = $idata['timezone'];
@@ -374,7 +392,8 @@ These migrated to TimeInterpreter class
 			$zone = $this->mod->GetPreference('pref_timezone','UTC');
 
 		return array (
-		 'len'=>$num.' '.$type, //default slot length, for DateTime modification
+		 'count'=>$num, //part default slot length, for DateTime modification
+		 'type'=>$type, //other part
 		 'sunny'=>FALSE, //whether sun-related calcs are needed
 		 'lat'=>(float)$idata['latitude'], //maybe 0.0
 		 'long'=>(float)$idata['longitude'], //ditto
@@ -426,19 +445,21 @@ These migrated to TimeInterpreter class
 				$gets = array();
 				$gete = array();
 				self::PeriodBlocks($cond,$ss,$se,$dtw,$timeparms,$gets,$gete);
-				//merge $starts,$ends,$gets,$gete
-				if ($starts) {
-					list($gets,$gete) = $blocks->IntersectBlocks($starts,$ends,$gets,$gete);
-				} else {
-					//want something to compare with
-					list($gets,$gete) = $blocks->IntersectBlocks(array($ss),array($se),$gets,$gete);
+				if ($gets) {
+					//merge $starts,$ends,$gets,$gete
+					if ($starts) {
+						list($gets,$gete) = $blocks->IntersectBlocks($starts,$ends,$gets,$gete);
+					} else {
+						//want something to compare with
+						list($gets,$gete) = $blocks->IntersectBlocks(array($ss),array($se),$gets,$gete);
+					}
+					if ($gets) {
+						$starts = $gets;
+						$ends = $gete;
+						if (count($starts) == 1 && reset($starts) <= $ss && end($ends) >= $se-1) //all of $ss..$se now covered
+							break;
+					}
 				}
-				if ($gets !== FALSE) {
-					$starts = $gets;
-					$ends = $gete;
-				}
-				if (count($starts) == 1 && reset($starts) <= $ss && end($ends) >= $se-1) //all of $ss..$se now covered
-					break;
 			}
 //			unset($cond);
 			if ($starts) {
@@ -459,19 +480,21 @@ These migrated to TimeInterpreter class
 					$gets = array();
 					$gete = array();
 					self::PeriodBlocks($cond,$ss,$se,$dtw,$timeparms,$gets,$gete);
-					//diff $starts,$ends,$gets,$gete
-					if ($starts) {
-						list($gets,$gete) = $blocks->DiffBlocks($starts,$ends,$gets,$gete);
-					} else {
-						//want something to compare with
-						list($gets,$gete) = $blocks->DiffBlocks(array($ss),array($se),$gets,$gete);
+					if ($gets) {
+						//diff $starts,$ends,$gets,$gete
+						if ($starts) {
+							list($gets,$gete) = $blocks->DiffBlocks($starts,$ends,$gets,$gete);
+						} else {
+							//want something to compare with
+							list($gets,$gete) = $blocks->DiffBlocks(array($ss),array($se),$gets,$gete);
+						}
+						if ($gets !== FALSE) {
+							$starts = $gets;
+							$ends = $gete;
+							if (!$starts) //none of $ss..$se now covered
+								break;
+						}
 					}
-					if ($gets !== FALSE) {
-						$starts = $gets;
-						$ends = $gete;
-					}
-					if (!$starts) //none of $ss..$se now covered
-						break;
 				}
 			}
 			unset($cond);
@@ -487,98 +510,6 @@ These migrated to TimeInterpreter class
 		}
 		return array($starts,$ends);
 	}
-
-	/* *
-	IntervalComplies:
-
-	Determine whether the interval @start to @start + @length satisfies constraints
-	specified in relevant fields in @itemdata. Also returns FALSE if the
-	interval-descriptor string is malformed.
-	parent::CheckDescriptor() or ::ParseDescriptor() must be called before this func.
-
-	@idata: reference to array of data (possibly inherited) for a resource or group
-	@dts: datetime object resource-local preferred/first start time
-	@dte: optional, datetime object resource-local preferred/first end time, default FALSE
-	@length: optional length (seconds) of time period to be checked, default 0
-	*/
-/*	public function IntervalComplies(&$idata, $dts, $dte=FALSE, $length=0)
-	{
-		if ($this->conds == FALSE)
-			return FALSE;
-/ *
-		$timeparms = self::TimeParms($idata);
-		$maxhours = self::GetSlotHours($idata['item_id']);
-		$dstart = floor($start/86400);
-		$dend = $dstart + $laterdays;
-		$tstart = $start - $dstart;
-		foreach ($this->conds as &$cond) {
-			//TODO
-		}
-		unset($cond);
-* /
-		return FALSE;
-	}
-*/
-	/* *
-	NextInterval:
-
-	Get start-time (timestamp) matching constraints specified in relevant fields in
-	@itemdata, and	starting no sooner than @start, or ASAP within @later days after
-	the one including @start, and where the available time is at least @length.
-	Returns FALSE if no such time is available within the specified interval (or
-	the availability-descriptor string is malformed).
-	parent::CheckDescriptor() or ::ParseDescriptor() must be called before this func.
-
-	@idata: reference to array of data (possibly inherited) for a resource or group
-	@dts: datetime object resource-local preferred/first start time
-	@dte: optional, datetime object resource-local preferred/first start time, default FALSE
-	@length: optional length (seconds) of time period to be discovered, default 0
-	*/
-/*	public function NextInterval(&$idata, $dts, $dte=FALSE, $length=0)
-	{
-		if ($this->conds == FALSE)
-			return FALSE;
-/ *		$timeparms = self::TimeParms($idata);
-		$maxhours = self::GetSlotHours($idata['item_id']);
-		$dstart = floor($start/86400);
-		$dend = $dstart + $laterdays;
-		$tstart = $start - $dstart;
-		foreach ($this->conds as &$cond) {
-			$times = $cond[2];
-			if (!$times)
-				$times = array(0=>array(0,86399)); //whole day's worth of seconds
-			if ($cond[1] == FALSE) { //time(s) on any day
-				$X = self::timecheck($times,TRUE);
-				if ($X !== FALSE) {
-					uset($cond);
-					return $X; //TODO + $cond[1]>day-index * 86400 + zone offset seconds
-				}
-				if ($laterdays > 0) {
-					$X = self::timecheck($times,FALSE);
-					if ($X !== FALSE) {
-						uset($cond);
-						return $X; //TODO + $cond[1]>day-index * 86400 + zone offset seconds
-					}
-				}
-			} else {
-				/*interpret $cond[1]
-				  foreach day of interpreted
-				    get day-index
-						if IN $dstart to $dend inclusive
-							$sameday = (day-index == $dstart);
-							$X = self::timecheck($times,$sameday);
-							if ($X !== FALSE) {
-								uset($cond);
-								return $X; //TODO + $cond[1]>day-index * 86400 + zone offset seconds
-							}
-				* /
-			}
-		}
-		unset($cond);
-* /
-		return FALSE;
-	}
-*/
 
 	/**
 	AllIntervals:
