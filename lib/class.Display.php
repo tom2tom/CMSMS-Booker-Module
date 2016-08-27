@@ -27,73 +27,53 @@ class Display
 	@dte: datetime object representing start of 1st day AFTER total report period
 	@$seglen: enum 0..3 representing report-segment length (i.e. per table column)
 	@$slen: booking slot length (seconds)
-	@starts: ascending-sorted array of start-block timestamps
+	@starts: ascending-sorted array of start-available-block timestamps
 	@ends: array of corresponding end-block timestamps
-	Returns: array with 3 members, each a seconds-offsets relative to @dts
+	Returns: array with 3 members, each a seconds-offset relative to @dts
 	 [0] = min offset i.e. from any seg start to 1st available block start in that seg
-	 [1] = max seg-offset+1 i.e. from any seg start to 1-past end of last available block in that segment
-	 [2] = max period-offset+1 i.e. from @dtsart to 1-past end of last available block in period
+	 [1] = max seg-offset i.e. from any seg start to end of last available block in that segment
+	 [2] = max period-offset i.e. from @dts to end of last available block in the period
 	*/
 	private function GetLimits($dts, $dte, $seglen, $slen, $starts, $ends)
 	{
 		$rels = array('+1 day','+7 days','+1 month','+1 year');
 		$offs = $rels[$seglen];
 
-		if ($starts) {
-			$dtw = clone $dts;
-			$ob = 60000000; //about 12 months' of seconds
-			$oe = 0;
-			$i = 0;
-			$l = count($starts);
-			while ($dtw < $dte) {
-				$segb = $dtw->getTimestamp();
-				$dtw->modify($offs);
-				$sege = $dtw->getTimestamp();
-				while ($i < $l) {
-					$bb = $starts[$i];
-					if ($bb >= $segb && $bb < $sege) {
-						$be = $ends[$i];
-						if ($be > $sege) {
-							//rolled over, so available for whole segment
-							if ($seglen > 0)
-								$ob = 0;
-							$oe = -1; //last possible
-							break 2;
-						}
-						$t = $bb - $segb;
-						if ($ob > $t) {
-							$ob = $t;
-						}
-						$t = $be - $segb;
-						if ($oe < $t) {
-							$oe = $t;
-						}
-						$i++;
-					} else
-						break; //skip to next segment
+		$segs = array();
+		$sege = array();
+		$dtw = clone $dts;
+		while ($dtw < $dte) {
+			$segs[] = $dtw->getTimestamp();
+			$dtw->modify($offs);
+			$sege[] = $dtw->getTimestamp()-1;
+		}
+		$ob = $sege[0] - $segs[0];
+		$oe = 0;
+		$blocks = new Blocks();
+		list($nots,$note) = $blocks->DiffBlocks($segs,$sege,$starts,$ends);
+		foreach ($segs as $i=>$st) {
+			foreach ($note as $t) { //next_biggest($note,$st)
+				if ($t > $st) {
+					$t -= $st;
+					if ($t < $ob)
+						$ob = $t;
+					break;
 				}
+				//too bad if nothing found
 			}
-		} else {
-			$ob = 0;
-			$oe = -1; //last possible
+			$st = $sege[$i];
+			foreach ($note as $j=>$t) { //next_smallest($nots,$sege[$i])
+				if ($t >= $st) {
+					$t = $nots[$j] - $segs[$i];
+					if ($t > $oe)
+						$oe = $t;
+					break;
+				}
+				//too bad if nothing found
+			}
 		}
-
-		if ($ob > 0 && $ob < 60000000)
-			$ob = (int)($ob/$slen) * $slen; //'floor' stamp for start of slot including $ob
-		else
-			$ob = 0;
-		if ($oe > 0) {
-			$oe = ceil($oe/$slen) * $slen; //stamp for end of slot including $oe
-			$oea = end($ends) - $dts->getTimestamp();
-			$oea = ceil($oea/$slen) * $slen;
-		} else {
-			$dtw = clone $dts;
-			$dtw->modify($offs); //1-past end of 1st segment
-			$oe = $dtw->getTimestamp() - $dts->getTimestamp(); //usable to end of segment
-			$oea = $dte->getTimestamp() - $dts->getTimestamp(); //and to end of range
-		}
-
-		return array($ob,$oe,$oea);
+		$oa = end($nots) - $segs[0];
+		return array($ob+1,$oe-1,$oa-1);
 	}
 
 	/*
@@ -515,7 +495,7 @@ class Display
 	private function FillTable(&$idata, $start, $range)
 	{
 		$slotlen = $this->utils->GetInterval($this->mod,$idata['item_id'],'slot');
-		list($dts,$dte) = $this->utils->RangeStamps($start,$range);
+		list($dts,$dte) = $this->utils->RangeStamps($start,$range); //$dte represents 1-past end of wanted range
 		switch ($range) {
 		 case \Booker::RANGEDAY:
 		 case \Booker::RANGEWEEK:
@@ -564,21 +544,23 @@ class Display
 		}
 
 		//other parameters
-//		$timeparms = $this->reps->TimeParms($idata);
 		//sorted array of timestamps for resource availability
-//		$res = $this->reps->AllIntervals($idata['available'],$dts,$dte,$timeparms,TRUE);
-		$st = $dts->getTimestamp();
-		$nd = $dte->getTimestamp();
 		$rules = $this->utils->GetOneHeritableProperty($this->mod,$item_id,'available');
-		//TODO ','-merge $rules, send as one to WhenRules::AllIntervals()
-		$funcs = new Blocks();
-		list($starts,$ends) = $funcs->RepeatBlocks($this->mod,$idata,$st,$nd-$st,$rules);
-		if (!$starts) {
-			$starts = array($st);
-			$ends = array($nd);
+		$rules = array_filter($rules); //omit empties
+		if ($rules) {
+			$funcs = new WhenRules($this->mod);
+			$timeparms = $funcs->TimeParms($idata);
+			list($starts,$ends) = $funcs->AllIntervals($rules[0],$dts,$dte,$timeparms); //proximal-rule-only, no ancestor-merging
+			//get offsets of each column's top- and bottom-row
+			list($segoffst,$segoffnd,$rangeoffnd) = self::GetLimits($dts,$dte,$seglen,$slotlen,$starts,$ends);
+		} else {
+			$segoffst = 0;
+			$rels = array('+1 day','+7 days','+1 month','+1 year');
+			$offs = $rels[$seglen];
+			$dtw->modify($offs);
+			$segoffnd = $dtw->getTimestamp(); //1-past-end
+			$rangeoffnd = $dte->getTimestamp(); //ditto
 		}
-		//get offsets of each column's top- and bottom-row
-		list($segoffst,$segoffnd,$rangeoffnd) = self::GetLimits($dts,$dte,$seglen,$slotlen,$starts,$ends);
 		//populate column of row-titles
 		$cells = self::GetSlotNames($idata,$dts,$segoffst,$segoffnd,$seglen,$slotlen,$celloff);
 
