@@ -14,15 +14,15 @@ class PeriodInterpreter
 	@ss: timestamp for start of block
 	@se: timestamp for 1-past-end of block
 	@dtw: DateTime worker
-	Returns: array, or FALSE upon error. Each array member is itself an array,
-	 [0] a year (4-digit integer)
-	 [1] array of integers, each a 0-based day-of-year in the year in [0]
+	Returns: array, or FALSE upon error. Each array member has
+	 key: a year (4-digit integer)
+	 val: array of integers, each a 0-based day-of-year in the year
 	*/
 	public function BlockDays($ss, $se, $dtw)
 	{
 		$dtw->setTimestamp($ss);
 		$dtw->setTime(0,0,0);
-		$ys = (int)$dtw->format('Y');
+		$yn = (int)$dtw->format('Y');
 		$dte = clone $dtw;
 		$dte->setTimestamp($se-1);
 		$dte->setTime(0,0,0);
@@ -31,40 +31,43 @@ class PeriodInterpreter
 		$dt2 = FALSE;
 		$ret = array();
 
-		while ($ys < $ye) {
+		while ($yn < $ye) {
 			$doy = array();
 			if (!$dt2)
 				$dt2 = clone $dtw;
-			$t = ($ys+1).'-1-1 0:0:0';
+			$t = ($yn+1).'-1-1 0:0:0';
 			$dt2->modify($t);
 			while ($dtw < $dt2) {
 				$doy[] = $dtw->getTimestamp();
 				$dtw->modify('+1 day');
 			}
-			$ret[] = array($ys,$doy);
+			if ($doy) {
+				$ret[$yn] = $doy;
+			}
 			$dtw = $dt2;
-			$ys++;
+			$yn++;
 		}
 		$doy = array();
 		while ($dtw <= $dte) {
 			$doy[] = $dtw->getTimestamp();
 			$dtw->modify('+1 day');
 		}
-		$ret[] = array($ye,$doy);
+		if ($doy)
+			$ret[$ye] = $doy;
 
 		return $ret;
 	}
 
-	/*
+	/**
 	MonthWeekDays:
 	Get array of each instance of a specific weekday @dow in a specific month
 	@year: numeric year e.g. 2000
 	@month: numeric month 1..12 in @year
 	@dmax: 1-based index of last day in @month
 	@dow: index of wanted day-of-week, 0 (for Sunday) .. 6 (for Saturday) c.f. date('w'...)
-	Returns: array, or FALSE upon error. The array has a single member which is itself an array,
-	 [0] a year (4-digit integer)
-	 [1] array of integers, each a 0-based day-of-year in the year in [0]
+	Returns: array, or FALSE upon error. The single-member array has
+	 key: @year (4-digit integer)
+	 val: array of integers, each a 0-based day-of-year in the year
 	*/
 	public function MonthWeekDays($year, $month, $dmax, $dow)
 	{
@@ -78,14 +81,14 @@ class PeriodInterpreter
 		if ($d < 0)
 			$d += 7;
 
-		$days = array();
+		$doy = array();
 		for ($i = $d; $i < $dmax; $i += 7) //0-based, so NOT <= $dmax
-			$days[] = $base + $i;
+			$doy[] = $base + $i;
 
-		return array(array($year,$days));
+		return array($year=>$doy);
 	}
 
-	/*
+	/**
 	WeeksDays:
 	Get array of each instance of a specific weekday @dow in specified week(s)
 	in a specific month
@@ -94,9 +97,9 @@ class PeriodInterpreter
 	@week: array if numeric week(s) -5..-1,1..5 in @year AND @month
 	@dmax: 1-based index of last day in @month
 	@dow: index of wanted day-of-week, 0 (for Sunday) .. 6 (for Saturday) c.f. date('w'...)
-	Returns: array, or FALSE upon error. The array has a single member which is itself an array,
-	 [0] a year (4-digit integer)
-	 [1] array of integers, each a 0-based day-of-year in the year in [0]
+	Returns: array, or FALSE upon error. The single-member array has
+	 key: @year (4-digit integer)
+	 val: array of integers, each a 0-based day-of-year in the year
 	*/
 	public function WeeksDays($year, $month, $week, $dmax, $dow)
 	{
@@ -107,7 +110,7 @@ class PeriodInterpreter
 		$firstdow = (int)date('w',$st);
 		//count of part/whole Sun..Sat weeks in $month, populated on demand
 		$wmax = 0;
-		$days = array();
+		$doy = array();
 
 		foreach ($week as $w) {
 			if ($w < 0) {
@@ -120,13 +123,16 @@ class PeriodInterpreter
 
 			$d = $dow - $firstdow + ($w-1) * 7;
 			if ($d >= 0 && $d < $dmax) //0-based, so NOT <= $dmax
-				$days[] = $base + $d;
+				$doy[] = $base + $d;
 		}
-		$days = array_unique($days,SORT_NUMERIC);
-		return array(array($year,$days));
+		if ($doy) {
+			$doy = array_unique($doy,SORT_NUMERIC);
+			return array($year=>$doy);
+		}
+		return array();
 	}
 
-	/*
+	/**
 	MonthDay:
 	Get 'counted' instance of a specific weekday @dow in a specific month
 	@year: numeric year e.g. 2000
@@ -134,9 +140,9 @@ class PeriodInterpreter
 	@dmax: 1-based index of last day in @month
 	@count: index of wanted day-of-month -5..-1,1..5
 	@dow: index of wanted day-of-week, 0 (for Sunday) .. 6 (for Saturday) c.f. date('w'...)
-	Returns: array, or FALSE upon error. The array has a single member which is itself an array,
-	 [0] a year (4-digit integer)
-	 [1] array of a single integers, a 0-based day-of-year in the year in [0]
+	Returns: array, or FALSE upon error. The single-member array has
+	 key: @year (4-digit integer)
+	 val: array with one 0-based day-of-year in the year
 	*/
 	public function MonthDay($year, $month, $dmax, $count, $dow)
 	{
@@ -163,10 +169,10 @@ class PeriodInterpreter
 		$base = (int)date('z',$st);
 		$base += $d;
 
-		return array(array($year,array($base)));
+		return array($year=>array($base));
 	}
 
-	/*
+	/**
 	SuccessiveDays:
 	Get each n'th-day in a specified range
 	@interval: integer no. of weeks between successive reports, >= 1
@@ -176,9 +182,9 @@ class PeriodInterpreter
 	@ndyear: numeric year e.g. 2000 or FALSE to use @styear
 	@ndmonth: numeric month 1..12 in @ndyear or FALSE to use @stmonth
 	@ndday: identfier in @ndyear/@ndmonth e.g. 1,-1,1D1,-2D6 TODO support e.g. D4(2(W)) or FALSE to use last day-of-month
-	Returns: array, or FALSE upon error. Each array member is array,
-	 [0] the year (a validated, 4-digit integer)
-	 [1] array of integers, each a 0-based day-of-year in the year in [0]
+	Returns: array, or FALSE upon error. Each array member has
+	 key: a year (4-digit integer)
+	 val: array of integers, each a 0-based day-of-year in the year
 	*/
 	public function SuccessiveDays($interval, $styear, $stmonth, $stday,
 		$ndyear=FALSE, $ndmonth=FALSE, $ndday=FALSE)
@@ -228,16 +234,24 @@ class PeriodInterpreter
 		while ($dts <= $dte) {
 			$yt = (int)$dts->format('Y');
 			if ($yt != $yn) {
-				if ($doy)
-					$ret[] = array($yn,$doy);
+				if ($doy) {
+					if (isset($ret[$yn])) {
+						$ret[$yn] = array_unique(array_merge($ret[$yn],$doy),SORT_NUMERIC);
+					} else
+						$ret[$yn] = $doy;
+				}
 				$yn = $yt;
 				$doy = array();
 			}
 			$doy[] = (int)$dts->format('z');
 			$dts->modify($diff);
 		}
-		if ($doy)
-			$ret[] = array($yn,$doy);
+		if ($doy) {
+			if (isset($ret[$yn])) {
+				$ret[$yn] = array_unique(array_merge($ret[$yn],$doy),SORT_NUMERIC);
+			} else
+				$ret[$yn] = $doy;
+		}
 		return $ret;
 	}
 
@@ -256,9 +270,9 @@ class PeriodInterpreter
 	@day: optional tokenised day(s) identifier, string or array, default FALSE
 		String may be ','-separated series. Tokens numeric -31..-1,1..31 or with 'D' prefix i.e. D1..D7
 		FALSE means all days in @week (if any) AND @month AND @year
-	Returns: array, or FALSE upon error. Each array member is itself an array,
-	 [0] the year (a validated, 4-digit integer)
-	 [1] array of integers, each a 0-based day-of-year in the year in [0]
+	Returns: array, or FALSE upon error. Each array member has
+	 key: a year (4-digit integer)
+	 val: array of integers, each a 0-based day-of-year in the year
 	*/
 	public function YearDays($year, $month=FALSE, $week=FALSE, $day=FALSE)
 	{
@@ -415,26 +429,26 @@ class PeriodInterpreter
 			$day = range(1,31); //all days
 
 		$ret = array();
-		foreach ($year as $y) {
-			$yeardays = array();
+		foreach ($year as $yn) {
+			$doy = array();
 			foreach ($month as $m) {
-				$dmax = (int)date('t',gmmktime(0,0,1,$m,1,$y)); //days in month
+				$dmax = (int)date('t',gmmktime(0,0,1,$m,1,$yn)); //days in month
 				foreach ($day as $d) {
 					if (($p = strpos($d,'D')) !== FALSE) {
 						$t = (int)substr($d,$p+1) - 1; //D1 >> 0 etc
 						$c = ($p > 0) ? (int)substr($d,0,$p) : 0;
 						if ($c != 0) {
-							$t2 = self::MonthDay($y,$m,$dmax,$c,$t);
+							$t2 = self::MonthDay($yn,$m,$dmax,$c,$t);
 							if ($t2 >= 0)
-								$yeardays[] = $t2;
+								$doy[] = $t2;
 						} elseif ($week) {
-							$yeardays = array_merge($yeardays,self::WeeksDays($y,$m,$week,$dmax,$t));
-//							$dbg = self::WeeksDays($y,$m,$week,$dmax,$t);
-//							$yeardays = array_merge($yeardays,$dbg);
+							$doy = array_merge($doy,self::WeeksDays($yn,$m,$week,$dmax,$t));
+//							$dbg = self::WeeksDays($yn,$m,$week,$dmax,$t);
+//							$doy = array_merge($doy,$dbg);
 						} else {
-							$yeardays = array_merge($yeardays,self::MonthWeekDays($y,$m,$dmax,$t));
-//							$dbg = self::MonthWeekDays($y,$m,$dmax,$t);
-//							$yeardays = array_merge($yeardays,$dbg);
+							$doy = array_merge($doy,self::MonthWeekDays($yn,$m,$dmax,$t));
+//							$dbg = self::MonthWeekDays($yn,$m,$dmax,$t);
+//							$doy = array_merge($doy,$dbg);
 						}
 						continue;
 					}
@@ -442,19 +456,24 @@ class PeriodInterpreter
 					if (is_numeric($d) && $d < 0)
 						$d += $dmax + 1;
 					if ($d <= $dmax) {
-						$st = gmmktime(0,0,1,$m,$d,$y);
-						$yeardays[] = (int)date('z',$st);
+						$st = gmmktime(0,0,1,$m,$d,$yn);
+						$doy[] = (int)date('z',$st);
 					}
 				}
-				if ($yeardays)
-					sort($yeardays,SORT_NUMERIC);
 			}
-			$ret[] = array($y,$yeardays);
+			if ($doy) {
+				if (isset($ret[$yn])) {
+					$ret[$yn] = array_unique(array_merge($ret[$yn],$doy),SORT_NUMERIC);
+				} else {
+					sort($doy,SORT_NUMERIC);
+					$ret[$yn] = $doy;
+				}
+			}
 		}
 		return $ret;
 	}
 
-	/*
+	/**
 	SuccessiveWeeks:
 	Get each day in each n'th-week in a specified range
 	@interval: integer no. of days between successive reports, >= 1
@@ -464,16 +483,16 @@ class PeriodInterpreter
 	@ndyear: numeric year e.g. 2000 or FALSE to use @styear
 	@ndmonth: numeric month 1..12 in @ndyear or FALSE to use @stmonth
 	@ndday: identfier in @ndyear/@ndmonth e.g. 1,-1,1D1,-2D6 TODO support e.g. D4(2(W)) or FALSE to use last day-of-month
-	Returns: array, or FALSE upon error. Each array member is array,
-	 [0] the year (a validated, 4-digit integer)
-	 [1] array of integers, each a 0-based day-of-year in the year in [0]
+	Returns: array, or FALSE upon error. Each array member has
+	 key: a year (4-digit integer)
+	 val: array of integers, each a 0-based day-of-year in the year in [0]
 	*/
 	public function SuccessiveWeeks($interval, $styear, $stmonth, $stday,
 		$ndyear=FALSE, $ndmonth=FALSE, $ndday=FALSE)
 	{
 	}
 
-	/*
+	/**
 	SuccessiveMonths:
 	Get each day in each n'th-month in a specified range
 	@interval: integer no. of months between successive reports, >= 1
@@ -483,9 +502,9 @@ class PeriodInterpreter
 	@ndyear: numeric year e.g. 2000 or FALSE to use @styear
 	@ndmonth: numeric month 1..12 in @ndyear or FALSE to use @stmonth
 	@ndday: identfier in @ndyear/@ndmonth e.g. 1,-1,1D1,-2D6 TODO support e.g. D4(2(W)) or FALSE to use last day-of-month
-	Returns: array, or FALSE upon error. Each array member is array,
-	 [0] the year (a validated, 4-digit integer)
-	 [1] array of integers, each a 0-based day-of-year in the year in [0]
+	Returns: array, or FALSE upon error. Each array member has
+	 key: a year (4-digit integer)
+	 val: array of integers, each a 0-based day-of-year in the year in [0]
 	*/
 	public function SuccessiveMonths($interval, $styear, $stmonth, $stday,
 		$ndyear=FALSE, $ndmonth=FALSE, $ndday=FALSE)
