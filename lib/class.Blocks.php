@@ -11,7 +11,7 @@ namespace Booker;
 class Blocks
 {
 	/**
-	BlockDiffs:
+	DiffBlocks:
 	@starts1: array of first-block start-stamps, sorted ascending
 	@ends1: array of corresponding end-stamps
 	@starts2: array of other-block start-stamps, sorted ascending
@@ -22,7 +22,7 @@ class Blocks
 	 The arrays have corresponding but not necessarily contiguous numeric keys, or may be empty.
 	 1-second blocks are omitted, so care needed for off-by-1 in supplied arrrays.
 	*/
-	public function BlockDiffs($starts1, $ends1, $starts2, $ends2)
+	public function DiffBlocks($starts1, $ends1, $starts2, $ends2)
 	{
 		$i = 0;
 		$ic = count($starts1);
@@ -72,7 +72,7 @@ class Blocks
 	}
 
 	/**
-	BlockIntersects:
+	IntersectBlocks:
 	@starts1: array of first-block start-stamps, sorted ascending
 	@ends1: array of corresponding end-stamps
 	@starts2: array of other-block start-stamps, sorted ascending
@@ -85,7 +85,7 @@ class Blocks
 	 [0] = FALSE
 	 [1] = FALSE
 	*/
-	public function BlockIntersects($starts1, $ends1, $starts2, $ends2)
+	public function IntersectBlocks($starts1, $ends1, $starts2, $ends2)
 	{
 		$starts = array();
 		$ends = array();
@@ -148,7 +148,7 @@ class Blocks
 	}
 
 	/**
-	BlockIntersectsRuled:
+	IntersectBlocksRuled:
 	@starts1: array of first-block start-stamps, sorted ascending
 	@ends1: array of corresponding end-stamps
 	@starts2: array of other-block start-stamps, sorted ascending
@@ -164,7 +164,7 @@ class Blocks
 	 [1] = FALSE
 	 [2] = FALSE
 	*/
-	public function BlockIntersectsRuled($starts1, $ends1, $starts2, $ends2, $rules2)
+	public function IntersectBlocksRuled($starts1, $ends1, $starts2, $ends2, $rules2)
 	{
 		$starts = array();
 		$ends = array();
@@ -254,7 +254,7 @@ class Blocks
 	}
 
 	/**
-	BlockIntersects2Ruled:
+	IntersectBlocks2Ruled:
 	@starts1: array of first-block start-stamps, sorted ascending
 	@ends1: array of corresponding end-stamps
 	@rules1: array of corresponding rules, FALSE represents no rule
@@ -273,7 +273,7 @@ class Blocks
 	 [2] = FALSE
 	 [3] = FALSE
 	*/
-	public function BlockIntersects2Ruled($starts1, $ends1, $rules1, $starts2, $ends2, $rules2)
+	public function IntersectBlocks2Ruled($starts1, $ends1, $rules1, $starts2, $ends2, $rules2)
 	{
 		$starts = array();
 		$ends = array();
@@ -390,16 +390,16 @@ class Blocks
 		return array(FALSE,FALSE,FALSE,FALSE);
 	}
 
-	//Interpret $dtrule into stamp-block(s) covering $st..$nd
-	private function BlocksforCalendarRule(&$mod, $st, $nd, $dtrule, $idata)
+	//Interpret $dtrule into stamp-block(s) covering $st..$nd-1
+	private function BlocksforCalendarRule(&$mod, $st, $nd, $descriptor, $idata)
 	{
 		$funcs = new WhenRules($mod);
-		if ($funcs->ParseDescriptor($dtrule)) {
+		if ($funcs->ParseDescriptor($descriptor)) {
 			$dts = new \DateTime('@'.$st,new \DateTimeZone('UTC'));
 			$dte = clone $dts;
 			$dte->setTimestamp($nd);
-			$sunparms = $funcs->SunParms($idata);
-			list($starts,$ends) = $funcs->GetBlocks($dts,$dte,$sunparms); //$defaultall FALSE
+			$timeparms = $funcs->TimeParms($idata);
+			list($starts,$ends) = $funcs->GetBlocks($dts,$dte,$timeparms); //$defaultall FALSE
 			if ($starts) {
 				return array($starts,$ends);
 			}
@@ -416,7 +416,7 @@ class Blocks
 	@slotstart: UTC timestamp for start of range
 	@slotlen: length of range (seconds)
 	@rules: single rule, or array of rules sorted in order of decreasing priority,
-		[each] rule being a descriptor recognisable by WhenRuleLexer (or FALSE)
+		[each rule] being a descriptor recognisable by WhenRuleLexer (or FALSE)
 	Returns: 2-member array,
 	 [0] = sorted array of block-start timestamps in @slotstart..@slotstart+@slotlen
 	 [1] = array of respective block-end timestamps in @slotstart..@slotstart+@slotlen
@@ -433,7 +433,7 @@ class Blocks
 		$i = 0;
 
 		$chkstarts = array($slotstart);
-		$chkends = array($slotstart+$slotlen);
+		$chkends = array($slotstart+$slotlen+1); //1-past-end
 		$starts = array();
 		$ends = array();
 		//TODO this must also support 'except' rules - subtract from blocks previously accepted
@@ -443,7 +443,7 @@ class Blocks
 				$nd = end($chkends);
 				list($rulestarts,$ruleends) = $this->BlocksforCalendarRule($mod,$st,$nd,$rules[$i],$idata); //NOT default to entire current blocks
 				if ($rulestarts) {
-					list($rulestarts,$ruleends) = $this->BlockIntersects($chkstarts,$chkends,$rulestarts,$ruleends);
+					list($rulestarts,$ruleends) = $this->IntersectBlocks($chkstarts,$chkends,$rulestarts,$ruleends);
 					if ($rulestarts) {
 						foreach ($rulestarts as $j=>$st) {
 							$starts[] = $st;
@@ -503,7 +503,7 @@ class Blocks
 	@slotstart: UTC timestamp for start of range
 	@slotlen: length of range (seconds)
 	@rules: single rule, or array of rules sorted in order of decreasing priority,
-		[each] rule being an array including a member 'feecondition' which is a
+		[each rule] being an array including a member 'feecondition' which is a
 		descriptor recognisable by WhenRuleLexer (or FALSE)
 	Returns: 3-member array,
 	 [0] = sorted array of block-start timestamps in @slotstart..@slotstart+@slotlen+1
@@ -535,7 +535,7 @@ class Blocks
 				$nd = end($chkends);
 				list($rulestarts,$ruleends) = $this->BlocksforCalendarRule($mod,$bst,$bnd,$rules[$i]['feecondition'],$idata); //NOT default to entire current blocks
 				if ($rulestarts) {
-					list($rulestarts,$ruleends) = $this->BlockIntersects($chkstarts,$chkends,$rulestarts,$ruleends);
+					list($rulestarts,$ruleends) = $this->IntersectBlocks($chkstarts,$chkends,$rulestarts,$ruleends);
 					if ($rulestarts) {
 						foreach ($rulestarts as $j=>$st) {
 							$starts[] = $st;
@@ -596,7 +596,7 @@ class Blocks
 	@slotstart: UTC timestamp for start of range
 	@slotlen: length of range (seconds)
 	@rules: single rule, or array of rules sorted in order of decreasing priority,
-		[each] rule being an array with members 'slotlen','fee','feecondition',
+		[each rule] being an array with members 'slotlen','fee','feecondition',
 		the latter being a rule for discimination among users
 	Returns: 3-member array,
 	 [0] = array of block-start timestamps all @slotstart
@@ -629,9 +629,9 @@ class Blocks
 
 	/**
 	MergeBlocks:
-	Coalesce and sort-ascending the timestamp-blocks represented in @starts and @ends.
-	The arrays must be equal-sized, have numeric keys. Returned array keys may be
-	non-contiguous.
+	Coalesce and sort-ascending the timestamp-blocks in @starts and @ends.
+	The arrays must be equal-sized, have numeric keys. Resultant array keys may
+	be non-contiguous.
 	@starts: reference to array of block-start stamps, any order
 	@ends: reference to array of corresponding block-end stamps, no FALSE value(s)
 	*/
@@ -639,46 +639,24 @@ class Blocks
 	{
 		$c = count($starts);
 		if ($c > 1) {
-			$p = 0;
-			$q = 1;
-			while (1) {
-				if ($q >= $c)
-					return;
-				if ($starts[$q] >= $starts[$p]) {
-					if ($ends[$q] <= $ends[$p]) {
-						unset($starts[$q]);
-						unset($ends[$q]);
-					} elseif ($starts[$q] <= $ends[$p]) {
-						$ends[$p] = $ends[$q];
-						unset($starts[$q]);
-						unset($ends[$q]);
-					} else {
-						//next base
-						while ($p < $c) {
-							$p++;
-							if (array_key_exists($p,$starts))
-								break;
-						}
-					}
-				} else { //swap & resume (if possible from previous index)
-					list($starts[$p],$starts[$q],$ends[$p],$ends[$q]) = array($starts[$q],$starts[$p],$ends[$q],$ends[$p]);
-					$t = $p;
-					while ($t > -1) { //base back if possible
-						$t--;
-						if (array_key_exists($t,$starts))
+			array_multisort($starts,SORT_ASC,SORT_NUMERIC,$ends);
+			$i = 0;
+			while ($i < $c) {
+				$e1 = $ends[$i];
+				for ($j=$i+1; $j<$c; $j++) {
+					if (isset($starts[$j])) {
+						if ($starts[$j] > $e1) {
 							break;
+						}
+						$e2 = $ends[$j];
+						if ($e2 > $e1) {
+							$ends[$i] = $e2;
+						}
+						unset($starts[$j]);
+						unset($ends[$j]);
 					}
-					if ($t > -1)
-						$p = $t;
-					//for new comparator
-					$q = $p;
 				}
-				//next comparator
-				while ($q < $c) {
-					$q++;
-					if (array_key_exists($q,$starts))
-						break;
-				}
+				$i = $j;
 			}
 		}
 	}
