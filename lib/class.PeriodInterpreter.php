@@ -9,14 +9,14 @@ namespace Booker;
 
 class PeriodInterpreter
 {
-	/* *
+	/*
 	MonthWeekDays:
 	Get array of each instance of a specific weekday @dow in a specific month
 	@year: numeric year e.g. 2000
 	@month: numeric month 1..12 in @year
 	@dmax: 1-based index of last day in @month
 	@dow: index of wanted day-of-week, 0 (for Sunday) .. 6 (for Saturday) c.f. date('w'...)
-	Returns: array of integers, each a day-of-year in @year
+	Returns: array of integers, each a 0-based day-of-year in @year
 	*/
 	private function MonthWeekDays($year, $month, $dmax, $dow)
 	{
@@ -37,15 +37,16 @@ class PeriodInterpreter
 		return $days;
 	}
 
-	/* *
+	/*
 	WeeksDays:
-	Get array of each instance of a specific weekday @dow in specified week(s) in a specific month
+	Get array of each instance of a specific weekday @dow in specified week(s)
+	in a specific month
 	@year: numeric year e.g. 2000
 	@month: numeric month 1..12 in @year
 	@week: array if numeric week(s) -5..-1,1..5 in @year AND @month
 	@dmax: 1-based index of last day in @month
 	@dow: index of wanted day-of-week, 0 (for Sunday) .. 6 (for Saturday) c.f. date('w'...)
-	Returns: array of integers, each a day-of-year in @year
+	Returns: array of integers, each a 0-based day-of-year in @year
 	*/
 	private function WeeksDays($year, $month, $week, $dmax, $dow)
 	{
@@ -74,7 +75,7 @@ class PeriodInterpreter
 		return array_unique($days,SORT_NUMERIC);
 	}
 
-	/* *
+	/*
 	MonthDay:
 	Get 'counted' instance of a specific weekday @dow in a specific month
 	@year: numeric year e.g. 2000
@@ -82,7 +83,7 @@ class PeriodInterpreter
 	@dmax: 1-based index of last day in @month
 	@count: index of wanted day-of-month -5..-1,1..5
 	@dow: index of wanted day-of-week, 0 (for Sunday) .. 6 (for Saturday) c.f. date('w'...)
-	Returns: integer, a day-of-year in @year, or -1 upon error
+	Returns: integer, a 0-based day-of-year in @year, or -1 upon error
 	*/
 	private function MonthDay($year, $month, $dmax, $count, $dow)
 	{
@@ -110,19 +111,19 @@ class PeriodInterpreter
 		return $d + $base;
 	}
 
-	/* *
+	/*
 	SuccessiveDays:
 	Get each n'th-day in a specified range
-	@interval: integer no. of days between successive reportst, >= 1
+	@interval: integer no. of weeks between successive reports, >= 1
 	@styear: numeric year e.g. 2000
 	@stmonth: numeric month 1..12 in @styear
 	@stday: identfier in @styear/@stmonth e.g. 1,-1,1D1,-2D6 TODO support e.g. D4(2(W))
 	@ndyear: numeric year e.g. 2000 or FALSE to use @styear
 	@ndmonth: numeric month 1..12 in @ndyear or FALSE to use @stmonth
 	@ndday: identfier in @ndyear/@ndmonth e.g. 1,-1,1D1,-2D6 TODO support e.g. D4(2(W)) or FALSE to use last day-of-month
-	Returns: array, or FALSE upon error. Each array member is array with 2 members:
+	Returns: array, or FALSE upon error. Each array member is array,
 	 [0] the year (a validated, 4-digit integer)
-	 [1] array of integers, each a 0-based day-of-year in the year
+	 [1] array of integers, each a 0-based day-of-year in the year in [0]
 	*/
 	private function SuccessiveDays($interval, $styear, $stmonth, $stday,
 		$ndyear=FALSE, $ndmonth=FALSE, $ndday=FALSE)
@@ -185,8 +186,9 @@ class PeriodInterpreter
 		return $ret;
 	}
 
-	/* *
+	/*
 	YearDays:
+	Get days-of-year in a specified range
 	@year: year or array of them or ','-separated series of them
 	  Each year is 4-digit e.g. 2000 or 2-digit e.g. 00 or anything else that
 	  can be validly processed via date('Y')
@@ -199,9 +201,9 @@ class PeriodInterpreter
 	@day: optional tokenised day(s) identifier, string or array, default FALSE
 		String may be ','-separated series. Tokens numeric -31..-1,1..31 or with 'D' prefix i.e. D1..D7
 		FALSE means all days in @week (if any) AND @month AND @year
-	Returns: array, or FALSE upon error. Each array member is array with 2 members:
+	Returns: array, or FALSE upon error. Each array member is itself an array,
 	 [0] the year (a validated, 4-digit integer)
-	 [1] array of integers, each a 0-based day-of-year in the year
+	 [1] array of integers, each a 0-based day-of-year in the year in [0]
 	*/
 	private function YearDays($year, $month=FALSE, $week=FALSE, $day=FALSE)
 	{
@@ -398,6 +400,44 @@ class PeriodInterpreter
 	}
 
 	/*
+	SuccessiveWeeks:
+	Get each day in each n'th-week in a specified range
+	@interval: integer no. of days between successive reports, >= 1
+	@styear: numeric year e.g. 2000
+	@stmonth: numeric month 1..12 in @styear
+	@stday: identfier in @styear/@stmonth e.g. 1,-1,1D1,-2D6 TODO support e.g. D4(2(W))
+	@ndyear: numeric year e.g. 2000 or FALSE to use @styear
+	@ndmonth: numeric month 1..12 in @ndyear or FALSE to use @stmonth
+	@ndday: identfier in @ndyear/@ndmonth e.g. 1,-1,1D1,-2D6 TODO support e.g. D4(2(W)) or FALSE to use last day-of-month
+	Returns: array, or FALSE upon error. Each array member is array,
+	 [0] the year (a validated, 4-digit integer)
+	 [1] array of integers, each a 0-based day-of-year in the year in [0]
+	*/
+	private function SuccessiveWeeks($interval, $styear, $stmonth, $stday,
+		$ndyear=FALSE, $ndmonth=FALSE, $ndday=FALSE)
+	{
+	}
+
+	/*
+	SuccessiveMonths:
+	Get each day in each n'th-month in a specified range
+	@interval: integer no. of months between successive reports, >= 1
+	@styear: numeric year e.g. 2000
+	@stmonth: numeric month 1..12 in @styear
+	@stday: identfier in @styear/@stmonth e.g. 1,-1,1D1,-2D6 TODO support e.g. D4(2(W))
+	@ndyear: numeric year e.g. 2000 or FALSE to use @styear
+	@ndmonth: numeric month 1..12 in @ndyear or FALSE to use @stmonth
+	@ndday: identfier in @ndyear/@ndmonth e.g. 1,-1,1D1,-2D6 TODO support e.g. D4(2(W)) or FALSE to use last day-of-month
+	Returns: array, or FALSE upon error. Each array member is array,
+	 [0] the year (a validated, 4-digit integer)
+	 [1] array of integers, each a 0-based day-of-year in the year in [0]
+	*/
+	private function SuccessiveMonths($interval, $styear, $stmonth, $stday,
+		$ndyear=FALSE, $ndmonth=FALSE, $ndday=FALSE)
+	{
+	}
+
+	/*
 	isodate_from_format:
 	Convert @dvalue to ISO format i.e. like Y-M-d H:i:s
 	For testing, at least
@@ -420,6 +460,7 @@ class PeriodInterpreter
 			$parts['tm_min'],
 			$parts['tm_sec']);
 	}
+
 	/*
 	args as as for YearDays($year,$month=FALSE,$week=FALSE,$day=FALSE)
 	*/
