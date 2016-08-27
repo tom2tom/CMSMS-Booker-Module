@@ -640,7 +640,7 @@ class Utils
 	/**
 	GetOneHeritableProperty:
 	Wrapper for GetHeritableProperty() which collapses results for @propname
-	into a non-associative array
+	(including FALSE/NULL results) into a non-associative array
 	@mod: reference to current Booker module object
 	@item_id: identifier of resource or group for which property/ies is/are sought
 	@propname: ItemTable field-name for property sought or '*' or ','-separated
@@ -652,7 +652,7 @@ class Utils
 		$ret = array();
 		if ($propdata) {
 			foreach ($propdata as $one) {
-				$ret[] = $one[$propname];
+				$ret[] = $one[$propname]; //includes any flavour of FALSE
 			}
 		}
 		return $ret;
