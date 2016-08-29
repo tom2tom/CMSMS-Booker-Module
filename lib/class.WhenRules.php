@@ -16,18 +16,18 @@ class WhenRules extends WhenRuleLexer
 
 	/*
 	PeriodBlocks:
-	Append to @starts[] and @ends[] pair(s) of timestamps in $ss..$se and
+	Append to @starts[] and @ends[] pair(s) of timestamps in $bs..$be and
 		consistent with @cond
 	@cond: member of parent::conds[] with parsed components of an interval-descriptor
 		=>['P'] will be populated, =>['T'] may be populated
-	@ss: stamp for start of period being processed
-	@se: stamp for one-past-end of period being processed
+	@bs: stamp for start of period being processed
+	@be: stamp for one-past-end of period being processed
 	@dtw: modifiable DateTime object for use in relative calcs
 	@timeparms: reference to array of parameters from self::TimeParms
 	@starts: reference to array of block-start timestamps to be updated
 	@ends: ditto for block-ends
 	*/
-	private function PeriodBlocks($cond, $ss, $se, $dtw, &$timeparms, &$starts, &$ends)
+	private function PeriodBlocks($cond, $bs, $be, $dtw, &$timeparms, &$starts, &$ends)
 	{
 		$sunny = FALSE;
 		if ($cond['T']) {
@@ -49,7 +49,7 @@ class WhenRules extends WhenRuleLexer
 			$timeparms['sunny'] = $sunny;
 			if (!$sunny) {
 				//no need for day-specific time(s), cache day-relative timestamps once
-				list($stimes,$etimes) = self::TimeBlocks($cond['T'],$ss,$dtw,$timeparms);
+				list($stimes,$etimes) = self::TimeBlocks($cond['T'],$bs,$dtw,$timeparms);
 			}
 		} else {
 			$stimes = FALSE;
@@ -89,40 +89,42 @@ OR 10 day(s) of specific month(s) 1(Aug) OR Wed((1,2)(week(June))) OR each 2 day
 		if (!is_array($cond['P'])) {
 			$cond['P'] = array($cond['P']);
 		}
-		foreach ($cond['P'] as $rule) {
+		foreach ($cond['P'] as $descriptor) {
 			if ($dodays) {
 				switch ($cond['F']) {
-				 case 1: //whole of $ss..$se-1
-					$parsed = $funcs->BlockDays($ss,$se,$dtw);
+				 case 1: //whole of $bs..$be-1
+					$parsed = $funcs->BlockDays($bs,$be,$dtw);
 					break;
-				 case 2: //months(s) in any year in $ss..$se-1
+				 case 2: //months(s) in any year in $bs..$be-1
+					$parsed = $funcs->SpecificMonths($descriptor,$bs,$be,$dtw);
+					break;
+				 case 3: //week(s) in any month in any year in $bs..$be-1
+					$parsed = $funcs->SpecificWeeks($descriptor,$bs,$be,$dtw);
+					break;
+				 case 4: //day(s) of week or month in any year in $bs..$be-1
+					$parsed = $funcs->SpecificDays($descriptor,$bs,$be,$dtw);
+					break;
+				 case 5: //year(s) in $bs..$be-1
+					$parsed = $funcs->SpecificYears($descriptor,$bs,$be,$dtw);
+					break;
+//--------------
+				 case 6: //months(s) in specific year(s) in $bs..$be-1
+					break;
+				 case 7: //week(s) in specific [month(s) and] year(s) in $bs..$be-1
 					$parsed = FALSE;
 					break;
-				 case 3: //week(s) in any month in any year in $ss..$se-1
+				 case 8: //week(s) in specific month(s) in $bs..$be-1
 					$parsed = FALSE;
 					break;
-				 case 4: //day(s) of week or month in any year in $ss..$se-1
+				 case 9: //day(s) in weeks(s) and specific month(s) and specific year(s) in $bs..$be-1
 					$parsed = FALSE;
 					break;
-				 case 5: //year(s) in $ss..$se-1
+				 case 10: //day(s) in weeks(s) or month(s) in $bs..$be-1
 					$parsed = FALSE;
 					break;
-				 case 6: //months(s) in specific year(s) in $ss..$se-1
-					break;
-				 case 7: //week(s) in specific [month(s) and] year(s) in $ss..$se-1
-					$parsed = FALSE;
-					break;
-				 case 8: //week(s) in specific month(s) in $ss..$se-1
-					$parsed = FALSE;
-					break;
-				 case 9: //day(s) in weeks(s) and specific month(s) and specific year(s) in $ss..$se-1
-					$parsed = FALSE;
-					break;
-				 case 10: //day(s) in weeks(s) or month(s) in $ss..$se-1
-					$parsed = FALSE;
-					break;
-				 case 11: //specific day(s) in $ss..$se-1
-					$parsed = FALSE;
+//-------------
+				 case 11: //specific day(s) in $bs..$be-1
+					$parsed = $funcs->SpecificDates($descriptor,$bs,$be,$dtw);
 					break;
 				 default:
 					$parsed = FALSE;
@@ -130,8 +132,8 @@ OR 10 day(s) of specific month(s) 1(Aug) OR Wed((1,2)(week(June))) OR each 2 day
 				}
 
 				if ($parsed) {
-					foreach ($parsed as $year) {
-						foreach ($year[1] as $daystart) {
+					foreach ($parsed as $doy) {
+						foreach ($doy as $daystart) {
 							if ($sunny) {
 								list($stimes,$etimes) = self::TimeBlocks($cond['T'],$daystart,$dtw,$timeparms);
 							}
@@ -152,21 +154,77 @@ OR 10 day(s) of specific month(s) 1(Aug) OR Wed((1,2)(week(June))) OR each 2 day
 			} else { //blockwise analyis
 				switch ($cond['F']) {
 				 case 1: //whole block
-					$starts[] = $ss;
-					$ends[] = $se - 1;
+					$starts[] = $bs;
+					$ends[] = $be - 1;
 					break;
-				 case 2: //months(s) in any year in $ss..$se-1
+				 case 2: //months(s) in any year in $bs..$be-1
+					$parsed = $funcs->SpecificMonths($descriptor,$bs,$be,$dtw,TRUE);
+					if ($parsed) {
+						foreach ($parsed as $som) {
+							foreach ($som as $st) {
+								$starts[] = $st;
+								$dtw->setTimestamp($st);
+								$dtw->modify('+1 month');
+								$st = $dtw->getTimestamp();
+								if ($st < $be) {
+									$ends[] = $st-1;
+								} else {
+									$ends[] = $be-1;
+									break;
+								}
+							}
+						}
+						//TODO merge adjacent months $blocks->MergeBlocks($starts,$ends);
+					}
 					break;
-				 case 3: //week(s) in any month in any year in $ss..$se-1
+				 case 3: //week(s) in any month in any year in $bs..$be-1
+					$parsed = $funcs->SpecificWeeks($descriptor,$bs,$be,$dtw,TRUE);
+					if ($parsed) {
+						foreach ($parsed as $sow) {
+							foreach ($sow as $st) {
+								$starts[] = $st;
+								$dtw->setTimestamp($st);
+								$dtw->modify('+7 days');
+								$st = $dtw->getTimestamp();
+								if ($st < $be) {
+									$ends[] = $st-1;
+								} else {
+									$ends[] = $be-1;
+									break;
+								}
+							}
+						}
+						//TODO merge adjacent weeks $blocks->MergeBlocks($starts,$ends);
+					}
 					break;
-				 case 5: //year(s) in $ss..$se-1
+				 case 5: //year(s) in $bs..$be-1
+					$parsed = $funcs->SpecificYears($descriptor,$bs,$be,$dtw,TRUE);
+					if ($parsed) {
+						foreach ($parsed as $soy) {
+							foreach ($soy as $st) {
+								$starts[] = $st;
+								$dtw->setTimestamp($st);
+								$dtw->modify('+1 year');
+								$st = $dtw->getTimestamp();
+								if ($st < $be) {
+									$ends[] = $st-1;
+								} else {
+									$ends[] = $be-1;
+									break;
+								}
+							}
+						}
+						//TODO merge adjacent years $blocks->MergeBlocks($starts,$ends);
+					}
 					break;
-				 case 6: //months(s) in specific year(s) in $ss..$se-1
+//--------------
+				 case 6: //months(s) in specific year(s) in $bs..$be-1
 					break;
-				 case 7: //week(s) in specific [month(s) and] year(s) in $ss..$se-1
+				 case 7: //week(s) in specific [month(s) and] year(s) in $bs..$be-1
 					break;
-				 case 8: //week(s) in specific month(s) in $ss..$se-1
+				 case 8: //week(s) in specific month(s) in $bs..$be-1
 					break;
+//--------------
 				 default:
 					break;
 				}
@@ -204,15 +262,15 @@ OR 10 day(s) of specific month(s) 1(Aug) OR Wed((1,2)(week(June))) OR each 2 day
 	GetTimeBlock:
 	Get timestamps for start & end of intra-day block represented by @timedata
 	@timedata: a member of a $cond['T'] i.e. a string or 3-member array
-	@ss: stamp for start of day being procesed
-	@se: stamp for 1-past-end of day being procesed
+	@bs: stamp for start of day being procesed
+	@be: stamp for 1-past-end of day being procesed
 	@dtw: modifiable DateTime object for use in relative calcs
 	@timeparms: reference to array of parameters from self::TimeParms
 	Returns: array(blockstart,blockend) or array(FALSE,FALSE)
 	*/
-	private function GetTimeBlock($timedata, $ss, $se, $dtw, &$timeparms)
+	private function GetTimeBlock($timedata, $bs, $be, $dtw, &$timeparms)
 	{
-		$dtw->setTimestamp($ss);
+		$dtw->setTimestamp($bs);
 		if (is_array($timedata)) {
 			if ($timedata[0][0] == '!') {
 				$timedata[0] = substr($timedata[0],1);
@@ -239,35 +297,35 @@ OR 10 day(s) of specific month(s) 1(Aug) OR Wed((1,2)(week(June))) OR each 2 day
 			Nautical twilight $zenith=102.0
 			Astronomical twilight $zenith=108.0
 			*/
-			$tbase = date_sunrise($ss,SUNFUNCS_RET_TIMESTAMP,$timeparms['lat'],$timeparms['long'],96.0,$timeparms['gmtoff']);
+			$tbase = date_sunrise($bs,SUNFUNCS_RET_TIMESTAMP,$timeparms['lat'],$timeparms['long'],96.0,$timeparms['gmtoff']);
 			$parts[0] = str_replace('R','',$parts[0]);
 		} elseif (strpos($parts[0],'S') !== FALSE) {
-			$tbase = date_sunset($ss,SUNFUNCS_RET_TIMESTAMP,$timeparms['lat'],$timeparms['long'],96.0,$timeparms['gmtoff']);
+			$tbase = date_sunset($bs,SUNFUNCS_RET_TIMESTAMP,$timeparms['lat'],$timeparms['long'],96.0,$timeparms['gmtoff']);
 			$parts[0] = str_replace('S','',$parts[0]);
 		} else {
-			$tbase = $ss;
+			$tbase = $bs;
 		}
-		$dtw->setTimestamp($tbase-$ss);
+		$dtw->setTimestamp($tbase-$bs);
 		self::RelTime($dtw,$parts[0]);
 		$s = $dtw->getTimestamp();
-		if ($s < 0 || $s >= $se-$ss) {
+		if ($s < 0 || $s >= $be-$bs) {
 			$s = 0;
 		}
 		//block-end
 		if (strpos($parts[1],'R') !== FALSE) {
-			$tbase = date_sunrise($ss,SUNFUNCS_RET_TIMESTAMP,$timeparms['lat'],$timeparms['long'],96.0,$timeparms['gmtoff']);
+			$tbase = date_sunrise($bs,SUNFUNCS_RET_TIMESTAMP,$timeparms['lat'],$timeparms['long'],96.0,$timeparms['gmtoff']);
 			$parts[1] = str_replace('R','',$parts[1]);
 		} elseif (strpos($parts[1],'S') !== FALSE) {
-			$tbase = date_sunset($ss,SUNFUNCS_RET_TIMESTAMP,$timeparms['lat'],$timeparms['long'],96.0,$timeparms['gmtoff']);
+			$tbase = date_sunset($bs,SUNFUNCS_RET_TIMESTAMP,$timeparms['lat'],$timeparms['long'],96.0,$timeparms['gmtoff']);
 			$parts[1] = str_replace('S','',$parts[1]);
 		} else {
-			$tbase = $ss;
+			$tbase = $bs;
 		}
-		$dtw->setTimestamp($tbase-$ss);
+		$dtw->setTimestamp($tbase-$bs);
 		self::RelTime($dtw,$parts[1]);
 		$e = $dtw->getTimestamp();
-		if ($e < 0 || $e >= $se-$ss) {
-			$e = $se-$ss-1;
+		if ($e < 0 || $e >= $be-$bs) {
+			$e = $be-$bs-1;
 		}
 		if ($e > $s)
 			return array($s,$e);
@@ -276,9 +334,9 @@ OR 10 day(s) of specific month(s) 1(Aug) OR Wed((1,2)(week(June))) OR each 2 day
 
 	/*
 	TimeBlocks:
-	Get block-timestamps consistent with @cond and in $ss..$ss + 1 day - 1 second
+	Get block-timestamps consistent with @cond and in $bs..$bs + 1 day - 1 second
 	@cond: reference to 'T'-member of one of parent::conds[]
-	@ss: stamp somwhere in the day being processed
+	@bs: stamp somwhere in the day being processed
 	@dtw: modifiable DateTime object for use in relative calcs
 	@timeparms: reference to array of parameters from self::TimeParms
 	Returns: 2-member array,
@@ -287,12 +345,12 @@ OR 10 day(s) of specific month(s) 1(Aug) OR Wed((1,2)(week(June))) OR each 2 day
 	 The arrays have corresponding but not necessarily contiguous numeric keys,
 	 or may be empty.
 	*/
-	private function TimeBlocks(&$cond, $ss, $dtw, &$timeparms)
+	private function TimeBlocks(&$cond, $bs, $dtw, &$timeparms)
 	{
-		$dtw->setTimestamp($ss);
+		$dtw->setTimestamp($bs);
 		//ensure start of day
 		$dtw->setTime(0,0,0);
-		$ss = $dtw->getTimestamp();
+		$bs = $dtw->getTimestamp();
 
 		if ($timeparms['sunny']) {
 			//offset-hours for sun-related calcs
@@ -319,7 +377,7 @@ OR 10 day(s) of specific month(s) 1(Aug) OR Wed((1,2)(week(June))) OR each 2 day
 		$blocks = new Blocks(); //CHECKME pass as arg?
 
 		$dtw->modify('+1 day');
-		$se = $dtw->getTimestamp();
+		$be = $dtw->getTimestamp();
 
 		$starts = array();
 		$ends = array();
@@ -331,7 +389,7 @@ OR 10 day(s) of specific month(s) 1(Aug) OR Wed((1,2)(week(June))) OR each 2 day
 			} elseif ($one[0] == '!') {
 				continue;
 			}
-			list($gets,$gete) = self::GetTimeBlock($one,$ss,$se,$dtw,$timeparms);
+			list($gets,$gete) = self::GetTimeBlock($one,$bs,$be,$dtw,$timeparms);
 			if ($gets) {
 				$starts[] = $gets;
 				$ends[] = $gete;
@@ -350,7 +408,7 @@ OR 10 day(s) of specific month(s) 1(Aug) OR Wed((1,2)(week(June))) OR each 2 day
 			} elseif ($one[0] != '!') {
 				continue;
 			}
-			list($gets,$gete) = self::GetTimeBlock($one,$ss,$se,$dtw,$timeparms);
+			list($gets,$gete) = self::GetTimeBlock($one,$bs,$be,$dtw,$timeparms);
 			if ($gets) {
 				$nots[] = $gets;
 				$note[] = $gete;
@@ -424,8 +482,8 @@ OR 10 day(s) of specific month(s) 1(Aug) OR Wed((1,2)(week(June))) OR each 2 day
 		$ends = array();
 		if ($dts < $dte && $this->conds) {
 			//stamps for period limit checks
-			$ss = $dts->getTimestamp();
-			$se = $dte->getTimestamp();
+			$bs = $dts->getTimestamp();
+			$be = $dte->getTimestamp();
 			$dtw = clone $dts;
 			$blocks = new Blocks();
 			//for all inclusion-conditions, add to $starts,$ends
@@ -444,19 +502,19 @@ OR 10 day(s) of specific month(s) 1(Aug) OR Wed((1,2)(week(June))) OR each 2 day
 				}
 				$gets = array();
 				$gete = array();
-				self::PeriodBlocks($cond,$ss,$se,$dtw,$timeparms,$gets,$gete);
+				self::PeriodBlocks($cond,$bs,$be,$dtw,$timeparms,$gets,$gete);
 				if ($gets) {
 					//merge $starts,$ends,$gets,$gete
 					if ($starts) {
 						list($gets,$gete) = $blocks->IntersectBlocks($starts,$ends,$gets,$gete);
 					} else {
 						//want something to compare with
-						list($gets,$gete) = $blocks->IntersectBlocks(array($ss),array($se),$gets,$gete);
+						list($gets,$gete) = $blocks->IntersectBlocks(array($bs),array($be),$gets,$gete);
 					}
 					if ($gets) {
 						$starts = $gets;
 						$ends = $gete;
-						if (count($starts) == 1 && reset($starts) <= $ss && end($ends) >= $se-1) //all of $ss..$se now covered
+						if (count($starts) == 1 && reset($starts) <= $bs && end($ends) >= $be-1) //all of $bs..$be now covered
 							break;
 					}
 				}
@@ -479,19 +537,19 @@ OR 10 day(s) of specific month(s) 1(Aug) OR Wed((1,2)(week(June))) OR each 2 day
 					}
 					$gets = array();
 					$gete = array();
-					self::PeriodBlocks($cond,$ss,$se,$dtw,$timeparms,$gets,$gete);
+					self::PeriodBlocks($cond,$bs,$be,$dtw,$timeparms,$gets,$gete);
 					if ($gets) {
 						//diff $starts,$ends,$gets,$gete
 						if ($starts) {
 							list($gets,$gete) = $blocks->DiffBlocks($starts,$ends,$gets,$gete);
 						} else {
 							//want something to compare with
-							list($gets,$gete) = $blocks->DiffBlocks(array($ss),array($se),$gets,$gete);
+							list($gets,$gete) = $blocks->DiffBlocks(array($bs),array($be),$gets,$gete);
 						}
 						if ($gets !== FALSE) {
 							$starts = $gets;
 							$ends = $gete;
-							if (!$starts) //none of $ss..$se now covered
+							if (!$starts) //none of $bs..$be now covered
 								break;
 						}
 					}
@@ -503,10 +561,10 @@ OR 10 day(s) of specific month(s) 1(Aug) OR Wed((1,2)(week(June))) OR each 2 day
 				$blocks->MergeBlocks($starts,$ends);
 			}
 		} elseif ($defaultall) {
-			$ss = $dts->getTimestamp();
-			$se = $dte->getTimestamp() - 1;
-			$starts[] = min($ss,$se);
-			$ends[] = max($ss,$se);
+			$bs = $dts->getTimestamp();
+			$be = $dte->getTimestamp() - 1;
+			$starts[] = min($bs,$be);
+			$ends[] = max($bs,$be);
 		}
 		return array($starts,$ends);
 	}
