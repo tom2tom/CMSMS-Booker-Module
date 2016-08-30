@@ -111,16 +111,16 @@ class WhenRuleLexer
 		 2 month(s) of any year June,July
 		 3 week(s) of any month (1,-1)week
 		 4 day(s) of any week Sun..Wed
-	 OR  4 day(s) of any month 1,10,-2 OR 1(Sunday)
-		 5 specific year(s) 2020,2015
-		 6 month(s) of specific year(s) Jan(2010..2020) OR 2015-1 OR each 3 month(2000-1..2002-12)
-		 7 week(s) of specific year(s) 1(week(Aug..Dec(2020))) OR each 4 week(2000..2001)
+		 5 day(s) of any month 1,10,-2 OR 1(Sunday)
+		 6 specific year(s) 2020,2015
+		 7 month(s) of specific year(s) Jan(2010..2020) OR 2015-1 OR each 3 month(2000-1..2002-12)
 		 8 week(s) of specific month(s) 1(week(August,September)) OR each 2 week(2000-1..2000-12)
-		 9 day(s) of specific year(s) Wed((1,-1)(week(June(2015..2018))))
+		 9 week(s) of specific [month(s) and] year(s) 1(week(Aug..Dec(2020))) OR each 4 week(2000..2001)
 		10 day(s) of specific week(s)  Wed(2(week)) OR (Wed..Fri)(each 2(week))
-	 OR 10 day(s) of specific month(s) 1(Aug) OR Wed((1,2)(week(June))) OR each 2 day(2000-1..2000-2)
- 			OR 2(Wed(June)) OR (1,-1)(Sat(June..August))
-		11 specfic day/date(s) 2010-6-6 OR 1(Aug(2015..2020))
+		11 day(s) of specific [week(s) and] month(s) 1(Aug) OR Wed((1,2)(week(June)))
+			OR each 2 day(2000-1..2000-2) OR 2(Wed(June)) OR (1,-1)(Sat(June..August))
+		12 day(s) of specific [week(s) and/or month(s) and] year(s) Wed((1,-1)(week(June(2015..2018))))
+		13 specfic day/date(s) 2010-6-6 OR 1(Aug(2015..2020))
 	'P' => FALSE or PERIOD = structure of arrays and strings representing
 		period-values and/or period-value-ranges (i.e. not series), all ordered by
 		increasing value/range-start (TODO EXCEPT ROLLOVERS?) Negative values
@@ -283,20 +283,20 @@ class WhenRuleLexer
 		$swap = FALSE;
 /* $pattern matches
 '2001-10-12' >> array
-  0 => string '2001-10-12'
-	1 => string '2001'
-	2 => string '-10-12'
-  3 => string '10'
-  4 => string '-12'
-  5 => string '12'
+ 0 => string '2001-10-12'
+ 1 => string '2001'
+ 2 => string '-10-12'
+ 3 => string '10'
+ 4 => string '-12'
+ 5 => string '12'
 '2001-10' >> array
-  0 => string '2001-10'
-	1 => string '2001'
-	2 => string '-10'
-  3 => string '10'
+ 0 => string '2001-10'
+ 1 => string '2001'
+ 2 => string '-10'
+ 3 => string '10'
 '2001' >> array
-	0 => string '2001'
-	1 => string '2001'
+ 0 => string '2001'
+ 1 => string '2001'
 */
 		if (preg_match($this->dateptn,$parts[0],$loparts)
 		&& preg_match($this->dateptn,$parts[1],$hiparts))
@@ -871,21 +871,22 @@ match-array(s) have
 
 	Determine the 'F' parameter for @str
 	@str: period-descriptor like P(Q(R(S)))
-	Returns: enum 1..11:
+	Returns: enum 0..13:
 		 0 can't figure out anything better
 		 1 no period i.e. any (time-only)
 		 2 month(s) of any year June,July
 		 3 week(s) of any month (1,-1)week
 		 4 day(s) of any week Sun..Wed
- 	 OR  4 day(s) of any month 1,10,-2 OR 1(Sunday)
-		 5 specific year(s) 2020,2015
-		 6 month(s) of specific year(s) Jan(2010..2020) OR 2015-1
-		 7 week(s) of specific [month(s) and] year(s) 1(week(Aug..Dec(2020)))
+ 		 5 day(s) of any month 1,10,-2 OR 1(Sunday)
+		 6 specific year(s) 2020,2015
+		 7 month(s) of specific year(s) Jan(2010..2020) OR 2015-1
 		 8 week(s) of specific month(s) 1(week(August,September))
-		 9 day(s) of specific [[weeks(s) and] month(s) and] year(s) Wed((1,-1)(week(June(2015..2018))))
-		10 day(s) of specific week(s)  Wed(2(week))
- 	 OR 10 day(s) of specific [week(s) and] month(s) 1(Aug) OR Wed((1,2)(week(June)))
-		11 specfic day/date(s) 2010-6-6 OR 1(Aug(2015..2020))
+		 9 week(s) of specific [month(s) and] year(s) 1(week(Aug..Dec(2020)))
+		10 day(s) of specific week(s)  Wed(2(week)) OR (Wed..Fri)(each 2(week))
+		11 day(s) of specific [week(s) and] month(s) 1(Aug) OR Wed((1,2)(week(June)))
+			OR each 2 day(2000-1..2000-2) OR 2(Wed(June)) OR (1,-1)(Sat(June..August))
+		12 day(s) of specific [week(s) and/or month(s) and] year(s) Wed((1,-1)(week(June(2015..2018))))
+		13 specfic day/date(s) 2010-6-6 OR 1(Aug(2015..2020))
 	*/
 	private function GetFocus($str)
 	{
@@ -917,21 +918,33 @@ match-array(s) have
 		}
 		$longdate = preg_match('/(?<!(-|\d))[12]\d{3}-(1[0-2]|0?[1-9])-(3[01]|0?[1-9]|[12]\d)(?![-\d])/',$str);
 		if ($longdate && !$hasday) { //includes YYYY-M[M]-[D]D
-			$hasday = TRUE; }
+			$hasday = TRUE;
+		}
 
 		if ($hasyear) {
 			if ($hasday) {
-				return ($hasmonth) ? 11:9; }
+				return ($hasmonth) ? 13:12;
+			}
 			if ($hasweek) {
-				return 7; }
-			return ($hasmonth) ? 6:5;
+				return 9;
+			}
+			return ($hasmonth) ? 7:6;
 		} elseif ($hasmonth) {
 			if ($hasday) {
-				return 10; }
+				return 11;
+			}
 			return ($hasweek) ? 8:2;
 		} elseif ($hasweek) {
-			return ($hasday) ? 10:3; } elseif ($hasday) {
-			return ($longdate) ? 11:4; }
+			if ($hasday) {
+				return 10;
+			}
+			return 3;
+		} elseif ($hasday) {
+			if ($longdate) {
+				return 13;
+			}
+			return (strpos($str,'(') === FALSE && strpos($str,'D') !== FALSE) ? 4:5;
+		}
 		return 0;
 	}
 
@@ -1140,9 +1153,9 @@ match-array(s) have
 			$this->mod->Lang('week'), //OR Booker\Utils::RangeNames($this->mod,1)
 			$this->mod->Lang('month'), //for use with 'each' OR Booker\Utils::RangeNames($this->mod,2)
 		);
-	/*		if ($oldloc)
+/*		if ($oldloc)
 			setlocale(LC_TIME,$oldloc);
-	*/
+*/
 		//replacement tokens
 		$daytokes = array();
 		for ($i = 1; $i < 8; $i++)
@@ -1383,7 +1396,7 @@ match-array(s) have
 					if ($useday) {
 						//treat this as a day-value
 						$one['P'] = $one['T'];
-						$one['F'] = 4;
+						$one['F'] = 5;
 						$one['T'] = FALSE;
 					} else { //time-only
 						$one['F'] = 1;
@@ -1393,8 +1406,27 @@ match-array(s) have
 			unset($one);
 		}
 
-		if (count($this->conds) > 1)
+		$n = count($this->conds); 
+		if ($n > 1) {
 			usort($this->conds,array($this,'cmp_periods'));
+			//re-merge parts of same type
+			$p = 0;
+			while ($p < $n) {
+				$parsed = $this->conds[$p];
+				$i = $p+1;
+				while ($i < $n) {
+					$one = $this->conds[$i];
+					if ($one['F'] == $parsed['F'] && $one['T'] == $parsed['T']) {
+						$parsed['P'] .= ','.$one['P'];
+						unset($this->conds[$i]);
+						$i++;
+					} else {
+						break;
+					}
+				}
+				$p = $i;
+			}
+		}
 
 		if ($report) {
 			//re-merge parsed array
