@@ -761,7 +761,7 @@ Any group may be assigned to an authorized admin user.</p>
 <code>%s</code></p>
 <h3>Requirements</h3>
 <p><ul>
-<li>PHP 5.3+</li>
+<li>PHP 5.3.6+</li>
 <li>PHP MultiByte String extension</li>
 </ul></p>
 <h3>Works better if you have</h3>
