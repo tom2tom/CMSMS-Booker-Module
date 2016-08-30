@@ -59,25 +59,27 @@ class WhenRules extends WhenRuleLexer
  2 month(s) of any year June,July
  3 week(s) of any month (1,-1)week
  4 day(s) of any week Sun..Wed
-OR  4 day(s) of any month 1,10,-2 OR 1(Sunday)
- 5 specific year(s) 2020,2015
- 6 month(s) of specific year(s) Jan(2010..2020) OR 2015-1 OR each 3 month(2000-1..2002-12)
- 7 week(s) of specific year(s) 1(week(Aug..Dec(2020))) OR each 4 week(2000..2001)
+ 5 day(s) of any month 1,10,-2 OR 1(Sunday)
+ 6 specific year(s) 2020,2015
+ 7 month(s) of specific year(s) Jan(2010..2020) OR 2015-1 OR each 3 month(2000-1..2002-12)
  8 week(s) of specific month(s) 1(week(August,September)) OR each 2 week(2000-1..2000-12)
- 9 day(s) of specific year(s) Wed((1,-1)(week(June(2015..2018))))
+ 9 week(s) of specific [month(s) and] year(s) 1(week(Aug..Dec(2020))) OR each 4 week(2000..2001)
 10 day(s) of specific week(s)  Wed(2(week)) OR (Wed..Fri)(each 2(week))
-OR 10 day(s) of specific month(s) 1(Aug) OR Wed((1,2)(week(June))) OR each 2 day(2000-1..2000-2)
-	OR 2(Wed(June)) OR (1,-1)(Sat(June..August))
-11 specfic day/date(s) 2010-6-6 OR 1(Aug(2015..2020))
+11 day(s) of specific [week(s) and] month(s) 1(Aug) OR Wed((1,2)(week(June)))
+	OR each 2 day(2000-1..2000-2) OR 2(Wed(June)) OR (1,-1)(Sat(June..August))
+12 day(s) of specific [week(s) and/or month(s) and] year(s) Wed((1,-1)(week(June(2015..2018))))
+13 specfic day/date(s) 2010-6-6 OR 1(Aug(2015..2020))
 */
 		if (($stimes || $sunny) && $timeparms['type'] != 'day') { //periods > day not used here
 			$dodays = TRUE;	//daywise analyis needed
 		} else {
 			switch ($cond['F']) {
 				case 4:
-				case 9:
+				case 5:
 				case 10:
 				case 11:
+				case 12:
+				case 13:
 					$dodays = TRUE; //descriptor includes specific day(s)
 					break;
 				default:
@@ -101,29 +103,34 @@ OR 10 day(s) of specific month(s) 1(Aug) OR Wed((1,2)(week(June))) OR each 2 day
 				 case 3: //week(s) in any month in any year in $bs..$be-1
 					$parsed = $funcs->SpecificWeeks($descriptor,$bs,$be,$dtw);
 					break;
-				 case 4: //day(s) of week or month in any year in $bs..$be-1
+				 case 4: //day(s) of week in any week in $bs..$be-1
+				 case 5: //day(s) of month in any month in $bs..$be-1
 					$parsed = $funcs->SpecificDays($descriptor,$bs,$be,$dtw);
 					break;
-				 case 5: //year(s) in $bs..$be-1
+				 case 6: //year(s) in $bs..$be-1
 					$parsed = $funcs->SpecificYears($descriptor,$bs,$be,$dtw);
 					break;
 //--------------
-				 case 6: //months(s) in specific year(s) in $bs..$be-1
-					break;
-				 case 7: //week(s) in specific [month(s) and] year(s) in $bs..$be-1
+				 case 7: //months(s) in specific year(s) in $bs..$be-1
 					$parsed = FALSE;
 					break;
 				 case 8: //week(s) in specific month(s) in $bs..$be-1
 					$parsed = FALSE;
 					break;
-				 case 9: //day(s) in weeks(s) and specific month(s) and specific year(s) in $bs..$be-1
+				 case 9: //week(s) in specific [month(s) and] year(s) in $bs..$be-1
 					$parsed = FALSE;
 					break;
-				 case 10: //day(s) in weeks(s) or month(s) in $bs..$be-1
+				 case 10: //day(s) in weeks(s) in $bs..$be-1
+					$parsed = FALSE;
+					break;
+				 case 11: //day(s) in [weeks(s) and] month(s) in $bs..$be-1
+					$parsed = FALSE;
+					break;
+				 case 12: //day(s) in weeks(s) and specific month(s) and specific year(s) in $bs..$be-1
 					$parsed = FALSE;
 					break;
 //-------------
-				 case 11: //specific day(s) in $bs..$be-1
+				 case 13: //specific day(s) in $bs..$be-1
 					$parsed = $funcs->SpecificDates($descriptor,$bs,$be,$dtw);
 					break;
 				 default:
@@ -197,7 +204,7 @@ OR 10 day(s) of specific month(s) 1(Aug) OR Wed((1,2)(week(June))) OR each 2 day
 						//TODO merge adjacent weeks $blocks->MergeBlocks($starts,$ends);
 					}
 					break;
-				 case 5: //year(s) in $bs..$be-1
+				 case 6: //year(s) in $bs..$be-1
 					$parsed = $funcs->SpecificYears($descriptor,$bs,$be,$dtw,TRUE);
 					if ($parsed) {
 						foreach ($parsed as $soy) {
@@ -218,11 +225,11 @@ OR 10 day(s) of specific month(s) 1(Aug) OR Wed((1,2)(week(June))) OR each 2 day
 					}
 					break;
 //--------------
-				 case 6: //months(s) in specific year(s) in $bs..$be-1
-					break;
-				 case 7: //week(s) in specific [month(s) and] year(s) in $bs..$be-1
+				 case 7: //months(s) in specific year(s) in $bs..$be-1
 					break;
 				 case 8: //week(s) in specific month(s) in $bs..$be-1
+					break;
+				 case 9: //week(s) in specific [month(s) and] year(s) in $bs..$be-1
 					break;
 //--------------
 				 default:
