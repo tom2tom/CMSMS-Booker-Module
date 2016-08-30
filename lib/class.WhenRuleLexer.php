@@ -1118,8 +1118,11 @@ match-array(s) have
 	  default FALSE
 	@slothours: optional, minimum accepted hour-length for repeated items,
 	  for decoding small anonymous numbers, default 1.0
-	Returns: if @report is TRUE, a 'sanitised' variant of @descriptor, otherwise just TRUE.
-	  FALSE upon error.
+	Returns: if @report is TRUE, a 'sanitised' variant of @descriptor, like
+	  A(B(C(D(E)))), where ABCD and related brackets may be absent, each of ABCDE
+	  may be a singleton value or ','-separated series, any of the former may be
+	  a sequence, or any of ABCD may be 'each N'
+	  Or if @report is FALSE, returns TRUE. In either case, FALSE upon error.
 	*/
 	private function Lex($descriptor,/* $locale,*/ $report=FALSE, $slothours=1.0)
 	{
@@ -1417,12 +1420,14 @@ match-array(s) have
 				while ($i < $n) {
 					$one = $this->conds[$i];
 					if ($one['F'] == $parsed['F'] && $one['T'] == $parsed['T']) {
-						$parsed['P'] .= ','.$one['P'];
-						unset($this->conds[$i]);
-						$i++;
-					} else {
-						break;
+						if (!(preg_match('/^[!E]/',$one['P']) || preg_match('/^[!E]/',$parsed['P']))) {
+							$parsed['P'] .= ','.$one['P'];
+							unset($this->conds[$i]);
+							$i++;
+							continue;
+						}
 					}
+					break;
 				}
 				$p = $i;
 			}
