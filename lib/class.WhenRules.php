@@ -98,38 +98,24 @@ class WhenRules extends WhenRuleLexer
 					$parsed = $funcs->BlockDays($bs,$be,$dtw);
 					break;
 				 case 2: //months(s) in any year in $bs..$be-1
+				 case 7: //months(s) in specific year(s) in $bs..$be-1
 					$parsed = $funcs->SpecificMonths($descriptor,$bs,$be,$dtw);
 					break;
 				 case 3: //week(s) in any month in any year in $bs..$be-1
+				 case 8: //week(s) in specific month(s) in $bs..$be-1
+				 case 9: //week(s) in specific [month(s) and] year(s) in $bs..$be-1
 					$parsed = $funcs->SpecificWeeks($descriptor,$bs,$be,$dtw);
 					break;
 				 case 4: //day(s) of week in any week in $bs..$be-1
 				 case 5: //day(s) of month in any month in $bs..$be-1
+				 case 10: //day(s) in weeks(s) in $bs..$be-1
+				 case 11: //day(s) in [weeks(s) and] month(s) in $bs..$be-1
+				 case 12: //day(s) in weeks(s) and specific month(s) and specific year(s) in $bs..$be-1
 					$parsed = $funcs->SpecificDays($descriptor,$bs,$be,$dtw);
 					break;
 				 case 6: //year(s) in $bs..$be-1
 					$parsed = $funcs->SpecificYears($descriptor,$bs,$be,$dtw);
 					break;
-//--------------
-				 case 7: //months(s) in specific year(s) in $bs..$be-1
-					$parsed = FALSE;
-					break;
-				 case 8: //week(s) in specific month(s) in $bs..$be-1
-					$parsed = FALSE;
-					break;
-				 case 9: //week(s) in specific [month(s) and] year(s) in $bs..$be-1
-					$parsed = FALSE;
-					break;
-				 case 10: //day(s) in weeks(s) in $bs..$be-1
-					$parsed = FALSE;
-					break;
-				 case 11: //day(s) in [weeks(s) and] month(s) in $bs..$be-1
-					$parsed = FALSE;
-					break;
-				 case 12: //day(s) in weeks(s) and specific month(s) and specific year(s) in $bs..$be-1
-					$parsed = FALSE;
-					break;
-//-------------
 				 case 13: //specific day(s) in $bs..$be-1
 					$parsed = $funcs->SpecificDates($descriptor,$bs,$be,$dtw);
 					break;
@@ -165,6 +151,7 @@ class WhenRules extends WhenRuleLexer
 					$ends[] = $be - 1;
 					break;
 				 case 2: //months(s) in any year in $bs..$be-1
+				 case 7: //months(s) in specific year(s) in $bs..$be-1
 					$parsed = $funcs->SpecificMonths($descriptor,$bs,$be,$dtw,TRUE);
 					if ($parsed) {
 						foreach ($parsed as $som) {
@@ -185,6 +172,8 @@ class WhenRules extends WhenRuleLexer
 					}
 					break;
 				 case 3: //week(s) in any month in any year in $bs..$be-1
+				 case 8: //week(s) in specific month(s) in $bs..$be-1
+				 case 9: //week(s) in specific [month(s) and] year(s) in $bs..$be-1
 					$parsed = $funcs->SpecificWeeks($descriptor,$bs,$be,$dtw,TRUE);
 					if ($parsed) {
 						foreach ($parsed as $sow) {
@@ -224,14 +213,6 @@ class WhenRules extends WhenRuleLexer
 						//TODO merge adjacent years $blocks->MergeBlocks($starts,$ends);
 					}
 					break;
-//--------------
-				 case 7: //months(s) in specific year(s) in $bs..$be-1
-					break;
-				 case 8: //week(s) in specific month(s) in $bs..$be-1
-					break;
-				 case 9: //week(s) in specific [month(s) and] year(s) in $bs..$be-1
-					break;
-//--------------
 				 default:
 					break;
 				}
