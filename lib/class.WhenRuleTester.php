@@ -166,5 +166,75 @@ array('0..sunrise,sunset..11:59',	1),
 		unset($test);
 //		$ares = $funcs2->tester2(30,2015,4,-5,2016,3);
 		$this->Crash();
-	} 
+	}
+
+	/**
+	isodate_from_format:
+	Convert @dvalue to ISO format i.e. like Y-M-d H:i:s
+	For testing, at least
+	@dformat: string which includes one or more of many (not all) format-characters
+	 understood by PHP date(). If it includes 'z', the corresponding element of
+	 @dvalue must be 1-based
+	@dvalue: date-time string consistent with @dformat
+	*/
+	private function isodate_from_format($dformat, $dvalue)
+	{
+		$sformat = str_replace(
+			array('Y' ,'M' ,'m' ,'d' ,'H' ,'h' ,'i' ,'s' ,'a' ,'A' ,'z'),
+			array('%Y','%b','%m','%d','%H','%I','%M','%S','%P','%p','%j'),$dformat);
+		$parts = strptime($dvalue,$sformat); //PHP 5.1+
+		return sprintf('%04d-%02d-%02d %02d:%02d:%02d',
+			$parts['tm_year'] + 1900,  //tm_year = relative to 1900
+			$parts['tm_mon'] + 1,      //tm_mon = 0-based
+			$parts['tm_mday'],
+			$parts['tm_hour'],
+			$parts['tm_min'],
+			$parts['tm_sec']);
+	}
+
+	/**
+	args as as for PeriodInterpreter::AllDays($year,$month=FALSE,$week=FALSE,$day=FALSE)
+	*/
+	public function AllDaysTester($year, $month, $week, $day)
+	{
+		$funcs = new PeriodInterpreter();
+		$ret = array();
+		$dt = new \DateTime('@0',new \DateTimeZone('UTC'));
+		$data = $funcs->AllDays($year,$month,$week,$day);
+		foreach ($data as $row) {
+			$yr = $row[0];
+			$days = $row[1];
+			foreach ($days as $doy) {
+				$d = sprintf('%03d',$doy+1);	//downstream strptime() expects padded, 1-based, day-of-year
+				$newdate = self::isodate_from_format('Y z',$yr.' '.$d);
+				$dt->modify($newdate);
+				$ret[] = $dt->format('D j M Y');
+			}
+		}
+		return $ret;
+	}
+
+	/**
+	args as as for PeriodInterpreter::SuccessiveDays($interval,$styear,$stmonth,$stday,$ndyear=FALSE,$ndmonth=FALSE,$ndday=FALSE)
+	*/
+	public function SuccessiveDaysTester($interval, $styear, $stmonth, $stday,
+		$ndyear=FALSE, $ndmonth=FALSE, $ndday=FALSE)
+	{
+		$funcs = new PeriodInterpreter();
+		$ret = array();
+		$dt = new \DateTime('@0',new \DateTimeZone('UTC'));
+		$data = $funcs->SuccessiveDays($interval,$styear,$stmonth,$stday,$ndyear,$ndmonth,$ndday);
+		foreach ($data as $row) {
+			$yr = $row[0];
+			$days = $row[1];
+			foreach ($days as $doy) {
+				$d = sprintf('%03d',$doy+1);	//downstream strptime() expects padded, 1-based, day-of-year
+				$newdate = self::isodate_from_format('Y z',$yr.' '.$d);
+				$dt->modify($newdate);
+				$ret[] = $dt->format('D j M Y');
+			}
+		}
+		return $ret;
+	}
+
 }
