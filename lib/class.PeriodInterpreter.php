@@ -101,6 +101,7 @@ class PeriodInterpreter
 	}
 
 	//$prefix 1-byte or FALSE
+	//returns array
 	private function rangify($element, $prefix)
 	{
 		$parts = explode('..',$element);
@@ -122,6 +123,7 @@ class PeriodInterpreter
 		}
 	}
 
+	//returns array
 	private function rangifydate($element)
 	{
 		$parts = explode('..',$element);
@@ -143,7 +145,8 @@ class PeriodInterpreter
 		}
 	}
 
-	private function parse($element, $prefix=FALSE)
+	//returns array
+	private function toarray($element, $prefix=FALSE)
 	{
 		if (strpos($element,',') !== FALSE) {
 			$parts = explode(',',$element);
@@ -168,14 +171,13 @@ class PeriodInterpreter
 	Returns:
 	 if @descriptor contains '(', an array with keys some or all of
 		'years','months','weeks','days'or'dates','each' and corresponding value(s)
-		either an interpreted cleaned array or a string like E\d*[DWMY] representing
-		a succession
-	 if @descriptor contains ',', an array with one of the above keys,
+		either an interpreted cleaned array or a string like EE\d+([DWMY]E)?
+		representing a succession NOTE non-array for 'each n'th'
+	 if @descriptor contains ',', an array with one of the above keys and
 	 	values an interpreted cleaned array
 	 otherwise if @descriptor contains '..', an array with one of the above keys
-	 	values an interpreted cleaned array
-	 otherwise an array with one of the above keys
-	 	value a single-member array
+	 	and values an interpreted cleaned array
+	 otherwise an array with one of the above keys and value a single-member array
 	*/
 	private function InterpretDescriptor($descriptor)
 	{
@@ -199,42 +201,99 @@ class PeriodInterpreter
 			$parts = array(ltrim($descriptor,'!'));
 			$lastkey = -1;
 		}
-
+/* 'each'-descriptor examples
+'D3(EE2WE(2020))'
+'D3(EE2WE(2020-10))'
+'D3(EE2WE(EE3ME(2020)))'
+'D3(EE2WE(M5))'
+'D3(EE2WE(M5..M9))'
+'D3(EE3ME(2020))'
+'EE10DE(EE2ME(2016))'
+'EE10DE(EE2ME(M7..M9))'
+'EE10DE(EE3ME(2016..2020))'
+'EE10DE(EE3ME(EE2(2016..2020)))'
+'EE10DE(M5)'
+'EE10DE(M5,M7)'
+'EE10DE(M5..M9)'
+'EE10DE(M6,M7)'
+'EE10DE(M9..M12)'
+'EE2(2015..2020)'
+'EE2D3(2015)'
+'EE2D3(2015..2016)'
+'EE2D3(EE2ME(2016))'
+'EE2D3(EE2ME(M7..M9))'
+'EE2D3(EE3ME(2016..2020))'
+'EE2D3(EE3ME(EE2(2016..2020)))'
+'EE2D3(M5)'
+'EE2D3(M5,M7)'
+'EE2D3(M5..M9)'
+'EE2D3(M6,M7)'
+'EE2D3(M9..M12)'
+'EE2DE(-1(WE(2020-10)))'
+'EE2DE(2(WE(2020)))'
+'EE2DE(2(WE(2020-10)))'
+'EE2DE(2(WE(M5)))'
+'EE2DE(EE2WE(2020))'
+'EE2DE(EE2WE(2020-10))'
+'EE2DE(EE2WE(M5))'
+'EE2ME(2015)'
+'EE2ME(2015..2020)'
+'EE2ME(M1..M12)'
+'EE2WE(2015)'
+'EE2WE(2015..2020)'
+'EE2WE(2015-5)'
+'EE2WE(2020-5..2020-12)'
+'EE2WE(2020-5..2020-12)'
+'EE2WE(EE2ME(M7..M9))'
+'EE2WE(EE2YE(2015..2020))'
+'EE2WE(M5)'
+'EE2WE(M5(2015))'
+'EE2WE((M5,M6)(2015..2020))'
+'EE2WE(M5,M7)'
+'EE2WE(M5..M9)'
+'EE2WE(M6,M7)'
+'EE2WE(M9..M12)'
+'EE2YE(2015..2020)'
+'EE30DE(2015)'
+'EE30DE(2015..2016)'
+'EE3(M7..M12)'
+'EE3ME(EE2YE(2015..2020))'
+*/
 		$found = array();
 		foreach ($parts as $element) {
 			if (!isset($found['years'])) {
 				if (preg_match('^[12]\d{3}([,.].+)?$',$element)) {
-					$found['years'] = self::parse($element);
-				} elseif (preg_match('^E[2-9]\d*Y$',$element)) {
-					$found['years'] = $element;
+					$found['years'] = self::toarray($element);
+				} elseif (preg_match('^EE([2-9]\d*)YE$',$element,$matches)) {
+					$found['years'] = (int)$matches[1]; //non-array signals 'eacher'
 				}
 			} elseif (!isset($found['months'])) {
 				if (strpos($element,'M') !== FALSE) {
-					if (preg_match('^E([2-9]|1[012])M$',$element)) {
-						$found['months'] = $element;
+					if (preg_match('^EE([2-9]|1[012])ME$',$element,$matches)) {
+						$found['months'] = (int)$matches[1]; //for upstream iterpretation
 					} else {
-						$found['months'] = self::parse($element,'M');
+						$found['months'] = self::toarray($element,'M');
 					}
 				} elseif (preg_match('^[12]\d{3}\-(0?[1-9]|1[0-2])([,.].+)?$',$element)) {
-					$found['months'] = self::parse($element);
+					$found['months'] = self::toarray($element);
 				}
 			} elseif (!isset($found['weeks'])) {
 				if (strpos($element,'W') !== FALSE) {
-					if (preg_match('^E([2-9]|[1-5]\d)W$',$element)) {
-						$found['weeks'] = $element;
+					if (preg_match('^EE([2-9]|[1-5]\d)WE$',$element,$matches)) {
+						$found['weeks'] = (int)$matches[1]; //for upstream iterpretation
 					} else {
-						$found['weeks'] = self::parse($element,'W');
+						$found['weeks'] = self::toarray($element,'W');
 					}
 				}
 			} elseif (!(isset($found['days']) || isset($found['dates']))) {
 				if (strpos($element,'D') !== FALSE) {
-					if (preg_match('^E([2-9]|[1-3]\d{1,2}|[4-9]\d)D$',$element)) {
-						$found['days'] = $element;
+					if (preg_match('^EE([2-9]|[1-3]\d{1,2}|[4-9]\d)DE$',$element,$matches)) {
+						$found['days'] = (int)$matches[1]; //for upstream iterpretation
 					} else {
-						$found['days'] = self::parse($element,'D');
+						$found['days'] = self::toarray($element,'D');
 					}
 				} elseif (preg_match('^(\-)?([1-9]|[12]\d|3[01])([,.].+)?$',$element)) { //day(s) of month
-					$found['days'] = self::parse($element);
+					$found['days'] = self::toarray($element);
 				} elseif (preg_match('^[12]\d{3}\-(0?[1-9]|1[0-2])\-(0?[1-9]|[12]\d|3[01])([,.].+)?$',$element)) { //date(s)
 					if (strpos($element,',') !== FALSE) {
 						$bits = explode(',',$element);
@@ -252,9 +311,9 @@ class PeriodInterpreter
 					}
 				}
 			} elseif (!isset($found['each'])) {
-				if (preg_match('^E[2-9]\d*$',$element)) {
+				if (preg_match('^EE[2-9]\d*$',$element)) {
 					if (key($scan) == $lastkey) {
-						$found['each'] = $element;
+						$found['each'] = (int)substr($element,2); //for upstream iterpretation
 					}
 				}
 			} else {
@@ -266,20 +325,20 @@ class PeriodInterpreter
 
 	/*
 	AllDays:
-	Get days-of-year in a specified range
-	@year: year or array of them or ','-separated series of them
-	  Each year is 4-digit e.g. 2000 or 2-digit e.g. 00 or anything else that
-	  can be validly processed via date('Y')
-	@month: optional tokenised month(s) identifier, string or array, default FALSE
-		String may be ','-separated series. Tokens numeric 1..12 or with 'M' prefix i.e. M1..M12
-		FALSE means all months in @year
-	@week: optional tokenised weeks(s) identifier, string or array, default FALSE
-		String may be ','-separated series. Tokens numeric -5..-1,1..5 or with 'W' prefix i.e. W-5..W-1,W1..W5
-		FALSE means all days in @month AND @year
-	@day: optional tokenised day(s) identifier, string or array, default FALSE
-		String may be ','-separated series. Tokens numeric -31..-1,1..31 or with 'D' prefix i.e. D1..D7
-		FALSE means all days in @week (if any) AND @month AND @year
-	Returns: array, or FALSE upon error. Each array member has
+	Get days-of-year conforming to the arguments
+	@year: year(s) identifier, array or string or ','-separated series.
+	 Each is 4-digit e.g. 2000 or 2-digit e.g. 00 or anything else that can be
+	 validly processed via date('Y')
+	@month: optional month(s) identifier, array or string or ','-separated series.
+	 Each is numeric 1..12 or 'M'-prefixed M1..M12
+	 Default FALSE means all months in @year
+	@week: optional weeks(s) identifier, array or string or ','-separated series.
+	 Each is numeric -5..-1,1..5 or 'W'-prefixed W-5..W-1,W1..W5
+	 Default FALSE means all days in @month (if any) AND @year
+	@day: optional day(s) identifier, array or string or ','-separated series.
+	 Each is numeric -31..-1,1..31 or 'D'-prefixed D1..D7
+	 Default FALSE means all days in @week (if any) AND @month (if any) AND @year
+	Returns: array, empty upon error, otherwise each member has
 	 key: a year (4-digit integer)
 	 val: array of integers, each a 0-based day-of-year in the year
 	*/
@@ -312,7 +371,7 @@ class PeriodInterpreter
 			$year = array_unique(array_filter($year),SORT_NUMERIC);
 			$t = count($year);
 			if (t == 0 || ($t > 1 && !sort($year,SORT_NUMERIC)))
-				return FALSE;
+				return array();
 		} elseif (is_numeric($year)) {
 			$t = (int)$year;
 			if ($t < 100) {
@@ -326,7 +385,7 @@ class PeriodInterpreter
 			if ($t)
 				$year = array($t['year']);
 			else
-				return FALSE;
+				return array();
 		}
 
 		if ($month) {
@@ -345,13 +404,13 @@ class PeriodInterpreter
 				$month = array_unique(array_filter($month),SORT_NUMERIC);
 				$t = count($month);
 				if ($t == 0 || ($t > 1 && !sort($month,SORT_NUMERIC)))
-					return FALSE;
+					return array();
 			} else {
 				$t = trim($month,' M,');
 				if (is_numeric($t) && $t > 0 && $t < 13)
 					$month = array((int)$t);
 				else
-					return FALSE;
+					return array();
 			}
 		} else
 			$month = range(1,12);
@@ -372,7 +431,7 @@ class PeriodInterpreter
 				$week = array_unique(array_filter($week),SORT_NUMERIC);
 				$t = count($week);
 				if ($t == 0 || ($t > 1 && !sort($week,SORT_NUMERIC)))
-					return FALSE;
+					return array();
 				if ($t > 1) {
 					//rotate all -ve's to end
 					while (($t = reset($week)) < 0) {
@@ -385,7 +444,7 @@ class PeriodInterpreter
 				if (is_numeric($t) && $t > -6 && $t != 0 && $t < 6)
 					$week = array((int)$t);
 				else
-					return FALSE;
+					return array();
 			}
 		} else
 			$week = array(); //default no-weeks i.e. use all specified days
@@ -411,7 +470,7 @@ class PeriodInterpreter
 				unset($one);
 				$day = array_unique(array_filter($day));
 				if (!$day) //actual days-array sorted before reutrn || !sort($day,SORT_NUMERIC))
-					return FALSE;
+					return array();
 				//rotate all -ve's to end
 /*				reset($day);
 				while (($t = $day[0]) < 0) {
@@ -428,9 +487,9 @@ class PeriodInterpreter
 					if (is_numeric($t2) && $t2 > 0 && $t < 8)
 						$day = array($t);
 					else
-						return FALSE;
+						return array();
 				} else
-					return FALSE;
+					return array();
 			}
 		} elseif ($week)
 			$day = array('D1','D2','D3','D4','D5','D6','D7'); //all days of the week(s)
@@ -441,23 +500,19 @@ class PeriodInterpreter
 		foreach ($year as $yn) {
 			$doy = array();
 			foreach ($month as $m) {
-				$dmax = (int)date('t',gmmktime(0,0,1,$m,1,$yn)); //days in month
+				$dmax = (int)gmdate('t',gmmktime(0,0,1,$m,1,$yn)); //days in month
 				foreach ($day as $d) {
 					if (($p = strpos($d,'D')) !== FALSE) {
 						$t = (int)substr($d,$p+1) - 1; //D1 >> 0 etc
 						$c = ($p > 0) ? (int)substr($d,0,$p) : 0;
 						if ($c != 0) {
-							$t2 = self::MonthDay($yn,$m,$dmax,$c,$t);
+							$t2 = self::WeekDayInstanceinMonth($yn,$m,$dmax,$t,$c);
 							if ($t2 >= 0)
 								$doy[] = $t2;
-						} elseif ($week) {
-							$doy = array_merge($doy,self::WeeksDays($yn,$m,$week,$dmax,$t));
-//							$dbg = self::WeeksDays($yn,$m,$week,$dmax,$t);
-//							$doy = array_merge($doy,$dbg);
 						} else {
-							$doy = array_merge($doy,self::MonthWeekDays($yn,$m,$dmax,$t));
-//							$dbg = self::MonthWeekDays($yn,$m,$dmax,$t);
-//							$doy = array_merge($doy,$dbg);
+							$doy = array_merge_recursive($doy,self::WeekDaysinMonth($yn,$m,$week,$dmax,$t));
+//							$dbg = self::WeekDaysinMonth($yn,$m,$week,$dmax,$t);
+//							$doy = array_merge_recursive($doy,$dbg);
 						}
 						continue;
 					}
@@ -466,7 +521,7 @@ class PeriodInterpreter
 						$d += $dmax + 1;
 					if ($d <= $dmax) {
 						$st = gmmktime(0,0,1,$m,$d,$yn);
-						$doy[] = (int)date('z',$st);
+						$doy[] = (int)gmdate('z',$st);
 					}
 				}
 			}
@@ -482,6 +537,374 @@ class PeriodInterpreter
 		return $ret;
 	}
 
+	/*
+ 	WeekDaysinYear:
+	Get each instance of a specific weekday @dow in specific [week(s) and] @month
+	and @year
+	@year: numeric year e.g. 2000
+	@month: array of numeric month(s) 1..12, or EN for N-separated months,
+		or FALSE for all months
+	@week: array of numeric week(s) -5..-1,1..5, or EN for N-separated weeks,
+		or FALSE for all weeks
+	@dow: index of wanted day-of-week, 0 (for Sunday) .. 6 (for Saturday) c.f. date('w'...)
+	Returns: array, empty upon error, otherwise single-member has
+	 key: @year (4-digit integer)
+	 val: array of integers, each a 0-based day-of-year in the year
+	*/
+/*	private function WeekDaysinYear($year, $month, $week, $dow)
+	{
+		if ($month) {
+			if ($month[0] == 'E') { //each n'th month, ok if $month is array
+				$n = (int)substr($month,1);
+				$month = array();
+				for ($i=1; $i<13; $i+=$n) {
+					$month[] = $i;
+				}
+				$sort = FALSE;
+			} else {
+				$sort = TRUE;
+			}
+		} else {
+			$month = range(1,12);
+			$sort = FALSE;
+		}
+		$dtw = new \DateTime('@0',NULL);
+		foreach ($month as $i) {
+			$dtw->setDate($year,$i,1);
+			$dmax = $dtw->format('t');
+			$doy = self::WeekDaysinMonth($year,$i,$week,$dmax,$dow);
+			if (isset($ret)) {
+				$ret[$year] = array_merge_recursive($ret[$year],$doy);
+			} else {
+				$ret = $doy;
+			}
+		}
+		if ($sort)
+			$ret[$year] = array_unique($ret[$year],SORT_NUMERIC);
+
+		return $ret;
+	}
+*/
+	/*
+	WeekDaysinMonth:
+	Get each instance of a specific weekday @dow in specific [week(s) and] @month
+	and @year
+	@year: numeric year e.g. 2000
+	@month: numeric month 1..12 in @year
+	@week: array of numeric week(s) -5..-1,1..5 in @year AND @month,
+	  or EN for N-separated such weeks, or FALSE for all such weeks
+	@dmax: 1-based index of last day in @month
+	@dow: index of wanted day-of-week, 0 (for Sunday) .. 6 (for Saturday) c.f. date('w'...)
+	Returns: array, empty upon error, otherwise single-member has
+	 key: @year (4-digit integer)
+	 val: array of integers, each a 0-based day-of-year in the year
+	*/
+	private function WeekDaysinMonth($year, $month, $week, $dmax, $dow)
+	{
+		//first day in $year/$month as day-of-year
+		$st = gmmktime(0,0,1,$month,1,$year);
+		$base = (int)gmdate('z',$st);
+		//first day in $year/$month as: 0 = Sunday .. 6 = Saturday
+		$firstdow = (int)gmdate('w',$st);
+ 		$doy = array();
+
+		if ($week) {
+			//count of part/whole Sun..Sat weeks in $month, populated on demand
+			$wmax = 0;
+			if ($week[0] == 'E') { //ok if $week is array
+				$d = 6 - $firstdow;	//offset to Saturday/end of 1st week
+				$wmax = 1 + ceil(($dmax-$d)/7);
+				$d = 1;
+				$n = (int)substr($week,1);
+				$week = array();
+				while ($d <= $wmax) {
+					$week[] = $d;
+					$d += $n;
+				}
+			}
+			foreach ($week as $w) {
+				if ($w < 0) {
+					if ($wmax == 0) {
+						$d = 6 - $firstdow;	//offset to Saturday/end of 1st week
+						$wmax = 1 + ceil(($dmax-$d)/7);
+					}
+					$w += $wmax + 1;
+				}
+
+				$d = $dow - $firstdow + ($w-1) * 7;
+				if ($d >= 0 && $d < $dmax) //0-based, so NOT <= $dmax
+					$doy[] = $base + $d;
+			}
+			if ($doy) {
+				$doy = array_unique($doy,SORT_NUMERIC);
+			} else {
+	 			return array();
+			}
+		} else { //all weeks
+			//0-based offset to first wanted day
+			$d = $dow - $firstdow;
+			if ($d < 0)
+				$d += 7;
+			for ($i=$d; $i<$dmax; $i+=7) //0-based, so NOT <= $dmax
+				$doy[] = $base + $i;
+		}
+		return array($year=>$doy);
+	}
+
+	/*
+	WeekDayInstanceinYear:
+	Get 'counted' instance of a specific weekday @dow in @month and @year
+	@year: numeric year e.g. 2000
+	@month: numeric month 1..12 in @year
+	@dmax: 1-based index of last day in @month
+	@dow: index of wanted day-of-week, 0 (for Sunday) .. 6 (for Saturday) c.f. date('w'...)
+	@instance: wanted instance of the day -5..-1,1..5
+	Returns: array, empty upon error, or single member has
+	 key: @year (4-digit integer)
+	 val: array with one 0-based day-of-year in the year
+	*/
+/*	private function WeekDayInstanceinYear($year, $month, $dow, $instance)
+	{
+		if ($month) {
+			if ($month[0] == 'E') { //each n'th month, ok if $month is array
+				$n = (int)substr($month,1);
+				$month = array();
+				for ($i=1; $i<13; $i+=$n) {
+					$month[] = $i;
+				}
+			}
+		} else {
+			$month = range(1,12);
+		}
+
+		$dtw = new \DateTime('@0',NULL);
+		foreach ($month as $i) {
+			$dtw->setDate($year,$i,1);
+			$dmax = $dtw->format('t');
+			$doy = self::WeekDayInstanceinMonth($year,$i,$dmax,$dow,$instance);
+			if (isset($ret)) {
+				$ret[$year] = array_merge_recursive($ret[$year],$doy);
+			} else {
+				$ret = $doy;
+			}
+		}
+		$ret[$year] = array_unique($ret[$year],SORT_NUMERIC);
+
+		return $ret;
+	}
+*/
+	/*
+	WeekDayInstanceinMonth:
+	Get 'counted' instance of a specific weekday @dow in a specific @month and @year
+	@year: numeric year e.g. 2000
+	@month: numeric month 1..12 in @year
+	@dmax: 1-based index of last day in @month
+	@dow: index of wanted day-of-week, 0 (for Sunday) .. 6 (for Saturday) c.f. date('w'...)
+	@instance: wanted instance of the day -5..-1,1..5
+	Returns: array, empty upon error, or single member has
+	 key: @year (4-digit integer)
+	 val: array with one 0-based day-of-year in the year
+	*/
+	private function WeekDayInstanceinMonth($year, $month, $dmax, $dow, $instance)
+	{
+		//first day in $year/$month as: 0 = Sunday .. 6 = Saturday
+		$st = gmmktime(0,0,1,$month,1,$year);
+		$firstdow = (int)gmdate('w',$st);
+		//offset to 1st instance of the wanted day
+		$d = $dow - $firstdow;
+		if ($d < 0)
+			$d += 7;
+		if ($instance < 0) {
+			$imax = (int)(($dmax - $d)/7); //no. of wanted days in the month
+			$instance += 1 + $imax;
+			if ($instance < 0 || $instance > $imax)
+				return array();
+		}
+		if ($instance > 0) {
+			$d += ($instance-1) * 7;
+			if ($d >= $dmax)
+				return array();
+		} else
+			return array();
+		//first day in $year/$month as day-of-year
+		$base = (int)gmdate('z',$st);
+		$base += $d;
+
+		return array($year=>array($base));
+	}
+
+	/*
+	SeparatedMonths:
+	Get each day in each n'th-month in a specified range
+	@interval: integer no. of months between successive reports, >= 2
+	@styear: numeric year e.g. 2000
+	@stmonth: numeric month 1..12 in @styear
+	@ndyear: numeric year e.g. 2000 or FALSE to use @styear
+	@ndmonth: numeric month 1..12 in @ndyear or FALSE to use @stmonth
+	Returns: array, empty upon error, otherwise each member has
+	 key: a year (4-digit integer)
+	 val: array of integers, each a 0-based day-of-year in the year in [0]
+	*/
+/*	private function SeparatedMonths($interval, $styear, $stmonth,
+		$ndyear=FALSE, $ndmonth=FALSE)
+	{
+		$t = $styear.'-'.$stmonth.'-1 0:0:0';
+ 		$dtw = new \DateTime($t,new \DateTimeZone('UTC'));
+		if ($ndyear == FALSE)
+			$ndyear = $styear;
+		if ($ndmonth == FALSE)
+			$ndmonth = $stmonth;
+ 		$dte = clone $dtw;
+		$dte->setDate($ndyear,$ndmonth,1);
+		$offs = '+'.$interval.' months';
+		$ret = array();
+
+		while ($dtw <= $dte) {
+			$data = $dtw->format('Y|t|z');
+			list($yn,$dn,$doy) = explode('|',$data);
+			if (isset($ret[$yn])) {
+				$ret[$yn] = array_merge($ret[$yn],range($doy,$doy+$dn-1));
+			} else {
+				$ret[$yn] = range($doy,$doy+$dn-1);
+			}
+			$dtw->modify($offs);
+		}
+
+		return $ret;
+	}
+*/
+	/*
+	SeparatedWeeks:
+	Get each day in each n'th-week in a specified range
+	@interval: integer no. of weeks between successive reports, >= 2
+	@styear: numeric year e.g. 2000
+	@stmonth: numeric month 1..12 in @styear
+	@stweek: identfier in @styear/@stmonth
+	@ndyear: numeric year e.g. 2000 or FALSE to use @styear
+	@ndmonth: numeric month 1..12 in @ndyear or FALSE to use @stmonth
+	@ndweek: identfier in @ndyear/@ndmonth or FALSE to use @stweek
+	Returns: array, empty upon error, otherwise each member has
+	 key: a year (4-digit integer)
+	 val: array of integers, each a 0-based day-of-year in the year in [0]
+	*/
+/*	private function SeparatedWeeks($interval, $styear, $stmonth, $stweek,
+		$ndyear=FALSE, $ndmonth=FALSE, $ndweek=FALSE)
+	{
+		$t = $styear.'-'.$stmonth.'-1 0:0:0';
+ 		$dtw = new \DateTime($t,new \DateTimeZone('UTC'));
+		$ns = $dtw->format('w'); //7-$ns = no. of days in 1st week
+//		$ds = $dtw->format('t'); //no. of days in 1st month
+		//start of wanted week, may be before start of month!
+		if ($stweek > 1) {
+			$d = ($stweek-1)*7 - $ns;
+			$dtw->modify('+'.$d.' days');
+		} elseif ($ns > 0) {
+			$dtw->modify('-'.$ns.' days');
+		}
+		if ($ndyear == FALSE)
+			$ndyear = $styear;
+		if ($ndmonth == FALSE)
+			$ndmonth = $stmonth;
+		if ($ndweek == FALSE)
+			$ndweek = $stweek;
+ 		$dte = clone $dtw;
+		$dte->setDate($ndyear,$ndmonth,1);
+		$ne = $dte->format('w');
+		//start of wanted week, whose end may be after end of month!
+		if ($ndweek > 1) {
+			$d = ($ndweek-1)*7 - $ne;
+			$dte->modify('+'.$d.' days');
+		} elseif ($ne > 0) {
+			$dte->modify('-'.$ne.' days');
+		}
+		$offs = '+'.$interval.' weeks';
+		$ret = array();
+
+ 		while ($dtw <= $dte) {
+			$data = $dtw->format('Y|z');
+			list($yn,$doy) = explode('|',$data);
+			if (isset($ret[$yn])) {
+				$ret[$yn] = array_merge($ret[$yn],range($doy,$doy+6));
+			} else {
+				$ret[$yn] = range($doy,$doy+6);
+			}
+			$dtw->modify($offs);
+		}
+		//TODO trim 1st and/or last weeks to corresponding months
+//		$de = $dte->format('t'); //no. of days in last month
+
+ 		return $ret;
+	}
+*/
+	/*
+	SeparatedDays:
+	Get each n'th-day in a specified range
+	@interval: integer no. of days between successive reports, >= 2
+	@styear: numeric year e.g. 2000
+	@stmonth: numeric month 1..12 in @styear
+	@stday: identfier in @styear/@stmonth e.g. 1,-1,1D1,-2D6 TODO support e.g. D4(2(W))
+	@ndyear: numeric year e.g. 2000 or FALSE to use @styear
+	@ndmonth: numeric month 1..12 in @ndyear or FALSE to use @stmonth
+	@ndday: identfier in @ndyear/@ndmonth e.g. 1,-1,1D1,-2D6 TODO support e.g. D4(2(W)) or FALSE to use last day-of-month
+	Returns: array, empty upon error, otherwise each member has
+	 key: a year (4-digit integer)
+	 val: array of integers, each a 0-based day-of-year in the year
+	*/
+/*	private function SeparatedDays($interval, $styear, $stmonth, $stday,
+		$ndyear=FALSE, $ndmonth=FALSE, $ndday=FALSE)
+	{
+		if ($ndyear == FALSE)
+			$ndyear = $styear;
+		if ($ndmonth == FALSE)
+			$ndmonth = $stmonth;
+		if ($stday < 0) {
+			$st = gmmktime(0,0,0,$stmonth,1,$styear);
+			$stday += 1 + gmdate('t',$st);
+		} elseif (($p = strpos($stday,'D')) !== FALSE) {
+			//TODO support e.g. D4(2(W))
+			$st = gmmktime(0,0,0,$stmonth,1,$styear);
+			$dmax = gmdate('t',$st);
+			$dow = (int)substr($stday,$p+1) - 1; //D1 >> 0 etc
+			$c = ($p > 0) ? (int)substr($stday,0,$p) : 1;
+			if ($c == 0) $c = 1;
+			$t2 = self::WeekDayInstanceinMonth($styear,$stmonth,$dmax,$dow,$c);
+			$stday = ($t2 >= 0) ? $t2 : 1; //default to start
+		}
+		if ($ndday == FALSE) {
+			$st = gmmktime(0,0,0,$ndmonth,1,$ndyear); //days in month
+			$ndday = (int)gmdate('t',$st);
+		} elseif ($ndday < 0) {
+			$st = gmmktime(0,0,0,$ndmonth,1,$ndyear);
+			$ndday  += 1 + gmdate('t',$st);
+		} elseif (($p = strpos($ndday,'D')) !== FALSE) {
+			//TODO support e.g. D4(2(W))
+			$st = gmmktime(0,0,0,$ndmonth,1,$ndyear);
+			$dmax = (int)gmdate('t',$st);
+			$dow = (int)substr($ndday,$p+1) - 1; //D1 >> 0 etc
+			$c = ($p > 0) ? (int)substr($ndday,0,$p) : 1;
+			if ($c == 0) $c = 1;
+			$t2 = self::WeekDayInstanceinMonth($ndyear,$ndmonth,$dmax,$dow,$c);
+			$ndday = ($t2 >= 0) ? $t2 : $dmax; //default to end
+		}
+		$t = $styear.'-'.$stmonth.'-'.$stday.' 0:0:0';
+ 		$dtw = new \DateTime($t,new \DateTimeZone('UTC'));
+ 		$dte = clone $dtw;
+		$dte->setDate($ndyear,$ndmonth,$ndday);
+		$offs = '+'.$interval.' days';
+		$ret = array();
+		while ($dtw <= $dte) {
+			$data = $dtw->format('Y|z');
+			list($yn,$doy) = explode('|',$data);
+			if (!isset($ret[$yn])) {
+				$ret[$yn] = array($doy);
+			} else {
+				$ret[$yn][] = $doy;
+			}
+			$dtw->modify($offs);
+		}
+		return $ret;
+	}
+*/
 	/**
 	SpecificYears:
 	@descriptor: string including 4-digit year, or sequence of those, or
@@ -490,7 +913,7 @@ class PeriodInterpreter
 	@be: timestamp for 1-past-end of block
 	@dtw: modifiable DateTime object
 	@merge: optional boolean, whether to report year-starts instead of day-starts
-	Returns: array, or FALSE upon error. Each array member has
+	Returns: array, empty upon error, otherwise each member has
 	 key: a year (4-digit integer)
 	 val: array of integers, each a timestamp for the beginning of a day or year in the year
 	*/
@@ -499,8 +922,10 @@ class PeriodInterpreter
 		$parsed = self::InterpretDescriptor($descriptor);
 		if (!$parsed || empty($parsed['years'])) {
 			return array();
-		} elseif (0) {
-			//TODO interpret each n'th year
+		} elseif (!is_array($parsed['years'])) { //each n'th year
+			$d = $parsed['years'];
+			$wanted = array();
+//			$wanted[] = each d'th in ?..?
 		} else {
 			$wanted = $parsed['years'];
 		}
@@ -562,7 +987,7 @@ class PeriodInterpreter
 	@be: timestamp for 1-past-end of block
 	@dtw: modifiable DateTime object
 	@merge: optional boolean, whether to report month-starts instead of day-starts
-	Returns: array, or FALSE upon error. Each array member has
+	Returns: array, empty upon error, otherwise each member has
 	 key: a year (4-digit integer)
 	 val: array of integers, each a timestamp for the beginning of a day or month in the year
 	*/
@@ -574,16 +999,30 @@ class PeriodInterpreter
 		}
 		$years = self::BlockYears($bs, $be, $dtw); //get year(s) in block, clean $bs,$be
 		if (isset($parsed['years'])) {
-			$years = array_intersect($years,$parsed['years']);
+//			if (is_array($parsed['years'])) {
+				$wanted = $parsed['years'];
+/*			} else { //each n'th year
+				$d = $parsed['years'];
+				$wanted = array();
+				for ($i=$TODO; $i<$TODO; $i+=$d) {
+					$wanted[] = $i;
+				}			
+			}
+*/
+			$years = array_intersect($years,$wanted);
 			if (!$years)
 				return array();
 		}
 		//get relevant months
 		$months = self::BlockMonths($bs,$be,$dtw);
-		if (0) {
-		//TODO interpret - each n'th month
-		} else {
+		if (is_array($parsed['months'])) {
 			$wanted = $parsed['months'];
+		} else { //each n'th month
+			$d = $parsed['months'];
+			$wanted = array();
+			for ($i=1; $i<13; $i+=$d) {
+				$wanted[] = $i;
+			}			
 		}
 		$months = array_intersect($months,$wanted);
 		if (!$months)
@@ -616,7 +1055,7 @@ class PeriodInterpreter
 	@be: timestamp for 1-past-end of block
 	@dtw: modifiable DateTime object
 	@merge: optional boolean, whether to report week-starts instead of day-starts
-	Returns: array, or FALSE upon error. Each array member has
+	Returns: array, empty upon error, otherwise each member has
 	 key: a year (4-digit integer)
 	 val: array of integers, each a timestamp for the beginning of a day or week in the year
 	*/
@@ -628,22 +1067,35 @@ class PeriodInterpreter
 		}
 		$years = self::BlockYears($bs,$be,$dtw); //get year(s) in block
 		if (isset($parsed['years'])) {
-			$years = array_intersect($years,$parsed['years']);
+			$years = array_intersect($years,$parsed['years']); //each n'th year N/A
 			if (!$years)
 				return array();
 		}
 		if (isset($parsed['months'])) {
 			$months = self::BlockMonths($bs,$be,$dtw);
-			$months = array_intersect($months,$parsed['months']);
+			if (is_array($parsed['months'])) {
+				$wanted = $parsed['months'];
+			} else { //each n'th month
+				$d = $parsed['months'];
+				$wanted = array();
+				for ($i=1; $i<13; $i+=$d) {
+					$wanted[] = $i;
+				}			
+			}
+			$months = array_intersect($months,$wanted);
 			if (!$months)
 				return array();
 		} else {
 			$months = FALSE;
 		}
-		if (0) {
-		//TODO interpret - each n'th week
-		} else {
+		if (is_array($parsed['weeks'])) {
 			$weeks = $parsed['weeks'];
+		} else { //each n'th week
+			$d = $parsed['weeks'];
+			$weeks = array();
+			for ($i=1; $i<6; $i+=$d) { //CHECKME need year/month specific max weeks?
+				$weeks[] = $i;
+			}
 		}
 
 		$wanted = self::AllDays($years,$months,$weeks);
@@ -673,7 +1125,7 @@ class PeriodInterpreter
 	@bs: timestamp for start of block
 	@be: timestamp for 1-past-end of block
 	@dtw: modifiable DateTime object
-	Returns: array, or FALSE upon error. Each array member has
+	Returns: array, empty upon error, otherwise each member has
 	 key: a year (4-digit integer)
 	 val: array of integers, each a timestamp for the beginning of a day in the year
 	*/
@@ -685,27 +1137,48 @@ class PeriodInterpreter
 		}
 		$years = self::BlockYears($bs,$be,$dtw); //get year(s) in block
 		if (isset($parsed['years'])) {
-			$years = array_intersect($years,$parsed['years']);
+			$years = array_intersect($years,$parsed['years']); //each n'th year N/A
 			if (!$years)
 				return array();
 		}
 		if (isset($parsed['months'])) {
 			$months = self::BlockMonths($bs,$be,$dtw);
-			$months = array_intersect($months,$parsed['months']);
+			if (is_array($parsed['months'])) {
+				$wanted = $parsed['months'];
+			} else { //each n'th month
+				$d = $parsed['months'];
+				$wanted = array();
+				for ($i=1; $i<13; $i+=$d) {
+					$wanted[] = $i;
+				}			
+			}
+			$months = array_intersect($months,$wanted);
 			if (!$months)
 				return array();
 		} else {
 			$months = FALSE;
 		}
 		if (isset($parsed['weeks'])) {
-			$weeks = $parsed['weeks'];
+			if (is_array($parsed['weeks'])) {
+				$weeks = $parsed['weeks'];
+			} else { //each n'th week
+				$d = $parsed['weeks'];
+				$weeks = array();
+				for ($i=1; $i<6; $i+=$d) { //CHECKME need year/month specific max weeks?
+					$weeks[] = $i;
+				}
+			}
 		} else {
 			$weeks = FALSE;
 		}
-		if (0) {
-		//TODO interpret - each n'th day
-		} else {
+		if (is_array($parsed['days'])) {
 			$days = $parsed['days'];
+		} else { //each n'th day
+			$d = $parsed['days'];
+			$days = array();
+			for ($i=1; $i<32; $i+=$d) { //CHECKME need year/month-specific maxdays?
+				$days[] = $i;
+			}
 		}
 
 		$wanted = self::AllDays($years,$months,$weeks,$days); //must get something
@@ -731,16 +1204,22 @@ class PeriodInterpreter
 	@bs: timestamp for start of block
 	@be: timestamp for 1-past-end of block
 	@dtw: modifiable DateTime object
-	Returns: array, or FALSE upon error. Each array member has
+	Returns: array, empty upon error, otherwise each member has
 	 key: a year (4-digit integer)
 	 val: array of integers, each a timestamp for the beginning of a day in the year
 */
 	public function SpecificDates($descriptor, $bs, $be, $dtw)
 	{
 		$parsed = self::InterpretDescriptor($descriptor);
-		if (!$parsed || empty($parsed['dates']) || !is_array($parsed['dates'])) { //each n'th invalid in this context
+		if (!$parsed || empty($parsed['dates'])) {
 			return array();
 		}
+
+/*TODO	if (0) { //each n'th date
+//			$d = $parsed['dates'];
+//			return self::SeparatedDays($matches[1],$styear,$stmonth,$stday,$ndyear,$ndmonth,$ndday);
+		}
+*/
 
 		$ret = array();
 		$dtw->setTime(0,0,0);
@@ -762,307 +1241,6 @@ class PeriodInterpreter
 				$doy = array_unique($doy,SORT_NUMERIC);
 			}
 			unset($doy);
-		}
-		return $ret;
-	}
-
-	/*
-	MonthWeekDays:
-	Get array of each instance of a specific weekday @dow in a specific month
-	@year: numeric year e.g. 2000
-	@month: numeric month 1..12 in @year
-	@dmax: 1-based index of last day in @month
-	@dow: index of wanted day-of-week, 0 (for Sunday) .. 6 (for Saturday) c.f. date('w'...)
-	Returns: array, or FALSE upon error. The single-member array has
-	 key: @year (4-digit integer)
-	 val: array of integers, each a 0-based day-of-year in the year
-	*/
-/*	private function MonthWeekDays($year, $month, $dmax, $dow)
-	{
-		//first day in $year/$month as day-of-year
-		$st = gmmktime(0,0,1,$month,1,$year);
-		$base = (int)date('z',$st);
-		//first day in $year/$month as: 0 = Sunday .. 6 = Saturday
-		$firstdow = (int)date('w',$st);
-		//0-based offset to first wanted day
-		$d = $dow - $firstdow;
-		if ($d < 0)
-			$d += 7;
-
-		$doy = array();
-		for ($i = $d; $i < $dmax; $i += 7) //0-based, so NOT <= $dmax
-			$doy[] = $base + $i;
-
-		return array($year=>$doy);
-	}
-*/
-	/*
-	WeeksDays:
-	Get array of each instance of a specific weekday @dow in specified week(s) in
-	a specific month
-	@year: numeric year e.g. 2000
-	@month: numeric month 1..12 in @year
-	@week: array if numeric week(s) -5..-1,1..5 in @year AND @month
-	@dmax: 1-based index of last day in @month
-	@dow: index of wanted day-of-week, 0 (for Sunday) .. 6 (for Saturday) c.f. date('w'...)
-	Returns: array, or FALSE upon error. The single-member array has
-	 key: @year (4-digit integer)
-	 val: array of integers, each a 0-based day-of-year in the year
-	*/
-/*	private function WeeksDays($year, $month, $week, $dmax, $dow)
-	{
-		//first day in $year/$month as day-of-year
-		$st = gmmktime(0,0,1,$month,1,$year);
-		$base = (int)date('z',$st);
-		//first day in $year/$month as: 0 = Sunday .. 6 = Saturday
-		$firstdow = (int)date('w',$st);
-		//count of part/whole Sun..Sat weeks in $month, populated on demand
-		$wmax = 0;
-		$doy = array();
-
-		foreach ($week as $w) {
-			if ($w < 0) {
-				if ($wmax == 0) {
-					$d = 6 - $firstdow;	//offset to Saturday/end of 1st week
-					$wmax = 1 + ceil(($dmax-$d)/7);
-				}
-				$w += $wmax + 1;
-			}
-
-			$d = $dow - $firstdow + ($w-1) * 7;
-			if ($d >= 0 && $d < $dmax) //0-based, so NOT <= $dmax
-				$doy[] = $base + $d;
-		}
-		if ($doy) {
-			$doy = array_unique($doy,SORT_NUMERIC);
-			return array($year=>$doy);
-		}
-		return array();
-	}
-*/
-	/*
-	MonthDay:
-	Get 'counted' instance of a specific weekday @dow in a specific month
-	@year: numeric year e.g. 2000
-	@month: numeric month 1..12 in @year
-	@dmax: 1-based index of last day in @month
-	@count: index of wanted day-of-month -5..-1,1..5
-	@dow: index of wanted day-of-week, 0 (for Sunday) .. 6 (for Saturday) c.f. date('w'...)
-	Returns: array, or FALSE upon error. The single-member array has
-	 key: @year (4-digit integer)
-	 val: array with one 0-based day-of-year in the year
-	*/
-/*	private function MonthDay($year, $month, $dmax, $count, $dow)
-	{
-		//first day in $year/$month as: 0 = Sunday .. 6 = Saturday
-		$st = gmmktime(0,0,1,$month,1,$year);
-		$firstdow = (int)date('w',$st);
-		//offset to 1st instance of the wanted day
-		$d = $dow - $firstdow;
-		if ($d < 0)
-			$d += 7;
-		if ($count < 0) {
-			$cmax = (int)(($dmax - $d)/7); //no. of wanted days in the month
-			$count += 1 + $cmax;
-			if ($count < 0 || $count > $cmax)
-				return -1;
-		}
-		if ($count > 0) {
-			$d += ($count -1) * 7;
-			if ($d >= $dmax)
-				return -1;
-		} else
-			return -1;
-		//first day in $year/$month as day-of-year
-		$base = (int)date('z',$st);
-		$base += $d;
-
-		return array($year=>array($base));
-	}
-*/
-	/*
-	SuccessiveDays:
-	Get each n'th-day in a specified range
-	@interval: integer no. of weeks between successive reports, >= 1
-	@styear: numeric year e.g. 2000
-	@stmonth: numeric month 1..12 in @styear
-	@stday: identfier in @styear/@stmonth e.g. 1,-1,1D1,-2D6 TODO support e.g. D4(2(W))
-	@ndyear: numeric year e.g. 2000 or FALSE to use @styear
-	@ndmonth: numeric month 1..12 in @ndyear or FALSE to use @stmonth
-	@ndday: identfier in @ndyear/@ndmonth e.g. 1,-1,1D1,-2D6 TODO support e.g. D4(2(W)) or FALSE to use last day-of-month
-	Returns: array, or FALSE upon error. Each array member has
-	 key: a year (4-digit integer)
-	 val: array of integers, each a 0-based day-of-year in the year
-	*/
-/*	public function SuccessiveDays($interval, $styear, $stmonth, $stday,
-		$ndyear=FALSE, $ndmonth=FALSE, $ndday=FALSE)
-	{
-		if ($ndyear == FALSE)
-			$ndyear = $styear;
-		if ($ndmonth == FALSE)
-			$ndmonth = $stmonth;
-		if ($stday < 0) {
-			$st = gmmktime(0,0,0,$stmonth,1,$styear);
-			$stday += 1 + date('t',$st);
-		} elseif (($p = strpos($stday,'D')) !== FALSE) {
-			//TODO support e.g. D4(2(W))
-			$st = gmmktime(0,0,0,$stmonth,1,$styear);
-			$dmax = date('t',$st);
-			$c = ($p > 0) ? (int)substr($stday,0,$p) : 1;
-			if ($c == 0) $c = 1;
-			$dow = (int)substr($stday,$p+1) - 1; //D1 >> 0 etc
-			$t2 = self::MonthDay($styear,$stmonth,$dmax,$c,$dow);
-			$stday = ($t2 >= 0) ? $t2 : 1; //default to start
-		}
-		if ($ndday == FALSE) {
-			$st = gmmktime(0,0,0,$ndmonth,1,$ndyear); //days in month
-			$ndday = (int)date('t',$st);
-		} elseif ($ndday < 0) {
-			$st = gmmktime(0,0,0,$ndmonth,1,$ndyear);
-			$ndday  += 1 + date('t',$st);
-		} elseif (($p = strpos($ndday,'D')) !== FALSE) {
-			//TODO support e.g. D4(2(W))
-			$st = gmmktime(0,0,0,$ndmonth,1,$ndyear);
-			$dmax = (int)date('t',$st);
-			$c = ($p > 0) ? (int)substr($ndday,0,$p) : 1;
-			if ($c == 0) $c = 1;
-			$dow = (int)substr($ndday,$p+1) - 1; //D1 >> 0 etc
-			$t2 = self::MonthDay($ndyear,$ndmonth,$dmax,$c,$dow);
-			$ndday = ($t2 >= 0) ? $t2 : $dmax; //default to end
-		}
-		$tz = new \DateTimeZone('UTC');
-		$st = gmmktime(0,0,0,$stmonth,$stday,$styear);
-		$dts = new \DateTime('@'.$st,$tz);
-		$st = gmmktime(0,0,0,$ndmonth,$ndday,$ndyear);
-		$dte = new \DateTime('@'.$st,$tz);
-		$diff = ($interval == 1) ? '+1 day':'+'.$interval.' days';
-		$yn = FALSE;
-		$doy = FALSE;
-		$ret = array();
-		while ($dts <= $dte) {
-			$yt = (int)$dts->format('Y');
-			if ($yt != $yn) {
-				if ($doy) {
-					if (isset($ret[$yn])) {
-						$ret[$yn] = array_unique(array_merge($ret[$yn],$doy),SORT_NUMERIC);
-					} else
-						$ret[$yn] = $doy;
-				}
-				$yn = $yt;
-				$doy = array();
-			}
-			$doy[] = (int)$dts->format('z');
-			$dts->modify($diff);
-		}
-		if ($doy) {
-			if (isset($ret[$yn])) {
-				$ret[$yn] = array_unique(array_merge($ret[$yn],$doy),SORT_NUMERIC);
-			} else
-				$ret[$yn] = $doy;
-		}
-		return $ret;
-	}
-*/
-	/* *
-	SuccessiveWeeks:
-	Get each day in each n'th-week in a specified range
-	@interval: integer no. of days between successive reports, >= 1
-	@styear: numeric year e.g. 2000
-	@stmonth: numeric month 1..12 in @styear
-	@stday: identfier in @styear/@stmonth e.g. 1,-1,1D1,-2D6 TODO support e.g. D4(2(W))
-	@ndyear: numeric year e.g. 2000 or FALSE to use @styear
-	@ndmonth: numeric month 1..12 in @ndyear or FALSE to use @stmonth
-	@ndday: identfier in @ndyear/@ndmonth e.g. 1,-1,1D1,-2D6 TODO support e.g. D4(2(W)) or FALSE to use last day-of-month
-	Returns: array, or FALSE upon error. Each array member has
-	 key: a year (4-digit integer)
-	 val: array of integers, each a 0-based day-of-year in the year in [0]
-	*/
-/*	public function SuccessiveWeeks($interval, $styear, $stmonth, $stday,
-		$ndyear=FALSE, $ndmonth=FALSE, $ndday=FALSE)
-	{
-	}
-*/
-	/* *
-	SuccessiveMonths:
-	Get each day in each n'th-month in a specified range
-	@interval: integer no. of months between successive reports, >= 1
-	@styear: numeric year e.g. 2000
-	@stmonth: numeric month 1..12 in @styear
-	@stday: identfier in @styear/@stmonth e.g. 1,-1,1D1,-2D6 TODO support e.g. D4(2(W))
-	@ndyear: numeric year e.g. 2000 or FALSE to use @styear
-	@ndmonth: numeric month 1..12 in @ndyear or FALSE to use @stmonth
-	@ndday: identfier in @ndyear/@ndmonth e.g. 1,-1,1D1,-2D6 TODO support e.g. D4(2(W)) or FALSE to use last day-of-month
-	Returns: array, or FALSE upon error. Each array member has
-	 key: a year (4-digit integer)
-	 val: array of integers, each a 0-based day-of-year in the year in [0]
-	*/
-/*	public function SuccessiveMonths($interval, $styear, $stmonth, $stday,
-		$ndyear=FALSE, $ndmonth=FALSE, $ndday=FALSE)
-	{
-	}
-*/
-	/*
-	isodate_from_format:
-	Convert @dvalue to ISO format i.e. like Y-M-d H:i:s
-	For testing, at least
-	@dformat: string which includes one or more of many (not all) format-characters
-	 understood by PHP date(). If it includes 'z', the corresponding element of
-	 @dvalue must be 1-based
-	@dvalue: date-time string consistent with @dformat
-	*/
-	public function isodate_from_format($dformat, $dvalue)
-	{
-		$sformat = str_replace(
-			array('Y' ,'M' ,'m' ,'d' ,'H' ,'h' ,'i' ,'s' ,'a' ,'A' ,'z'),
-			array('%Y','%b','%m','%d','%H','%I','%M','%S','%P','%p','%j'),$dformat);
-		$parts = strptime($dvalue,$sformat); //PHP 5.1+
-		return sprintf('%04d-%02d-%02d %02d:%02d:%02d',
-			$parts['tm_year'] + 1900,  //tm_year = relative to 1900
-			$parts['tm_mon'] + 1,      //tm_mon = 0-based
-			$parts['tm_mday'],
-			$parts['tm_hour'],
-			$parts['tm_min'],
-			$parts['tm_sec']);
-	}
-
-	/*
-	args as as for AllDays($year,$month=FALSE,$week=FALSE,$day=FALSE)
-	*/
-	public function tester($year, $month, $week, $day)
-	{
-		$ret = array();
-		$dt = new \DateTime('@0',new \DateTimeZone('UTC'));
-		$data = self::AllDays($year,$month,$week,$day);
-		foreach ($data as $row) {
-			$yr = $row[0];
-			$days = $row[1];
-			foreach ($days as $doy) {
-				$d = sprintf('%03d',$doy+1);	//downstream strptime() expects padded, 1-based, day-of-year
-				$newdate = self::isodate_from_format('Y z',$yr.' '.$d);
-				$dt->modify($newdate);
-				$ret[] = $dt->format('D j M Y');
-			}
-		}
-		return $ret;
-	}
-	/*
-	args as as for SuccessiveDays($interval,$styear,$stmonth,$stday,$ndyear=FALSE,$ndmonth=FALSE,$ndday=FALSE)
-	*/
-	public function tester2($interval, $styear, $stmonth, $stday,
-		$ndyear=FALSE, $ndmonth=FALSE, $ndday=FALSE)
-	{
-		$ret = array();
-		$dt = new \DateTime('@0',new \DateTimeZone('UTC'));
-		$data = self::SuccessiveDays($interval,$styear,$stmonth,$stday,$ndyear,$ndmonth,$ndday);
-		foreach ($data as $row) {
-			$yr = $row[0];
-			$days = $row[1];
-			foreach ($days as $doy) {
-				$d = sprintf('%03d',$doy+1);	//downstream strptime() expects padded, 1-based, day-of-year
-				$newdate = self::isodate_from_format('Y z',$yr.' '.$d);
-				$dt->modify($newdate);
-				$ret[] = $dt->format('D j M Y');
-			}
 		}
 		return $ret;
 	}
