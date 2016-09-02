@@ -1155,6 +1155,7 @@ match-array(s) have
 			$this->mod->Lang('day'), //for use with 'each' OR Booker\Utils::RangeNames($this->mod,0)
 			$this->mod->Lang('week'), //OR Booker\Utils::RangeNames($this->mod,1)
 			$this->mod->Lang('month'), //for use with 'each' OR Booker\Utils::RangeNames($this->mod,2)
+			$this->mod->Lang('year'), //for use with 'each'
 		);
 /*		if ($oldloc)
 			setlocale(LC_TIME,$oldloc);
@@ -1166,8 +1167,8 @@ match-array(s) have
 		$monthtokes = array();
 		for ($i = 1; $i < 13; $i++)
 			$monthtokes[] = 'M'.$i;
-		//2-char tokens to avoid name-conflicts e.g. sunrise-Sun TODO CHECK ok
-		$spectokes = array('..','!','!','ES','ES','RS','SS','DS','WS','MS');
+		//2-char text-tokens to avoid name-conflicts e.g. sunrise-Sun,  extra 'S' or 'E' for recognition
+		$spectokes = array('..','!','!','EE','EE','RS','SS','DE','WE','ME','YE');
 		//long-forms before short- & specials last, for effective str_replace()
 		$finds = array_merge($longdays,$shortdays,$longmonths,$shortmonths,
 			$specials,array(' ',PHP_EOL));
@@ -1176,7 +1177,7 @@ match-array(s) have
 		$descriptor = str_replace($finds,$repls,$descriptor);
 
 		//allowed content check
-		if (preg_match('/[^\dDMRSWE@:+-.,()!]/',$descriptor))
+		if (preg_match('/[^\dDMRSWEY@:+-.,()!]/',$descriptor))
 			return FALSE;
 		//check overall consistency (i.e. no unrecognised content, all brackets are valid)
 		//and separate into distinct comma-separated 'parts'
@@ -1196,8 +1197,13 @@ match-array(s) have
 				$t = substr($one,0,$e+1);
 				//process as period[@time] or time alone
 				if ($segat === FALSE && (strpos($t,':') !== FALSE || strpos($t,'S') !== FALSE)) {
-					$t = self::CleanTime($t); } elseif (strpos($t,',') !== FALSE || strpos($t,'..') !== FALSE) {
-					$t = self::CleanPeriod($t); }
+					$t = self::CleanTime($t);
+				} elseif (strpos($t,',') !== FALSE || strpos($t,'..') !== FALSE) {
+					$t = self::CleanPeriod($t);
+				} elseif (strpos($t,'EE1') === 0 && (strlen($t) == 3 || !is_numeric($t[3]))) { //ignore 1-separated 'eachers'
+					$segs[$i] = '';
+					continue;
+				}
 				//process in-seg bracket(s)
 				$p = ($segat === FALSE) ? $segl:$segat;
 				if ($p > $e+1) {
@@ -1211,14 +1217,18 @@ match-array(s) have
 						return FALSE; }
 					if ($cs == 2 && $i > 0 && $segs[$i-1] == '') { //special case (stuff)
 						if ($p >= $segl) {
-							unset($segs[$i-1]); } else {
-							$t .= str_repeat(')',$cb); }
+							unset($segs[$i-1]);
+						} else {
+							$t .= str_repeat(')',$cb);
+						}
 					} else {
-						$t .= str_repeat(')',$cb); }
+						$t .= str_repeat(')',$cb);
+					}
 				} else { //no bracket
 					if ($t && strpos($t,',') !== FALSE) {
 						if ($i > 0) {
-						$t .= ')'; } //correction
+							$t .= ')'; //correction
+						}
 					} elseif ($i > 0 && $segs[$i-1] == '') {
 						unset($segs[$i-1]);
 					}
@@ -1409,7 +1419,7 @@ match-array(s) have
 			unset($one);
 		}
 
-		$n = count($this->conds); 
+		$n = count($this->conds);
 		if ($n > 1) {
 			usort($this->conds,array($this,'cmp_periods'));
 			//re-merge parts of same type
