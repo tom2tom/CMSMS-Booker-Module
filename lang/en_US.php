@@ -681,6 +681,7 @@ $lang['useselection'] = 'Use selected item';
 $lang['view'] = 'View';
 $lang['warn_duplicate'] = 'Duplicate booking(s) ignored! Please check.';
 $lang['week'] = 'week'; //see also ['periods']
+$lang['year'] = 'year'; //see also ['periods']
 $lang['yes'] = 'Yes'; //see also ['true']
 $lang['zoomin'] = 'Zoom+';
 $lang['zoomout'] = 'Zoom-';
