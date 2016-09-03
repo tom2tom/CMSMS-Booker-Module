@@ -51,9 +51,9 @@ class Display
 			$ob = $biggest;
 			$oe = 0;
 			$blocks = new Blocks();
-			$iter = new \ArrayIterator($note);
 
 			list($nots,$note) = $blocks->DiffBlocks($segs,$sege,$starts,$ends);
+			$iter = new \ArrayIterator($note);
 			foreach ($segs as $i=>$st) {
 				//get smallest $note[] member > $st
 				while ($iter->valid()) {
