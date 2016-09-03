@@ -29,8 +29,10 @@ table.yearly {
 }
 
 table.booker {
+ margin:0;
  border:0;
- border-collapse:collapse;
+ border-collapse:separate; /*for tableHeadFixer*/
+ border-spacing:0;
  color:black;
 }
 
@@ -129,23 +131,6 @@ table.booker td.full5 {
 table.booker td.part5 {
  background-color:#FFD699;
 }
-/* for table-scroll plugin */
-table.booker .sg\-v\-scroll\-cell, table.booker .sg\-h\-scroll\-cell {
- padding:0;
- border:0;
- margin:0;
-}
-table.booker .sg\-v\-scroll\-container {
- padding:0;
- border:0;
- margin:0 2px;
-}
-table.booker .sg\-h\-scroll\-container {
- padding:0;
- border:0;
- margin:2px 0;
-}
-
 /*action-buttons table */
 #bookactions {
  border:0;
