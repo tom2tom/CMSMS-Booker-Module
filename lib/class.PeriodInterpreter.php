@@ -100,6 +100,63 @@ class PeriodInterpreter
 		return $ret;
 	}
 
+	private function separate($hint, $interval, &$found)
+	{
+		if ($hint) {
+			switch ($hint) {
+			 case 'D':
+				$key = 'days';
+				if ($found[$key][0] == '*') {
+					if ($found['months'][0] != '*' || $found['years'][0] == '*') {
+						$found[$key] = range(1,31);
+					} elseif ($found['weeks'][0] != '*') {
+						$found[$key] = range(1,7);
+					} else {
+						$found[$key] = range(1,366);
+					}
+				}
+				break;
+			 case 'W':
+				$key = 'weeks';
+				if ($found[$key][0] == '*') {
+					if ($found['months'][0] != '*' || $found['years'][0] == '*') {
+						$found[$key] = range(1,5);
+					} else {
+						$found[$key] = range(1,52);
+					}
+				}
+				break;
+			 case 'M':
+				$key = 'months';
+				if ($found[$key][0] == '*')
+					$found[$key] = range(1,12);
+				break;
+			 case 'Y':
+				$key = 'years';
+				break;
+			 default:
+				return;
+			}
+			if ($found[$key][0] == '*')
+				return;
+		} else {
+			foreach (array('days','weeks','months','years','-1') as $i=>$key) {
+				if ($found[$key][0] != '*') {
+					break;
+				}
+			}
+			if ($i > 3)
+				return;
+		}
+
+		$i = 0;
+		foreach ($found[$key] as $k=>$value) {
+			if ($i++ % $interval != 0) {
+				unset($found[$key][$k]);
+			}
+		}
+	}
+
 	//$prefix 1-byte or FALSE
 	//returns array
 	private function rangify($element, $prefix)
@@ -108,16 +165,40 @@ class PeriodInterpreter
 		$s = $parts[0];
 		$e = $parts[1];
 		if ($prefix) {
-			$s = substr($s,1);
-			$e = substr($e,1);
+			if ($s[0] == $prefix)
+				$s = substr($s,1);
+			if ($e[0] == $prefix)
+				$e = substr($e,1);
 		}
 		if ($s < $e) {
-			if ($prefix)
+/*			if ($prefix)
 				return array_map(function($s) use($prefix) {
 					return $prefix.$s;
 				},range($s,$e));
 			else
+*/
 				return range($s,$e);
+		} else { //should never happen
+//			return array($parts[0]);
+			return array($s);
+		}
+	}
+
+	//returns array
+	private function rangifymonth($element)
+	{
+		$parts = explode('..',$element);
+		$dtw = new \DateTime('@0',NULL);
+		$dtw->modify($parts[0].'-1 0:0:0');
+		$dte = clone $dtw;
+		$dte->modify($parts[1].'-1 0:0:0');
+		if ($dtw < $dte) {
+			$ret = array();
+			while ($dtw <= $dte) {
+				$ret[] = $dtw->format('Y-n');
+				$dtw->modify('+1 month');
+			}
+			return $ret;
 		} else { //should never happen
 			return array($parts[0]);
 		}
@@ -154,6 +235,10 @@ class PeriodInterpreter
 			foreach ($parts as $element) {
 				if (strpos($element,'..') !== FALSE) {
 					$ret = array_merge($ret,self::rangify($element,$prefix));
+				} elseif (is_numeric($element)) {
+					$ret[] = (int)$element;
+				} elseif ($prefix && $prefix == $element[0] && $prefix != 'D') {
+					$ret[] = (int)substr($element,1);
 				} else {
 					$ret[] = $element;
 				}
@@ -162,28 +247,31 @@ class PeriodInterpreter
 		} elseif (strpos($element,'..') !== FALSE) {
 			return self::rangify($element,$prefix);
 		}
+		if ($prefix && $prefix != 'D') {
+			$element = substr($element,1);
+		}
+		if (is_numeric($element)) {
+			$element = (int)$element;
+		}
 		return array($element);
 	}
 
 	/*
 	InterpretDescriptor:
-	@descriptor: string
-	Returns:
-	 if @descriptor contains '(', an array with keys some or all of
-		'years','months','weeks','days'or'dates','each' and corresponding value(s)
-		either an interpreted cleaned array or a string like EE\d+([DWMY]E)?
-		representing a succession NOTE non-array for 'each n'th'
-	 if @descriptor contains ',', an array with one of the above keys and
-	 	values an interpreted cleaned array
-	 otherwise if @descriptor contains '..', an array with one of the above keys
-	 	and values an interpreted cleaned array
-	 otherwise an array with one of the above keys and value a single-member array
+	@descriptor: string like
+	 A(B(C(D(E)))) where any/all of [ABCD] and associated '()' may be absent,
+	   or may be like (P,Q,R) i.e. bracketed
+	 or W,X[,Y...] where any/all may be S..E
+	 or single S..E
+	Returns: array with members 'years','months','weeks','days' and maybe 'dates'
+	Each member an array of numbers or strings, or a single string:
+	'days' may have members like 'D3' or 'EE2D3' or may be '*'
+	'weeks','months' and/or 'years' may be '*' or '-'
 	*/
 	private function InterpretDescriptor($descriptor)
 	{
 		if (strpos($descriptor,'(') !== FALSE) {
-			//string like A(B(C(D(E)))) where any/all of [ABCD] and associated '()' may be absent
-			$descriptor = trim($descriptor,'!)'); //omit element-closers
+			$descriptor = str_replace(array('!',')','(('),array('','','('),$descriptor); //omit element-closers
 			$parts = array_reverse(explode('(',$descriptor)); //prefer deeper-nested elements
 			$lastkey = count($parts) - 1; //last key for comparison
 		} elseif (strpos($descriptor,',') !== FALSE) {
@@ -201,125 +289,162 @@ class PeriodInterpreter
 			$parts = array(ltrim($descriptor,'!'));
 			$lastkey = -1;
 		}
-/* 'each'-descriptor examples
-'D3(EE2WE(2020))'
-'D3(EE2WE(2020-10))'
-'D3(EE2WE(EE3ME(2020)))'
-'D3(EE2WE(M5))'
-'D3(EE2WE(M5..M9))'
-'D3(EE3ME(2020))'
-'EE10DE(EE2ME(2016))'
-'EE10DE(EE2ME(M7..M9))'
-'EE10DE(EE3ME(2016..2020))'
-'EE10DE(EE3ME(EE2(2016..2020)))'
-'EE10DE(M5)'
-'EE10DE(M5,M7)'
-'EE10DE(M5..M9)'
-'EE10DE(M6,M7)'
-'EE10DE(M9..M12)'
-'EE2(2015..2020)'
-'EE2D3(2015)'
-'EE2D3(2015..2016)'
-'EE2D3(EE2ME(2016))'
-'EE2D3(EE2ME(M7..M9))'
-'EE2D3(EE3ME(2016..2020))'
-'EE2D3(EE3ME(EE2(2016..2020)))'
-'EE2D3(M5)'
-'EE2D3(M5,M7)'
-'EE2D3(M5..M9)'
-'EE2D3(M6,M7)'
-'EE2D3(M9..M12)'
-'EE2DE(-1(WE(2020-10)))'
-'EE2DE(2(WE(2020)))'
-'EE2DE(2(WE(2020-10)))'
-'EE2DE(2(WE(M5)))'
-'EE2DE(EE2WE(2020))'
-'EE2DE(EE2WE(2020-10))'
-'EE2DE(EE2WE(M5))'
-'EE2ME(2015)'
-'EE2ME(2015..2020)'
-'EE2ME(M1..M12)'
-'EE2WE(2015)'
-'EE2WE(2015..2020)'
-'EE2WE(2015-5)'
-'EE2WE(2020-5..2020-12)'
-'EE2WE(2020-5..2020-12)'
-'EE2WE(EE2ME(M7..M9))'
-'EE2WE(EE2YE(2015..2020))'
-'EE2WE(M5)'
-'EE2WE(M5(2015))'
-'EE2WE((M5,M6)(2015..2020))'
-'EE2WE(M5,M7)'
-'EE2WE(M5..M9)'
-'EE2WE(M6,M7)'
-'EE2WE(M9..M12)'
-'EE2YE(2015..2020)'
-'EE30DE(2015)'
-'EE30DE(2015..2016)'
-'EE3(M7..M12)'
-'EE3ME(EE2YE(2015..2020))'
-*/
-		$found = array();
-		foreach ($parts as $element) {
-			if (!isset($found['years'])) {
-				if (preg_match('^[12]\d{3}([,.].+)?$',$element)) {
+		$ic = count($parts);
+		$dc = 0;
+		$found = array('years'=>'*','months'=>'*','weeks'=>'*','days'=>'*'); //no 'dates'
+		for ($i=0; $i<$ic; $i++) { //NOT foreach cuz members can change on-the-fly
+			$element = $parts[$i];
+			if ($found['years'][0] == '*') {
+				if (preg_match('/^[12]\d{3}([,.].+)?$/',$element)) {
 					$found['years'] = self::toarray($element);
-				} elseif (preg_match('^EE([2-9]\d*)YE$',$element,$matches)) {
-					$found['years'] = (int)$matches[1]; //non-array signals 'eacher'
+					$dc++;
+					continue;
+				} elseif (preg_match('/^EE([2-9]|1\d+)YE$/',$element,$matches)) {
+					$found['years'] = array(); //'eacher' but we can't know where to start/end
+					$dc++;
+					continue;
 				}
-			} elseif (!isset($found['months'])) {
+			}
+			if ($found['months'][0] == '*') {
 				if (strpos($element,'M') !== FALSE) {
-					if (preg_match('^EE([2-9]|1[012])ME$',$element,$matches)) {
-						$found['months'] = (int)$matches[1]; //for upstream iterpretation
+					if (preg_match('/^EE([2-9]|1[012])ME$/',$element,$matches)) { //each n'th month
+						if ($found['years'][0] != '*')
+							$found['months'] = range(1,12,$matches[1]);
+						$dc++;
+						continue;
+					} elseif ($element != 'M') {
+						$found['months'] = self::toarray(str_replace('M','',$element));
+						$dc++;
+						continue;
 					} else {
-						$found['months'] = self::toarray($element,'M');
+						$parts[$i+1] = 'M'.$parts[$i+1];
+						$dc++;
+						continue;
 					}
-				} elseif (preg_match('^[12]\d{3}\-(0?[1-9]|1[0-2])([,.].+)?$',$element)) {
-					$found['months'] = self::toarray($element);
+				} elseif (preg_match('/^[12]\d{3}\-(0?[1-9]|1[0-2])([,.].+)?$/',$element)) {
+					$found['months'] = self::rangifymonth($element);
+					$found['years'] = '-';
+					$dc++;
+					continue;
 				}
-			} elseif (!isset($found['weeks'])) {
+			}
+			if ($found['weeks'][0] == '*') {
 				if (strpos($element,'W') !== FALSE) {
-					if (preg_match('^EE([2-9]|[1-5]\d)WE$',$element,$matches)) {
-						$found['weeks'] = (int)$matches[1]; //for upstream iterpretation
-					} else {
+					if (preg_match('/^EE([2-9]|[1-5]\d)WE$/',$element,$matches)) { //each n'th week
+						if ($found['months'][0] != '*')
+							$d = 5; //upstream must check year/month specific max weeks
+						elseif ($found['years'][0] != '*') {
+							$d = 52;
+							$found['months'] = '-';
+						} else
+							$d = 0;
+						if ($d > 0)
+							$found['weeks'] = range(1,$d,$matches[1]);
+						$dc++;
+						continue;
+					} elseif ($element != 'W') {
 						$found['weeks'] = self::toarray($element,'W');
+						$dc++;
+						continue;
+					} else {
+						$parts[$i+1] = 'W'.$parts[$i+1];
+						$dc++;
+						continue;
 					}
 				}
-			} elseif (!(isset($found['days']) || isset($found['dates']))) {
+			}
+			if ($found['days'][0] == '*' || isset($found['dates'])) {
 				if (strpos($element,'D') !== FALSE) {
-					if (preg_match('^EE([2-9]|[1-3]\d{1,2}|[4-9]\d)DE$',$element,$matches)) {
-						$found['days'] = (int)$matches[1]; //for upstream iterpretation
-					} else {
+					if (preg_match('/^EE([2-9]|[1-3]\d{1,2}|[4-9]\d)DE$/',$element,$matches)) {
+						if ($found['weeks'][0] != '*')
+							$d = 7;
+						elseif ($found['months'][0] != '*') {
+							$d = 31; //upstream must check year/month specific max days
+							$found['weeks'] = '-';
+						} elseif ($found['years'][0] != '*') {
+							$d = 366; //upstream must check year specific max days
+							$found['weeks'] = '-';
+							$found['months'] = '-';
+						} else
+							$d = 0;
+						if ($d > 0)
+							$found['days'] = range(1,$d,$matches[1]);
+						$dc++;
+						continue;
+					} elseif ($element != 'D') {
 						$found['days'] = self::toarray($element,'D');
+						$dc++;
+						continue;
+					} else {
+						$parts[$i+1] = 'D'.$parts[$i+1];
+						$dc++;
+						continue;
 					}
-				} elseif (preg_match('^(\-)?([1-9]|[12]\d|3[01])([,.].+)?$',$element)) { //day(s) of month
+				} elseif (preg_match('/^(\-)?([1-9]|[12]\d|3[01])([,.].+)?$/',$element)) { //day(s) of month
 					$found['days'] = self::toarray($element);
-				} elseif (preg_match('^[12]\d{3}\-(0?[1-9]|1[0-2])\-(0?[1-9]|[12]\d|3[01])([,.].+)?$',$element)) { //date(s)
+					$dc++;
+					continue;
+				} elseif (preg_match('/^[12]\d{3}\-(0?[1-9]|1[0-2])\-(0?[1-9]|[12]\d|3[01])([,.].+)?$/',$element)) { //date(s)
 					if (strpos($element,',') !== FALSE) {
 						$bits = explode(',',$element);
+						$xtras = array();
 						foreach ($bits as &$b) {
 							if (strpos($b,'..') !== FALSE) {
-								$b = self::rangifydate($b);
+								$xtras = array_merge($xtras,self::rangifydate($b));
+								unset($b);
 							}
 						}
 						unset($b);
+						if ($xtras) {
+							$bits = array_merge($bits,$xtras);
+						}
 						$found['dates'] = array_unique($bits,SORT_STRING);
+						$dc++;
+						continue;
 					} elseif (strpos($element,'..') !== FALSE) {
 						$found['dates'] = self::rangifydate(ltrim($element,'!'));
+						$dc++;
+						continue;
 					} else {
 						$found['dates'] = array(ltrim($element,'!'));
+						$dc++;
+						continue;
 					}
 				}
-			} elseif (!isset($found['each'])) {
-				if (preg_match('^EE[2-9]\d*$',$element)) {
-					if (key($scan) == $lastkey) {
-						$found['each'] = (int)substr($element,2); //for upstream iterpretation
-					}
-				}
-			} else {
-				break;
+			}
+			if (preg_match('/^EE([2-9]|1\d+)((.)E)?$/',$element,$matches)) {
+				$hint = isset($matches[3]) ? $matches[3]:FALSE;
+				self::separate($hint,(int)$matches[1],$found);
+				$dc++;
 			}
 		}
+
+		if ($dc == $lastkey) { //1 more unparsed element
+			if (preg_match('/^EE([2-9]|1\d+)((.)E)?$/',$element,$matches)) {
+				$hint = isset($matches[3]) ? $matches[3]:FALSE;
+				self::separate($hint,(int)$matches[1],$found);
+			}
+		}
+
+		if ($found['days'][0] != '*') {
+			if ($found['months'][0] == '*') {
+				if ($found['years'][0] != '*') {
+					$found['months'] = '-';
+				}
+			}
+			if ($found['weeks'][0] == '*') {
+				if ($found['months'][0] != '*') {
+					$found['weeks'] = '-';
+				}
+			}
+		} else { //all days
+			if ($found['weeks'][0] == '*') {
+				$found['weeks'] = '-'; //ignore weeks
+			}
+//			if (isset($found['dates'])) {
+//				unset($found['days']);
+		}
+
 		return $found;
 	}
 
@@ -1015,18 +1140,10 @@ class PeriodInterpreter
 		}
 		//get relevant months
 		$months = self::BlockMonths($bs,$be,$dtw);
-		if (is_array($parsed['months'])) {
-			$wanted = $parsed['months'];
-		} else { //each n'th month
-			$d = $parsed['months'];
-			$wanted = array();
-			for ($i=1; $i<13; $i+=$d) {
-				$wanted[] = $i;
-			}			
-		}
-		$months = array_intersect($months,$wanted);
+		$months = array_intersect($months,$parsed['months']);
 		if (!$months)
 			return array();
+
 		$wanted = self::AllDays($years,$months);
 		if (!$wanted)
 			return array();
@@ -1073,30 +1190,13 @@ class PeriodInterpreter
 		}
 		if (isset($parsed['months'])) {
 			$months = self::BlockMonths($bs,$be,$dtw);
-			if (is_array($parsed['months'])) {
-				$wanted = $parsed['months'];
-			} else { //each n'th month
-				$d = $parsed['months'];
-				$wanted = array();
-				for ($i=1; $i<13; $i+=$d) {
-					$wanted[] = $i;
-				}			
-			}
-			$months = array_intersect($months,$wanted);
+			$months = array_intersect($months,$parsed['months']);
 			if (!$months)
 				return array();
 		} else {
 			$months = FALSE;
 		}
-		if (is_array($parsed['weeks'])) {
-			$weeks = $parsed['weeks'];
-		} else { //each n'th week
-			$d = $parsed['weeks'];
-			$weeks = array();
-			for ($i=1; $i<6; $i+=$d) { //CHECKME need year/month specific max weeks?
-				$weeks[] = $i;
-			}
-		}
+		$weeks = $parsed['weeks'];
 
 		$wanted = self::AllDays($years,$months,$weeks);
 		if (!$wanted)
@@ -1143,43 +1243,18 @@ class PeriodInterpreter
 		}
 		if (isset($parsed['months'])) {
 			$months = self::BlockMonths($bs,$be,$dtw);
-			if (is_array($parsed['months'])) {
-				$wanted = $parsed['months'];
-			} else { //each n'th month
-				$d = $parsed['months'];
-				$wanted = array();
-				for ($i=1; $i<13; $i+=$d) {
-					$wanted[] = $i;
-				}			
-			}
-			$months = array_intersect($months,$wanted);
+			$months = array_intersect($months,$parsed['months']);
 			if (!$months)
 				return array();
 		} else {
 			$months = FALSE;
 		}
 		if (isset($parsed['weeks'])) {
-			if (is_array($parsed['weeks'])) {
-				$weeks = $parsed['weeks'];
-			} else { //each n'th week
-				$d = $parsed['weeks'];
-				$weeks = array();
-				for ($i=1; $i<6; $i+=$d) { //CHECKME need year/month specific max weeks?
-					$weeks[] = $i;
-				}
-			}
+			$weeks = $parsed['weeks'];
 		} else {
 			$weeks = FALSE;
 		}
-		if (is_array($parsed['days'])) {
-			$days = $parsed['days'];
-		} else { //each n'th day
-			$d = $parsed['days'];
-			$days = array();
-			for ($i=1; $i<32; $i+=$d) { //CHECKME need year/month-specific maxdays?
-				$days[] = $i;
-			}
-		}
+		$days = $parsed['days'];
 
 		$wanted = self::AllDays($years,$months,$weeks,$days); //must get something
 		$ret = array();
