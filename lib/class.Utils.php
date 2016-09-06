@@ -1358,7 +1358,7 @@ class Utils
 			return $dt->format($format);
 	}
 
-	/**
+	/* *
 	IntervalNames:
 
 	Get one, or array of, translated time-interval-name(s).
@@ -1370,7 +1370,7 @@ class Utils
 	@plural: optional, whether to get plural form of the interval name(s), default FALSE
 	@cap: optional, whether to capitalise the first character of the name(s), default FALSE
 	*/
-	public function IntervalNames(&$mod, $which, $plural=FALSE, $cap=FALSE)
+/*	public function IntervalNames(&$mod, $which, $plural=FALSE, $cap=FALSE)
 	{
 		$k = ($plural) ? 'multiperiods' : 'periods';
 		$all = explode(',',$mod->Lang($k));
@@ -1396,7 +1396,7 @@ class Utils
 		}
 		return $ret;
 	}
-
+*/
 	/**
 	MonthNames:
 
