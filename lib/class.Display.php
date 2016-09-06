@@ -556,10 +556,10 @@ class Display
 				$dte->modify('+'.(7-$t).' days');
 			break;
 		 case \Booker::SEGMTH: //month-per-column
-			$t = $dts->format('Y-m');
+			$t = $dts->format('Y-n');
 			$dts->modify($t.'-1 0:0:0');
-			$t = $dte->format('Y-m');
-			$dte->modify($t.'-1 0:0:0 +1 month');
+			$t = $dte->format('Y-n');
+			$dte->modify($t.'-1 0:0:0');
 			break;
 		}
 		$dtw = clone $dts;
@@ -582,7 +582,7 @@ class Display
 		if ($rules) {
 			$funcs = new WhenRules($this->mod);
 			$timeparms = $funcs->TimeParms($idata);
-			list($starts,$ends) = $funcs->AllIntervals($rules[0],$dts,$dte,$timeparms); //proximal-rule-only, no ancestor-merging
+			list($starts,$ends) = $funcs->AllIntervals(reset($rules),$dts,$dte,$timeparms); //proximal-rule-only, no ancestor-merging
 		} else { //all available
 			$starts = array();
 			$ends = array();
