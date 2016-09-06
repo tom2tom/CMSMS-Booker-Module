@@ -65,7 +65,7 @@ class PeriodInterpreter
 	*/
 	public function BlockDays($bs, $be, $dtw)
 	{
-		$years = self::BlockYears($bs, $be, $dtw, FALSE);
+		$years = self::BlockYears($bs,$be,$dtw,FALSE);
 		$dtw->setTime(0,0,0);
 		$dte = clone $dtw;
 		$ret = array();
@@ -75,8 +75,7 @@ class PeriodInterpreter
 			$ye = end($years);
 			while ($yn < $ye) {
 				$doy = array();
-				$t = ($yn+1).'-1-1';
-				$dte->modify($t);
+				$dte->setDate($yn+1,1,1);
 				while ($dtw < $dte) {
 					$doy[] = $dtw->getTimestamp();
 					$dtw->modify('+1 day');
@@ -84,7 +83,6 @@ class PeriodInterpreter
 				if ($doy) {
 					$ret[$yn] = $doy;
 				}
-				$dtw = $dte;
 				$yn++;
 			}
 		}
