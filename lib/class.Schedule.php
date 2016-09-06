@@ -699,7 +699,7 @@ $this->Crash();
 			$funcs = new WhenRules($this->mod);
 			$idata = $utils->GetItemProperty($mod,$item_id,'*');
 			$timeparms = $funcs->TimeParms($idata);
-			list($starts,$ends) = $funcs->AllIntervals($rules[0],$dts,$dte,$timeparms); //proximal-rule-only, no ancestor-merging
+			list($starts,$ends) = $funcs->AllIntervals(reset($rules),$dts,$dte,$timeparms); //proximal-rule-only, no ancestor-merging
 			//TODO deal with e.g. multi-day blocks when slotlen is <day  - ignore periods around midnight
 		} else {
 			$starts = array($TODO);
@@ -732,9 +732,11 @@ $this->Crash();
 		$utils = new Utils();
 		$is_group = ($item_id >= \Booker::MINGRPID);
 		if ($is_group) {
-			//TODO get resources in group, check them all
-			$sql = 'SELECT bkg_id FROM '.$mod->DataTable.' WHERE item_id IN(TODO)';
-			$args = array($TODO);
+			//get resources in group, check them all
+			$all = $utils->GetGroupItems($mod,$item_id);
+			$fillers = str_repeat('?,',count($all)-1);
+			$sql = 'SELECT bkg_id FROM '.$mod->DataTable.' WHERE item_id IN('.$fillers.'?)';
+			$args = $all;
 		} else {
 			$sql = 'SELECT bkg_id FROM '.$mod->DataTable.' WHERE item_id=?';
 			$args = array($item_id);
@@ -747,6 +749,9 @@ $this->Crash();
 		$args[] = $dts->getTimestamp();
 		 //ignore possible 1-sec overlaps
 		$sql .= ' AND slotstart < ? AND (slotstart + slotlen) > ?';
+		if ($is_group) {
+			$sql .= ' ORDER BY item_id';
+		}
 		$used = $utils->SafeGet($sql,$args,'one');
 		if ($is_group) {
 			//TODO decide how to report on results
