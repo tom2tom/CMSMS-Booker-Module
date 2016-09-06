@@ -896,7 +896,7 @@ if ($years[0] == '*') { //DEBUG
 			foreach ($offs as $d) {
 				$dtw->modify($yn.'-1-1 +'.$d.' days');
 				if (!$merge || $dtw->format('j') == 1)
-					$doy[] = $dt->getTimestamp();
+					$doy[] = $dtw->getTimestamp();
 			}
 			if ($doy)
 				$ret[$yn] = $doy;
@@ -949,7 +949,7 @@ if ($years[0] == '*') { //DEBUG
 			foreach ($offs as $d) {
 				$dtw->modify($yn.'-1-1 +'.$d.' days');
 				if (!$merge || $dtw->format('w') == 0)
-					$doy[] = $dt->getTimestamp();
+					$doy[] = $dtw->getTimestamp();
 			}
 			if ($doy)
 				$ret[$yn] = $doy;
@@ -997,7 +997,7 @@ if ($years[0] == '*') { //DEBUG
 			$doy = array();
 			foreach ($offs as $d) {
 				$dtw->modify($yn.'-1-1 +'.$d.' days');
-				$doy[] = $dt->getTimestamp();
+				$doy[] = $dtw->getTimestamp();
 			}
 			if ($doy)
 				$ret[$yn] = $doy;
