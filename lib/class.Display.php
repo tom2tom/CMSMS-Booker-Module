@@ -192,13 +192,14 @@ class Display
 	Populate array of column-titles
 	@idata: reference to array of data for item as per table-record, with inherited data where available
 	@dts: datetime object representing start of 1st day of period for which titles are wanted
+	@dte: datetime object representing 1-past last day
 	@range: enum 0..3 representing the total span of the report period
 	@seglen: enum 0..2 representing the duration of each report-segment (e.g. column)
 	Returns: 2-member array,
 	 [0] = array of column-title strings for public display
 	 [1] = array of corresponding date-strings as YYYY-MM-DD, for lookup upon column-click
 	*/
-	private function GetTitles(&$idata, $dts, $range, $seglen)
+	private function GetTitles(&$idata, $dts, $dte, $range, $seglen)
 	{
 		$titles = array();
 		$fmt = $idata['dateformat'] ? $idata['dateformat'] : 'j M';
@@ -225,6 +226,7 @@ class Display
 			$dtw = clone $dts; //preserve $dts
 			$t = $dtw->format('w'); //0 (for Sunday) .. 6 (for Saturday)
 			$t1 = $t;
+			$inc = new \DateInterval('P1D');
 			do {
 				$d = $names[$t];
 				$titles[] = $d.'<br />'.$dtw->format($fmt);
@@ -232,7 +234,7 @@ class Display
 				$t++;
 				if ($t > 6)
 					$t = 0;
-				$dtw->modify('+1 day');
+				$dtw->add($inc);
 			} while ($t != $t1);
 			break;
 		 case \Booker::RANGEMTH: //month-view
@@ -247,6 +249,7 @@ class Display
 				$t = $dtw->format('j'); //1 to 31
 				$l = $dtw->format('t'); //28 to 31
 				$t1 = $t;
+				$inc = new \DateInterval('P1D');
 				do {
 					$d = $dtw->format('w');
 					$titles[] = $names[$d].'<br />'.$dtw->format($fmt);
@@ -254,7 +257,7 @@ class Display
 					$t++;
 					if ($t > $l)
 						$t = 1;
-					$dtw->modify('+1 day');
+					$dtw->add($inc);
 				} while ($t != $t1);
 			} else { //$seglen == \Booker::SEGWEEK, week-per-column
 				if ($shortday)
@@ -272,14 +275,12 @@ class Display
 					$dtw->modify('-'.$w.' days');
 					break;
 				}
-				//end-date
-				$dt2 = clone $dts;
-				$dt2->modify('+1 month');
+				$inc = new \DateInterval('P7D');
 				do {
 					$titles[] = $dtw->format($fmt);
 					$isos[] = $dtw->format('Y-m');  //rows must append '-d'
-					$dtw->modify('+7 days');
-				} while ($dtw < $dt2);
+					$dtw->add($inc);
+				} while ($dtw < $dte);
 			}
 			break;
 		 case \Booker::RANGEYR: //year-view
@@ -295,28 +296,26 @@ class Display
 						$dtw->modify('-'.$w.' days');
 						break;
 				}
-				//end-date
-				$dt2 = clone $dts;
-				$dt2->modify('+1 year');
+				$inc = new \DateInterval('P7D');
 				do {
 					$titles[] = $dtw->format($fmt);
 					$isos[] = $dtw>format('Y-m');
-					$dtw->modify('+7 days');
-				} while ($dtw < $dt2);
+					$dtw->add($inc);
+				} while ($dtw < $dte);
 			} else { //$seglen == \Booker::SEGMTH, month-per-column
 				$shortmonth = (strpos($fmt,'M') !== FALSE);
 				//$longmonth = (strpos($fmt,'F') !== FALSE);
 				$names = $this->utils->MonthNames($this->mod,range(1,12),$shortmonth);
 				$t = $dtw->format('n'); //1 to 12
-				$t1 = $t;
+				$inc = new \DateInterval('P1M');
 				do {
 					$titles[] = $names[$t].'<br />'.$dtw->format('Y');
 					$isos[] = $dtw->format('Y-m');
 					$t++;
 					if ($t > 12)
 						$t = 1;
-					$dtw->modify('+1 month');
-				} while ($t != $t1);
+					$dtw->add($inc);
+				} while ($dtw < $dte);
 			}
 			break;
 		}
@@ -556,10 +555,13 @@ class Display
 				$dte->modify('+'.(7-$t).' days');
 			break;
 		 case \Booker::SEGMTH: //month-per-column
-			$t = $dts->format('Y-n');
-			$dts->modify($t.'-1 0:0:0');
-			$t = $dte->format('Y-n');
-			$dte->modify($t.'-1 0:0:0');
+			$c = $dts->format('j');
+			if ($c > 1) {
+				$t = $dts->format('Y-n');
+				$dts->modify($t.'-1 0:0:0');
+				$t = $dte->format('Y-n');
+				$dte->modify($t.'-1 0:0:0 +1 month');
+			}
 			break;
 		}
 		$dtw = clone $dts;
@@ -603,7 +605,7 @@ class Display
 		$columns = array();
 		$columns[] = $cells;
 		//populate titles array
-		list($titles,$isos) = self::GetTitles($idata,$dts,$range,$seglen);
+		list($titles,$isos) = self::GetTitles($idata,$dts,$dte,$range,$seglen);
 		$cc = count($titles);
 
 		$funcs = new Bookingops();
