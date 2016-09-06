@@ -240,11 +240,13 @@ array('0..sunrise,sunset..11:59',	1),
 	public function Separations()
 	{
 		$tests = array(
-'EE2YE(2016..2024)',
-'EE2(2016..2024)',
+//TODO more validation of this stuff
+/*
+'EE2YE(2016..2020)',
+'EE2(2016..2019)',
 'EE10DE(EE2ME(2016))',
 'EE10DE(EE2ME(M7..M9))',
-'EE10DE(EE3ME(2016..2020))',
+'EE10DE(EE3ME(2016..2016))',
 'EE7DE(EE3ME(2016,2018,2020))',
 'EE14DE(EE3ME(EE2(2016..2020)))',
 'EE10DE(M5)',
@@ -253,12 +255,17 @@ array('0..sunrise,sunset..11:59',	1),
 'EE10DE(M6,M7)',
 'EE10DE(M9..M12)',
 'EE2(2015..2020)',
-'EE2D3(2015)',
-'EE2D3(2015..2016)',
+*/
+//'EE2D3(2015)', 199
+//'EE2D3(2015..2016)', 199
+/* NOT ALL DEBUGGED
+'EE2D3(2016-11)',
 'EE2D3(EE2ME(2016))',
 'EE2D3(EE2ME(M7..M9))',
 'EE2D3(EE3ME(2016..2020))',
 'EE2D3(EE3ME(EE2(2016..2020)))',
+*/
+/*
 'EE2D3(M5)',
 'EE2D3(M5,M7)',
 'EE2D3(M5..M9)',
@@ -271,8 +278,10 @@ array('0..sunrise,sunset..11:59',	1),
 'EE2DE(2(W(2020)))',
 'EE2DE(2(W(2020-10)))',
 'EE2DE(2(W(M5)))',
-'EE2DE(EE2WE(2020))',
-'EE2DE(EE2WE(2020-10))',
+*/
+//'EE2DE(EE2WE(2020))',
+//'EE2DE(EE2WE(2020-10))',
+/*
 'EE2DE(EE2WE(M5))',
 'EE2ME(2015)',
 'EE2ME(2015..2020)',
@@ -282,8 +291,9 @@ array('0..sunrise,sunset..11:59',	1),
 'EE2WE(2015-5)',
 'EE2WE(2020-5..2020-12)',
 'EE2ME(2020-5..2020-12)',
+*/
 'EE2WE(EE2ME(M7..M9))',
-'EE2WE(EE2YE(2015..2020))',
+'EE2WE(EE2YE(2015..2018))',
 'EE2WE(M5)',
 'EE2WE(M5(2015))',
 'EE2WE((M5,M6)(2015..2020))',
@@ -305,9 +315,14 @@ array('0..sunrise,sunset..11:59',	1),
 '(D3,D4)(EE3ME(2020))'
 		);
 		$ares = array();
+		$bres = array();
+		$dtw = new \DateTime('@0',NULL);
 		$funcs = new PeriodInterpreter();
 		foreach ($tests as $test) {
 			$ares[$test] = $funcs->InterpretDescriptor($test);
+			$years = ($ares[$test]['years'][0] != '*') ?
+				$ares[$test]['years'] : array(2016,2017);
+			$ares[$test]['alldays'] = $funcs->AllDays($years,$ares[$test]['months'],$ares[$test]['weeks'],$ares[$test]['days'],$dtw);
 		}
 		$this->Crash();
 	}
