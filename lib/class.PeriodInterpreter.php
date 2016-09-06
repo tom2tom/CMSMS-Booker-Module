@@ -68,6 +68,7 @@ class PeriodInterpreter
 		$years = self::BlockYears($bs,$be,$dtw,FALSE);
 		$dtw->setTime(0,0,0);
 		$dte = clone $dtw;
+		$inc = new \DateInterval('P1D');
 		$ret = array();
 		$yn = reset($years);
 
@@ -78,7 +79,7 @@ class PeriodInterpreter
 				$dte->setDate($yn+1,1,1);
 				while ($dtw < $dte) {
 					$doy[] = $dtw->getTimestamp();
-					$dtw->modify('+1 day');
+					$dtw->add($inc);
 				}
 				if ($doy) {
 					$ret[$yn] = $doy;
@@ -90,7 +91,7 @@ class PeriodInterpreter
 		$dte->setTimestamp($be-1);
 		while ($dtw <= $dte) {
 			$doy[] = $dtw->getTimestamp();
-			$dtw->modify('+1 day');
+			$dtw->add($inc);
 		}
 		if ($doy)
 			$ret[$yn] = $doy;
@@ -158,9 +159,10 @@ class PeriodInterpreter
 		$dte->modify($parts[1]);
 		if ($dtw < $dte) {
 			$ret = array();
+			$inc = new \DateInterval('P1D');
 			while ($dtw <= $dte) {
 				$ret[] = $dtw->format('Y-n-j');
-				$dtw->modify('+1 day');
+				$dtw->add($inc);
 			}
 			return $ret;
 		}
@@ -808,6 +810,7 @@ if ($years[0] == '*') { //DEBUG
 
 		$dtw->setTime(0,0,0);
 		$dte = clone $dtw;
+		$inc = new \DateInterval('P1D');
 		$ret = array();
 		$yn = reset($years);
 
@@ -824,7 +827,7 @@ if ($years[0] == '*') { //DEBUG
 							$doy[] = $st;
 						}
 					}
-					$dtw->modify('+1 day');
+					$dtw->add($inc);
 				}
 				if ($doy) {
 					$ret[$yn] = $doy;
@@ -842,7 +845,7 @@ if ($years[0] == '*') { //DEBUG
 					$doy[] = $st;
 				}
 			}
-			$dtw->modify('+1 day');
+			$dtw->add($inc);
 		}
 		if ($doy)
 			$ret[$yn] = $doy;

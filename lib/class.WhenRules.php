@@ -125,6 +125,7 @@ class WhenRules extends WhenRuleLexer
 				}
 
 				if ($parsed) {
+					$inc = new \DateInterval('P1D');
 					foreach ($parsed as $doy) {
 						foreach ($doy as $daystart) {
 							if ($sunny) {
@@ -138,7 +139,7 @@ class WhenRules extends WhenRuleLexer
 							} else {
 								$starts[] = $daystart;
 								$dtw->setTimestamp($daystart);
-								$dtw->modify('+1 day');
+								$dtw->add($inc);
 								$ends[] = $dtw->getTimestamp()-1;
 							}
 						}
@@ -154,11 +155,12 @@ class WhenRules extends WhenRuleLexer
 				 case 7: //months(s) in specific year(s) in $bs..$be-1
 					$parsed = $funcs->SpecificMonths($descriptor,$bs,$be,$dtw,TRUE);
 					if ($parsed) {
+						$inc = new \DateInterval('P1M');
 						foreach ($parsed as $som) {
 							foreach ($som as $st) {
 								$starts[] = $st;
 								$dtw->setTimestamp($st);
-								$dtw->modify('+1 month');
+								$dtw->add($inc);
 								$st = $dtw->getTimestamp();
 								if ($st < $be) {
 									$ends[] = $st-1;
@@ -176,11 +178,12 @@ class WhenRules extends WhenRuleLexer
 				 case 9: //week(s) in specific [month(s) and] year(s) in $bs..$be-1
 					$parsed = $funcs->SpecificWeeks($descriptor,$bs,$be,$dtw,TRUE);
 					if ($parsed) {
+						$inc = new \DateInterval('P7D');
 						foreach ($parsed as $sow) {
 							foreach ($sow as $st) {
 								$starts[] = $st;
 								$dtw->setTimestamp($st);
-								$dtw->modify('+7 days');
+								$dtw->add($inc);
 								$st = $dtw->getTimestamp();
 								if ($st < $be) {
 									$ends[] = $st-1;
