@@ -7,29 +7,20 @@
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
 
-//comparer for sorting merged-array of onetime bookings
-function cmp_blockstarts($a, $b)
-{
-	return $a['slotstart'] - $b['slotstart'];
-}
-
-if ($params['action'] == 'inspect') {
+if ($params['task'] == 'see') {
 	if ($this->_CheckAccess('view')) {
-		$pconfig = FALSE;
 		$pmod = FALSE;
 	} else
 		exit;
-} elseif ($params['action'] == 'administer') {
-	$pconfig = $this->_CheckAccess('admin');
-	if ($pconfig || $this->_CheckAccess('book'))
+} elseif ($params['task'] == 'edit') {
+	if ($this->_CheckAccess('admin') || $this->_CheckAccess('book')) {
 		$pmod = TRUE;
-	else
+	} else
 		exit;
 } else
 	exit;
 
 $tplvars = array();
-$tplvars['pconfig'] = (($pconfig)?1:0);
 $tplvars['pmod'] = (($pmod)?1:0);
 
 $ob = cms_utils::get_module('Notifier');
@@ -41,14 +32,23 @@ if ($ob) {
 $tplvars['tell'] = $tell;
 
 $item_id = (int)$params['item_id'];
-$is_group = ($item_id >= Booker::MINGRPID);
 
-$tplvars['startform'] =
-	$this->CreateFormStart($id,'multibooking',$returnid,'POST','','','',
-		array('item_id'=>$item_id,'resume'=>$params['action'],'repeat'=>0,'custmsg'=>''));
-$tplvars['startform2'] =
-	$this->CreateFormStart($id,'multibooking',$returnid,'POST','','','',
-		array('item_id'=>$item_id,'resume'=>$params['action'],'repeat'=>1));
+//some of these values will be tailored as needed
+$linkparms = array(
+	'item_id'=>$item_id,
+	'bkg_id'=>0,
+	'resume'=>$params['action'],
+	'task'=>$params['task'],
+	'repeat'=>0
+);
+if ($pmod) {
+	$linkparms['bookedit'] = 1;
+}
+
+$tplvars['startform'] = $this->CreateFormStart($id,'multibooking',$returnid,'POST','','','',
+	array('item_id'=>$item_id,'resume'=>$params['action'],'task'=>$params['task'],'repeat'=>0,'custmsg'=>''));
+$tplvars['startform2'] = $this->CreateFormStart($id,'multibooking',$returnid,'POST','','','',
+	array('item_id'=>$item_id,'resume'=>$params['action'],'task'=>$params['task'],'repeat'=>1));
 $tplvars['endform'] = $this->CreateFormEnd();
 
 $this->_BuildNav($id,$params,$returnid,$tplvars);
@@ -59,6 +59,7 @@ if (!empty($params['message']))
 $utils = new Booker\Utils();
 $idata = $utils->GetItemProperty($this,$item_id,'*',FALSE);
 
+$is_group = ($item_id >= Booker::MINGRPID);
 $type = ($is_group) ? $this->Lang('group'):$this->Lang('item');
 if (!empty($idata['name'])) {
 	if ($is_group)
@@ -129,7 +130,9 @@ EOS;
 	$data2 = $utils->SafeGet($sql,$groups);
 	if ($data2) {
 		$data = array_merge($data,$data2);
-		usort($data,'cmp_blockstarts');
+		usort($data, function ($a, $b) {
+			return $a['slotstart'] - $b['slotstart'];
+		});
 	}
 }
 
@@ -211,9 +214,9 @@ if ($data) {
 		$st .= ' '.$stt;
 		$period = sprintf($rfmt,$st,$nd);
 
-		if ($pmod) //TODO && admin-mode
-			$oneset->time = $this->CreateLink($id,'openbooking','',$period,
-				array('item_id'=>$item_id,'bkg_id'=>$bid,'bookedit'=>1,'repeat'=>0,'resume'=>$params['action']));
+		$linkparms['bkg_id'] = $bid;
+		if ($pmod) //edit mode
+			$oneset->time = $this->CreateLink($id,'openbooking','',$period,$linkparms);
 		else
 			$oneset->time = $period;
 		if ($one['item_id'] != $item_id) { //this one from a group?
@@ -225,8 +228,7 @@ if ($data) {
 			$oneset->paid = ($one['paid']) ? $yes:$no;
 		else
 			$oneset->paid = '';
-		$oneset->open = $this->CreateLink($id,'openbooking','',$icon_open,
-			array('item_id'=>$item_id,'bkg_id'=>$bid,'bookedit'=>1,'repeat'=>0,'resume'=>$params['action']));
+		$oneset->open = $this->CreateLink($id,'openbooking','',$icon_open,$linkparms);
 		$oneset->export = $this->CreateLink($id,'exportbooking','',$icon_export,
 			array('item_id'=>$item_id,'bkg_id'=>$bid));
 		if ($tell)
@@ -318,8 +320,7 @@ function select_all(cb) {
 EOS;
 		$tplvars['header_checkbox'] =
 			$this->CreateInputCheckbox($id,'selectall',TRUE,FALSE,'onclick="select_all(this);"');
-	} else
-		$tplvars['header_checkbox'] = '';
+	}
 
 	$jsfuncs[] = <<<EOS
 function any_selected() {
@@ -416,12 +417,9 @@ EOS;
 if ($pmod) {
 	$t = $this->Lang('addbooking');
 	$icon_add = $theme->DisplayImage('icons/system/newobject.gif',$t,'','','systemicon');
-	$tplvars['iconlinkadd'] =
-		$this->CreateLink($id,'openbooking','',$icon_add,
-		array('item_id'=>$item_id,'bkg_id'=>-1,'bookedit'=>1,'repeat'=>0,'resume'=>$params['action']));
-	$tplvars['textlinkadd'] =
-		$this->CreateLink($id,'openbooking','',$t,
-		array('item_id'=>$item_id,'bkg_id'=>-1,'bookedit'=>1,'repeat'=>0,'resume'=>$params['action'])); //ditto
+	$linkparms['bkg_id'] = -1; //signal new item
+	$tplvars['iconlinkadd'] = $this->CreateLink($id,'openbooking','',$icon_add,$linkparms);
+	$tplvars['textlinkadd'] = $this->CreateLink($id,'openbooking','',$t,$linkparms);
 	$tplvars['importbbtn'] = $this->CreateInputSubmit($id,'importbkg',$this->Lang('import'),
 		'title="'.$this->Lang('tip_importbkg').'"');
 }
@@ -465,13 +463,15 @@ if ($data) {
 	$tplvars['colnames2'] = $titles;
 	$tplvars['colsorts2'] = $titles;
 
+	$linkparms['repeat'] = 1; //rest of links are for repeat bookings 
+
 	foreach ($data as &$one) {
 		$bid = (int)$one['bkg_id'];
 		$oneset = new stdClass();
 
+		$linkparms['bkg_id'] = $bid;
 		if ($pmod)
-			$oneset->desc = $this->CreateLink($id,'openbooking','',$one['formula'],
-			array('item_id'=>$item_id,'bkg_id'=>$bid,'bookedit'=>1,'repeat'=>1,'resume'=>$params['action']));
+			$oneset->desc = $this->CreateLink($id,'openbooking','',$one['formula'],$linkparms);
 		else
 			$oneset->desc = $one['formula'];
 		if ($one['item_id'] != $item_id) { //this one from a group?
@@ -486,16 +486,15 @@ if ($data) {
 			$oneset->paid = ($one['paid']) ? $yes:$no;
 		else
 			$oneset->paid = '';
-		$oneset->open = $this->CreateLink($id,'openbooking','',$icon_open,
-			array('item_id'=>$item_id,'bkg_id'=>$bid,'bookedit'=>1,'repeat'=>1,'resume'=>$params['action']));
+		$oneset->open = $this->CreateLink($id,'openbooking','',$icon_open,$linkparms);
 		$oneset->export = $this->CreateLink($id,'exportbooking','',$icon_export,
 			array('item_id'=>$item_id,'bkg_id'=>$bid));
 		if ($tell)
-		 $oneset->tell = $this->CreateLink($id,'notifybooker','',$icon_tell,
-			array('item_id'=>$item_id,'bkg_id'=>$bid));
+			$oneset->tell = $this->CreateLink($id,'notifybooker','',$icon_tell,
+				array('item_id'=>$item_id,'bkg_id'=>$bid));
 		if ($pmod)
-		 $oneset->delete = $this->CreateLink($id,'delbooking','',$icon_delete,
-			array('item_id'=>$item_id,'bkg_id'=>$bid,'repeat'=>1));
+			$oneset->delete = $this->CreateLink($id,'delbooking','',$icon_delete,
+				array('item_id'=>$item_id,'bkg_id'=>$bid,'repeat'=>1));
 		$oneset->selected = $this->CreateInputCheckbox($id,'sel[]',$bid,-1);
 		$rows[] = $oneset;
 	}
@@ -565,8 +564,6 @@ function select_all2(cb) {
 EOS;
 			$tplvars['header_checkbox2'] =
 				$this->CreateInputCheckbox($id,'selectall',TRUE,FALSE,'onclick="select_all2(this);"');
-		} else { //rc == 1
-			$tplvars['header_checkbox2'] = '';
 		}
 		if ($tell) {
 			$jsloads[] = <<<EOS
@@ -616,17 +613,16 @@ EOS;
 EOS;
 		} //no Notifier
 	} //pmod
-} //rc i.e. data found
+} else { //rc i.e. data found
+	$tplvars['norecords'] = $this->Lang('nodata'); //maybe epeat assigment, don't care
+}
 
 if ($pmod) {
 	$t = $this->Lang('addbooking2');
 	$icon_add = $theme->DisplayImage('icons/system/newobject.gif',$t,'','','systemicon');
-	$tplvars['iconlinkadd2'] =
-		$this->CreateLink($id,'openbooking','',$icon_add,
-		array('item_id'=>$item_id,'bkg_id'=>-1,'bookedit'=>1,'repeat'=>1,'resume'=>$params['action']));
-	$tplvars['textlinkadd2'] =
-		$this->CreateLink($id,'openbooking','',$t,
-		array('item_id'=>$item_id,'bkg_id'=>-1,'bookedit'=>1,'repeat'=>1,'resume'=>$params['action'])); //ditto
+	$linkparms['bkg_id'] = -1;
+	$tplvars['iconlinkadd2'] = $this->CreateLink($id,'openbooking','',$icon_add,$linkparms);
+	$tplvars['textlinkadd2'] = $this->CreateLink($id,'openbooking','',$t,$linkparms);
 }
 
 if ($from_group)
