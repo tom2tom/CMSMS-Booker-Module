@@ -212,7 +212,8 @@ if ($data) {
 		$period = sprintf($rfmt,$st,$nd);
 
 		if ($pmod) //TODO && admin-mode
-			$oneset->time = $this->CreateLink($id,'openbooking','',$period,array('item_id'=>$item_id,'bkg_id'=>$bid,'repeat'=>0,'resume'=>$params['action']));
+			$oneset->time = $this->CreateLink($id,'openbooking','',$period,
+				array('item_id'=>$item_id,'bkg_id'=>$bid,'bookedit'=>1,'repeat'=>0,'resume'=>$params['action']));
 		else
 			$oneset->time = $period;
 		if ($one['item_id'] != $item_id) { //this one from a group?
@@ -224,7 +225,8 @@ if ($data) {
 			$oneset->paid = ($one['paid']) ? $yes:$no;
 		else
 			$oneset->paid = '';
-		$oneset->open = $this->CreateLink($id,'openbooking','',$icon_open,array('item_id'=>$item_id,'bkg_id'=>$bid,'repeat'=>0,'resume'=>$params['action']));
+		$oneset->open = $this->CreateLink($id,'openbooking','',$icon_open,
+			array('item_id'=>$item_id,'bkg_id'=>$bid,'bookedit'=>1,'repeat'=>0,'resume'=>$params['action']));
 		$oneset->export = $this->CreateLink($id,'exportbooking','',$icon_export,
 			array('item_id'=>$item_id,'bkg_id'=>$bid));
 		if ($tell)
@@ -415,9 +417,11 @@ if ($pmod) {
 	$t = $this->Lang('addbooking');
 	$icon_add = $theme->DisplayImage('icons/system/newobject.gif',$t,'','','systemicon');
 	$tplvars['iconlinkadd'] =
-		$this->CreateLink($id,'openbooking','',$icon_add,array('item_id'=>$item_id,'bkg_id'=>-1,'repeat'=>0,'resume'=>$params['action']));
+		$this->CreateLink($id,'openbooking','',$icon_add,
+		array('item_id'=>$item_id,'bkg_id'=>-1,'bookedit'=>1,'repeat'=>0,'resume'=>$params['action']));
 	$tplvars['textlinkadd'] =
-		$this->CreateLink($id,'openbooking','',$t,array('item_id'=>$item_id,'bkg_id'=>-1,'repeat'=>0,'resume'=>$params['action'])); //ditto
+		$this->CreateLink($id,'openbooking','',$t,
+		array('item_id'=>$item_id,'bkg_id'=>-1,'bookedit'=>1,'repeat'=>0,'resume'=>$params['action'])); //ditto
 	$tplvars['importbbtn'] = $this->CreateInputSubmit($id,'importbkg',$this->Lang('import'),
 		'title="'.$this->Lang('tip_importbkg').'"');
 }
@@ -466,7 +470,8 @@ if ($data) {
 		$oneset = new stdClass();
 
 		if ($pmod)
-			$oneset->desc = $this->CreateLink($id,'openbooking','',$one['formula'],array('item_id'=>$item_id,'bkg_id'=>$bid,'repeat'=>1,'resume'=>$params['action']));
+			$oneset->desc = $this->CreateLink($id,'openbooking','',$one['formula'],
+			array('item_id'=>$item_id,'bkg_id'=>$bid,'bookedit'=>1,'repeat'=>1,'resume'=>$params['action']));
 		else
 			$oneset->desc = $one['formula'];
 		if ($one['item_id'] != $item_id) { //this one from a group?
@@ -481,7 +486,8 @@ if ($data) {
 			$oneset->paid = ($one['paid']) ? $yes:$no;
 		else
 			$oneset->paid = '';
-		$oneset->open = $this->CreateLink($id,'openbooking','',$icon_open,array('item_id'=>$item_id,'bkg_id'=>$bid,'repeat'=>1,'resume'=>$params['action']));
+		$oneset->open = $this->CreateLink($id,'openbooking','',$icon_open,
+			array('item_id'=>$item_id,'bkg_id'=>$bid,'bookedit'=>1,'repeat'=>1,'resume'=>$params['action']));
 		$oneset->export = $this->CreateLink($id,'exportbooking','',$icon_export,
 			array('item_id'=>$item_id,'bkg_id'=>$bid));
 		if ($tell)
@@ -616,9 +622,11 @@ if ($pmod) {
 	$t = $this->Lang('addbooking2');
 	$icon_add = $theme->DisplayImage('icons/system/newobject.gif',$t,'','','systemicon');
 	$tplvars['iconlinkadd2'] =
-		$this->CreateLink($id,'openbooking','',$icon_add,array('item_id'=>$item_id,'bkg_id'=>-1,'repeat'=>1,'resume'=>$params['action']));
+		$this->CreateLink($id,'openbooking','',$icon_add,
+		array('item_id'=>$item_id,'bkg_id'=>-1,'bookedit'=>1,'repeat'=>1,'resume'=>$params['action']));
 	$tplvars['textlinkadd2'] =
-		$this->CreateLink($id,'openbooking','',$t,array('item_id'=>$item_id,'bkg_id'=>-1,'repeat'=>1,'resume'=>$params['action'])); //ditto
+		$this->CreateLink($id,'openbooking','',$t,
+		array('item_id'=>$item_id,'bkg_id'=>-1,'bookedit'=>1,'repeat'=>1,'resume'=>$params['action'])); //ditto
 }
 
 if ($from_group)
