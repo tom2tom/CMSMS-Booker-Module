@@ -1317,8 +1317,18 @@ class Utils
 	*/
 	public function IntervalFormat(&$mod, $dt, $format, $withyear=FALSE)
 	{
-		if (!$format)
+		if ($format) {
+			if ($withyear && stripos($format,'Y') === FALSE) { //no year of any sort
+				if (strpos($format,'/') !== FALSE)
+					$format .= '/Y';
+				elseif (strpos($format,'-') !== FALSE)
+					$format = 'Y-'.$format;
+				else
+					$format .= ' Y';
+			}
+		} else {
 			$format = 'j M Y';
+		}
 		$finds = array();
 		$placers = array();
 		$repls = array();
@@ -1345,9 +1355,6 @@ class Utils
 			$indx = $dt->format('n');
 			$placers[] = '4Q4';
 			$repls[] = self::MonthNames($mod,$indx);
-		}
-		if ($withyear && strpos($format,'Y') === FALSE) { //no year of any sort
-			$format .= ' Y';
 		}
 
 		if ($finds) {
