@@ -39,11 +39,11 @@ if ($mod || $pper) {
 }
 if ($pmod) {
 //	$t = $this->Lang('edit');
-//	$icon_open = '<img src="'.$baseurl.'/images/calendar-edit.png" alt="'.$t.'" title="'.$t.'" border="0" />';
+//	$icon_open = '<img src="'.$baseurl.'/images/booking-edit.png" alt="'.$t.'" title="'.$t.'" border="0" />';
 	$icon_delete = $theme->DisplayImage('icons/system/delete.gif',$this->Lang('delete'),'','','systemicon');
 } else {
 //	$t = $this->Lang('view');
-//	$icon_open = '<img src="'.$baseurl.'/images/calendar.png" alt="'.$t.'" title="'.$t.'" border="0" />';
+//	$icon_open = '<img src="'.$baseurl.'/images/booking.png" alt="'.$t.'" title="'.$t.'" border="0" />';
 }
 //$icon_export = $theme->DisplayImage('icons/system/export.gif',$this->Lang('export'),'','','systemicon');
 //$t = $this->Lang('tip_notifyuser');
