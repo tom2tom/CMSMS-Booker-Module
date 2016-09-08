@@ -29,6 +29,8 @@ class WhenRules extends WhenRuleLexer
 	*/
 	private function PeriodBlocks($cond, $bs, $be, $dtw, &$timeparms, &$starts, &$ends)
 	{
+		$funcs = new PeriodInterpreter();
+
 		$sunny = FALSE;
 		if ($cond['T']) {
 			if (!is_array($cond['T']))
@@ -87,138 +89,132 @@ class WhenRules extends WhenRuleLexer
 			}
 		}
 
-		$funcs = new PeriodInterpreter();
-		if (!is_array($cond['P'])) {
-			$cond['P'] = array($cond['P']);
-		}
-		foreach ($cond['P'] as $descriptor) {
-			if ($dodays) {
-				switch ($cond['F']) {
-				 case 1: //whole of $bs..$be-1
-					$parsed = $funcs->BlockDays($bs,$be,$dtw);
-					break;
-				 case 2: //months(s) in any year in $bs..$be-1
-				 case 7: //months(s) in specific year(s) in $bs..$be-1
-					$parsed = $funcs->SpecificMonths($descriptor,$bs,$be,$dtw);
-					break;
-				 case 3: //week(s) in any month in any year in $bs..$be-1
-				 case 8: //week(s) in specific month(s) in $bs..$be-1
-				 case 9: //week(s) in specific [month(s) and] year(s) in $bs..$be-1
-					$parsed = $funcs->SpecificWeeks($descriptor,$bs,$be,$dtw);
-					break;
-				 case 4: //day(s) of week in any week in $bs..$be-1
-				 case 5: //day(s) of month in any month in $bs..$be-1
-				 case 10: //day(s) in weeks(s) in $bs..$be-1
-				 case 11: //day(s) in [weeks(s) and] month(s) in $bs..$be-1
-				 case 12: //day(s) in weeks(s) and specific month(s) and specific year(s) in $bs..$be-1
-					$parsed = $funcs->SpecificDays($descriptor,$bs,$be,$dtw);
-					break;
-				 case 6: //year(s) in $bs..$be-1
-					$parsed = $funcs->SpecificYears($descriptor,$bs,$be,$dtw);
-					break;
-				 case 13: //specific day(s) in $bs..$be-1
-					$parsed = $funcs->SpecificDates($descriptor,$bs,$be,$dtw);
-					break;
-				 default:
-					$parsed = FALSE;
-					break;
-				}
+		if ($dodays) {
+			switch ($cond['F']) {
+			 case 1: //whole of $bs..$be-1
+				$parsed = $funcs->BlockDays($bs,$be,$dtw);
+				break;
+			 case 2: //months(s) in any year in $bs..$be-1
+			 case 7: //months(s) in specific year(s) in $bs..$be-1
+				$parsed = $funcs->SpecificMonths($cond['P'],$bs,$be,$dtw);
+				break;
+			 case 3: //week(s) in any month in any year in $bs..$be-1
+			 case 8: //week(s) in specific month(s) in $bs..$be-1
+			 case 9: //week(s) in specific [month(s) and] year(s) in $bs..$be-1
+				$parsed = $funcs->SpecificWeeks($cond['P'],$bs,$be,$dtw);
+				break;
+			 case 4: //day(s) of week in any week in $bs..$be-1
+			 case 5: //day(s) of month in any month in $bs..$be-1
+			 case 10: //day(s) in weeks(s) in $bs..$be-1
+			 case 11: //day(s) in [weeks(s) and] month(s) in $bs..$be-1
+			 case 12: //day(s) in weeks(s) and specific month(s) and specific year(s) in $bs..$be-1
+				$parsed = $funcs->SpecificDays($cond['P'],$bs,$be,$dtw);
+				break;
+			 case 6: //year(s) in $bs..$be-1
+				$parsed = $funcs->SpecificYears($cond['P'],$bs,$be,$dtw);
+				break;
+			 case 13: //specific day(s) in $bs..$be-1
+				$parsed = $funcs->SpecificDates($cond['P'],$bs,$be,$dtw);
+				break;
+			 default:
+				$parsed = FALSE;
+				break;
+			}
 
+			if ($parsed) {
+				$inc = new \DateInterval('P1D');
+				foreach ($parsed as $doy) {
+					foreach ($doy as $daystart) {
+						if ($sunny) {
+							list($stimes,$etimes) = self::TimeBlocks($cond['T'],$daystart,$dtw,$timeparms);
+						}
+						if ($stimes) {
+							foreach ($stimes as $i=>$st) {
+								$starts[] = $daystart + $st;
+								$ends[] = $daystart + $etimes[$i];
+							}
+						} else {
+							$starts[] = $daystart;
+							$dtw->setTimestamp($daystart);
+							$dtw->add($inc);
+							$ends[] = $dtw->getTimestamp()-1;
+						}
+					}
+				}
+			}
+		} else { //blockwise analyis
+			switch ($cond['F']) {
+			 case 1: //whole block
+				$starts[] = $bs;
+				$ends[] = $be - 1;
+				break;
+			 case 2: //months(s) in any year in $bs..$be-1
+			 case 7: //months(s) in specific year(s) in $bs..$be-1
+				$parsed = $funcs->SpecificMonths($cond['P'],$bs,$be,$dtw,TRUE);
 				if ($parsed) {
-					$inc = new \DateInterval('P1D');
-					foreach ($parsed as $doy) {
-						foreach ($doy as $daystart) {
-							if ($sunny) {
-								list($stimes,$etimes) = self::TimeBlocks($cond['T'],$daystart,$dtw,$timeparms);
-							}
-							if ($stimes) {
-								foreach ($stimes as $i=>$st) {
-									$starts[] = $daystart + $st;
-									$ends[] = $daystart + $etimes[$i];
-								}
+					$inc = new \DateInterval('P1M');
+					foreach ($parsed as $som) {
+						foreach ($som as $st) {
+							$starts[] = $st;
+							$dtw->setTimestamp($st);
+							$dtw->add($inc);
+							$st = $dtw->getTimestamp();
+							if ($st < $be) {
+								$ends[] = $st-1;
 							} else {
-								$starts[] = $daystart;
-								$dtw->setTimestamp($daystart);
-								$dtw->add($inc);
-								$ends[] = $dtw->getTimestamp()-1;
+								$ends[] = $be-1;
+								break;
 							}
 						}
 					}
+					//TODO merge adjacent months $blocks->MergeBlocks($starts,$ends);
 				}
-			} else { //blockwise analyis
-				switch ($cond['F']) {
-				 case 1: //whole block
-					$starts[] = $bs;
-					$ends[] = $be - 1;
-					break;
-				 case 2: //months(s) in any year in $bs..$be-1
-				 case 7: //months(s) in specific year(s) in $bs..$be-1
-					$parsed = $funcs->SpecificMonths($descriptor,$bs,$be,$dtw,TRUE);
-					if ($parsed) {
-						$inc = new \DateInterval('P1M');
-						foreach ($parsed as $som) {
-							foreach ($som as $st) {
-								$starts[] = $st;
-								$dtw->setTimestamp($st);
-								$dtw->add($inc);
-								$st = $dtw->getTimestamp();
-								if ($st < $be) {
-									$ends[] = $st-1;
-								} else {
-									$ends[] = $be-1;
-									break;
-								}
+				break;
+			 case 3: //week(s) in any month in any year in $bs..$be-1
+			 case 8: //week(s) in specific month(s) in $bs..$be-1
+			 case 9: //week(s) in specific [month(s) and] year(s) in $bs..$be-1
+				$parsed = $funcs->SpecificWeeks($cond['P'],$bs,$be,$dtw,TRUE);
+				if ($parsed) {
+					$inc = new \DateInterval('P7D');
+					foreach ($parsed as $sow) {
+						foreach ($sow as $st) {
+							$starts[] = $st;
+							$dtw->setTimestamp($st);
+							$dtw->add($inc);
+							$st = $dtw->getTimestamp();
+							if ($st < $be) {
+								$ends[] = $st-1;
+							} else {
+								$ends[] = $be-1;
+								break;
 							}
 						}
-						//TODO merge adjacent months $blocks->MergeBlocks($starts,$ends);
 					}
-					break;
-				 case 3: //week(s) in any month in any year in $bs..$be-1
-				 case 8: //week(s) in specific month(s) in $bs..$be-1
-				 case 9: //week(s) in specific [month(s) and] year(s) in $bs..$be-1
-					$parsed = $funcs->SpecificWeeks($descriptor,$bs,$be,$dtw,TRUE);
-					if ($parsed) {
-						$inc = new \DateInterval('P7D');
-						foreach ($parsed as $sow) {
-							foreach ($sow as $st) {
-								$starts[] = $st;
-								$dtw->setTimestamp($st);
-								$dtw->add($inc);
-								$st = $dtw->getTimestamp();
-								if ($st < $be) {
-									$ends[] = $st-1;
-								} else {
-									$ends[] = $be-1;
-									break;
-								}
-							}
-						}
-						//TODO merge adjacent weeks $blocks->MergeBlocks($starts,$ends);
-					}
-					break;
-				 case 6: //year(s) in $bs..$be-1
-					$parsed = $funcs->SpecificYears($descriptor,$bs,$be,$dtw,TRUE);
-					if ($parsed) {
-						foreach ($parsed as $soy) {
-							foreach ($soy as $st) {
-								$starts[] = $st;
-								$dtw->setTimestamp($st);
-								$dtw->modify('+1 year');
-								$st = $dtw->getTimestamp();
-								if ($st < $be) {
-									$ends[] = $st-1;
-								} else {
-									$ends[] = $be-1;
-									break;
-								}
-							}
-						}
-						//TODO merge adjacent years $blocks->MergeBlocks($starts,$ends);
-					}
-					break;
-				 default:
-					break;
+					//TODO merge adjacent weeks $blocks->MergeBlocks($starts,$ends);
 				}
+				break;
+			 case 6: //year(s) in $bs..$be-1
+				$parsed = $funcs->SpecificYears($cond['P'],$bs,$be,$dtw,TRUE);
+				if ($parsed) {
+					foreach ($parsed as $soy) {
+						foreach ($soy as $st) {
+							$starts[] = $st;
+							$dtw->setTimestamp($st);
+							$dtw->modify('+1 year');
+							$st = $dtw->getTimestamp();
+							if ($st < $be) {
+								$ends[] = $st-1;
+							} else {
+								$ends[] = $be-1;
+								break;
+							}
+						}
+					}
+					//TODO merge adjacent years $blocks->MergeBlocks($starts,$ends);
+				}
+				break;
+			 default:
+				break;
 			}
 		}
 	}
@@ -480,7 +476,10 @@ class WhenRules extends WhenRuleLexer
 			//for all inclusion-conditions, add to $starts,$ends
 			foreach ($this->conds as &$cond) {
 				if ($cond['P']) {
-					if ($cond['P'][0] == '!') //exclusive
+					if (is_array($cond['P'])) {
+						if ($cond['P'][0][0] == '!') //TODO conform to actual parsing
+							continue;
+					} elseif ($cond['P'][0] == '!')
 						continue;
 				} elseif ($cond['T']) {
 					if (is_array($cond['T'])) {
@@ -515,7 +514,10 @@ class WhenRules extends WhenRuleLexer
 				//for all exclusion-conditions, subtract from $starts,$ends
 				foreach ($this->conds as &$cond) {
 					if ($cond['P']) {
-						if ($cond['P'][0] != '!') //inclusive
+						if (is_array($cond['P'])) {
+							if ($cond['P'][0][0] != '!') //TODO conform to actual parsing
+								continue;
+						} elseif ($cond['P'][0] != '!')
 							continue;
 					} elseif ($cond['T']) {
 						if (is_array($cond['T'])) {
@@ -577,17 +579,18 @@ class WhenRules extends WhenRuleLexer
 	*/
 	public function AllIntervals($descriptor, $dts, $dte, &$timeparms, $defaultall=FALSE)
 	{
-		//limiting timestamps
-		$st = $dts->getTimestamp();
-		$nd = $dte->getTimestamp();
 		if ($descriptor) {
 			if (parent::ParseDescriptor($descriptor)) {
 				return self::GetBlocks($dts,$dte,$timeparms,$defaultall);
 			}
 		}
 		//nothing to report
-		if ($defaultall)
+		if ($defaultall) {
+			//limiting timestamps
+			$st = $dts->getTimestamp();
+			$nd = $dte->getTimestamp();
 			return array(array($st),array($nd-1));
+		}
 		return FALSE;
 	}
 
