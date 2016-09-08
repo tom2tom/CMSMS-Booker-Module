@@ -120,6 +120,8 @@ array('1..3(Friday,Saturday)',	5),
 array('Sunday(2(week(2016)))',		10),
 array('Saturday,Sunday(July(2016..2018)))',		10),
 array('(Saturday,Wednesday)(-3..-1(week(July)))',	11),
+array('Monday..Friday(Feb..Nov)',	11),
+array('Monday..Friday(Feb..Nov)@15:30..18:00',	11),
 array('Monday..Friday((-2,-1)(week(April..July)))',	11),
 array('(Monday..Friday)((-2,-1)(week)(April..July))',	11),
 array('14,10,1..3,-1,-2(April..July)',	11),
@@ -232,6 +234,8 @@ array('0..sunrise,sunset..11:59',	1),
 			} else
 				$type = 'No type, expected '.$test[1];
 			$ares[$test[0]] = array($clean, $type, $parsed);
+			$res = $funcs->ParseDescriptor($test[0]);
+			$ares2[$test[0]] = $funcs->conds;
 		}
 		unset($test);
 		$this->Crash();
