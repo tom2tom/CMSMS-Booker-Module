@@ -204,7 +204,7 @@ resource-availabilty-cache table schema:
  slotlen: seconds available
  cond_id: condition identifier
 */
-$fields = "
+/*$fields = "
  avl_id I(4) AUTO KEY,
  item_id I(4),
  slotstart I,
@@ -222,7 +222,7 @@ $sqlarray = $dict->CreateIndexSQL('idx_'.$this->AvailTable, $this->AvailTable, '
 $dict->ExecuteSQLArray($sqlarray);
 // sequence
 //$db->CreateSequence($this->AvailTable.'_seq');
-
+*/
 /*
  Fees for resource usage & related conditions
  condition_id:

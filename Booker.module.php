@@ -89,7 +89,7 @@ class Booker extends CMSModule
 	const SESSIONKEY = 'bkr_Sess';
 
 	public $dbHandle; //cached connection to adodb
-	public $AvailTable; //resource-availabilty cache
+//	public $AvailTable; //resource-availabilty cache
 	public $BookerTable; //booker details
 	public $DataTable; //non-repeated bookings-data
 	public $FeeTable; //payment amounts/rates and associated conditions
@@ -119,7 +119,7 @@ class Booker extends CMSModule
 
 		$this->dbHandle = cmsms()->GetDb();
 		$pre = cms_db_prefix();
-		$this->AvailTable = $pre.'module_bkr_avail';
+//		$this->AvailTable = $pre.'module_bkr_avail';
 		$this->BookerTable = $pre.'module_bkr_bookers';
 		$this->DataTable = $pre.'module_bkr_data';
 		$this->FeeTable = $pre.'module_bkr_fees';
@@ -461,9 +461,6 @@ class Booker extends CMSModule
 				$action = 'sortlike';
 			else
 				$action = 'openitem';
-			break;
-		 case 'inspect':
-			$action = 'administer';
 			break;
 		 case 'toggle': //[de]activate
 			$this->_ActivateItem($id, $params, $returnid); //trivial func, don't bother with separate action file
