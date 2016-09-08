@@ -119,6 +119,7 @@ if (!function_exists('groupsupdate')) {
 	}
 	$db = $mod->dbHandle;
 	$nt = 10;
+	//TODO $utils->SafeExec()
 	while ($nt > 0) {
 		$db->Execute('SET TRANSACTION ISOLATION LEVEL SERIALIZABLE'); //this isn't perfect!
 		$db->StartTrans();
@@ -142,7 +143,7 @@ if (!function_exists('groupsupdate')) {
 
 	if ($current || $new) {
 		$funcs = new Booker\Utils();
-		$funcs->OrderGroups($mod,$db);
+		$funcs->OrderGroups($mod);
 	}
  }
 
@@ -222,6 +223,7 @@ if (isset($params['apply']) || isset($params['submit'])) {
 			groupsupdate($this,$db,$item_id,TRUE,$members);
 		} else {
 			$sql = 'DELETE FROM '.$this->GroupTable.' WHERE parent=?';
+			//TODO $utils->SafeExec()
 			$db->Execute($sql,array($item_id));
 		}
 	}
@@ -238,6 +240,7 @@ if (isset($params['apply']) || isset($params['submit'])) {
 			groupsupdate($this,$db,$item_id,FALSE,$groups);
 	} elseif ($item_id > 0 && $item_id < Booker::MINGRPID) {
 		$sql = 'DELETE FROM '.$this->GroupTable.' WHERE child=?';
+			//TODO $utils->SafeExec()
 		$db->Execute($sql,array($item_id));
 	}
 	//stylesfile
@@ -368,6 +371,7 @@ if (isset($params['apply']) || isset($params['submit'])) {
 			$val = NULL;
 	}
 	unset($val);
+	//TODO $utils->SafeExec()
 	$db->Execute($sql,$data);
 }
 if (isset($params['cancel']) || $act == 'submit') {
@@ -389,7 +393,7 @@ if ($row) {
 	if ($act == 'copy') {
 		$item_id = ($is_group) ? -Booker::MINGRPID : -1;
 		$item->item_id = $item_id;
-		$item->name = $this->Lang('copied',$item->name);
+		$item->name = $this->Lang('copy_type',$item->name);
 		$item->alias = '';
 		$item->owner = 0; //OR 'me' ?
 	}
@@ -401,7 +405,7 @@ SELECT column_name,is_nullable FROM information_schema.columns
 WHERE table_schema{$stype} AND table_name='{$this->ItemTable}'
 ORDER BY ordinal_position
 EOS;
-	$rows = $db->GetAll($sql);
+	$rows = $db->GetArray($sql);
 	$item = new stdClass();
 	//object-members which represent inheritable values are NULL'd, if allowed
 	foreach ($rows as $one) {
@@ -611,7 +615,7 @@ $basic[] = array('ttl'=>$this->Lang('bookertell'),
 );
 //------- fees
 $sql = 'SELECT description,fee,feecondition FROM '.$this->FeeTable.' WHERE item_id=? AND active=1 ORDER BY condorder';
-$sel = $db->GetAll($sql,array($item_id));
+$sel = $db->GetArray($sql,array($item_id));
 if ($sel) {
 	$fees = array();
 	foreach ($sel as &$one) {
@@ -811,7 +815,7 @@ $sql = 'SELECT item_id,name FROM '.$this->ItemTable.' WHERE item_id>='.Booker::M
 $allgrps = $db->GetAssoc($sql,array($item_id));
 if ($allgrps) {
 	if ($item_id > 0) { //i.e. not new
-		$sql = 'SELECT parent FROM '.$this->GroupTable.' WHERE child=? ORDER BY proximity';
+		$sql = 'SELECT parent FROM '.$this->GroupTable.' WHERE child=? ORDER BY proximity DESC';
 		$relations = $db->GetCol($sql,array($item_id));
 		$rc = count($relations);
 		if ($rc > 0) {
@@ -1091,7 +1095,7 @@ $advanced[] = array('ttl'=>$cascade.$this->Lang('title_owner2'),
 'hlp'=>NULL
 );
 //------- feugroup (savers)
-$ob = ModuleOperations::get_instance()->get_module_instance('FrontEndUsers');
+$ob = cms_utils::get_module('FrontEndUsers');
 if (is_object($ob)) {
 	$allusers = $ob->GetGroupList(); //associative array with group names as keys, id's as values
 	unset($ob);
@@ -1131,7 +1135,7 @@ EOS;
 $choices = array();
 $allmodules = $this->GetModulesWithCapability('GatePayer');
 foreach ($allmodules as $name) {
-	$ob = ModuleOperations::get_instance()->get_module_instance($name);
+	$ob = cms_utils::get_module($name);
 	if ($ob) {
 		$n = $ob->GetFriendlyName();
 		$choices[$n] = $name;
