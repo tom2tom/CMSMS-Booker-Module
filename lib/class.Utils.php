@@ -21,30 +21,6 @@ class bkr_itemname_cmp
 	}
 }
 
-//comparer to sort fee-condition array rows, each with members including item_id,condorder
-class bkrfee_cmp
-{
-	private $ids;
-
-	public function __construct(&$allids)
-	{
-		$this->ids = $allids;
-	}
-	public function feecmp($a, $b)
-	{
-		$ta = $a['item_id'];
-		$tb = $b['item_id'];
-		if ($ta != $tb) {
-			$ka = array_search($ta,$this->ids);
-			$kb = array_search($tb,$this->ids);
-			if ($ka != $kb) {
-				return ($ka-$kb); //should always happen!
-			}
-		}
-		return ($a['condorder'] - $b['condorder']);
-	}
-}
-
 class Utils
 {
 	/**
@@ -722,7 +698,19 @@ class Utils
 			' WHERE item_id IN ('.$fillers.'?) AND active=1 ORDER BY item_id,condorder'; //a bit of downstream sorting might help ...
 			$fees = $db->GetArray($sql,$args); //NB ordered by item_id prob not what we want: $args has it
 			if ($fees) {
-				usort($fees,array(new bkrfee_cmp($args),'feecmp'));
+				usort($fees,function($a, $b) use ($args)
+				{
+					$ta = $a['item_id'];
+					$tb = $b['item_id'];
+					if ($ta != $tb) {
+						$ka = array_search($ta,$args);
+						$kb = array_search($tb,$args);
+						if ($ka != $kb) {
+							return ($ka-$kb); //should always happen!
+						}
+					}
+					return ($a['condorder'] - $b['condorder']);
+				});
 			}
 		} else {
 			$sql = 'SELECT fee,feecondition FROM '.$mod->FeeTable.
