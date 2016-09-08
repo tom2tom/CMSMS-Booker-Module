@@ -576,7 +576,7 @@ class Display
 		//update respective last-processed-repeats dates, if relevant
 		$funcs = new Schedule();
 		foreach ($allresource as $one) {
-			$funcs->UpdateRepeats($this->mod,$one,$dte);
+			$funcs->UpdateRepeats($this->mod,$one,$dts,$dte);
 		}
 		//get availability-blocks
 		$rules = $this->utils->GetOneHeritableProperty($this->mod,$item_id,'available');
@@ -718,7 +718,7 @@ class Display
 		//update respective last-processed-repeats dates, if relevant
 		$funcs = new Schedule();
 		foreach ($allresource as $one) {
-			$funcs->UpdateRepeats($this->mod,$one,$dte);
+			$funcs->UpdateRepeats($this->mod,$one,$dts,$dte);
 		}
 		$funcs = new Bookingops();
 		$lfmt = (int)$idata['listformat'];
