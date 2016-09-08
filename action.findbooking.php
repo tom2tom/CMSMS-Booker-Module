@@ -77,10 +77,10 @@ if (isset($params['item_id'])) {
 	$item_id = (int)$params['item_id'];
 	$is_group = ($item_id >= Booker::MINGRPID);
 	$idata = $utils->GetItemProperty($this,$item_id,'name');
-	$choices = $utils->GetItemFamily($this,$db,$item_id);
+	$choices = $utils->GetItemFamily($this,$item_id);
 } else {
 	$idata = array('name'=>$this->Lang('all'));
-	$choices = $db->GetAssoc('SELECT item_id,name FROM '.$mod->ItemTable.' WHERE active>0');
+	$choices = $db->GetAssoc('SELECT item_id,name FROM '.$this->ItemTable.' WHERE active>0');
 }
 
 //script accumulators
@@ -134,7 +134,7 @@ $t1 = str_replace('class="cms_textfield"','class="dateinput cms_textfield"',$t1)
 $t2 = isset($params['findlast']) ? $params['findlast'] : '';
 $t2 = $this->CreateInputText($id,'findlast',$t2,10);
 $t2 = str_replace('class="cms_textfield"','class="dateinput cms_textfield"',$t2);
-$oneset->input = $this->Lang('rangeshow',$t1,$t2);
+$oneset->input = $this->Lang('showrange',$t1,$t2);
 $selects[] = $oneset;
 
 $oneset = new stdClass();
@@ -164,40 +164,43 @@ if (isset($params['search'])) {
 	$cond = array();
 	$t = (int)$params['findchooser'];
 	if ($t < Booker::MINGRPID) {
-		$cond[] = 'B.item_id='.$t;
+		$cond[] = 'D.item_id='.$t;
 	} else {
 		$members = $utils->GetGroupItems($this,$t);
 		if ($members) {
 			$fillers = implode(',',$members);
-			$cond[] = 'B.item_id IN('.$fillers.')';
+			$cond[] = 'D.item_id IN('.$fillers.')';
 		}
 	}
 	$t = $params['finduser'];
 	if ($t) {
 		if ($params['findusertype'] == 1) { //exact match
-			$cond[] = 'B.user=\''.$t.'\'';
+			$cond[] = 'B.name=\''.$t.'\'';
 		} else {
-			$cond[] = 'B.user LIKE \'%'.$t.'%\''; //TODO caseless match LOWER ...
+			$cond[] = 'B.name LIKE \'%'.$t.'%\''; //TODO caseless match LOWER ...
 		}
 	}
 	$tz = new DateTimeZone('UTC');
 	if ($params['findfirst']) { // => string like '2016-07-14'
 		$dts = new DateTime($params['findfirst'],$tz);
-		$cond[] = 'B.slotstart>='.$dts->getTimestamp();
+		$cond[] = 'D.slotstart>='.$dts->getTimestamp();
 	}
 	if ($params['findlast']) {
 		$dts = new DateTime($params['findlast'].' 23:59:59',$tz);
-		$cond[] = 'B.slotstart<='.$dts->getTimestamp();
+		$cond[] = 'D.slotstart<='.$dts->getTimestamp();
 	}
-	$sql = 'SELECT B.bkg_id,B.slotstart,B.slotlen,B.user,I.name FROM '.$this->DataTable.
-	' B LEFT JOIN '.$this->ItemTable.' I ON B.item_id=I.item_id';
+	$sql = <<<EOS
+SELECT D.bkg_id,D.slotstart,D.slotlen,B.name AS user,I.name FROM {$this->DataTable} D
+JOIN {$this->BookerTable} B ON D.booker_id=B.booker_id
+JOIN {$this->ItemTable} I ON D.item_id=I.item_id
+EOS;
 	if ($cond) {
 		$sql .= ' WHERE '.implode(' AND ',$cond);
 	}
 	if ($t)
-		$sql .= ' ORDER BY B.slotstart,B.user';
+		$sql .= ' ORDER BY D.slotstart,B.name';
 	else
-		$sql .= ' ORDER BY B.slotstart,I.name';
+		$sql .= ' ORDER BY D.slotstart,I.name';
 
 	$rs = $db->SelectLimit($sql,100);
 	$items = array();
