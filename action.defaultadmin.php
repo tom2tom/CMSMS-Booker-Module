@@ -59,13 +59,13 @@ $no = $this->Lang('no');
 
 $baseurl = $this->GetModuleURLPath();
 $bseetip = $this->Lang('tip_seetype','%s');
-$iconbsee = '<img src="'.$baseurl.'/images/calendar.png" alt="%s" title="%s" border="0" />';
+$iconbsee = '<img src="'.$baseurl.'/images/booking.png" alt="%s" title="%s" border="0" />';
 if ($bmod || $pper) {
 	$bedittip = $this->Lang('tip_admintype','%s');
-	$iconbedit = '<img src="'.$baseurl.'/images/calendar-edit.png" alt="%s" title="%s" border="0" />';
+	$iconbedit = '<img src="'.$baseurl.'/images/booking-edit.png" alt="%s" title="%s" border="0" />';
 	$iconbdel = $theme->DisplayImage('icons/system/delete.gif','%s','','','systemicon');
 }
-$exporttip = $this->Lang('exporttype','%s');
+$exporttip = $this->Lang('tip_exportbooktype','%s');
 $iconexport = $theme->DisplayImage('icons/system/export.gif','%s','','','systemicon');
 $seetip = $this->Lang('tip_viewtype','%s');
 $iconsee = $theme->DisplayImage('icons/system/view.gif','%s','','','systemicon');
@@ -133,8 +133,11 @@ $tplvars['startform1'] = $this->CreateFormStart($id,'processrequest',$returnid,
 $tplvars['start_data_tab'] = $this->StartTab('data');
 
 $tablerows[1] = 0;
-$sql = 'SELECT * FROM '.$this->HistoryTable.' ORDER BY lodged'; //TODO condition = get requests
-$data = $db->GetAll($sql);
+$pending = array();
+$sql = 'SELECT H.*,B.name,B.publicid,B.address,B.phone FROM '.$this->HistoryTable.
+' H LEFT JOIN '.$this->BookerTable.' B ON H.booker_id = B.booker_id WHERE status<='.
+Booker::STATMAXREQ.' ORDER BY lodged';
+$data = $db->GetArray($sql);
 if ($data) {
 	$t = $this->Lang('request');
 	$rtip = $this->Lang('tip_seereq');
@@ -150,9 +153,9 @@ if ($data) {
 		$iconrno = $theme->DisplayImage('icons/system/false.gif',$this->Lang('tip_reject'),'','','systemicon');
 	}
 	$rtip = $this->Lang('tip_selecttype',$t);
-	$fmt = $this->GetPreference('pref_dateformat','Y-m-j').' '.
-		$this->GetPreference('pref_timeformat','G:i');
+	$fmt = 'j M Y G:i'; //specific format, not the 'public' (frontend) format, to restrict table width
 	$tz = new DateTimeZone('UTC');
+	$dt = new DateTime('@0',$tz);
 	$statNONE = $this->Lang('stat_none');
 	$statTEMP = $this->Lang('stat_temp');
 	$statNEW = $this->Lang('stat_new');
@@ -164,13 +167,22 @@ if ($data) {
 	$statOK = $this->Lang('stat_ok');
 	$statCANCEL = $this->Lang('stat_cancel');
 
-	$pending = array();
 	foreach ($data as &$row) {
 		$one = new stdClass();
-		$one->sender = $row['sender'];
-		$one->contact = $row['contact'];
-		$one->paid = ($row['paid']) ? $iconyes:$iconno;
-		switch ($row['status']) {
+		$one->sender = $row['publicid'] ? $row['publicid']:$row['name'];
+		$one->contact = $row['address'] ? $row['address']:$row['phone'];
+		$dt->setTimestamp($row['lodged']);
+		$one->lodged = $dt->format($fmt);
+		$t = $utils->GetItemNameForID($this,$row['item_id']);
+		if ($row['item_id'] >= Booker::MINGRPID) {
+			if ($row['subgrpcount'])
+				$t .= ','.$row['subgrpcount'];
+		}
+		$one->name = $t;
+		$dt->setTimestamp($row['slotstart']);
+		$one->start = $dt->format($fmt);
+		$t = (int)$row['status'];
+		switch ($t) {
 		 case Booker::STATNONE:
 			$t = $statNONE;
 			break;
@@ -202,24 +214,26 @@ if ($data) {
 			$t = $statCANCEL;
 			break;
 		 default:
-			$t = $row['status'];
+			break;
 		}
 		$one->status = $t;
-		$dt = new DateTime('1900-1-1',$tz);
-		$dt->setTimestamp($row['lodged']);
-		$one->lodged = $dt->format($fmt);
-		$t = $utils->GetItemNameForID($this,$row['item_id']);
-		if ($row['item_id'] >= Booker::MINGRPID) {
-			if ($row['subgrpcount'])
-				$t .= ','.$row['subgrpcount'];
+		switch ($row['payment']) {
+		 case Booker::STATFREE:
+ 			$one->paid = NULL;
+			break;
+		 case Booker::STATPAID:
+			$one->paid = $iconyes;
+			break;
+		 case Booker::STATCREDITED:
+		 case Booker::STATPAYABLE:
+		 case Booker::STATNOTPAID:
+		 default:
+			$one->paid = $iconno;
+			break;
 		}
-		$one->name = $t;
-		$dt = new DateTime('1900-1-1',$tz);
-		$dt->setTimestamp($row['slotstart']);
-		$one->start = $dt->format($fmt);
 		$t = $row['comment'];
-		if ($t && strlen($t) > 5)
-			$t = substr($t,0,5).'...';
+		if ($t && strlen($t) > 8)
+			$t = substr($t,0,8).'...';
 		$one->comment = $t;
 		$thisid = (int)$row['history_id'];
 		$one->see = $this->CreateLink($id,'processrequest',$returnid,$iconrsee,array('history_id'=>$thisid,'task'=>'see'));
@@ -246,7 +260,9 @@ if ($data) {
 		$pending[] = $one;
 	}
 	unset($row);
+}
 
+if ($pending) {
 	$tplvars['title_pending'] = $this->Lang('pending');
 	$dcount = count($data);
 	$tablerows[1] = $dcount;
@@ -254,8 +270,7 @@ if ($data) {
 	if ($dcount > 1) {
 		$tplvars['selectall_req'] = $this->CreateInputCheckbox($id,'req',TRUE,FALSE,'title="'.$this->Lang('selectall').'" onclick="select_all_req(this)"');
 		$jsfuncs[] = <<<EOS
-function select_all_req(b)
-{
+function select_all_req(b) {
  var st = $(b).attr('checked');
  if (!st) { st = false; }
  $('input[name="{$id}selreq[]"][type="checkbox"]').attr('checked',st);
@@ -279,9 +294,10 @@ EOS;
 
 		$what = '{'.$this->Lang('item').'}';
 		$on = '{'.$this->Lang('date').'}';
-		$approve = $this->Lang('email_approve',$what,$on);
-		$reject = $this->Lang('email_reject',$what,$on);
-		$notify = $this->Lang('email_changed',$what,$on); //ETC
+		$detail = $this->Lang('whatovrday',$what,$on);
+		$approve = $this->Lang('email_approve',$detail);
+		$reject = $this->Lang('email_reject',$detail);
+		$notify = $this->Lang('email_changed',$detail); //ETC
 
 		$jsfuncs[] =<<<EOS
 function modalsetup(tg,\$d) {
@@ -327,7 +343,7 @@ function savecustom2(tg,\$d) {
 
 EOS;
 		$jsloads[] =<<<EOS
- $('#data .bkrtell > a').modalconfirm({
+ $('#datatable .bkrtell > a').modalconfirm({
   overlayID: 'confirm',
   popupID: 'confmessage',
   confirmBtnID: 'mc_conf2',
@@ -348,7 +364,7 @@ EOS;
 EOS;
 		if ($bmod) {
 			$jsloads[] =<<<EOS
- $('#data .bkrapp > a').modalconfirm({
+ $('#datatable .bkrapp > a').modalconfirm({
   overlayID: 'confirm',
   popupID: 'confmessage',
   confirmBtnID: 'mc_conf2',
@@ -368,7 +384,7 @@ EOS;
 
 EOS;
 			$jsloads[] =<<<EOS
- $('#data .bkrrej > a').modalconfirm({
+ $('#datatable .bkrrej > a').modalconfirm({
   overlayID: 'confirm',
   popupID: 'confmessage',
   confirmBtnID: 'mc_conf2',
@@ -391,7 +407,7 @@ EOS;
 	} else { //Notifier module N/A
 		if ($bmod) {
 			$jsloads[] =<<<EOS
- $('#data .bkrapp > a').modalconfirm({
+ $('#datatable .bkrapp > a').modalconfirm({
   overlayID: 'confirm',
   popupID: 'confgeneral',
   preShow: function(tg,\$d) {
@@ -411,7 +427,7 @@ EOS;
 
 EOS;
 			$jsloads[] =<<<EOS
- $('#data .bkrrej > a').modalconfirm({
+ $('#datatable .bkrrej > a').modalconfirm({
   overlayID: 'confirm',
   popupID: 'confgeneral',
   preShow: function(tg,\$d) {
@@ -447,8 +463,7 @@ EOS;
 
 		$t = $this->Lang('confirm_delete_type',$this->Lang('request'),'%s');
 		$jsloads[] =<<<EOS
- });
- $('#data .bkrdel > a').modalconfirm({
+ $('#datatable .bkrdel > a').modalconfirm({
   overlayID: 'confirm',
   popupID: 'confgeneral',
   preShow: function(tg,\$d) {
@@ -467,6 +482,7 @@ EOS;
    var para = \$d.children('p:first')[0];
    para.innerHTML = '{$this->Lang('delsel_confirm',$this->Lang('request_multi'))}';
   }
+ });
 
 EOS;
 	}
@@ -487,10 +503,12 @@ EOS;
 	$tplvars['nodata'] = $this->Lang('nonew');
 }
 if ($bmod)
-	$tplvars['importbtn1'] = $this->CreateInputSubmit($id,'import',$this->Lang('import'),
+	$tplvars['importbtn1'] = $this->CreateInputSubmit($id,'importbkg',$this->Lang('import'),
 		'title="'.$this->Lang('tip_importbkg').'"');
 $tplvars['findbtn'] = $this->CreateInputSubmit($id,'find',$this->Lang('find'),
-		'title="'.$this->Lang('tip_findbkg').'"');
+	'title="'.$this->Lang('tip_findbkg').'"');
+$tplvars['bexportbtn1'] = $this->CreateInputSubmit($id,'exportbkg',$this->Lang('exportbook'),
+	'title="'.$this->Lang('tip_exportbookseltype',$this->Lang('request_multi')).'" onclick="return confirm_reqcount();"');
 
 //BOOKERS TAB (& FORM)
 $tplvars['startform2'] = $this->CreateFormStart($id,'adminbooker',$returnid,
@@ -504,7 +522,7 @@ $rows = $db->GetArray($sql);
 if ($rows) {
 	$sb = $this->Lang('booker');
 	$st = $utils->GetZoneTime('UTC'); //'now' timestamp with same zone as booking data
-	$dt = new DateTime('1900-1-1',new DateTimeZone('UTC'));
+	$dt = new DateTime('@0',new DateTimeZone('UTC'));
 	$sql = 'SELECT slotstart FROM '.$this->HistoryTable.' WHERE booker_id=? ORDER BY slotstart';
 	$t = sprintf($bseetip,$this->Lang('recorded'));
 	$icon1 = sprintf($iconbsee,$t,$t);
@@ -580,6 +598,14 @@ if ($rows) {
 $pcount = count($bkrs);
 $tablerows[2] = $pcount;
 $tplvars['pcount'] = $pcount;
+
+if($padd)
+	$tplvars['addbooking'] = $this->CreateLink($id,'adminbooker',$returnid,
+		 $theme->DisplayImage('icons/system/newobject.gif',$this->Lang('addbooking'),'','','systemicon'),
+		 array('booker_id'=>-1,'task'=>'add'),'',FALSE,FALSE,'')
+	 .' '.$this->CreateLink($id,'adminbooker',$returnid,
+		 $this->Lang('addbooking'),
+		 array('booker_id'=>-1,'task'=>'add'),'',FALSE,FALSE,'class="pageoptions"');
 if ($pcount > 0) {
 	$tplvars += array(
 	 'bookers' => $bkrs,
@@ -595,8 +621,7 @@ if ($pcount > 0) {
 	if ($pcount > 1) {
 		$tplvars['selectall_bookers'] = $this->CreateInputCheckbox($id,'booker',TRUE,FALSE,'title="'.$this->Lang('selectall').'" onclick="select_all_bkr(this)"');
 		$jsfuncs[] = <<<EOS
-function select_all_bkr(b)
-{
+function select_all_bkr(b) {
  var st = $(b).attr('checked');
  if (!st) { st = false; }
  $('input[name="{$id}selbkr[]"][type="checkbox"]').attr('checked',st);
@@ -613,12 +638,6 @@ function confirm_bkrcount() {
 
 EOS;
 	if($padd) {
-		$tplvars['addbooking'] = $this->CreateLink($id,'adminbooker',$returnid,
-			 $theme->DisplayImage('icons/system/newobject.gif',$this->Lang('addbooking'),'','','systemicon'),
-			 array('booker_id'=>-1,'task'=>'add'),'',FALSE,FALSE,'')
-		 .' '.$this->CreateLink($id,'adminbooker',$returnid,
-			 $this->Lang('addbooking'),
-			 array('booker_id'=>-1,'task'=>'add'),'',FALSE,FALSE,'class="pageoptions"');
 		$tplvars['ablebtn2'] =
 			$this->CreateInputSubmit($id,'activate',$this->Lang('activate'),
 			'title="'.$this->Lang('activatesel',$this->Lang('booker_multi')).'" onclick="return confirm_bkrcount();"');
@@ -627,7 +646,7 @@ EOS;
 
 		$t = $this->Lang('confirm_delete_type',$this->Lang('booker'),'%s');
 		$jsloads[] =<<<EOS
- $('#people .bkrdel > a').modalconfirm({
+ $('#peopletable .bkrdel > a').modalconfirm({
   overlayID: 'confirm',
   popupID: 'confgeneral',
   preShow: function(tg,\$d) {
@@ -651,7 +670,9 @@ EOS;
 EOS;
 	} //$pper
 	$tplvars['exportbtn2'] = $this->CreateInputSubmit($id,'export',$this->Lang('export'),
-		'title="'.$this->Lang('exportsel',$this->Lang('booker_multi')).'" onclick="return confirm_bkrcount();"');
+		'title="'.$this->Lang('tip_exportseltype',$this->Lang('booker_multi')).'" onclick="return confirm_bkrcount();"');
+	$tplvars['bexportbtn2'] = $this->CreateInputSubmit($id,'exportbkg',$this->Lang('exportbook'),
+		'title="'.$this->Lang('tip_exportbookseltype',$this->Lang('booker_multi')).'" onclick="return confirm_bkrcount();"');
 } else { //$pcount == 0
 	$tplvars['nobookers'] = $this->Lang('nobooker');
 }
@@ -684,11 +705,12 @@ FROM {$this->ItemTable} I
 LEFT JOIN {$this->UserTable} U ON I.owner = U.user_id
 ORDER BY I.name
 EOS;
+//TODO $utils->SafeExec()
 $rs = $db->Execute($sql);
 if ($rs) {
 	$uid = ($owned) ? get_userid(FALSE) : 0; //current user
 	while ($row = $rs->FetchRow()) {
-		//omit some choices when editing,but current user hasn't admin permission and doesn't own the item
+		//omit some choices when editing, but current user hasn't admin permission and doesn't own the item
 		$skip = $owned && $mod && !$padm && $row['owner'] > 0 && $row['owner'] != $uid;
 		$thisid	= (int)$row['item_id'];
 		$isitem = ($thisid < Booker::MINGRPID && $thisid != -Booker::MINGRPID);
@@ -737,21 +759,30 @@ if ($rs) {
 				$one->ownername = '';
 		}
 
-		$t = sprintf($bseetip,($isitem)?$si:$sg);
-		$t = sprintf($iconbsee,$t,$t);
-		$one->bsee = $this->CreateLink($id,'process','',$t,array('item_id'=>$thisid,'task'=>'inspect'));
+		//TODO omit see/edit/export icons when there's no booking/request[/history?] for the item
+//		$sql = 'SELECT FIRST(slotstart) AS booked FROM '.$this->HistoryTable.' WHERE item_id=?';
+//		OR get group members, check those
+		if (1) {
+			$t = sprintf($bseetip,($isitem)?$si:$sg);
+			$t = sprintf($iconbsee,$t,$t);
+			$one->bsee = $this->CreateLink($id,'administer','',$t,array('item_id'=>$thisid,'task'=>'see'));
 
-//	if ($isitem && $bmod && !$skip)
-		if ($mod && !$skip) {
-			$t = sprintf($bedittip,($isitem)?$si:$sg);
-			$t = sprintf($iconbedit,$t,$t);
-			$one->bedit = $this->CreateLink($id,'process','',$t,array('item_id'=>$thisid,'task'=>'administer'));
-		} else
+//			if ($isitem && $bmod && !$skip)
+			if ($mod && !$skip) {
+				$t = sprintf($bedittip,($isitem)?$si:$sg);
+				$t = sprintf($iconbedit,$t,$t);
+				$one->bedit = $this->CreateLink($id,'administer','',$t,array('item_id'=>$thisid,'task'=>'edit'));
+			} else
+				$one->bedit = '';
+
+			$t = sprintf($exporttip,($isitem)?$si:$sg);
+			$t = sprintf($iconexport,$t,$t);
+			$one->export = $this->CreateLink($id,'process','',$t,array('item_id'=>$thisid,'task'=>'export'));
+		} else {
+			$one->bsee = '';
 			$one->bedit = '';
-
-		$t = sprintf($exporttip,($isitem)?$si:$sg);
-		$t = sprintf($iconexport,$t,$t);
-		$one->export = $this->CreateLink($id,'process','',$t,array('item_id'=>$thisid,'task'=>'export'));
+			$one->export = '';
+		}
 
 		$t = sprintf($seetip,($isitem)?$si:$sg);
 		$t = sprintf($iconsee,$t,$t);
@@ -836,38 +867,33 @@ if ($icount > 0) {
 	if ($icount > 1)
 		$tplvars['selectall_items'] =
 			$this->CreateInputCheckbox($id,'item',TRUE,FALSE,'title="'.$this->Lang('selectall').'" onclick="select_all_itm(this)"');
-	$tplvars['exportbtn3'] =
-		$this->CreateInputSubmit($id,'export',$this->Lang('export'),
-		'title="'.$this->Lang('exportsel',$this->Lang('item_multi')).'" onclick="return confirm_itmcount();"');
+	$tplvars['exportbtn3'] = $this->CreateInputSubmit($id,'export',$this->Lang('export'),
+		'title="'.$this->Lang('tip_exportseltype',$this->Lang('item_multi')).'" onclick="return confirm_itmcount();"');
+	$tplvars['bexportbtn3'] = $this->CreateInputSubmit($id,'exportbkg',$this->Lang('exportbook'),
+		'title="'.$this->Lang('tip_exportbookseltype',$this->Lang('item_multi')).'" onclick="return confirm_itmcount();"');
 	$t = ($mod) ? 'update':'inspect';
 	$t = $this->Lang($t);
 	$t = mb_convert_case($t,MB_CASE_LOWER);
-	$tplvars['feebtn3'] =
-		$this->CreateInputSubmit($id,'setfees',$this->Lang('title_fees'),
+	$tplvars['feebtn3'] = $this->CreateInputSubmit($id,'setfees',$this->Lang('title_fees'),
 		'title="'.$this->Lang('feesel',$t,$this->Lang('item_multi')).'" onclick="return confirm_itmcount();"');
 	if ($mod) {
 		if ($icount > 1)
-			$tplvars['sortbtn3'] =
-				$this->CreateInputSubmit($id,'sort',$this->Lang('sort'),
+			$tplvars['sortbtn3'] = $this->CreateInputSubmit($id,'sort',$this->Lang('sort'),
 				'title="'.$this->Lang('tip_sorttype',$this->Lang('item_multi')).'" onclick="return confirm_itmcount();"');
-		$tplvars['ablebtn3'] =
-			$this->CreateInputSubmit($id,'activate',$this->Lang('activate'),
+		$tplvars['ablebtn3'] = $this->CreateInputSubmit($id,'activate',$this->Lang('activate'),
 			'title="'.$this->Lang('activatesel',$this->Lang('item_multi')).'" onclick="return confirm_itmcount();"');
 	}
 	if ($pdel)
-		$tplvars['deletebtn3'] =
-			$this->CreateInputSubmit($id,'delete',$this->Lang('delete'),
+		$tplvars['deletebtn3'] = $this->CreateInputSubmit($id,'delete',$this->Lang('delete'),
 			'title="'.$this->Lang('tip_delseltype',$this->Lang('item_multi')).'"');
 	//related js
 	$jsfuncs[] = <<<EOS
-function select_all_itm(b)
-{
+function select_all_itm(b) {
  var st = $(b).attr('checked');
  if (!st) { st = false; }
  $('input[name="{$id}selitm[]"][type="checkbox"]').attr('checked',st);
 }
-function confirm_itmcount()
-{
+function confirm_itmcount() {
  var cb = $('input[name="{$id}selitm[]"]:checked');
  return (cb.length > 0);
 }
@@ -876,7 +902,7 @@ EOS;
 	if ($pdel) {
 		$t = $this->Lang('confirm_delete_type',$this->Lang('item'),'%s');
 		$jsloads[] = <<<EOS
- $('#items .bkrdel > a').modalconfirm({
+ $('#itemstable .bkrdel > a').modalconfirm({
   overlayID: 'confirm',
   popupID: 'confgeneral',
   preShow: function(tg,\$d) {
@@ -912,6 +938,8 @@ if ($padd) {
 
 	$tplvars['importbtn3'] = $this->CreateInputSubmit($id,'importitm',$this->Lang('import'),
 		'title="'.$this->Lang('tip_importitm').'"');
+	$tplvars['fimportbtn3'] = $this->CreateInputSubmit($id,'importfee',$this->Lang('import_fees'),
+		'title="'.$this->Lang('tip_importfee').'"');
 }
 
 //GROUPS TAB
@@ -927,39 +955,35 @@ if ($gcount > 0) {
 	if ($gcount > 1)
 		$tplvars['selectall_grps'] =
 			$this->CreateInputCheckbox($id,'group',TRUE,FALSE,'title="'.$this->Lang('selectall').'" onclick="select_all_grp(this)"');
-	$tplvars['exportbtn4'] =
-		$this->CreateInputSubmit($id,'export',$this->Lang('export'),
-		'title="'.$this->Lang('exportsel',$this->Lang('group_multi')).'" onclick="return confirm_grpcount();"');
+	$tplvars['exportbtn4'] = $this->CreateInputSubmit($id,'export',$this->Lang('export'),
+		'title="'.$this->Lang('tip_exportseltype',$this->Lang('group_multi')).'" onclick="return confirm_grpcount();"');
+	$tplvars['bexportbtn4'] = $this->CreateInputSubmit($id,'exportbkg',$this->Lang('exportbook'),
+		'title="'.$this->Lang('tip_exportbookseltype',$this->Lang('group_multi')).'" onclick="return confirm_grpcount();"');
 	$t = ($mod) ? 'update':'inspect';
 	$t = $this->Lang($t);
 	$t = mb_convert_case($t,MB_CASE_LOWER);
-	$tplvars['feebtn4'] =
-		$this->CreateInputSubmit($id,'setfees',$this->Lang('title_fees'),
+	$tplvars['feebtn4'] = $this->CreateInputSubmit($id,'setfees',$this->Lang('title_fees'),
 		'title="'.$this->Lang('feesel',$t,$this->Lang('group_multi')).'" onclick="return confirm_grpcount();"');
 	if ($mod) {
 		if ($gcount > 1)
-			$tplvars['sortbtn4'] =
-				$this->CreateInputSubmit($id,'sort',$this->Lang('sort'),
+			$tplvars['sortbtn4'] = $this->CreateInputSubmit($id,'sort',$this->Lang('sort'),
 				'title="'.$this->Lang('tip_sorttype',$this->Lang('group_multi')).'" onclick="return confirm_grpcount();"');
 		$tplvars['ablebtn4'] =
 			$this->CreateInputSubmit($id,'activate',$this->Lang('activate'),
 			'title="'.$this->Lang('activatesel',$this->Lang('group_multi')).'" onclick="return confirm_grpcount();"');
 	}
 	if ($pdel)
-		$tplvars['deletebtn4'] =
-			$this->CreateInputSubmit($id,'delete',$this->Lang('delete'),
+		$tplvars['deletebtn4'] = $this->CreateInputSubmit($id,'delete',$this->Lang('delete'),
 			'title="'.$this->Lang('tip_delseltype',$this->Lang('group_multi')).'"');
 	//related js
 	$t = $this->Lang('confirm_delete_type',$this->Lang('group'),'%s');
 	$jsfuncs[] = <<<EOS
-function select_all_grp(b)
-{
+function select_all_grp(b) {
  var st = $(b).attr('checked');
  if (!st) { st = false; }
  $('input[name="{$id}selgrp[]"][type="checkbox"]').attr('checked',st);
 }
-function confirm_grpcount()
-{
+function confirm_grpcount() {
  var cb = $('input[name="{$id}selgrp[]"]:checked');
  return (cb.length > 0);
 }
@@ -967,7 +991,7 @@ function confirm_grpcount()
 EOS;
 	if ($pdel) {
 		$jsloads[] = <<<EOS
- $('#groups .bkrdel > a').modalconfirm({
+ $('#groupstable .bkrdel > a').modalconfirm({
   overlayID: 'confirm',
   popupID: 'confgeneral',
   preShow: function(tg,\$d) {
@@ -1001,6 +1025,7 @@ if ($mod) {
 		 $this->Lang('addgroup'),
 		 array('item_id'=>-Booker::MINGRPID,'task'=>'add'),'',FALSE,FALSE,'class="pageoptions"');
 	$tplvars['importbtn4'] = $tplvars['importbtn3'];
+	$tplvars['fimportbtn4'] = $tplvars['fimportbtn3'];
 }
 
 //REPORTS TAB (&FORM)
@@ -1132,7 +1157,7 @@ if ($pset) {
 	$one->help = $this->Lang('help_intervals');
 	$settings[] = $one;
 
-	$ob = ModuleOperations::get_instance()->get_module_instance('FrontEndUsers');
+	$ob = cms_utils::get_module('FrontEndUsers');
 	if (is_object($ob)) {
 		$allusers = $ob->GetGroupList(); //associative array with group names as keys,id's as values
 		unset($ob);
@@ -1211,7 +1236,7 @@ EOS;
 	$allmodules = $this->GetModulesWithCapability('GatePayer');
 	if ($allmodules) {
 		foreach ($allmodules as $name) {
-			$ob = ModuleOperations::get_instance()->get_module_instance($name);
+			$ob = cms_utils::get_module($name);
 			if ($ob) {
 				$n = $ob->GetFriendlyName();
 				$choices[$n] = $name;
@@ -1395,16 +1420,31 @@ if ($include) {
 
 EOS;
 
+$initbls = '';
 if ($tablevars) {
-	$havetbls = implode(',',$tablevars);
+	$havetbls = 'var '.implode(',',$tablevars).';';
+	foreach ($tablevars as $one) {
+		switch ($one) {
+		 case 'tbl1':
+			$initbls .= $one.' = $(\'#datatable\')[0];'.PHP_EOL;
+			break;
+		 case 'tbl2':
+			$initbls .= $one.' = $(\'#peopletable\')[0];'.PHP_EOL;
+			break;
+		 case 'tbl3':
+			$initbls .= $one.' = $(\'#itemstable\')[0];'.PHP_EOL;
+			break;
+		 case 'tbl4':
+			$initbls .= $one.' = $(\'#groupstable\')[0];'.PHP_EOL;
+			break;
+		}
+	}
 } else {
-	$havetbls = 'notbl';
+	$havetbls = '';
 }
 
 if ($pagerdata) {
 	$jsfuncs[] = <<<EOS
-var {$havetbls};
-
 function pagefirst(tbl) {
  $.SSsort.movePage(tbl,false,true);
 }
@@ -1420,23 +1460,12 @@ function pageback(tbl) {
 function pagerows(tbl,dd) {
  $.SSsort.setCurrent(tbl,'pagesize',parseInt(dd.value));
 }
+{$havetbls}
 
 EOS;
 	$extras = '['.PHP_EOL.implode(','.PHP_EOL,$pagerdata).PHP_EOL.']';
 } else {
 	$extras = 'null';
-}
-
-if ($tablevars) {
-	//TODO tailor these to actual tables displayed
-	$initbls = <<<EOS
- tbl1 = $('#datatable')[0];
- tbl2 = $('#peopletable')[0];
- tbl3 = $('#itemstable')[0];
- tbl4 = $('#groupstable')[0];
-EOS;
-} else {
-	$initbls = '';
 }
 
 $jsloads[] = <<<EOS
