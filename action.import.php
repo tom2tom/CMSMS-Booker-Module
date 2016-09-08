@@ -81,9 +81,10 @@ $this->_BuildNav($id,$params,$returnid,$tplvars);
 
 $hidden = array();
 switch ($params['action']) {
- case 'process': //items
+ case 'processrequest': //requests
  case 'adminbooking': //bookings
  case 'adminbooker': //bookers
+ case 'process': //items
 	$hidden['resume'] = 'defaultadmin';
 	$hidden['active_tab'] = $params['active_tab'];
 	break;
