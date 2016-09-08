@@ -26,8 +26,8 @@ if ($this->_CheckAccess('admin') || $this->_CheckAccess('see')) {
 		}
 	}
 	$funcs = new Booker\Bookingops();
-	$msg = $funcs->ExportBkg($this,$bid);
-	if ($msg !== TRUE) {
+	list($res,$msg) = $funcs->ExportBkg($this,$bid);
+	if (!$res) {
 		if (isset($params['bkg_id'])) {
 			$resume = 'administer';
 			$newparms = array('item_id'=>$params['item_id'],'message'=>$msg);
