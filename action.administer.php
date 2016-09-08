@@ -130,7 +130,8 @@ EOS;
 	$data2 = $utils->SafeGet($sql,$groups);
 	if ($data2) {
 		$data = array_merge($data,$data2);
-		usort($data, function ($a, $b) {
+		usort($data, function ($a, $b)
+		{
 			return $a['slotstart'] - $b['slotstart'];
 		});
 	}
@@ -191,8 +192,8 @@ if ($data) {
 	$tplvars['colnames'] = $titles;
 	$tplvars['colsorts'] = $titles;
 
-	$dfmt = $idata['dateformat']; //translation via Booker\Utils->IntervalFormat() not relevant here
-	$tfmt = $idata['timeformat'];
+	$dfmt = 'Y-m-d';
+	$tfmt = 'G:i';
 	$bfmt = $dfmt.' '.$tfmt;
 	$rfmt = $this->Lang('showrange');
 
