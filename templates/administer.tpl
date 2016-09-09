@@ -24,7 +24,7 @@
 {foreach from=$oncerows item=bkg}{cycle values='row1,row2' assign='rowclass'}
      <tr class="{$rowclass}">
       <td>{$bkg->time}</td>
-      <td>{$bkg->user}</td>
+      <td>{$bkg->name}</td>
       <td>{$bkg->paid}</td>
       <td>{$bkg->open}</td>
       <td>{$bkg->export}</td>
@@ -66,7 +66,7 @@
       <tr class="{$rowclass}">
        <td>{$bkg->desc}</td>
 {if isset($bkg->count)}    <td>{$bkg->count}</td>{/if}
-       <td>{$bkg->user}</td>
+       <td>{$bkg->name}</td>
        <td>{$bkg->paid}</td>
        <td>{$bkg->open}</td>
 {if $tell}    <td class="bkrtell">{$bkg->tell}</td>{/if}
