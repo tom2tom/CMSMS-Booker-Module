@@ -89,7 +89,7 @@ div.modal\-overlay {
 }
 div.confirm\-container {
 	display:none;
-	position:absolute;
+	position:fixed;
 	top:50%;
 	left:50%;
 	border:2px solid #847B7B;
@@ -98,7 +98,7 @@ div.confirm\-container {
 	border-radius:5px 5px 5px 5px;
 	padding:10px 40px;
 	z-index:1002;
-	background:#E4E2E2;
+	background:#DBD6D6;
 }
 input.btn_conf {
 	font-weight:bold;
@@ -118,7 +118,6 @@ input.btn_deny:hover {
 	color:#FFF;
 	background:#F00;
 }
-
 /* for making inputs look like links */
 input.fakeicon {
 	margin:0;
