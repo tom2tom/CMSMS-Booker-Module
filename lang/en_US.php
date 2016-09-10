@@ -128,16 +128,16 @@ $lang['help_styles'] = '.css file containing style-parameters.';
 */
 $lang['help_address'] = 'Email address for general messaging and/or billing';
 $lang['help_alias'] = 'For use in web-page smarty-tags that display this %s. If left blank, a default will be applied, or else the entered string must be unique.';
-$lang['help_book_contact'] = 'The channel for providing feedback to the user, usually a phone number or email address';
+$lang['help_book_contact'] = 'An email address or phone number for providing information to the user';
 $lang['help_book_end'] = 'A numeric timestamp formatted as for the start, or if left blank, the end will be assumed to be 1-hour after the start';
 $lang['help_book_start'] = 'A numeric timestamp like YYYY-[M]M-[D]D [H]H:[M]M (where [] is optional)';
 $lang['help_bookcount'] = '0 means no limit, 1 implies no need for specifying booking-end';
 $lang['help_bookertype'] = 'For discriminating among bookers e.g. for fees';
 $lang['help_cascade'] = 'Properties marked with a <strong>&#8225;</strong> are inherited, the applied value will be taken from nearest ancestor group, or module setting, if not specified here.';
 $lang['help_compulsory'] = 'Properties marked with a <strong>*</strong> are compulsory.' ;
-$lang['help_conformcontact'] = 'If the contact is changed here, replicate the change across all the user\'s bookings';
-$lang['help_conformstyle'] = 'If the category is changed here, replicate the change across all the user\'s bookings';
-$lang['help_conformuser'] = 'If the user is changed here, replicate the change across all bookings';
+$lang['help_conformcontact'] = 'If the contact is changed here, the change will be replicated across all the user\'s bookings';
+$lang['help_conformstyle'] = 'If the category is changed here, the change will be replicated across all the user\'s bookings';
+$lang['help_conformuser'] = 'If the user is changed here, the change will be replicated across all bookings';
 $lang['help_date'] = 'A string including format characters recognised by PHP\'s date() function. For reference, please check the <a href="http://www.php.net/manual/function.date.php">php manual</a>.<br />Remember to escape any characters you don\'t want interpreted as format codes!';
 $lang['help_exportfile']='Progressively create each .csv file in the general or specific <em>uploads</em> directory, instead of processing the export in memory. This may be wise if there is a lot of data to export. The downside is that someone needs to get that file and (usually) then delete it.';
 $lang['help_keywords'] = 'Comma-separated words or word-groups, used (along with titles) to determine similarity when looking for comparable %s.';
@@ -328,13 +328,14 @@ Any P or T can be<br />
 For dates, month and day, or just day, are optional. Times are 24-hour, minutes are optional,
 the minute-separator must be ':'. Non-ranged times each represent one hour. Other numeric values may be < 0, meaning count backwards.<br />
 Any P may be prefaced by 'not' or 'except' (any case) to specify a period to be excluded from the days otherwise covered by other specified period-descriptors.<br />
+Any P may be qualifed by 'each' or 'every' N, to represent fixed-interval repetition such as 'every 2nd Wednesday'.
 Examples:<br />
 &#8226; 2000 or 2000..2005 or 2000-6 or 2000-10..2001-3 or 2000-9-1 or 2000-10-1..2000-12-31<br />
 &#8226; January or November..December<br />
 &#8226; for week(s)-of-any-month (some of which may not be 7-days): 2(week) or -1(week) or 2..3(week)<br />
 &#8226; for week(s)-of-named-month: 2(week(March)) or or 1..3(week(July,August)) or (-2,-1)(week(April..July))<br />
-&#8226; for day(s)-of-month: 1 or -2 or or 1..10 or 2..-1 or -3..-1<br />
-&#8226; for day(s)-of-month: 1(Sunday) or -1(Wednesday..Friday) or 1..3(Friday,Saturday)<br />
+&#8226; for day(s)-of-month: 1 or -2 or or 1..10 or 2..-1 or -3..-1 or each 2 day<br />
+&#8226; for day(s)-of-month: 1(Sunday) or -1(Wednesday..Friday) or 1..3(Friday,Saturday) or each or each 2 Tuesday or 2 week<br />
 &#8226; for days(s)-of-named-month: 2(March) or or 1..3(July,August) or (-2,-1)(April..July) or 2(Sunday(July..September))<br />
 &#8226; for day(s)-of-week: Monday or Wednesday..Friday<br />
 &#8226; for times: 9 or 12..23 or 6:30..15:30 or sunrise..16 or 9..sunset-3:30<br />
@@ -707,12 +708,12 @@ $lang['email_approve_title'] = 'Booking request approved';
 $lang['email_approvepay'] = 'The booking of %s has been approved, subject to payment of the %s fee';
 $lang['email_ask'] = 'Please lodge further information about the booking of %s - [send]';
 $lang['email_ask_title'] = 'Booking request - information needed';
-$lang['email_cancel'] = 'The booking of %s must be cancelled, because [reason]';
+$lang['email_cancel'] = 'The booking of %s must be cancelled [because ...]';
 $lang['email_cancelled_title'] = 'Booking cancelled';
-$lang['email_changed'] = 'The booking of %s must be changed, because [reason]. Please re-book.';
+$lang['email_changed'] = 'The booking of %s must be changed [because ...]. Please re-book.';
 $lang['email_changed_title'] = 'Booking changed';
 $lang['email_conflict'] = 'The request to book %s must be refused, due to scheduling conflict';
-$lang['email_reject'] = 'The request to book %s must be refused, because [reason]';
+$lang['email_reject'] = 'The request to book %s must be refused [because ...]';
 $lang['email_reject_title'] = 'Booking request rejected';
 //sms|tweet
 $lang['text_approve'] = 'Booking request approved, %s';
