@@ -73,6 +73,7 @@ class Booker extends CMSModule
 	const STATNA = 83;//resouce N/A at requested time, cannot accept
 	const STATDUP = 84;//duplicate request, cannot accept
  	const STATERR = 85;//system error while processing
+ 	const STATRETRY = 86;//some temporary problem, try again later
 	const STATFAILED = 89;//generic request-failure
 	//HistoryTable payment codes
 	const STATFREE = 0;//no fee for use
@@ -466,7 +467,6 @@ class Booker extends CMSModule
 			$this->_ActivateItem($id, $params, $returnid); //trivial func, don't bother with separate action file
 			$action = 'defaultadmin';
 			break;
-		 case 'administer':
 		 case 'default':
 		 case 'defaultadmin':
 		 case 'delete':
@@ -486,6 +486,10 @@ class Booker extends CMSModule
 		 case 'setprefs':
 		 case 'swapgroups':
 		 case 'sortlike':
+			break;
+		 case 'administer':
+			if (isset($params['importbkg']))
+				$action = 'import';
 			break;
 		 case 'adminbooker':
 			if (isset($params['importbkr']))
@@ -507,10 +511,6 @@ class Booker extends CMSModule
 				$action = 'import';
 			break;
 		 case 'processrequest':
-			if (isset($params['importbkg']))
-				$action = 'import';
-			break;
-		 case 'multibooking':
 			if (isset($params['importbkg']))
 				$action = 'import';
 			break;
