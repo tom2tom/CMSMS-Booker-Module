@@ -281,7 +281,14 @@ class Userops
 			$supp = $params['passwd'];
 		} else {
 			$main = $params['name'];
-			$supp = array('address'=>$params['address'],'phone'=>$params['phone']);
+			if (!empty($params['address']))
+				$supp = $params['address'];
+			elseif (!empty($params['phone']))
+				$supp = $params['phone'];
+			elseif (!empty($params['contact']))
+				$supp = $params['contact'];
+			else
+				$supp = FALSE;
 		}
 //		return $this->GetID($main,$supp);
 		//TODO support FEU-permissions
@@ -319,33 +326,43 @@ class Userops
 	SetContact:
 	@mod: reference to current Booker module object
 	@booker_id: numeric identifier
-	@contact: new email-address, or phone number, or associative array with email-address and/or phone-number
+	@contact: new email-address, or phone number, or array with email-address and/or phone-number
 	Returns: boolean indicating success
 	*/
 	public function SetContact(&$mod, $booker_id, $contact)
 	{
-		$patn = '/^(\+\d{1,4} *)?[\d ]{5,15}$/';
+		$addresspatn = '/^.+@.+\..+$/';
+		$phonepatn = '/^(\+\d{1,4} *)?[\d ]{5,15}$/';
 		if (is_array($contact)) {
-			$sql = '';
-			$args = array();
-			foreach ($contact as $k=>$val) {
-	//TODO interpret & arrange values
+			$fields = array();
+			foreach ($contact as $val) {
+				$val = trim($val);
+				if (!$val || preg_match($addresspatn,$val)) {
+					$fields['address=?'] = $val;
+				} elseif (preg_match($phonepatn,$val)) {
+					$fields['phone=?'] = $val;
+				}
 			}
-			$args[] = $booker_id;
+			if ($fields) {
+				$sql2 = implode(',',array_keys($fields));
+				$args = array_values($fields);
+			} else
+				return FALSE;
 		} else {
-			$contact = trim($contact);
-			if (!$contact) {
-				$sql = 'address=?'; //clear address - BAD!
-			} elseif (preg_match($patn,$contact)) {
-				$sql = 'phone=?';
-			} else { //TODO specific validity check(s)
-				$sql = 'address=?';
+			$val = trim($contact);
+			if (!$val || preg_match($addresspatn,$val)) {
+				$sql2 = 'address=?'; //clear address - BAD!
+			} elseif (preg_match($phonepatn,$val)) {
+				$sql2 = 'phone=?';
+			} else {
+				return FALSE;
 			}
-			$args = array($contact,$booker_id);
+			$args = array($val);
 		}
+		$sql = 'UPDATE '.$mod->BookerTable.' SET '.$sql2.' WHERE booker_id=?';
+		$args[] = $booker_id;
 		//TODO $utils->SafeExec()
-		$r = $mod->dbHandle->Execute('UPDATE '.$mod->BookerTable.' SET '.$sql.' WHERE booker_id=?',
-			$args);
+		$r = $mod->dbHandle->Execute($sql,$args);
 		return ($r != FALSE);
 	}
 
@@ -374,10 +391,10 @@ class Userops
 	{
 		$rows = $mod->dbHandle->GetArray('SELECT booker_id,publicid,passhash,address,phone FROM '.
 			$mod->BookerTable.' WHERE (name=? OR publicid=?) ORDER BY addwhen DESC',
-			array($id,$id));
+			array($main,$main));
 		if ($rows) {
 			foreach ($rows as $one) {
-				if ($id == $one['publicid']) {
+				if ($main == $one['publicid']) {
 					if ($supp && $this->matchpass($one['passhash'],$supp))
 						return $one['booker_id'];
 				} elseif ($supp) {
