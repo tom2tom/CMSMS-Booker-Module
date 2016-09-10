@@ -64,7 +64,7 @@ EOS;
 		$from = FALSE; //always use default sender
 		$to = ($bdata['address']) ? array($bdata['name']=>$bdata['address']):$bdata['phone'];
 
-		$what = ($bdata['subgrpcount'] > 1) ?
+		$what = (isset($bdata['subgrpcount']) && $bdata['subgrpcount'] > 1) ?
 			sprintf('%d %s',$bdata['subgrpcount'],$idata['membersname']):
 			$utils->GetItemName($mod,$idata);
 		$dts = new \DateTime('@'.$bdata['slotstart'],new \DateTimeZone('UTC'));
@@ -104,16 +104,24 @@ EOS;
 				unset($ob);
 				$funcs = new \MessageSender();
 				$utils = new Utils();
+				$props = array();
 				$fails = array();
 				foreach ($rows as $bid=>$one) {
-					$idata = $utils->GetItemProperty($mod,$one['item_id'],'*');
+					$item_id = $one['item_id'];
+					if (!isset($props[$item_id])) {
+						$props[$item_id] = $utils->GetItemProperty($mod,$item_id,
+							array('item_id','name','membersname','smspattern','smsprefix'));
+					}
+					$idata = $props[$item_id];
 					list($from,$to,$textparms,$mailparms,$tweetparms) = self::MsgParms($mod,$utils,$one,$idata,self::MSGCHANGED,$custommsg);
 					list($res,$msg) = $funcs->Send($from,$to,$textparms,$mailparms,$tweetparms);
 					if (!$res)
 						$fails[] = $msg;
 				}
-				if ($fails)
+				if ($fails) {
+					$fails = array_unique($fails,SORT_STRING);
 					return array(FALSE,implode('<br />',$fails));
+				}
 				return array(TRUE,'');
 			}
 		}
@@ -152,6 +160,7 @@ EOS;
 			if ($ob) {
 				unset($ob);
 				$funcs = new \MessageSender();
+				$props = array();
 				$fails = array();
 			} else
 				$funcs = FALSE;
@@ -162,7 +171,12 @@ EOS;
 			foreach ($rows as $bid=>$one) {
 				if ($funcs && $one['status'] !== \Booker::STATOK) {
 					//notify user
-					$idata = $utils->GetItemProperty($mod,$one['item_id'],'*');
+					$item_id = $one['item_id'];
+					if (!isset($props[$item_id])) {
+						$props[$item_id] = $utils->GetItemProperty($mod,$item_id,
+							array('item_id','name','membersname','smspattern','smsprefix'));
+					}
+					$idata = $props[$item_id];
 					list($from,$to,$textparms,$mailparms,$tweetparms) = self::MsgParms($mod,$utils,$one,$idata,self::MSGCANCELLED,$custommsg);
 					list($res,$msg) = $funcs->Send($from,$to,$textparms,$mailparms,$tweetparms);
 					if (!$res)
@@ -171,8 +185,10 @@ EOS;
 				if (!$utils->SafeExec($sql,array($bid))) //remove it
 					return array(FALSE,$mod->Lang('err_data'));
 			}
-			if ($fails)
+			if ($fails) {
+				$fails = array_unique($fails,SORT_STRING);
 				return array(FALSE,implode('<br />',$fails));
+			}
 			return array(TRUE,'');
 		}
 		return array(FALSE,$mod->Lang('err_data'));
@@ -189,12 +205,7 @@ EOS;
 	public function DeleteRepeat(&$mod, $bkg_id)
 	{
 		$utils = new Utils();
-		$sql = <<<EOS
-SELECT R.*,B.name,B.address,B.phone FROM {$mod->RepeatTable} R
-JOIN {$mod->BookerTable} B ON R.booker_id=B.booker_id
-JOIN {$mod->DataTable} D ON R.booker_id=D.booker_id
-WHERE D.bkg_id
-EOS;
+		$sql = 'SELECT * FROM '.$mod->RepeatTable.' WHERE bkg_id';
 		if (is_array($bkg_id)) {
 			$sql .= ' IN ('.str_repeat('?,',count($bkg_id)-1).'?)';
 			$rows = $utils->SafeGet($sql,$bkg_id,'assoc');
@@ -202,16 +213,7 @@ EOS;
 			$sql .= '=?';
 			$rows = $utils->SafeGet($sql,array($bkg_id),'assoc');
 		}
-
 		if ($rows) {
-			$ob = \cms_utils::get_module('Notifier');
-			if ($ob) {
-				unset($ob);
-				$funcs = new \MessageSender();
-				$fails = array();
-			} else
-				$funcs = FALSE;
-
 			$sql = 'DELETE FROM '.$mod->DataTable.' WHERE bkg_id=? AND slotstart>=?';
 			$sql2 = 'SELECT COUNT(1) AS num FROM '.$mod->DataTable.' WHERE bkg_id=? AND slotstart<?';
 			$sql3 = 'UPDATE '.$mod->RepeatTable.' SET active=0 WHERE bkg_id=?';
@@ -243,45 +245,45 @@ EOS;
 	*/
 	public function ConformBookingData(&$mod, &$params)
 	{
+		$table = (empty($params['repeat'])) ? $mod->DataTable : $mod->RepeatTable;
+		$sql =<<<EOS
+SELECT B.booker_id FROM $mod->BookerTable B
+JOIN $table T ON B.booker_id = T.booker_id
+WHERE T.bkg_id=?
+EOS;
+		$booker_id = $mod->dbHandle->GetOne($sql,array($params['bkg_id']));
+		if (!$booker_id)
+			return FALSE;
+
+		$sql2 = array();
+		$args = array();
+		foreach (array('publicid','name') as $k) {
+			if (!empty($params[$k])) {
+				$sql2[] = $k.'=?';
+				$args[] = trim($params[$k]);
+			}
+		}
+		$k = 'displayclass';
+		if (isset($params[$k])) {
+			$val = (int)$params[$k];
+			if ($val >= 1 && $val <= \Booker::USERSTYLES) {
+				$sql2[] = $k.'=?';
+				$args[] = $val;
+			}
+		}
+		
+		$args[] = (int)$booker_id;
+		$sql = 'UPDATE '.$mod->BookerTable.' SET '.implode(',',$sql2).' WHERE booker_id=?';
 		$utils = new Utils();
 		$funcs = new Userops();
-		$old = FALSE;
 		$ret = TRUE;
-		if (!empty($params['conformuser'])) {
-			$old = $funcs->GetName($mod,$params['bkg_id']);
-			if (!$old) return FALSE;
-			$sql2 = '';
-			$args = array();
-			foreach (array('publicid','name') as $k) {
-				if (!empty($params[$k])) {
-					$sql2 .= $k.'=?';
-					$args[] = trim($params[$k]);
-				}
-			}
-			$args[] = $old;
-			$sql = 'UPDATE '.$mod->BookerTable.' SET '.$sql2.' WHERE booker_id=?';
-			if (!$utils->SafeExec($sql,$args)) {
-				$ret = FALSE;
-			} elseif(!(empty($params['publicid']) || empty($params['passwd']))) {
-				$ret = $funcs->SetPassword($mod,$old,'FORCE',$params['passwd']);
-			}
+		if (!$utils->SafeExec($sql,$args)) {
+			$ret = FALSE;
+		} elseif(!(empty($params['publicid']) || empty($params['passwd']))) {
+			$ret = $funcs->SetPassword($mod,$booker_id,'FORCE',$params['passwd']);
 		}
+		$ret = $ret && $funcs->SetContact($mod,$booker_id,trim($params['contact']));
 
-		if (!empty($params['conformcontact'])) {
-			if (!$old) {
-				$old = $funcs->GetName($mod,$params['bkg_id']);
-				if (!$old) return FALSE;
-			}
-			$ret = $ret && $funcs->SetContact($mod,$old,array(trim($params['address']),trim($params['phone'])));
-		}
-
-		if (!empty($params['conformstyle'])) {
-			if (!$old) {
-				$old = $funcs->GetName($mod,$params['bkg_id']);
-				if (!$old) return FALSE;
-			}
-			$ret = $ret && $funcs->SetDisplayClass($mod,$old,(int)$params['displayclass']);
-		}
 		return $ret;
 	}
 
