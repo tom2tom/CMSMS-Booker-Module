@@ -111,7 +111,6 @@ class Import
 			);
 			/* non-public
 			'item_id'
-			'repeatsuntil'
 			'subgrpdata'
 			'active'
 			*/
