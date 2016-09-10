@@ -51,7 +51,6 @@ $pre = cms_db_prefix();
 	owner: uid of the contact-person for the item, or 0 if there's no such person
 	cleargroup: boolean whether to clear data for item when (sole) parent-group data are cleared, default false
 	subgrpalloc: Booker::ALLOC* enum for sub-group allocation protocol
-	repeatsuntil: internal use, datestamp for last (full) day for which repeat-bookings have been evaluated
 	subgrpdata: internal use, for working with subgrpalloc
 	active: enum: 0 never; 1 always; 2 inherit (see also: available); -1 deletion pending while historical data needed
 */
@@ -93,7 +92,6 @@ $fields = "
  owner I,
  cleargroup I(1) DEFAULT 0,
  subgrpalloc I(1),
- repeatsuntil I DEFAULT 0,
  subgrpdata I(1) DEFAULT 0,
  active I(1) DEFAULT 1
 ";
@@ -176,6 +174,8 @@ repeated bookings-data table schema:
  item_id: resource or group id
  formula: interval-descriptor string
  booker_id: identifier
+ checkedfrom: timestamp for start of first day for which actual bookings have been recoreded
+ checkedto: timestamp for start of day after last day for which actual bookings have been recoreded
  subgrpcount: no. of in-group resources to be processed per subgrpalloc
  paid: boolean
  active: enum/boolean 1, or 0 if booking has been deleted but historic data remain
@@ -185,6 +185,8 @@ $fields = "
  item_id I(4),
  formula C(256),
  booker_id I(4),
+ checkedfrom I DEFAULT 0,
+ checkedto I DEFAULT 0,
  subgrpcount I(1) DEFAULT 1,
  paid I(1) DEFAULT 0,
  active I(1) DEFAULT 1
