@@ -489,31 +489,38 @@ class Utils
 	GetItemProperty:
 	@mod: reference to current Booker module object
 	@item_id: identifier of resource or group for which property/ies is/are sought
-	@propname: ItemTable field-name for property sought or '*' or ','-separated
-		series of such names or array of such names (no checks here!)
-	@same: optional boolean, whether all requested properties must come from the same database record, default FALSE
-	@search: optional boolean, whether to check for missing values in ancestor groups (if any), default TRUE
-	Returns: array with key(s) = $propnames, value(s) = corresponding property value(s) if available or NULL,
-		or empty array upon error
+	@wantedprops: ItemTable field-name for property sought or ','-separated series
+	 	of such names or array of such names (no checks here!) or '*'
+	@same: optional boolean, whether all requested properties must come from the
+		same database record, default FALSE
+	@search: optional boolean, whether to check for missing values in ancestor
+		groups (if any), default TRUE
+	Returns: array with key(s) = field name(s), value(s) = corresponding value(s)
+		if available or NULL if not, or empty array upon error
 	*/
-	public function GetItemProperty(&$mod, $item_id, $propname, $same=FALSE, $search=TRUE)
+	public function GetItemProperty(&$mod, $item_id, $wantedprops, $same=FALSE, $search=TRUE)
 	{
 		if ($search) {
-			$found = $this->GetHeritableProperty($mod,$item_id,$propname);
+			$found = $this->GetHeritableProperty($mod,$item_id,$wantedprops);
 			if (!$found)
 				return array();
-			if (!is_array($propname)) {
-				$propname = explode(',',$propname);
+			if (!is_array($wantedprops)) {
+				$wantedprops = explode(',',$wantedprops);
 			}
 
-			if ($propname[0] == '*') {
+			if ($wantedprops[0] == '*') {
 				$gets = array_fill_keys(array_keys(reset($found)),NULL);
 			} else {
-				$gets = array_fill_keys(array_filter($propname),NULL);//no name-validation, only presence-checks
+				$gets = array_fill_keys(array_filter($wantedprops),NULL);//no name-validation, only presence-checks
 			}
 			if ($same)
 				$rc = count($gets);
 			$ret = array();
+			$k = 'item_id';
+			if (array_key_exists($k,$gets)) {
+				$ret[$k] = (int)$item_id;
+				unset($gets[$k]);
+			}
 			foreach ($found as $row) {
 				foreach ($gets as $k=>$val) {
 					if (!isset($ret[$k]) && $row[$k]) {
@@ -529,10 +536,10 @@ class Utils
 			}
 			return array_merge($gets,$ret);
 		} else { //no search
-			if (!is_array($propname)) {
-				$propname = explode(',',$propname);
+			if (!is_array($wantedprops)) {
+				$wantedprops = explode(',',$wantedprops);
 			}
-			$getcols = implode(',',array_filter($propname)); //no name-validation, only presence-checks
+			$getcols = implode(',',array_filter($wantedprops)); //no name-validation, only presence-checks
 
 			$db = $mod->dbHandle;
 			$sql = 'SELECT '.$getcols.' FROM '.$mod->ItemTable.' WHERE item_id=?';
@@ -547,17 +554,17 @@ class Utils
 	GetHeritableProperty:
 	@mod: reference to current Booker module object
 	@item_id: identifier of resource or group for which property/ies is/are sought
-	@propname: ItemTable field-name for property sought or '*' or ','-separated
-		series of such names or array of such names (no checks here!)
-	Returns: proximity-ordered array with members = property-values for $item_id
+	@wantedprops: ItemTable field-name for property sought or ','-separated series
+		of such names or array of such names (no checks here!) or '*'
+	Returns: proximity-ordered array with member(s) = property-value(s) for @item_id
 		and all its ancestors and corresponding module-preference values
 	*/
-	public function GetHeritableProperty(&$mod, $item_id, $propname)
+	public function GetHeritableProperty(&$mod, $item_id, $wantedprops)
 	{
-		if (!is_array($propname)) {
-			$propname = explode(',',$propname);
+		if (!is_array($wantedprops)) {
+			$wantedprops = explode(',',$wantedprops);
 		}
-		$getcols = implode(',',array_filter($propname)); //no name-validation, only presence-checks
+		$getcols = implode(',',array_filter($wantedprops)); //no name-validation, only presence-checks
 
 		$getids = array($item_id);
 		$db = $mod->dbHandle;
@@ -600,13 +607,11 @@ class Utils
 			$prefs = reset($found);
 		} else {
 			$found = array();
-			$prefs = array_flip($propname);
+			$prefs = array_flip($wantedprops);
 		}
 
 		foreach ($prefs as $k=>&$val) {
-			$val = $mod->GetPreference('pref_'.$k);
-			if (!$val)
-				$val = NULL;
+			$val = $mod->GetPreference('pref_'.$k,NULL);
 		}
 		unset($val);
 		$found[-1] = $prefs; //append preferences
@@ -619,8 +624,7 @@ class Utils
 	(including FALSE/NULL results) into a non-associative array
 	@mod: reference to current Booker module object
 	@item_id: identifier of resource or group for which property/ies is/are sought
-	@propname: ItemTable field-name for property sought or '*' or ','-separated
-		series of such names or array of such names (no checks here!)
+	@propname: ItemTable field-name for property sought
 	*/
 	public function GetOneHeritableProperty(&$mod, $item_id, $propname)
 	{
@@ -821,12 +825,10 @@ class Utils
 
 	/**
 	TrimRange:
-
 	Rationalise slot start and end times in objects @dts and @dte
 	@dts if 'near' either extreme of a slot will be rounded to that extreme.
 	@dte if 'near' the end of a slot will be rounded up. The minimum difference
 	between the pair will be @slen.
-
 	@dts: populated DateTime object
 	@dte: ditto, may be <= @ststart
 	@slen: slot length, in seconds
@@ -853,29 +855,31 @@ class Utils
 			$t = $nd;
 			$nd = $st;
 			$st = $t;
-		} elseif ($st == $nd)
+		} elseif ($st == $nd) {
 			$nd = $st + 60; //this will change
+		}
 
 		$t = $st % $slen;
-		if ($t < $slop)
-			$st -= $t;
-		elseif ($t > $slen - $slop)
-			$st = $st + $slen - $t;
-		else
-			$st = ceil($nd/$rounder) * $rounder;
-		$dts->setTimestamp($st);
-
-		$t = ($nd-$st) % $slen;
-		if ($t < $slop)
+		if ($t < $slop) {
+			$st1 = $st - $t;
+		} elseif ($t > $slen - $slop) {
+			$st1 = $st + $slen - $t;
+		} else {
+			$st1 = floor($st/$slen) * $slen + $slen;
+		}
+		$nd += $st1 - $st;
+		$t = ($nd-$st1) % $slen;
+		if ($t < $slop) {
 			$nd = $nd - $t - 1;
-		elseif ($t > $slen - $slop)
+		} elseif ($t > $slen - $slop) {
 			$nd = $nd + $slen - $t - 1;
-		else
+		} else {
 			$nd = floor($nd/$rounder) * $rounder;
-
-		if ($nd-$st < $slen-1)
-			$nd = $st + $slen - 1;
-
+		}
+		if ($nd-$st1 < $slen-1) {
+			$nd = $st1 + $slen - 1;
+		}
+		$dts->setTimestamp($st1);
 		$dte->setTimestamp($nd);
 	}
 
@@ -1215,8 +1219,8 @@ class Utils
 /*	public function GetBookingItemName(&$mod, $bkg_id)
 	{
 		$sql =<<<EOS
-	SELECT I.item_id,I.name FROM {$mod->ItemTable} I
-	JOIN {$mod->DataTable} D ON I.item_id=D.item_id
+	SELECT I.item_id,I.name FROM $mod->ItemTable I
+	JOIN $mod->DataTable D ON I.item_id=D.item_id
 	WHERE I.active>0 AND D.bkg_id=?
 	EOS;
 		$idata = self::SafeGet($sql,array($bkg_id),'row');
