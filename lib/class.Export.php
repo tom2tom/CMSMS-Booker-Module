@@ -193,8 +193,8 @@ class Export
 			// TODO $mod->FeeTable data for items
 
 			$sql =<<<EOS
-SELECT DISTINCT I.name FROM {$mod->ItemTable} I LEFT JOIN {$mod->GroupTable} G
-ON I.item_id=G.parent
+SELECT DISTINCT I.name FROM $mod->ItemTable I
+LEFT JOIN $mod->GroupTable G ON I.item_id=G.parent
 WHERE G.child=? ORDER BY G.proximity,G.likeorder
 EOS;
 			$strip = $mod->GetPreference('pref_stripexport');
@@ -237,7 +237,6 @@ EOS;
 			 'Update'=>'item_id' //not a real field
 			);
 			/* non-public fields
-			'repeatsuntil'
 			'subgrpdata'
 			'active'
 			*/
@@ -329,8 +328,8 @@ EOS;
 			return array(FALSE,'err_system');
 
 		$sql =<<<EOS
-SELECT F.*,I.name FROM {$mod->FeeTable} F
-JOIN {$mod->ItemTable} I ON F.item_id=I.item_id
+SELECT F.*,I.name FROM $mod->FeeTable F
+JOIN $mod->ItemTable I ON F.item_id=I.item_id
 EOS;
 		if (is_array($condition_id)) {
 			$fillers = str_repeat('?,',count($condition_id)-1);
@@ -779,9 +778,9 @@ EOS;
 			return array(FALSE,'err_system');
 
 		$sql =<<<EOS
-SELECT H.*,I.name,B.name AS user FROM {$mod->HistoryTable} H
-JOIN {$mod->ItemTable} I ON H.item_id=I.item_id
-JOIN {$mod->BookerTable} B ON H.booker_id=B.booker_id
+SELECT H.*,I.name,B.name AS user FROM $mod->HistoryTable H
+JOIN $mod->ItemTable I ON H.item_id=I.item_id
+JOIN $mod->BookerTable B ON H.booker_id=B.booker_id
 EOS;
 		if (is_array($history_id)) {
 			$fillers = str_repeat('?,',count($history_id)-1);
