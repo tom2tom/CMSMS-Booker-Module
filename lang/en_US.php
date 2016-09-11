@@ -48,6 +48,7 @@ $lang['booking'] = 'booking';
 $lang['booking_feedback'] = 'Booking request lodged';
 $lang['booking_feedback2'] = 'Booking recorded';
 $lang['booking_multi'] = 'booking(s)';
+$lang['bookings_deleted'] = '%d bookings deleted'; //count
 $lang['calendar'] = 'Calendar';
 $lang['cancel'] = 'Cancel';
 $lang['cart'] = 'Cart';
@@ -446,7 +447,6 @@ $lang['reqnotice'] = 'supply extra information';
 
 $lang['request'] = 'request';
 $lang['request_multi'] = 'request(s)';
-$lang['result_deleted'] = '%d bookings deleted'; //count [generalise with descriptor??]
 //$lang['reset'] = 'Reset';
 $lang['scrolldown'] = 'scroll down';
 $lang['scrollleft'] = 'scroll left';
