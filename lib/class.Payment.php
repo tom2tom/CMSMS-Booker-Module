@@ -90,14 +90,14 @@ class Payment
 	may be offset
 	@mod: reference to Booker module object
 	@item_id: resource identifier
-	@booker_id: booker identifier
+	@bookerid: booker identifier
 	@slotstart: UTC timestamp representing start of interval to be processed
 	@slotlen: duration (seconds) of the interval
 	Returns: 2-member array, 1st is gross fee payable for use of @item_id by
-		@booker_id over the nomiated interval, 2nd is current total credit held
-	    by @booker_id (so the net fee is the difference between the 2)
+		@bookerid over the nomiated interval, 2nd is current total credit held
+	    by @bookerid (so the net fee is the difference between the 2)
 	*/
-	public function Amounts(&$mod,$item_id,$booker_id,$slotstart,$slotlen)
+	public function Amounts(&$mod,$item_id,$bookerid,$slotstart,$slotlen)
 	{
 		$funcs = new Blocks();
 		$sql = <<<EOS
@@ -135,7 +135,7 @@ EOS;
 		if ($udata) {
 			if ($dtdata) {
 				$grossfee = $this->IntersectsTotal($udata,$dtdata,$funcs,
-					function($slen,$urule,$drule) use ($booker_id)
+					function($slen,$urule,$drule) use ($bookerid)
 					{
 						return 0.0; //TODO interpret & calc
 						if ($drule) {
@@ -145,7 +145,7 @@ EOS;
 					});
 			} else {
 				$grossfee = $this->RulesTotal($udata,
-					function($slen,$rule) use ($booker_id)
+					function($slen,$rule) use ($bookerid)
 					{
 						return 0.0; //TODO interpret & calc
 						if ($rule) {
@@ -163,7 +163,7 @@ EOS;
 		} else {
 			$grossfee = 0.0;
 		}
-		$creditnow = $this->TotalCredit($mod,$booker_id);
+		$creditnow = $this->TotalCredit($mod,$bookerid);
 		return array($grossfee,$creditnow);
 	}
 
@@ -171,14 +171,14 @@ EOS;
 	TotalCredit:
 	see also Histops::TotalCredit()
 	@mod: reference to Booker module object
-	@booker_id: booker identifier
+	@bookerid: booker identifier
 	*/
-	public function TotalCredit(&$mod, $booker_id)
+	public function TotalCredit(&$mod, $bookerid)
 	{
 		$amount = 0.0;
 		$sql = 'SELECT netfee FROM '.$mod->HistoryTable.
 		' WHERE booker_id=? AND status='.\Booker::STATCREDITADDED;
-		$rows = $mod->dbHandle->GetCol($sql,array($booker_id));
+		$rows = $mod->dbHandle->GetCol($sql,array($bookerid));
 		foreach ($rows as $one) {
 			$amount .= (float)$one;
 		}
@@ -188,10 +188,10 @@ EOS;
 	/**
 	AddCredit:
 	@mod: reference to Booker module object
-	@booker_id: booker identifier
+	@bookerid: booker identifier
 	@amount: amount of credit to be added
 	*/
-	public function AddCredit(&$mod, $booker_id, $amount)
+	public function AddCredit(&$mod, $bookerid, $amount)
 	{
 		if ($amount > 0.0) {
 			//the 'fee' field retains original credit, 'netfee' field will be used for adjustments
@@ -202,7 +202,7 @@ EOS;
 			$st = $dt->getTimestamp();
 			$args = array(
 				$hid,
-				$booker_id,
+				$bookerid,
 				$st,
 				$amount,
 				$amount,
@@ -217,14 +217,14 @@ EOS;
 	UseCredit:
 	see also Histops::UseCredit()
 	@mod: reference to Booker module object
-	@booker_id: booker identifier
+	@bookerid: booker identifier
 	@amount: amount of credit to be adjusted
 	*/
-	public function UseCredit(&$mod, $booker_id, $amount)
+	public function UseCredit(&$mod, $bookerid, $amount)
 	{
 		$sql = 'SELECT history_id,netfee FROM '.$mod->HistoryTable.
 		' WHERE booker_id=? AND status='.\Booker::STATCREDITADDED.' ORDER BY lodged';
-		$data = $mod->dbHandle->GetArray($sql,array($booker_id));
+		$data = $mod->dbHandle->GetArray($sql,array($bookerid));
 		if ($data) {
 			$sql = 'UPDATE '.$mod->HistoryTable.' SET netfee=? WHERE history_id=?';
 			foreach ($data as $row) {
@@ -252,14 +252,14 @@ EOS;
 	ExpireCredit:
 	see also Histops::ExpireCredit()
 	@mod: reference to Booker module object
-	@booker_id: booker identifier
+	@bookerid: booker identifier
 	@before: UTC timestamp for limit on remaining credit
 	*/
-	public function ExpireCredit(&$mod, $booker_id, $before)
+	public function ExpireCredit(&$mod, $bookerid, $before)
 	{
 		$sql = 'UPDATE '.$mod->HistoryTable.' SET status='.\Booker::STATCREDITEXPIRED.
 		' WHERE booker_id=? AND status='.\Booker::STATCREDITADDED.' AND lodged<?';
 		//TODO $utils->SafeExec()
-		$mod->dbHandle->Execute($sql,array($booker_id,$limit));
+		$mod->dbHandle->Execute($sql,array($bookerid,$limit));
 	}
 }

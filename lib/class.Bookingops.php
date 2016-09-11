@@ -14,21 +14,21 @@ class Bookingops
 
 	/*
 	GetBkgData:
-	Get from DataTable the row(s) of data for @bkg_id
+	Get row of data for @bkgid from DataTable
 	@mod: reference to current Booker module
-	@bgk_id: booking identifier, or array of them
+	@bkgid: booking identifier, or array of them
 	*/
-	private function GetBkgData(&$mod, $bkg_id)
+	private function GetBkgData(&$mod, $bkgid)
 	{
 		$sql = <<<EOS
 SELECT D.*,B.name,B.publicid,B.address,B.phone,B.displayclass FROM {$mod->DataTable} D
 JOIN {$mod->BookerTable} B ON D.booker_id=B.booker_id
 WHERE D.bkg_id
 EOS;
-		if (is_array($bkg_id)) {
-			return $mod->dbHandle->GetAssoc($sql.' IN ('.str_repeat('?,',count($bkg_id)-1).'?)',$bkg_id);
+		if (is_array($bkgid)) {
+			return $mod->dbHandle->GetAssoc($sql.' IN ('.str_repeat('?,',count($bkgid)-1).'?)',$bkgid);
 		} else
-			return $mod->dbHandle->GetAssoc($sql.'=?',array($bkg_id));
+			return $mod->dbHandle->GetAssoc($sql.'=?',array($bkgid));
 	}
 
 	/*
@@ -91,13 +91,13 @@ EOS;
 	NotifyBooker:
 	Send message to 'user' of one or more bookings
 	@mod: reference to current Booker module
-	@bkg_id: booking identifier, or array of them
+	@bkgid: booking identifier, or array of them
 	@custommsg: text entered by user, to replace square-bracketed content of the message 'template'
 	Returns: 2-member TRUE or error-message string
 	*/
-	public function NotifyBooker(&$mod, $bkg_id, $custommsg)
+	public function NotifyBooker(&$mod, $bkgid, $custommsg)
 	{
-		$rows = self::GetBkgData($mod,$bkg_id);
+		$rows = self::GetBkgData($mod,$bkgid);
 		if ($rows) {
 			$ob = \cms_utils::get_module('Notifier');
 			if ($ob) {
@@ -132,13 +132,13 @@ EOS;
 	ExportBkg:
 	Export data for one or more bookings
 	@mod: reference to current Booker module
-	@bkg_id: booking identifier, or array of them, or '*'
+	@bkgid: booking identifier, or array of them, or '*'
 	Returns: 2-member array, 1st is T/F indicating success, 2nd '' or error message
 	*/
-	public function ExportBkg(&$mod, $bkg_id)
+	public function ExportBkg(&$mod, $bkgid)
 	{
 		$funcs = new Export();
-		list($res,$key) = $funcs->ExportBookings($mod,FALSE,$bkg_id);
+		list($res,$key) = $funcs->ExportBookings($mod,FALSE,$bkgid);
 		if ($res)
 			return array(TRUE,'');
 		return array(FALSE,$mod->Lang($key));
@@ -148,13 +148,13 @@ EOS;
 	DeleteBkg:
 	Delete one or more 'onetime' bookings
 	@mod: reference to current Booker module
-	@bkg_id: booking identifier, or array of them
+	@bkgid: booking identifier, or array of them
 	@custommsg: text entered by user, to replace square-bracketed content of the message 'template'
 	Returns: 2-member array, 1st is T/F indicating success, 2nd '' or error message
 	*/
-	public function DeleteBkg(&$mod, $bkg_id, $custommsg)
+	public function DeleteBkg(&$mod, $bkgid, $custommsg)
 	{
-		$rows = self::GetBkgData($mod,$bkg_id);
+		$rows = self::GetBkgData($mod,$bkgid);
 		if ($rows) {
 			$ob = \cms_utils::get_module('Notifier');
 			if ($ob) {
@@ -198,24 +198,24 @@ EOS;
 	DeleteRepeat:
 	Delete one or more 'repeat' bookings
 	@mod: reference to current Booker module
-	@bkg_id: booking identifier, or array of them
+	@bkgid: booking identifier, or array of them
 	Returns: 2-member array, 1st is T/F indicating success, 2nd '' or error message
 	TODO periodic cleanup of inactive repeats with no remaining history
 	*/
-	public function DeleteRepeat(&$mod, $bkg_id)
+	public function DeleteRepeat(&$mod, $bkgid)
 	{
 		$utils = new Utils();
 		$sql = 'SELECT * FROM '.$mod->RepeatTable.' WHERE bkg_id';
-		if (is_array($bkg_id)) {
-			$sql .= ' IN ('.str_repeat('?,',count($bkg_id)-1).'?)';
-			$rows = $utils->SafeGet($sql,$bkg_id,'assoc');
+		if (is_array($bkgid)) {
+			$sql .= ' IN ('.str_repeat('?,',count($bkgid)-1).'?)';
+			$rows = $utils->SafeGet($sql,$bkgid,'assoc');
 		} else {
 			$sql .= '=?';
-			$rows = $utils->SafeGet($sql,array($bkg_id),'assoc');
+			$rows = $utils->SafeGet($sql,array($bkgid),'assoc');
 		}
 		if ($rows) {
-			$sql = 'DELETE FROM '.$mod->DataTable.' WHERE bkg_id=? AND slotstart>=?';
-			$sql2 = 'SELECT COUNT(1) AS num FROM '.$mod->DataTable.' WHERE bkg_id=? AND slotstart<?';
+			$sql = 'DELETE FROM '.$mod->DataTable.' WHERE rept_id=? AND slotstart>=?';
+			$sql2 = 'SELECT COUNT(1) AS num FROM '.$mod->DataTable.' WHERE rept_id=? AND slotstart<?';
 			$sql3 = 'UPDATE '.$mod->RepeatTable.' SET active=0 WHERE bkg_id=?';
 			$sql4 = 'DELETE FROM '.$mod->RepeatTable.' WHERE bkg_id=?';
 			foreach ($rows as $bid=>$one) {
@@ -251,8 +251,8 @@ SELECT B.booker_id FROM $mod->BookerTable B
 JOIN $table T ON B.booker_id = T.booker_id
 WHERE T.bkg_id=?
 EOS;
-		$booker_id = $mod->dbHandle->GetOne($sql,array($params['bkg_id']));
-		if (!$booker_id)
+		$bookerid = $mod->dbHandle->GetOne($sql,array($params['bkg_id']));
+		if (!$bookerid)
 			return FALSE;
 
 		$sql2 = array();
@@ -272,7 +272,7 @@ EOS;
 			}
 		}
 		
-		$args[] = (int)$booker_id;
+		$args[] = (int)$bookerid;
 		$sql = 'UPDATE '.$mod->BookerTable.' SET '.implode(',',$sql2).' WHERE booker_id=?';
 		$utils = new Utils();
 		$funcs = new Userops();
@@ -280,9 +280,9 @@ EOS;
 		if (!$utils->SafeExec($sql,$args)) {
 			$ret = FALSE;
 		} elseif(!(empty($params['publicid']) || empty($params['passwd']))) {
-			$ret = $funcs->SetPassword($mod,$booker_id,'FORCE',$params['passwd']);
+			$ret = $funcs->SetPassword($mod,$bookerid,'FORCE',$params['passwd']);
 		}
-		$ret = $ret && $funcs->SetContact($mod,$booker_id,trim($params['contact']));
+		$ret = $ret && $funcs->SetContact($mod,$bookerid,trim($params['contact']));
 
 		return $ret;
 	}
@@ -299,14 +299,14 @@ EOS;
 	{
 		if (empty($params['booker_id'])) {
 	 		$funcs = new Userops();
-			list($booker_id,$newbooker) = $funcs->GetParamsID($mod,$params);
-			if ($booker_id === FALSE) {
+			list($bookerid,$newbooker) = $funcs->GetParamsID($mod,$params);
+			if ($bookerid === FALSE) {
 				//TODO nicely handle bad password e.g. message
 				sleep(2);
 				return FALSE;
 			}
 		} else {
-			$booker_id = (int)$params['booker_id']; //TODO upstream admin must supply this
+			$bookerid = (int)$params['booker_id']; //TODO upstream admin must supply this
 		}
 
 		if (isset($params['when'])) {
@@ -323,11 +323,11 @@ EOS;
 		if ($is_new) {
 			$sql2 = 'bkg_id,item_id,booker_id';
 			$fillers = '?,?,?';
-			$bid = $mod->dbHandle->GenID($mod->DataTable.'_seq');
+			$bkgid = $mod->dbHandle->GenID($mod->DataTable.'_seq');
 			$args = array(
-				$bid,
+				$bkgid,
 				(int)$params['item_id'],
-				$booker_id
+				$bookerid
 			);
 			foreach (array('when','until','paid') as $k) {
 				if (isset($params[$k])) {

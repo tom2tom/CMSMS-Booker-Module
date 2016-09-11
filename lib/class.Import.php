@@ -702,30 +702,30 @@ class Import
 						if ($update) { //TODO robust UPSERT
 							if (is_numeric($update)) {
 								$sql = 'SELECT booker_id FROM '.$mod->BookerTable.' WHERE booker_id=?';
-								$bid = $utils->SafeGet($sql,array($update),'one');
+								$bookerid = $utils->SafeGet($sql,array($update),'one');
 							} else {
-								$bid = FALSE;
+								$bookerid = FALSE;
 							}
-							if (!$bid) {
+							if (!$bookerid) {
 								$sql = 'SELECT booker_id FROM '.$mod->BookerTable;
 								if ($data['publicid']) {
 									$sql .= ' WHERE publicid=?';
 									$args = array($data['publicid']);
-									$bid = $utils->SafeGet($sql,$args,'one');
+									$bookerid = $utils->SafeGet($sql,$args,'one');
 								} elseif ($data['name']) {
 									$sql .= ' WHERE name=?';
 									$args = array($data['name']);
-									$bid = $utils->SafeGet($sql,$args,'one');
+									$bookerid = $utils->SafeGet($sql,$args,'one');
 								} else {
-									$bid = FALSE;
+									$bookerid = FALSE;
 								}
 							}
-							if ($bid) {
-								//TODO cache $bid=>$data['name'].$data['publicid']
+							if ($bookerid) {
+								//TODO cache $bookerid=>$data['name'].$data['publicid']
 								$namers = implode('=?,',array_keys($data));
 								$sql = 'UPDATE '.$mod->BookerTable.' SET '.$namers.'=? WHERE booker_id=?';
 								$args = array_values($data);
-								$args[] = $bid;
+								$args[] = $bookerid;
 								if ($utils->SafeExec($sql,$args)) {
 									$icount++;
 									$done = TRUE;
@@ -737,8 +737,8 @@ class Import
 							$fillers = str_repeat('?,',count($data)-1);
 							$sql = 'INSERT INTO '.$mod->BookerTable.' (booker_id,'.$namers.',addwhen) VALUES (?,'.$fillers.'?,?)';
 							$args = array_values($data);
-							$bid = $mod->dbHandle->GenID($mod->BookerTable.'_seq');
-							array_unshift($args,$bid);
+							$bookerid = $mod->dbHandle->GenID($mod->BookerTable.'_seq');
+							array_unshift($args,$bookerid);
 							$args[] = $st;
 							if ($utils->SafeExec($sql,$args)) {
 								$icount++;
@@ -803,7 +803,8 @@ class Import
 			);
 			/* non-public
 			=>'bkg_id'
-			=>'status'
+			=>'rept_id'
+			=>'active'
 			*/
 			$t = count($firstline);
 			if ($t < 1 || $t > count($translates)) {
@@ -822,7 +823,7 @@ class Import
 			}
 
 			$utils = new Utils();
-			$dts = new \DateTime('1900-1-1',new \DateTimeZone('UTC'));
+			$dts = new \DateTime('@0',NULL);
 			$dte = clone $dts;
 			$item_lens = array();
 			$bookers = array();
@@ -937,7 +938,7 @@ class Import
 						$data['slotstart'] = $dts->getTimestamp();
 						$data['slotlen'] = $dte->getTimestamp() - $data['slotstart'];
 						$funcs2 = new Schedule();
-						$save = !$funcs2->ItemBooked($mod,$data['item_id'],$dts,$dte)
+						$save = $funcs2->ItemVacantCount($mod,$data['item_id'],$dts,$dte)
 							&& $funcs2->ItemAvailable($mod,$utils,$data['item_id'],$dts,$dte);
 					} else {
 						return array(FALSE,'err_badstart');
@@ -959,23 +960,23 @@ class Import
 						if ($update) { //TODO robust UPSERT
 							if (is_numeric($update)) {
 								$sql = 'SELECT bkg_id FROM '.$mod->DataTable.' WHERE bkg_id=?';
-								$bid = $utils->SafeGet($sql,array($update),'one');
+								$bkgid = $utils->SafeGet($sql,array($update),'one');
 							} else {
-								$bid = FALSE;
+								$bkgid = FALSE;
 							}
-/*							if (!$bid) {
+/*							if (!$bkgid) {
 								$sql = $TODO; //get relevant bkg_id
 								$args = $TODO;
-								$bid = $utils->SafeGet($sql,$args,'one');
+								$bkgid = $utils->SafeGet($sql,$args,'one');
 							}
 */
-							if ($bid) {
-								//TODO cache $bid=>X
+							if ($bkgid) {
+								//TODO cache $bkgid=>X
 								$sql = array();
 								$args = array();
 								$namers = implode('=?,',array_keys($data));
 								$sql[] = 'UPDATE '.$mod->DataTable.' SET '.$namers.'=? WHERE bkg_id=?';
-								$args[] = array_values($data) + array(-1=>$bid);
+								$args[] = array_values($data) + array(-1=>$bkgid);
 //TODO update HistoryTable too
 //								$sql[] = 'UPDATE '.$mod->HistoryTable.' SET WHERE =?'
 //								$args[] =
@@ -992,19 +993,19 @@ class Import
 							$namers = implode(',',array_keys($data));
 							$fillers = str_repeat('?,',count($data)-1);
 							$sql[] = 'INSERT INTO '.$mod->DataTable.' (bkg_id,'.$namers.') VALUES (?,'.$fillers.'?)';
-							$bid = $mod->dbHandle->GenID($mod->DataTable.'_seq');
-							$args[] = array(-1=>$bid) + array_values($data);
+							$bkgid = $mod->dbHandle->GenID($mod->DataTable.'_seq');
+							$args[] = array(-1=>$bkgid) + array_values($data);
 
 							$namers = implode(',',$histfields);
 							$fillers = str_repeat('?,',count($histfields)-1);
 							$sql[] = 'INSERT INTO '.$mod->HistoryTable.' ('.$namers.') VALUES ('.$fillers.'?)';
-							$bid = $mod->dbHandle->GenID($mod->HistoryTable.'_seq');
+							$hid = $mod->dbHandle->GenID($mod->HistoryTable.'_seq');
 							$dts->modify('now');
 							$st = $dts->getTimestamp();
 //TODO useful status, payment codes
 							$status = \Booker::STATOK;
 							$payment = ($data['paid']) ? \Booker::STATPAID : \Booker::STATFREE;
-							$args[] = array($bid,$data['booker_id'],$data['item_id'],1,$st,$st,$data['slotstart'],$data['slotlen'],$status,$payment);
+							$args[] = array($hid,$data['booker_id'],$data['item_id'],1,$st,$st,$data['slotstart'],$data['slotlen'],$status,$payment);
 
 							if ($utils->SafeExec($sql,$args)) {
 								$icount++;
@@ -1232,7 +1233,7 @@ class Import
 								$namers = implode('=?,',array_keys($data));
 								$sql = 'UPDATE '.$mod->HistoryTable.' SET '.$namers.'=? WHERE condition_id=?';
 								$args = array_values($data);
-								$args[] = $bid;
+								$args[] = $hid;
 								if ($utils->SafeExec($sql,$args)) {
 									$icount++;
 									$done = TRUE;

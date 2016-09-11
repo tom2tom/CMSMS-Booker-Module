@@ -427,26 +427,26 @@ EOS;
 	to something else, generally like &#...;
 	(except when the separator is '&', '#' or ';', those become %...%)
 	@mod: reference to current Booker module object
-	@booker_id: enumerator of the booker to process, or array of such, or '*'
+	@bookerid: enumerator of the booker to process, or array of such, or '*'
 	@sep: optional field-separator for exported content, assumed single-byte ASCII, default ','
 	Returns: 2-member array, 1st is T/F indicating success, 2nd '' or lang key for message
 	*/
-	public function ExportBookers(&$mod, $booker_id, $sep=',')
+	public function ExportBookers(&$mod, $bookerid, $sep=',')
 	{
-		if (!$booker_id)
+		if (!$bookerid)
 			return array(FALSE,'err_system');
 
 		$sql = 'SELECT * FROM '.$mod->BookerTable;
-		if (is_array($booker_id)) {
-			$fillers = str_repeat('?,',count($booker_id)-1);
+		if (is_array($bookerid)) {
+			$fillers = str_repeat('?,',count($bookerid)-1);
 			$sql .= ' WHERE booker_id IN('.$fillers.'?) ORDER BY name';
-			$args = $booker_id;
-		} elseif ($booker_id == '*') {
+			$args = $bookerid;
+		} elseif ($bookerid == '*') {
 			$sql .= ' ORDER BY name';
 			$args = array();
 		} else {
 			$sql .= ' WHERE booker_id=?';
-			$args = array($booker_id);
+			$args = array($bookerid);
 		}
 		$utils = new Utils();
 		$all = $utils->SafeGet($sql,$args);
@@ -533,35 +533,35 @@ EOS;
 				} //foreach $translates
 				$outstr .= implode($sep,$stores)."\n";
 			} //foreach $all
-			$detail = self::NameDetail($mod,$utils,$booker_id,'booker');
+			$detail = self::NameDetail($mod,$utils,$bookerid,'booker');
 			$fname = self::FullName($mod,$detail);
 			return self::ExportContent($mod,$fname,$outstr);
 		} //$all
 		return array(FALSE,'err_data');
 	}
 
-	private function ExtraSQL($bkg_id, $bkr_id, $xtra=TRUE)
+	private function ExtraSQL($bkgid, $bookerid, $xtra=TRUE)
 	{
 		$sql = '';
 		$joiner = ($xtra) ? 'AND':'WHERE';
 		$args = array();
-		if (is_array($bkg_id)) {
-			$fillers = str_repeat('?,',count($bkg_id)-1);
+		if (is_array($bkgid)) {
+			$fillers = str_repeat('?,',count($bkgid)-1);
 			$sql .= ' '.$joiner.' bkg_id IN('.$fillers.'?)';
 			$args = array_merge($args,$bgk_id);
 			$joiner = 'AND';
-		}elseif ($bkg_id && $bkg_id != '*') {
+		}elseif ($bkgid && $bkgid != '*') {
 			$sql .= ' '.$joiner.' bkg_id=?';
-			$args[] = $bkg_id;
+			$args[] = $bkgid;
 			$joiner = 'AND';
 		}
-		if (is_array($bkr_id)) {
-			$fillers = str_repeat('?,',count($bkr_id)-1);
+		if (is_array($bookerid)) {
+			$fillers = str_repeat('?,',count($bookerid)-1);
 			$sql .= ' '.$joiner.' booker_id IN('.$fillers.'?)';
-			$args = array_merge($args,$bkr_id);
-		} elseif ($bkr_id && $bkr_id != '*') {
+			$args = array_merge($args,$bookerid);
+		} elseif ($bookerid && $bookerid != '*') {
 			$sql .= ' '.$joiner.' booker_id=?';
-			$args[] = $bkr_id;
+			$args[] = $bookerid;
 		}
 		return array($sql,$args);
 	}
@@ -572,18 +572,18 @@ EOS;
 	To avoid field-corruption, existing separators in headings or data are converted
 	to something else, generally like &#...;
 	(except when the separator is '&', '#' or ';', those become %...%)
-	At least one of @item_id, @bkg_id, @bkr_id must be provided
+	At least one of @item_id, @bkgid, @bookerid must be provided
 	@mod: reference to current Booker module object
 	@item_id: optional item enumerator, or array of such, or '*' default FALSE,
-	 must be provided if neither @bkg_id or @bkr_id is provided
-	@bkg_id: optional booking enumerator, or array of such, or '*' default FALSE
+	 must be provided if neither @bkgid or @bookerid is provided
+	@bkgid: optional booking enumerator, or array of such, or '*' default FALSE
 	@bkr_id: optional booker enumerator, or array of such, or '*' default FALSE
 	@sep: optional field-separator for exported content, assumed single-byte ASCII, default ','
 	Returns: 2-member array, 1st is T/F indicating success, 2nd '' or lang key for message
 	*/
-	public function ExportBookings(&$mod, $item_id=FALSE, $bkg_id=FALSE, $bkr_id=FALSE, $sep=',')
+	public function ExportBookings(&$mod, $item_id=FALSE, $bkgid=FALSE, $bookerid=FALSE, $sep=',')
 	{
-		if (!($item_id || $bkg_id || $bkr_id))
+		if (!($item_id || $bkgid || $bookerid))
 			return array(FALSE,'err_system');
 		$all = FALSE;
 		$sql = 'SELECT bkg_id FROM '.$mod->DataTable;
@@ -592,15 +592,15 @@ EOS;
 				$fillers = str_repeat('?,',count($item_id)-1);
 				$sql .= ' WHERE item_id IN ('.$fillers.'?)';
 				$args = $item_id;
-				if ($bkg_id || $bkr_id) {
-					list($xql,$xarg) = self::ExtraSQL($bkg_id,$bkr_id);
+				if ($bkgid || $bookerid) {
+					list($xql,$xarg) = self::ExtraSQL($bkgid,$bookerid);
 					$sql .= $xql;
 					$args = array_merge($args,$xarg);
 				}
 				$sql .= ' ORDER BY item_id,slotstart';
 			} elseif ($item_id == '*') {
-				if ($bkg_id || $bkr_id) {
-					list($xql,$args) = self::ExtraSQL($bkg_id,$bkr_id,FALSE);
+				if ($bkgid || $bookerid) {
+					list($xql,$args) = self::ExtraSQL($bkgid,$bookerid,FALSE);
 					$sql .= $xql;
 				} else {
 					$args = array();
@@ -609,51 +609,51 @@ EOS;
 			} else {
 				$sql .= ' WHERE item_id=?';
 				$args = array($item_id);
-				if ($bkg_id || $bkr_id) {
-					list($xql,$xarg) = self::ExtraSQL($bkg_id,$bkr_id);
+				if ($bkgid || $bookerid) {
+					list($xql,$xarg) = self::ExtraSQL($bkgid,$bookerid);
 					$sql .= $xql;
 					$args = array_merge($args,$xarg);
 				}
 				$sql .= ' ORDER BY slotstart';
 			}
 		}
-		if (!$item_id && $bkg_id) {
-			if (is_array($bkg_id)) {
-				if ($bkr_id) {
-					list($xql,$xarg) = self::ExtraSQL(FALSE,$bkr_id,FALSE);
+		if (!$item_id && $bkgid) {
+			if (is_array($bkgid)) {
+				if ($bookerid) {
+					list($xql,$xarg) = self::ExtraSQL(FALSE,$bookerid,FALSE);
 					$sql .= $xql.' ORDER BY booker_id,slotstart';
-					$args = array_merge($bkg_id,$xarg);
+					$args = array_merge($bkgid,$xarg);
 				} else
-					$all = $bkg_id;
-			} elseif ($bkg_id == '*') {
-				if ($bkr_id) {
-					list($xql,$args) = self::ExtraSQL(FALSE,$bkr_id,FALSE);
+					$all = $bkgid;
+			} elseif ($bkgid == '*') {
+				if ($bookerid) {
+					list($xql,$args) = self::ExtraSQL(FALSE,$bookerid,FALSE);
 					$sql .= $xql.' ORDER BY booker_id,slotstart';
 				} else {
 					$args = array();
 					$sql .= ' ORDER BY slotstart';
 				}
 			} else {
-				if ($bkr_id) {
-					list($xql,$xarg) = self::ExtraSQL(FALSE,$bkr_id,FALSE);
+				if ($bookerid) {
+					list($xql,$xarg) = self::ExtraSQL(FALSE,$bookerid,FALSE);
 					$sql .= $xql.' ORDER BY booker_id,slotstart';
 					$args = array_merge($args,$xarg);
 				} else
-					$all = array($bkg_id);
+					$all = array($bkgid);
 			}
 		}
-		if (!$item_id && $bkr_id) {
-			if (is_array($bkr_id)) {
-				$fillers = str_repeat('?,',count($bkr_id)-1);
+		if (!$item_id && $bookerid) {
+			if (is_array($bookerid)) {
+				$fillers = str_repeat('?,',count($bookerid)-1);
 				$sql .= ' WHERE booker_id IN ('.$fillers.'?)';
-				$args = $bkr_id;
+				$args = $bookerid;
 				$sql .= ' ORDER BY booker_id,slotstart';
-			} elseif ($bkr_id == '*') {
+			} elseif ($bookerid == '*') {
 				$args = array();
 				$sql .= ' ORDER BY booker_id,slotstart';
 			} else {
 				$sql .= ' WHERE booker_id=?';
-				$args = array($bkr_id);
+				$args = array($bookerid);
 				$sql .= ' ORDER BY slotstart';
 			}
 		}
@@ -746,15 +746,15 @@ EOS;
 
 			if($item_id) {
 				$detail = self::NameDetail($mod,$utils,$item_id,'item');
-				if($bkr_id)
-					$detail .= '_'.self::NameDetail($mod,$utils,$bkr_id,'booker');
-				if($bkg_id)
-					$detail .= '_'.self::NameDetail($mod,$utils,$bkg_id,'booking');
+				if($bookerid)
+					$detail .= '_'.self::NameDetail($mod,$utils,$bookerid,'booker');
+				if($bkgid)
+					$detail .= '_'.self::NameDetail($mod,$utils,$bkgid,'booking');
 			}
-			elseif($bkr_id)
-				$detail = self::NameDetail($mod,$utils,$bkr_id,'booker');
-			elseif($bkg_id)
-				$detail = self::NameDetail($mod,$utils,$bkg_id,'booking');
+			elseif($bookerid)
+				$detail = self::NameDetail($mod,$utils,$bookerid,'booker');
+			elseif($bkgid)
+				$detail = self::NameDetail($mod,$utils,$bkgid,'booking');
 			$fname = self::FullName($mod,$detail);
 			return self::ExportContent($mod,$fname,$outstr);
 		}

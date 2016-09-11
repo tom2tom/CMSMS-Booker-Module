@@ -169,7 +169,7 @@ class Histops
 
 	/**
 	TotalCredit:
-	Determine how much credit has been accumulated by @booker_id
+	Determine how much credit has been accumulated by @booker
 	See also: Payments::TotalCredit();
 	@booker: a numeric booker_id, or array of them, or '*' for all, or a callback for filtering
 	Returns: float amount
@@ -202,13 +202,13 @@ class Histops
 
 	/**
 	UseCredit:
-	Reduce the the credit accumulated by @booker_id by @amount
+	Reduce the the credit accumulated by @bookerid by @amount
 	See also: Payments::UseCredit();
-	@booker_id: numeric booker-identifier
+	@bookerid: numeric booker-identifier
 	@amount:
-	Returns: remaining credit for @booker_id (maybe < 0), or FALSE upon error
+	Returns: remaining credit for @bookerid (maybe < 0), or FALSE upon error
 	*/
-	public function UseCredit(&$mod, $booker_id, $amount)
+	public function UseCredit(&$mod, $bookerid, $amount)
 	{
 		$valid = self::GetHistory($params);
 		foreach ($valid as $one) {
