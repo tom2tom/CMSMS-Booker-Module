@@ -215,11 +215,18 @@ class Requestops
 				//notify lodger
 				$funcs = new \MessageSender();
 				$fails = array();
+				$props = array();
 
 				foreach ($rows as $id=>&$one) {
 					switch ($one['status']) {
 					 case \Booker::STATNONE:
-						$idata = $utils->GetItemProperty($mod,$one['item_id'],'*');
+
+						$item_id = $one['item_id'];
+						if (!isset($props[$item_id])) {
+							$props[$item_id] = $utils->GetItemProperty($mod,$item_id,
+								array('item_id','name','membersname','smspattern','smsprefix'));
+						}
+						$idata = $props[$item_id];
 						list($from,$to,$textparms,$mailparms,$tweetparms) = self::MsgParms($mod,$utils,$one,$idata,self::MSGAPPROVE,$custommsg);
 						list($res,$msg) = $funcs->Send($from,$to,$textparms,$mailparms,$tweetparms);
 						if (!$res)
@@ -247,8 +254,10 @@ class Requestops
 					}
 				}
 				unset($one);
-				if ($fails)
+				if ($fails) {
+					$fails = array_unique($fails,SORT_STRING);
 					return array(FALSE,implode('<br />',$fails));
+				}
 				return aray(TRUE,'');
 			} else {
 				//TODO remind user to tell all, manually
@@ -274,6 +283,7 @@ class Requestops
 				$funcs = new \MessageSender();
 				$utils = new Utils();
 				$fails = array();
+				$props = array();
 			} else
 				$funcs = FALSE;
 			$db = $mod->dbHandle;
@@ -281,7 +291,12 @@ class Requestops
 			foreach ($rows as $history_id=>$one) {
 				if ($funcs) {
 					//notify lodger
-					$idata = $utils->GetItemProperty($mod,$one['item_id'],'*');
+					$item_id = $one['item_id'];
+					if (!isset($props[$item_id])) {
+						$props[$item_id] = $utils->GetItemProperty($mod,$item_id,
+							array('item_id','name','membersname','smspattern','smsprefix'));
+					}
+					$idata = $props[$item_id];
 					list($from,$to,$textparms,$mailparms,$tweetparms) = self::MsgParms($mod,$utils,$one,$idata,self::MSGREJECT,$custommsg);
 					list($res,$msg) = $funcs->Send($from,$to,$textparms,$mailparms,$tweetparms);
 					if (!$res)
@@ -290,8 +305,10 @@ class Requestops
 			//TODO $utils->SafeExec()
 				$db->Execute($sql,array($history_id));//update status
 			}
-			if ($fails)
+			if ($fails) {
+				$fails = array_unique($fails,SORT_STRING);
 				return array(FALSE,implode('<br />',$fails));
+			}
 			return array(TRUE,'');
 		} else
 			return array(FALSE,$mod->Lang('err_data'));
@@ -314,6 +331,7 @@ class Requestops
 				$funcs = new \MessageSender();
 				$utils = new Utils();
 				$fails = array();
+				$props = array();
 			} else
 				$funcs = FALSE;
 			$db = $mod->dbHandle;
@@ -321,7 +339,12 @@ class Requestops
 			foreach ($rows as $history_id=>$one) {
 				if ($funcs) {
 					//notify lodger
-					$idata = $utils->GetItemProperty($mod,$one['item_id'],'*');
+					$item_id = $one['item_id'];
+					if (!isset($props[$item_id])) {
+						$props[$item_id] = $utils->GetItemProperty($mod,$item_id,
+							array('item_id','name','membersname','smspattern','smsprefix'));
+					}
+					$idata = $props[$item_id];
 					list($from,$to,$textparms,$mailparms,$tweetparms) = self::MsgParms($mod,$utils,$one,$idata,self::MSGINFO,$custommsg);
 					list($res,$msg) = $funcs->Send($from,$to,$textparms,$mailparms,$tweetparms);
 					if (!$res)
@@ -330,8 +353,10 @@ class Requestops
 			//TODO $utils->SafeExec()
 				$db->Execute($sql,array($history_id));//update status
 			}
-			if ($fails)
+			if ($fails) {
+				$fails = array_unique($fails,SORT_STRING);
 				return array(FALSE,implode('<br />',$fails));
+			}
 			return array(TRUE,'');
 		} else
 			return array(FALSE,$mod->Lang('err_data'));
@@ -354,6 +379,7 @@ class Requestops
 				$funcs = new \MessageSender();
 				$utils = new Utils();
 				$fails = array();
+				$props = array();
 			} else
 				$funcs = FALSE;
 			$db = $mod->dbHandle;
@@ -361,7 +387,12 @@ class Requestops
 			foreach ($rows as $history_id=>$one) {
 				if ($funcs && $one['status'] !== \Booker::STATOK) {
 					//notify lodger
-					$idata = $utils->GetItemProperty($mod,$one['item_id'],'*');
+					$item_id = $one['item_id'];
+					if (!isset($props[$item_id])) {
+						$props[$item_id] = $utils->GetItemProperty($mod,$item_id,
+							array('item_id','name','membersname','smspattern','smsprefix'));
+					}
+					$idata = $props[$item_id];
 					list($from,$to,$textparms,$mailparms,$tweetparms) = self::MsgParms($mod,$utils,$one,$idata,self::MSGCANCELLED,$custommsg);
 					list($res,$msg) = $funcs->Send($from,$to,$textparms,$mailparms,$tweetparms);
 					if (!$res)
@@ -370,8 +401,10 @@ class Requestops
 			//TODO $utils->SafeExec()
 				$db->Execute($sql,array($history_id));//remove it
 			}
-			if ($fails)
+			if ($fails) {
+				$fails = array_unique($fails,SORT_STRING);
 				return array(FALSE,implode('<br />',$fails));
+			}
 			return array(TRUE,'');
 		} else
 			return array(FALSE,$mod->Lang('err_data'));
@@ -387,7 +420,7 @@ class Requestops
 	*/
 	public function SaveReq(&$mod, &$params, $is_new)
 	{
-		$booker_id = (int)$params['booker_id']; //TODO upstream must supply this
+		$bookerid = (int)$params['booker_id']; //TODO upstream must supply this
 		//table fields unused here 'netfee' 'gatetransaction 'gatedata'
  		//date/time $params[] have been verified before calling here
 		if (isset($params['slotstart'])) {
@@ -407,7 +440,7 @@ class Requestops
 		$db = $mod->dbHandle;
 		if ($is_new) {
 			$hid = $db->GenID($mod->HistoryTable.'_seq');
-			$args = array('history_id'=>$hid,'booker_id'=>$booker_id,'item_id'=>$params['item_id']);
+			$args = array('history_id'=>$hid,'booker_id'=>$bookerid,'item_id'=>$params['item_id']);
 			//$params[] key to table-field translates
 			foreach (array(
 			 'subgrpcount'=>TRUE,
