@@ -27,7 +27,7 @@
 {assign var='r' value=$smarty.section.rows.index}
  <tr>
 {section name=c loop=$columns}
-{if !empty($columns[c])}<td{if !empty($columns[c][$r]->bid)} id="{$columns[c][$r]->bid}"{/if}
+{if !empty($columns[c])}<td{if !empty($columns[c][$r]->bkgid)} id="{$columns[c][$r]->bkgid}"{/if}
 {if !empty($columns[c][$r]->style)} {$columns[c][$r]->style}{/if}
 {if !empty($columns[c][$r]->tip)} title="{$columns[c][$r]->tip}"{/if}
 {if !empty($columns[c][$r]->iso)} iso="{$columns[c][$r]->iso}"{/if}>{$columns[c][$r]->data}
