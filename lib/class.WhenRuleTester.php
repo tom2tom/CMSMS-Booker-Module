@@ -62,7 +62,7 @@ class WhenRuleTester
 		$this->mod = $mod; //cache current module object
 	}
 
-	public function Run()
+	public function Parse()
 	{
 		$tests = array (
 array('2000-10..2009-9,not(2005,2006-6)',	7),
@@ -134,10 +134,74 @@ array('2000-9-1',					13),
 array('2000-10-1..2000-12-31',		13),
 array('1(Aug(2015..2020))',			13),
 //~~~~~~~~~~~~ SEPARATIONS ~~~~~~~~~~~
-array('each 2(2015..2020)',			6),
-array('each 2 year(2015..2020)',	6),
 array('each 1(2015..2020)',			6),
+array('each 2(2016..2019)',		6),
+array('each 2 year(2016..2020)',		6),
+array('each 10 day(each 2 month(2016))',		6),
+array('each 10 day(each 2 month(July..September))',		6),
+array('each 10 day(each 3 month(2016..2016))',		6),
+array('each 7 day(each 3 month(2016,2018,2020))',		6),
+array('each 14 day(each 3 month(each 2(2016..2020)))',		6),
+array('each 10 day(May)',		6),
+array('each 20 day(May,July)',		6),
+array('each 10 day(May..September)',		6),
+array('each 10 day(June,July)',		6),
+array('each 10 day(September..December)',		6),
+array('each 2(2015..2020)',		6),
+array('each 2 Tuesday(2015)',		6),
+array('each 2 Tuesday(2015..2016)',		6),
+array('each 2 Tuesday(2016-11)',		6),
+array('each 2 Tuesday(each 2 month(2016))',		6),
+array('each 2 Tuesday(each 2 month(July..September))',		6),
+array('each 2 Tuesday(each 3 month(2016..2020))',		6),
+array('each 2 Tuesday(each 3 month(each 2(2016..2020)))',		6),
+array('each 2 Tuesday(May)',		6),
+array('each 2 Tuesday(May,July)',		6),
+array('each 2 Tuesday(May..September)',		6),
+array('each 2 Tuesday(June,July)',		6),
+array('each 2 Tuesday(September..December)',		6),
+array('each 2 day(-1(week(2020-10)))',		6),
+array('each 2 day(1..3(week(2020-10)))',		6),
+array('each 2 day((1,-1)(week(2020-10)))',		6),
+array('each 2 day((1,2)(week(2019-10,2020-10)))',		6),
+array('each 2 day(2(week(2020)))',		6),
+array('each 2 day(2(week(2020-10)))',		6),
+array('each 2 day(2(week(May)))',		6),
+array('each 2 day(each 2 week(2020))',		6),
+array('each 2 day(each 2 week(2020-10))',		6),
+array('each 2 day(each 2 week(May))',		6),
 
+array('each 2 month(2015)',		7),
+array('each 2 month(2015..2020)',	7),
+array('each 2 month(January..December)',		2),
+array('each 2 week(2015)',		7),
+
+array('each 2 week(2015..2020)',		6),
+array('each 2 week(2015-5)',		6),
+array('each 2 week(2020-5..2020-12)',		6),
+array('each 2 month(2020-5..2020-12)',		6),
+array('each 2 week(each 2 month(July..September))',		6),
+array('each 2 week(each 2 year(2015..2018))',		6),
+array('each 2 week(May)',		8),
+array('each 2 week(May(2015))',		6),
+array('each 2 week((May,June)(2015..2020))',		6),
+array('each 2 week(May,July)',		6),
+array('each 2 week(May..September)',		6),
+array('each 2 week(June,July)',		6),
+array('each 2 week(September..December)',		6),
+array('each 2 year(2015..2020)',		6),
+array('each 30 day(2015)',		6),
+array('each 30 day(2015..2016)',		6),
+array('each 3(July..December)',		6),
+array('each 4 month(each 2 year(2015..2020))',		6),
+array('Tuesday(each 2 week(2020))',		6),
+array('Tuesday(each 2 week(2020-10))',		6),
+array('Tuesday(each 2 week(each 3 month(2020)))',		6),
+array('Tuesday(each 2 week(May))',		6),
+array('Tuesday(each 2 week(May..September))',		6),
+array('Tuesday(each 3 month(2020))',		6),
+array('(Tuesday,Wednesday)(each 3 month(2020))',		6),
+/*
 array('each 2 month(2015)',			7),
 array('each 2 month(2015..2020)',	7),
 array('each 3 month(each 2 year(2015..2020))',7),
@@ -195,6 +259,7 @@ array('each 2 Tuesday(each 2 month(July..September))',11),
 array('each 2 Tuesday(each 2 month(2016))',12),
 array('each 2 Tuesday(each 3 month(2016..2020))',12),
 array('each 2 Tuesday(each 3 month(each 2(2016..2020)))',12),
+ */
 //----------------
 array('Tuesday(each 2 week(May))',	11),
 array('Tuesday(each 2 week(May..September))',	11),
@@ -241,7 +306,7 @@ array('0..sunrise,sunset..11:59',	1),
 		$this->Crash();
 	}
 
-	public function Separations()
+	public function Interpret()
 	{
 		$tests = array(
 //TODO more validation of this stuff
@@ -354,50 +419,4 @@ array('0..sunrise,sunset..11:59',	1),
 			$parts['tm_min'],
 			$parts['tm_sec']);
 	}
-
-	/**
-	args as as for PeriodInterpreter::AllDays($year,$month=FALSE,$week=FALSE,$day=FALSE)
-	*/
-	public function AllDaysTester($year, $month, $week, $day)
-	{
-		$funcs = new PeriodInterpreter();
-		$ret = array();
-		$dt = new \DateTime('@0',new \DateTimeZone('UTC'));
-		$data = $funcs->AllDays($year,$month,$week,$day);
-		foreach ($data as $row) {
-			$yr = $row[0];
-			$days = $row[1];
-			foreach ($days as $doy) {
-				$d = sprintf('%03d',$doy+1);	//downstream strptime() expects padded, 1-based, day-of-year
-				$newdate = self::isodate_from_format('Y z',$yr.' '.$d);
-				$dt->modify($newdate);
-				$ret[] = $dt->format('D j M Y');
-			}
-		}
-		return $ret;
-	}
-
-	/**
-	args as as for PeriodInterpreter::SuccessiveDays($interval,$styear,$stmonth,$stday,$ndyear=FALSE,$ndmonth=FALSE,$ndday=FALSE)
-	*/
-	public function SuccessiveDaysTester($interval, $styear, $stmonth, $stday,
-		$ndyear=FALSE, $ndmonth=FALSE, $ndday=FALSE)
-	{
-		$funcs = new PeriodInterpreter();
-		$ret = array();
-		$dt = new \DateTime('@0',new \DateTimeZone('UTC'));
-		$data = $funcs->SuccessiveDays($interval,$styear,$stmonth,$stday,$ndyear,$ndmonth,$ndday);
-		foreach ($data as $row) {
-			$yr = $row[0];
-			$days = $row[1];
-			foreach ($days as $doy) {
-				$d = sprintf('%03d',$doy+1);	//downstream strptime() expects padded, 1-based, day-of-year
-				$newdate = self::isodate_from_format('Y z',$yr.' '.$d);
-				$dt->modify($newdate);
-				$ret[] = $dt->format('D j M Y');
-			}
-		}
-		return $ret;
-	}
-
 }
