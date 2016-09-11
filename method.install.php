@@ -107,9 +107,9 @@ $db->CreateSequence($this->ItemTable.'_seq'); //resource id's 1..MINGRPID-1
 $db->CreateSequence($this->ItemTable.'_gseq',Booker::MINGRPID); //group id's start higher
 
 // default group usable by all resources
-$bid = $db->GenID($this->ItemTable.'_gseq');
+$gid = $db->GenID($this->ItemTable.'_gseq');
 $sql = 'INSERT INTO '.$this->ItemTable.' (item_id,name) VALUES (?,?)'; //TODO more fields
-$db->Execute($sql,array($bid,$this->Lang('groupdefault')));
+$db->Execute($sql,array($gid,$this->Lang('groupdefault')));
 
 /*
  group-relationships table schema:
@@ -138,23 +138,27 @@ $dict->ExecuteSQLArray($sqlarray);
 
 /*
 non-repeated bookings-data table schema:
- bkg_id: maybe from repeat booking, so not necessarily unique, but is indexed
+ bkg_id: unique identifier
+ rept_id: bkg_id of repeat booking, or 0
  item_id: resource or group id
  slotstart: UTC timestamp
  slotlen: seconds booked, NOT seconds-per-slot
  booker_id: identifier
  status: one of the Booker::STAT* values
  paid: boolean
+ active: enum/boolean 1, or 0 if booking has been deleted but historic data remain
 Booker\CSV::ImportBookings must conform to this
 */
 $fields = "
- bkg_id I(4),
+ bkg_id I(4) KEY,
+ rept_id I(4) DEFAULT 0,
  item_id I(4),
  slotstart I,
  slotlen I(4),
  booker_id I(4),
- status I(1) NOTNULL DEFAULT ".Booker::STATNONE.",
- paid I(1) NOTNULL DEFAULT 0
+ status I(1) DEFAULT ".Booker::STATNONE.",
+ paid I(1) DEFAULT 0,
+ active I(1) DEFAULT 1
 ";
 $sqlarray = $dict->CreateTableSQL($this->DataTable, $fields, $taboptarray);
 if ($sqlarray == FALSE)
@@ -170,7 +174,7 @@ $db->CreateSequence($this->DataTable.'_seq');
 
 /*
 repeated bookings-data table schema:
- bkg_id:
+ bkg_id: unique identifier
  item_id: resource or group id
  formula: interval-descriptor string
  booker_id: identifier
@@ -476,12 +480,12 @@ array(2,9,1,7,0,0)
 			$dt->modify('+1 day');
 			$i = 0;
 		}
-		$bid = $db->GenID($this->DataTable.'_seq');
+		$bkgid = $db->GenID($this->DataTable.'_seq');
 		$dt->setTime(0,0,0);
 		$dt->modify('+'.(int)$dummy[1].' hours');
 		$dummy[1] = $dt->getTimestamp();
         $dummy[2] = $dummy[2]*3600 - 1;
-		array_unshift($dummy,$bid);
+		array_unshift($dummy,$bkgid);
 		$db->Execute($sql,$dummy);
 		$i++;
 	}
@@ -489,9 +493,9 @@ array(2,9,1,7,0,0)
 	$db->Execute($sql);
 
 // same sequence used for repeats and non-repeats
-	$bid = $db->GenID($this->DataTable.'_seq');
+	$bkgid = $db->GenID($this->DataTable.'_seq');
 	$sql = 'INSERT INTO '.$this->RepeatTable.' (bkg_id,item_id,formula,booker_id) VALUES (?,?,?,?)';
-	$dummy = array($bid,8,'Mon..Fri@20:00..21:00',1);
+	$dummy = array($bkgid,8,'Mon..Fri@20:00..21:00',1);
 	$db->Execute($sql,$dummy);
 
 // 1 description 2 slottype 3 slotcount 4 fee 5 feecondition
@@ -512,8 +516,8 @@ array(10004,'Nightplay fee',1,1,'10.00','0..sunrise,sunset..23:59'),
 			$sig .= ($dummy[$k] !== NULL) ? $dummy[$k] : 'NULL';
 		}
 		$sig = crc32($sig);
-		$bid = $db->GenID($this->FeeTable.'_seq');
-		$args = array($bid,$dummy[0],$sig,$dummy[1],$dummy[2],$dummy[3],$dummy[4],$dummy[5],$i);
+		$fid = $db->GenID($this->FeeTable.'_seq');
+		$args = array($fid,$dummy[0],$sig,$dummy[1],$dummy[2],$dummy[3],$dummy[4],$dummy[5],$i);
 		$db->Execute($sql,$args);
 		$i++;
 	}
@@ -536,9 +540,9 @@ array('Comp2','','','tpgww@onepost.net','0417394479','2016-3-4',0,4)
 );
 	$sql = 'UPDATE '.$this->BookerTable.' SET address=?,phone=?,addwhen=?,type=?,displayclass=? WHERE booker_id=?';
 	foreach ($data as $dummy) {
-		$bid = $funcs->AddUser($this,$dummy[0],$dummy[1],$dummy[2]);
+		$bookerid = $funcs->AddUser($this,$dummy[0],$dummy[1],$dummy[2]);
 		$dt->modify($dummy[5]);
-		$args = array($dummy[3],$dummy[4],$dt->getTimestamp(),$dummy[6],$dummy[7],$bid);
+		$args = array($dummy[3],$dummy[4],$dt->getTimestamp(),$dummy[6],$dummy[7],$bookerid);
 		$db->Execute($sql,$args);
 	}
 
