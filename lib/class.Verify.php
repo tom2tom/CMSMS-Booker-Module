@@ -68,14 +68,14 @@ TODO support 'past' data without both date/time $params[]
 				$params['when'] = $dts->getTimestamp();
 				$params['until'] = $dte->getTimestamp();
 				if ($is_new) {
-					if ($funcs->ItemBooked($mod,$item_id,$dts,$dte)) {
+					if ($funcs->ItemVacantCount($mod,$item_id,$dts,$dte) == 0) {
 						$msg[] = $mod->Lang('err_dup');
 					} elseif (!$funcs->ItemAvailable($mod,$utils,$item_id,$dts,$dte)) {
 						$msg[] = $mod->Lang('err_na');
 					}
 				} else { //update
 					$excl = (isset($params['bkg_id'])) ? $params['bkg_id'] : FALSE;
-					if ($funcs->ItemBooked($mod,$item_id,$dts,$dte,$excl)) {
+					if ($funcs->ItemVacantCount($mod,$item_id,$dts,$dte,$excl) == 0) {
 						$msg[] = $mod->Lang('err_dup');
 					} elseif (!$funcs->ItemAvailable($mod,$utils,$item_id,$dts,$dte)) {
 						$msg[] = $mod->Lang('err_na');
@@ -167,13 +167,13 @@ TODO support 'past' data without both date/time $params[]
 				$funcs = new Schedule();
 				//rationalise specified times relative to slot length
 				if ($is_new) {
-					if ($funcs->ItemBooked($mod,$item_id,$dts,$dte)) {
+					if ($funcs->ItemVacantCount($mod,$item_id,$dts,$dte) == 0) {
 						$msg[] = $mod->Lang('err_dup');
 					} elseif (!$funcs->ItemAvailable($mod,$utils,$item_id,$dts,$dte)) {
 						$msg[] = $mod->Lang('err_na');
 					}
 				} else { //update
-					if ($funcs->ItemBooked($mod,$item_id,$dts,$dte,$params['slotid'])) {
+					if ($funcs->ItemVacantCount($mod,$item_id,$dts,$dte,$params['slotid']) == 0) {
 						$msg[] = $mod->Lang('err_dup');
 					} elseif (!$funcs->ItemAvailable($mod,$utils,$item_id,$dts,$dte)) {
 						$msg[] = $mod->Lang('err_na');
@@ -330,7 +330,7 @@ function showerr(message,target) {
 }
 
 EOS;
-		} else { //frontend
+		} else { //frontend, no modalconfirm
 			$js1 = <<<EOS
 function showerr(message,target) {
  alert(message);
@@ -466,7 +466,7 @@ EOS;
     });
 
 EOS;
-		} else { //frontend
+		} else { //frontend, no modalconfirm
 			$js4 = <<<EOS
     var prompt = '{$mod->Lang('meaning_type','%s')}'.replace('%s',suggest.full);
     if (confirm(prompt)){
