@@ -170,14 +170,14 @@ class Utils
 
 	/**
 	GetBookingItemID:
-	Get resource/group id to which @bkg_id applies
+	Get resource/group id to which @bkgid applies
 	@mod: reference to Booker module object
-	@bkg_id: identfier of booking
+	@bkgid: identfier of booking
 	*/
-	public function GetBookingItemID(&$mod, $bkg_id)
+	public function GetBookingItemID(&$mod, $bkgid)
 	{
 		$sql = 'SELECT item_id FROM '.$mod->DataTable.' WHERE bkg_id=?';
-		$t = self::SafeGet($sql,array($bkg_id),'one');
+		$t = self::SafeGet($sql,array($bkgid),'one');
 		if ($t)
 			return (int)$t;
 		return FALSE;
@@ -1216,14 +1216,14 @@ class Utils
 		return array($dts,$dte);
 	}
 
-/*	public function GetBookingItemName(&$mod, $bkg_id)
+/*	public function GetBookingItemName(&$mod, $bkgid)
 	{
 		$sql =<<<EOS
 	SELECT I.item_id,I.name FROM $mod->ItemTable I
 	JOIN $mod->DataTable D ON I.item_id=D.item_id
 	WHERE I.active>0 AND D.bkg_id=?
 	EOS;
-		$idata = self::SafeGet($sql,array($bkg_id),'row');
+		$idata = self::SafeGet($sql,array($bkgid),'row');
 		if ($idata)
 			return self::GetItemName($mod,$idata);
 		return FALSE;
