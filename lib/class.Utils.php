@@ -172,7 +172,7 @@ class Utils
 	GetBookingItemID:
 	Get resource/group id to which @bkgid applies
 	@mod: reference to Booker module object
-	@bkgid: identfier of booking
+	@bkgid: identifier of booking
 	*/
 	public function GetBookingItemID(&$mod, $bkgid)
 	{
@@ -1636,7 +1636,7 @@ class Utils
 		}
 		$cart = new Cart\BookingCart($context,$pricesWithTax);
 		$cache->set($key,$cart,43200);
-//DEBUG
+/* DEBUG
 		$dt = new \DateTime('midnight',new \DateTimeZone('UTC'));
 		$base = $dt->getTimestamp();
 		$data = array(
@@ -1653,7 +1653,7 @@ class Utils
 			$item->data->slen = $one[4]-1;
 			$cart->addItem($item,$one[5]);
 		}
-
+*/
 		return $cart;
 	}
 
