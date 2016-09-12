@@ -280,7 +280,12 @@ class Userops
 			$main = $params['publicid'];
 			$supp = $params['passwd'];
 		} else {
-			$main = $params['name'];
+			if (!empty($params['name']))
+				$main = $params['name'];
+			elseif (!empty($params['user']))
+				$main = $params['user'];
+			else
+				$main = FALSE;
 			if (!empty($params['address']))
 				$supp = $params['address'];
 			elseif (!empty($params['phone']))
