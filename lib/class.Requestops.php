@@ -554,7 +554,7 @@ class Requestops
 
 		$data = $item->getPackage();
 		$data->user = ($params['user']) ? $params['user'] : $params['account']; 
-		$ob = cms_utils::get_module('FrontEndUsers');
+		$ob = \cms_utils::get_module('FrontEndUsers');
 		if ($ob) {
 			$data->uid = $ob->LoggedInID();
 			unset($ob);
@@ -573,8 +573,8 @@ class Requestops
 					$t = $mod->Lang('err_data');
 				}
 			}
-		} elseif ($params['contactuser']) {
-			$t = $params['contactuser'];
+		} elseif ($params['contact']) {
+			$t = $params['contact'];
 		} else {
 			$t = $mod->Lang('err_data');
 		}
