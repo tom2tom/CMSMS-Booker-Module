@@ -587,7 +587,7 @@ class Import
 			}
 			$utils = new Utils();
 			//for update checks
-			$exist = $utils->SafeGet('SELECT booker_id,name,publicid FROM '.$mod->BookerTable.' ORDER BY bkr_id',FALSE);
+			$exist = $utils->SafeGet('SELECT booker_id,name,publicid FROM '.$mod->BookerTable.' ORDER BY booker_id',FALSE);
 
 			$funcs = new Userops();
 			$dt = new \DateTime('now',new \DateTimeZone('UTC'));
@@ -1095,7 +1095,7 @@ class Import
 			}
 			$utils = new Utils();
 			//for update checks
-//			$exist = $utils->SafeGet('SELECT booker_id,name,publicid FROM '.$mod->BookerTable.' ORDER BY bkr_id',FALSE);
+//			$exist = $utils->SafeGet('SELECT booker_id,name,publicid FROM '.$mod->BookerTable.' ORDER BY booker_id',FALSE);
 
 			$dtw = new \DateTime('@0',new \DateTimeZone('UTC'));
 			$icwount = 0;
