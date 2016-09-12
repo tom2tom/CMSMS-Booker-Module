@@ -119,7 +119,7 @@ TODO support 'past' data without both date/time $params[]
 		$msg = array();
 		$tz = new \DateTimeZone('UTC');
 /* supplied $params keys
-	'returnid' 'item_id' 'startat' 'range' 'view' 'origreturnid'
+	'returnid' 'item_id' 'startat' 'range' 'view' 'bkgid'
 	'requesttype'? 'subgrpcount'? 'when'? 'until'? 'user' 'contact' 'captcha'? 'chooser'
 */
 		//always want these $params keys: 'user','contact'
@@ -173,7 +173,7 @@ TODO support 'past' data without both date/time $params[]
 						$msg[] = $mod->Lang('err_na');
 					}
 				} else { //update
-					if ($funcs->ItemVacantCount($mod,$item_id,$dts,$dte,$params['slotid']) == 0) {
+					if ($funcs->ItemVacantCount($mod,$item_id,$dts,$dte,$params['bkgid']) == 0) {
 						$msg[] = $mod->Lang('err_dup');
 					} elseif (!$funcs->ItemAvailable($mod,$utils,$item_id,$dts,$dte)) {
 						$msg[] = $mod->Lang('err_na');
@@ -187,7 +187,7 @@ TODO support 'past' data without both date/time $params[]
 		if (!$params['user'])
 			$msg[] = $mod->Lang('err_nosender');
 
-		if (!$params['contactuser'])
+		if (!$params['contact'])
 			$msg[] = $mod->Lang('err_nocontact');
 
 		if (isset($params['subgrpcount'])) {
