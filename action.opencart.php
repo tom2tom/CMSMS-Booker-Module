@@ -8,13 +8,13 @@
 
 //parameter keys for local use, not to be cached before departure
 $localparams = array(
+	'action',
 	'cancel',
-	'cart',
 	'cartcomment',
 	'cartsel',
 	'delete',
 	'submit',
-	'hidden'
+	'task'
 );
 
 $utils = new Booker\Utils();
@@ -30,13 +30,16 @@ if (isset($params['cancel'])) {
 	foreach ($pending as $item) {
 		$item->setStatus('undeleted');
 	}
-
+	do {
+		$resume = array_pop($params['resume']);
+	} while ($resume == $params['action'] && $params['resume']);
+	if ($resume == $params['action']) {
+		$resume = 'default'; //should never happen
+	}
 	$utils->SaveParameters($cache,$params,$localparams);
-	$this->Redirect($id,$params['action'],$params['returnid'],
+	$this->Redirect($id,$resume,$params['returnid'],
 		array('storedparams'=>$params['storedparams']));
-}
-
-if (isset($params['submit'])) {
+} elseif (isset($params['submit'])) {
 	$pending = $cart->getItems();
 	foreach ($pending as $key=>$item) {
 		if ($item->getStatus() < 0) { //flagged as deleted
@@ -47,12 +50,27 @@ if (isset($params['submit'])) {
 			$item->data->comment = $params['cartcomment'][$key];
 		}
 	}
-	$utils->SaveParameters($cache,$params,$localparams);
-	$this->Crash(); //TODO work with interface - async ??
-	//then empty cart on success
-}
-
-if (isset($params['delete'])) {
+	if ($pending) {
+		//no addition to $params['resume']
+		$utils->SaveParameters($cache,$params,$localparams,$cart);
+		$idata = $utils->GetItemProperty($this,$params['item_id'],'*');
+		//divert to payment form, if possible, and from there to action.requestfinish
+		$utils->OpenPaymentForm($this,$id,$returnid,$params,$idata,$cart);
+		//if we're back here, there's a problem
+		$params['message'] = $this->Lang('err_system');
+	} else {
+		do {
+			$resume = array_pop($params['resume']);
+		} while ($resume == $params['action'] && $params['resume']);
+		if ($resume == $params['action']) {
+			$resume = 'default'; //should never happen
+		}
+		$utils->SaveParameters($cache,$params,$localparams);
+		$this->Redirect($id,$resume,$params['returnid'],
+			array('storedparams'=>$params['storedparams'],
+			'message'=>$this->Lang('nocartitems')));
+	}
+} elseif (isset($params['delete'])) {
 	$pending = $cart->getItems();
 	//flag items deleted
 	foreach ($params['cartsel'] as $key=>$t) {
@@ -61,25 +79,23 @@ if (isset($params['delete'])) {
 	$cache->set($params['cartkey'],$cart,43200);
 }
 
+$utils->SaveParameters($cache,$params,$localparams,$cart);
+
 $jsloads = array();
 $jsfuncs = array();
 $jsincs = array();
 $baseurl = $this->GetModuleURLPath();
 
-$tplvars = array();
-
-$tplvars['startform'] = $this->CreateFormStart($id,'opencart',$returnid,
-	'POST','','','',array(
-	'item_id'=>$params['item_id'],
-	'storedparams'=>$params['storedparams']
-	));
-$tplvars['endform'] = $this->CreateFormEnd();
-//$tplvars['hidden'] = '';
+$hidden = array('storedparams'=>$params['storedparams'],'task'=>$params['task']);
+$tplvars = array(
+	'startform' => $this->CreateFormStart($id,'opencart',$returnid,'POST','','','',$hidden),
+	'endform' => $this->CreateFormEnd(),
+	'title' => $this->Lang('title_cart')
+);
+//$tplvars['desc'] = $this->Lang('DESC'); //help? if any
 
 if (!empty($params['message']))
 	$tplvars['message'] = $params['message'];
-$tplvars['title'] = $this->Lang('title_cart');
-//$tplvars['desc'] = $this->Lang('DESC'); //help? if any
 
 if (!$cart->seemsEmpty()) {
 	//get resource details from table
@@ -136,6 +152,24 @@ if (!$cart->seemsEmpty()) {
 		$items[] = $oneset;
 	}
 
+	//button labels
+	switch ($params['task']) {
+	 case 'add':
+	 	$key1 = 'cancel';
+		$key2 = 'submit';
+		break;
+	 case 'finish':
+	 case 'continue':
+	 	$key1 = 'cancel';
+		$key2 = 'continue';
+		break;
+	 default:
+//	 case 'see':
+	 	$key1 = 'close';
+		$key2 = 'submit';
+		break;
+	}
+
 	$tplvars = $tplvars + array(
 		'items' => $items,
 		'count' => count($items),
@@ -146,32 +180,20 @@ if (!$cart->seemsEmpty()) {
 		'feetitle' => $this->Lang('title_fee'),
 		'cmttitle' => $this->Lang('title_comment'),
 		'totaltitle' => $this->Lang('title_feesum'),
+		// buttons
+		'submit' => $this->CreateInputSubmit($id,'submit',$this->Lang($key2)),
+		'cancel' => $this->CreateInputSubmit($id,'cancel',$this->Lang($key1)),
 		'delete' => $this->CreateInputSubmit($id,'delete',$this->Lang('delete'),
 			'title="'.$this->Lang('tip_delseltype',$this->Lang('booking_multi')).'"')
 	);
-	//buttons
-	// submit & close when $params['cart'] i.e. initiated by 'see cart'
-	// submit & cancel when $params['cartadd'] i.e. initiated by action.requestbooking::'add to cart'
-	// continue & cancel when $params['cartsubmit'] i.e. initiated by action.requestbooking::'submit cart'
-	if (isset($params['cart']) || isset($params['cartadd'])) {
-		//proceed to pay
-		$t = (isset($params['cartsubmit'])) ?
-			$this->Lang('continue') : $this->Lang('submit');
-		$tplvars['submit'] = $this->CreateInputSubmit($id,'submit',$t);
-	} else
-		$tplvars['submit'] = NULL;
-	if (isset($params['cartadd']))
-		$tplvars['cancel'] = $this->CreateInputSubmit($id,'cancel',$this->Lang('cancel'));
-	else
-		$tplvars['cancel'] = $this->CreateInputSubmit($id,'cancel',$this->Lang('close')); //or 'Back' to go back
 
-	//js setup
+	//js setup frontend, no modalconfirm
 	$t = $this->Lang('delsel_confirm',$this->Lang('booking_multi'));
 	$jsloads[] = <<<EOS
  $('#{$id}delete').click(function(ev) {
   var \$sel = $('#cart').find('input:checked');
   if(\$sel.length > 0) {
-    return confirm('{$t}');
+   return confirm('{$t}');
   }
   return false;
  });
