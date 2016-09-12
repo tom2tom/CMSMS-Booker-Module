@@ -14,7 +14,7 @@ class Bookingops
 
 	/*
 	GetBkgData:
-	Get row of data for @bkgid from DataTable
+	Get row(s) of data for @bkgid from DataTable
 	@mod: reference to current Booker module
 	@bkgid: booking identifier, or array of them
 	*/
@@ -271,7 +271,7 @@ EOS;
 				$args[] = $val;
 			}
 		}
-		
+
 		$args[] = (int)$bookerid;
 		$sql = 'UPDATE '.$mod->BookerTable.' SET '.implode(',',$sql2).' WHERE booker_id=?';
 		$utils = new Utils();
