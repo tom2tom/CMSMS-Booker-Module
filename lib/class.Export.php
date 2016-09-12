@@ -577,7 +577,7 @@ EOS;
 	@item_id: optional item enumerator, or array of such, or '*' default FALSE,
 	 must be provided if neither @bkgid or @bookerid is provided
 	@bkgid: optional booking enumerator, or array of such, or '*' default FALSE
-	@bkr_id: optional booker enumerator, or array of such, or '*' default FALSE
+	@bookerid: optional booker enumerator, or array of such, or '*' default FALSE
 	@sep: optional field-separator for exported content, assumed single-byte ASCII, default ','
 	Returns: 2-member array, 1st is T/F indicating success, 2nd '' or lang key for message
 	*/
