@@ -477,7 +477,7 @@ class Display
 					$one->style = 'class="fullm"';
 				else
 					$one->style = 'class="partm"';
-//TODO	$one->bid = (int)$row['bkg_id'];
+//TODO	$one->bkgid = (int)$row['bkg_id'];
 			} else { //single-user
 				$dtw->setTimestamp($bslots[0][0]);
 				$d = $this->utils->IntervalFormat($this->mod,$dtw,$idata['dateformat']);
@@ -496,7 +496,7 @@ class Display
 				else
 					$one->style = 'class="'.$type.'"';
 //ALWAYS discoverable		if (count($bslots) == 1) //1-user, 1-booking : make it discoverable
-					$one->bid = (int)$row['bkg_id'];
+				$one->bkgid = (int)$row['bkg_id'];
 			}
 			//next-time start
 			if ($nextpos > -1) {
