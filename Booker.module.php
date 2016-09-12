@@ -351,6 +351,7 @@ class Booker extends CMSModule
 		$this->SetParameterType('apply',CLEAN_STRING); //change view enum
 		$this->SetParameterType('bookat',CLEAN_INT);
 		$this->SetParameterType('bookertype',CLEAN_INT);
+		$this->SetParameterType('bkgid',CLEAN_INT);
 		$this->SetParameterType('calendarinput',CLEAN_STRING);
 		$this->SetParameterType('cancel',CLEAN_NONE);
 		$this->SetParameterType('captcha',CLEAN_STRING);
@@ -362,9 +363,8 @@ class Booker extends CMSModule
 		$this->SetParameterType('chooser',CLEAN_INT);
 		$this->SetParameterType('clickat',CLEAN_STRING);
 		$this->SetParameterType('comment',CLEAN_STRING); //booking-request parameters
-//		$this->SetParameterType('contact',CLEAN_STRING);
+		$this->SetParameterType('contact',CLEAN_STRING);
 		$this->SetParameterType('contactnew',CLEAN_STRING);
-		$this->SetParameterType('contactuser',CLEAN_STRING);
 		$this->SetParameterType('delete',CLEAN_NONE); //cart-item action
 		$this->SetParameterType('find',CLEAN_NONE);
 		$this->SetParameterType('findchooser',CLEAN_INT);
@@ -378,7 +378,7 @@ class Booker extends CMSModule
 		$this->SetParameterType('listformat',CLEAN_INT); //list-format enum
 		$this->SetParameterType('message',CLEAN_STRING);
 		$this->SetParameterType('newlist',CLEAN_INT); //list-format change boolean
-		$this->SetParameterType('origreturnid',CLEAN_INT); //something for captcha module?
+		$this->SetParameterType('origreturnid',CLEAN_INT); //something? related to captcha module
 		$this->SetParameterType('pagerows',CLEAN_INT); //table-pager value
 		$this->SetParameterType('passwd',CLEAN_STRING);
 		$this->SetParameterType('range',CLEAN_STRING); //enum or period-name
@@ -388,7 +388,6 @@ class Booker extends CMSModule
 		$this->SetParameterType('search',CLEAN_NONE);
 		$this->SetParameterType('searchsel',CLEAN_NONE);
 		$this->SetParameterType('slide',CLEAN_INT); //value matches button label
-		$this->SetParameterType('slotid',CLEAN_STRING);
 //		$this->SetParameterType('slotlen',CLEAN_INT);
 //		$this->SetParameterType('slotstart',CLEAN_INT);
 		$this->SetParameterType('startat',CLEAN_STRING);
@@ -470,7 +469,6 @@ class Booker extends CMSModule
 		 case 'default':
 		 case 'defaultadmin':
 		 case 'delete':
-		 case 'delbooking':
 		 case 'exportbooking':
 		 case 'findbooking':
 		 case 'import':
