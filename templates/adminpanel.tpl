@@ -98,7 +98,7 @@
       <td>{$entry->total}</td>
       <td>{$entry->first}</td>
       <td>{$entry->last}</td>
-      <td>{$entry->pending}</td>
+      <td>{$entry->future}</td>
       <td>{$entry->bsee}</td>
 {if $per} <td>{$entry->bedit}</td>{/if}
       <td>{$entry->export}</td>
@@ -139,6 +139,10 @@
       <th>{$title_grp}</th>
 {if $own} <th>{$title_owner}</th>{/if}
       <th class="pageicon {ldelim}sss:'icon'{rdelim}">{$title_active}</th>
+      <th>{$title_total}</th>
+      <th>{$title_first}</th>
+      <th>{$title_last}</th>
+      <th>{$title_future}</th>
 {if $dev} <th>{$title_tag}</th>{/if}
       <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>
 {if $bmod}<th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>{/if}
@@ -156,6 +160,10 @@
       <td>{$entry->group}</td>
 {if $own} <td>{$entry->ownername}</td>{/if}
       <td>{$entry->active}</td>
+      <td>{$entry->total}</td>
+      <td>{$entry->first}</td>
+      <td>{$entry->last}</td>
+      <td>{$entry->future}</td>
 {if $dev} <td>{ldelim}Booker item={$entry->tag}{rdelim}</td>{/if}
       <td>{$entry->bsee}</td>
 {if $bmod}<td>{$entry->bedit}</td>{/if}
@@ -201,6 +209,10 @@
       <th>{$title_grp}</th>
 {if $own} <th>{$title_owner}</th>{/if}
       <th class="pageicon {ldelim}sss:'icon'{rdelim}">{$title_active}</th>
+      <th>{$title_total}</th>
+      <th>{$title_first}</th>
+      <th>{$title_last}</th>
+      <th>{$title_future}</th>
 {if $dev} <th>{$title_tag}</th>{/if}
       <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>
 {if $mod} <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>{/if}
@@ -219,6 +231,10 @@
       <td>{$entry->group}</td>
 {if $own}  <td>{$entry->ownername}</td>{/if}
       <td>{$entry->active}</td>
+      <td>{$entry->total}</td>
+      <td>{$entry->first}</td>
+      <td>{$entry->last}</td>
+      <td>{$entry->future}</td>
 {if $dev}  <td>{ldelim}Booker item={$entry->tag}{rdelim}</td>{/if}
       <td>{$entry->bsee}</td>
 {if $mod}  <td>{$entry->bedit}</td>{/if}
