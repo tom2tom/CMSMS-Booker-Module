@@ -662,8 +662,11 @@ EOS;
 	$tplvars['norecords'] = $this->Lang('nodata'); //maybe epeat assigment, don't care
 }
 
-if (!isset($tplvars['item_title']))
-	$tplvars['item_title'] = $this->Lang('title_booksfor',$this->Lang('user'),'GET MY NAME');
+if (!isset($tplvars['item_title'])) {
+	$funcs = new Booker\Userops();
+	$name = $funcs->GetName($this,$bookerid);
+	$tplvars['item_title'] = $this->Lang('title_booksfor',$this->Lang('user'),$name);
+}
 
 if ($pmod) {
 	$t = $this->Lang('addbooking2');
