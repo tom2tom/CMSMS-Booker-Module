@@ -526,7 +526,7 @@ $rows = $db->GetArray($sql);
 if ($rows) {
 	$sb = $this->Lang('booker');
 	$st = $utils->GetZoneTime('UTC'); //'now' timestamp with same zone as booking data
-	$dt = new DateTime('@0',new DateTimeZone('UTC'));
+	$dt = new DateTime('@0',NULL);
 	$sql = 'SELECT booker_id AS B,slotstart AS S,item_id AS I FROM '.$this->HistoryTable.' ORDER BY booker_id,slotstart';
 	$histdata = $db->GetArray($sql);
 	$t = sprintf($bseetip,$this->Lang('recorded'));
