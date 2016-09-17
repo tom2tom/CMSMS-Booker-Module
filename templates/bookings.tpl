@@ -1,4 +1,4 @@
-<div class="bkr_browsenav">{$back_nav}</div><br />
+<div class="bkr_browsenav">{$pagenav}</div><br />
 {if !empty($message)}<h3>{$message}</h3><br />{/if}
   <h2 class="pageinput">{$item_title}</h2>
 {if !empty($desc)}<p class="pageinput">{$desc}</p>{/if}
