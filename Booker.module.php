@@ -356,22 +356,21 @@ class Booker extends CMSModule
 		$this->SetParameterType('cancel',CLEAN_NONE);
 		$this->SetParameterType('captcha',CLEAN_STRING);
 		$this->SetParameterType('cart',CLEAN_NONE);
-		$this->SetParameterType('cartadd',CLEAN_NONE);
 		$this->SetParameterType('cartcomment',CLEAN_STRING); //array of comments
 		$this->SetParameterType('cartsel',CLEAN_STRING); //array of keys
-		$this->SetParameterType('cartsubmit',CLEAN_NONE);
-		$this->SetParameterType('chooser',CLEAN_INT);
+		$this->SetParameterType('itempick',CLEAN_INT);
 		$this->SetParameterType('clickat',CLEAN_STRING);
 		$this->SetParameterType('comment',CLEAN_STRING); //booking-request parameters
 		$this->SetParameterType('contact',CLEAN_STRING);
 		$this->SetParameterType('contactnew',CLEAN_STRING);
 		$this->SetParameterType('delete',CLEAN_NONE); //cart-item action
 		$this->SetParameterType('find',CLEAN_NONE);
-		$this->SetParameterType('findchooser',CLEAN_INT);
+		$this->SetParameterType('findpick',CLEAN_INT);
 		$this->SetParameterType('findfirst',CLEAN_STRING);
 		$this->SetParameterType('findlast',CLEAN_STRING);
 		$this->SetParameterType('finduser',CLEAN_STRING);
 		$this->SetParameterType('findusertype',CLEAN_INT);
+		$this->SetParameterType('firstpick',CLEAN_INT);
 		$this->SetParameterType('item',CLEAN_STRING); //id or alias
 		$this->SetParameterType('item_id',CLEAN_INT); //for zooms
 		$this->SetParameterType('itemkeys',CLEAN_STRING);
@@ -382,7 +381,7 @@ class Booker extends CMSModule
 		$this->SetParameterType('pagerows',CLEAN_INT); //table-pager value
 		$this->SetParameterType('passwd',CLEAN_STRING);
 		$this->SetParameterType('range',CLEAN_STRING); //enum or period-name
-		$this->SetParameterType('ranger',CLEAN_INT); //change view-range enum
+		$this->SetParameterType('rangepick',CLEAN_INT); //change view-range enum
 		$this->SetParameterType('request',CLEAN_NONE);
 		$this->SetParameterType('requesttype',CLEAN_INT);
 		$this->SetParameterType('search',CLEAN_NONE);
@@ -391,9 +390,10 @@ class Booker extends CMSModule
 //		$this->SetParameterType('slotlen',CLEAN_INT);
 //		$this->SetParameterType('slotstart',CLEAN_INT);
 		$this->SetParameterType('startat',CLEAN_STRING);
-		$this->SetParameterType('storedparams',CLEAN_STRING);
+//		$this->SetParameterType('paramskey',CLEAN_STRING);
 		$this->SetParameterType('subgrpcount',CLEAN_INT);
 		$this->SetParameterType('submit',CLEAN_NONE);
+		$this->SetParameterType('task',CLEAN_STRING);
 		$this->SetParameterType('toggle',CLEAN_NONE);
 		$this->SetParameterType('until',CLEAN_STRING);
 		$this->SetParameterType('user',CLEAN_STRING);
@@ -401,6 +401,7 @@ class Booker extends CMSModule
 		$this->SetParameterType('when',CLEAN_STRING);
 		$this->SetParameterType('zoomin',CLEAN_NONE);
 		$this->SetParameterType('zoomout',CLEAN_NONE);
+		$this->SetParameterType(CLEAN_REGEXP.'/bkr_.*/',CLEAN_STRING);
 		/* register 'routes' to use for pretty url parsing
 		these regexes translate url-parameter(s) to $param[](s) be supplied
 		to the specified actions (default calls ->DisplayModuleOutput())
@@ -440,7 +441,7 @@ class Booker extends CMSModule
 	/**
 	DoAction:
 	@action:
-	@id:
+	@id: session identifier
 	@params:
 	@returnid:
 	No permission-checks are done here or in related action files, as capabilities
@@ -485,7 +486,8 @@ class Booker extends CMSModule
 		 case 'swapgroups':
 		 case 'sortlike':
 			break;
-		 case 'administer':
+		 case 'bookerbookings':
+		 case 'itembookings':
 			if (isset($params['importbkg']))
 				$action = 'import';
 			break;
@@ -605,21 +607,45 @@ class Booker extends CMSModule
 
 	/**
 	_BuildNav:
-	@id:
-	@$params:
+	Generate XHTML page-change links
+	@id: session identifier
 	@returnid:
-	@tplvars: reference to array of template variables
+	@resume: name of action, or ordered array of them
+	$params: reference to array of request-parameters including link-related data
+	Returns: string, maybe ''
 	*/
-	public function _BuildNav($id, &$params, $returnid, &$tplvars)
+	public function _BuildNav($id, $returnid, $resume, &$params)
 	{
-		$navstr = $this->CreateLink($id,'defaultadmin',$returnid,
-			'&#171; '.$this->Lang('back_module'));
-		if (isset($params['bkg_id'])) {
-			$navstr .= ' '.$this->CreateLink($id,$params['resume'],$returnid,
-				'&#171; '.$this->Lang('title_bookings'),array(
-				'item_id' => $params['item_id']));
+		if (!is_array($resume)) {
+			$resume = array($resume);
+			$ic = 1;
+		} else {
+			$ic = count($resume);
 		}
-		$tplvars['back_nav'] = $navstr;
+		$navstr = '';
+		for ($i=0; $i<$ic; $i++) {
+			$name = $resume[$i];
+			$xtra = array();
+			switch($name) {
+			 case 'itembookings':
+				$key = 'title_bookings';
+				$xtra = array('item_id'=>$params['item_id'],'task'=>$params['task']);
+				break;
+			 case 'bookerbookings':
+				$key = 'title_bookings';
+				$xtra = array('booker_id'=>$params['booker_id'],'task'=>$params['task']);
+				break;
+			 default:
+				$name = 'defaultadmin';
+				$key = 'back_module';
+				if (isset($params['active_tab'])) {
+					$xtra = array('active_tab'=>$params['active_tab']);
+				}
+				break;
+			}
+			$navstr .= $this->CreateLink($id,$name,$returnid,'&#171; '.$this->Lang($key),$xtra);
+		}
+		return $navstr;
 	}
 
 	/* *
@@ -665,8 +691,7 @@ class Booker extends CMSModule
 	and/or link, using class "fakeicon" for an image, "fakelink" for a standard link.
 	Such object(s) is(are) needed where the handler/action requires all form data,
 	instead of just the data for the oject itself (which happens for a normal link)
-
-	@id: system-id to be passed to the module
+	@id: session identifier
 	@name: name of action to be performed when (either of) the object(s) is clicked
 	@iconfile: optional name of theme icon, or module-relative or absolute URL
 	  of some other icon for image input, default FALSE i.e. no image
@@ -707,7 +732,7 @@ class Booker extends CMSModule
 
 	/**
 	_ActivateItem:
-	@id: module identifier
+	@id: session identifier
 	@params: array of parameters for the action
 	@returnid:
 	[de]activate the item passed in @params
