@@ -3,7 +3,7 @@
 {$jsstyler}
 //]]>
 </script>{/if}
-<div class="bkr_browsenav">{$back_nav}</div><br />
+<div class="bkr_browsenav">{$pagenav}</div><br />
 {if !empty($message)}<p class="pagetext pagemessage">{$message}</p><br />{/if}
 <h3 class="pagetext">{$title}</h3>
 {if !empty($desc)}<p class="pageinput">{$desc}</p>{/if}
