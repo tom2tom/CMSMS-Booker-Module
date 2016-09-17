@@ -34,8 +34,6 @@ class BookingCartItem implements BookingCartItemInterface
 		$this->taxrate = $taxrate;
 		$this->data = new \stdClass();
 		$this->data->status = self::NORMAL;
-		$this->data->start = 0; //booking start, UTC timestamp
-		$this->data->slen = 0; //booking length, seconds
 	}
 
 	/**
