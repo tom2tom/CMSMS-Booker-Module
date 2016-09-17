@@ -60,10 +60,11 @@ $no = $this->Lang('no');
 $baseurl = $this->GetModuleURLPath();
 $bseetip = $this->Lang('tip_seetype','%s');
 $iconbsee = '<img src="'.$baseurl.'/images/booking.png" alt="%s" title="%s" border="0" />';
-if ($bmod || $pper) {
+if ($bmod) {
+	$baddtip = $this->Lang('tip_addbooktype','%s');
+	$iconbadd = '<img src="'.$baseurl.'/images/booking-add.png" alt="%s" title="%s" border="0" />';
 	$bedittip = $this->Lang('tip_admintype','%s');
 	$iconbedit = '<img src="'.$baseurl.'/images/booking-edit.png" alt="%s" title="%s" border="0" />';
-	$iconbdel = $theme->DisplayImage('icons/system/delete.gif','%s','','','systemicon');
 }
 $exporttip = $this->Lang('tip_exportbooktype','%s');
 $iconexport = $theme->DisplayImage('icons/system/export.gif','%s','','','systemicon');
@@ -77,7 +78,7 @@ if ($padd) {
 	$copytip = $this->Lang('tip_copytype','%s');
 	$iconcopy = $theme->DisplayImage('icons/system/copy.gif','%s','','','systemicon');
 }
-if ($pdel || $pper) {
+if ($bmod || $pdel || $pper) {
 	$deltip = $this->Lang('tip_deletetype','%s');
 	$icondel = $theme->DisplayImage('icons/system/delete.gif','%s','','','systemicon');
 }
@@ -235,17 +236,17 @@ if ($data) {
 		if ($t && strlen($t) > 8)
 			$t = substr($t,0,8).'...';
 		$one->comment = $t;
-		$thisid = (int)$row['history_id'];
-		$one->see = $this->CreateLink($id,'processrequest',$returnid,$iconrsee,array('history_id'=>$thisid,'task'=>'see'));
+		$hid = (int)$row['history_id'];
+		$one->see = $this->CreateLink($id,'processrequest',$returnid,$iconrsee,array('history_id'=>$hid,'task'=>'see'));
 		if ($bmod) {
-			$one->edit = $this->CreateLink($id,'processrequest',$returnid,$iconredit,array('history_id'=>$thisid,'task'=>'edit'));
+			$one->edit = $this->CreateLink($id,'processrequest',$returnid,$iconredit,array('history_id'=>$hid,'task'=>'edit'));
 			if (1) { //TODO if e.g. not an info-request
 				if (empty($row['approved'])) {
-					$one->approve = $this->CreateLink($id,'processrequest',$returnid,$iconryes,array('history_id'=>$thisid,'task'=>'approve'));
-					$one->reject = $this->CreateLink($id,'processrequest',$returnid,$iconrno,array('history_id'=>$thisid,'task'=>'reject'));
+					$one->approve = $this->CreateLink($id,'processrequest',$returnid,$iconryes,array('history_id'=>$hid,'task'=>'approve'));
+					$one->reject = $this->CreateLink($id,'processrequest',$returnid,$iconrno,array('history_id'=>$hid,'task'=>'reject'));
 				} else {
 					$one->approve = ''; //$yes;
-					$one->reject = $this->CreateLink($id,'processrequest',$returnid,$iconrno,array('history_id'=>$thisid,'task'=>'reject')); //TODO 'tip_reject2'
+					$one->reject = $this->CreateLink($id,'processrequest',$returnid,$iconrno,array('history_id'=>$hid,'task'=>'reject')); //TODO 'tip_reject2'
 				}
 			} else {
 				$one->approve = '';
@@ -253,10 +254,10 @@ if ($data) {
 			}
 		}
 		if ($tell)
-			$one->notice = $this->CreateLink($id,'processrequest',$returnid,$icontell,array('history_id'=>$thisid,'task'=>'notify'));
+			$one->notice = $this->CreateLink($id,'processrequest',$returnid,$icontell,array('history_id'=>$hid,'task'=>'notify'));
 		if ($pdel)
-			$one->delete = $this->CreateLink($id,'processrequest',$returnid,$iconrdel,array('history_id'=>$thisid,'task'=>'delete'));
-		$one->sel = $this->CreateInputCheckbox($id,'selreq[]',$thisid,-1,'title="'.$rtip.'"');
+			$one->delete = $this->CreateLink($id,'processrequest',$returnid,$iconrdel,array('history_id'=>$hid,'task'=>'delete'));
+		$one->sel = $this->CreateInputCheckbox($id,'selreq[]',$hid,-1,'title="'.$rtip.'"');
 		$pending[] = $one;
 	}
 	unset($row);
@@ -332,13 +333,15 @@ function modalsetup(tg,\$d) {
 }
 function savecustom(tg,\$d) {
  var custom = \$d.find('#{$id}customentry').val();
- $('input[name={$id}custmsg]').val(custom);
+ $('input[name="{$id}custmsg"]').val(custom);
+ return true;
 }
 function savecustom2(tg,\$d) {
  var custom = \$d.find('#{$id}customentry').val(),
    url = $(tg).attr('href'),
    curl = url+'&{$id}custmsg='+encodeURIComponent(custom);
  $(tg).attr('href',curl);
+ return true;
 }
 
 EOS;
@@ -516,6 +519,7 @@ $tplvars['startform2'] = $this->CreateFormStart($id,'adminbooker',$returnid,
 $tplvars['start_people_tab'] = $this->StartTab('people');
 $tablerows[2] = 0;
 
+$histdata = FALSE;
 $bkrs = array();
 $sql = 'SELECT * FROM '.$this->BookerTable.' ORDER BY name';
 $rows = $db->GetArray($sql);
@@ -523,75 +527,99 @@ if ($rows) {
 	$sb = $this->Lang('booker');
 	$st = $utils->GetZoneTime('UTC'); //'now' timestamp with same zone as booking data
 	$dt = new DateTime('@0',new DateTimeZone('UTC'));
-	$sql = 'SELECT slotstart FROM '.$this->HistoryTable.' WHERE booker_id=? ORDER BY slotstart';
+	$sql = 'SELECT booker_id AS B,slotstart AS S,item_id AS I FROM '.$this->HistoryTable.' ORDER BY booker_id,slotstart';
+	$histdata = $db->GetArray($sql);
 	$t = sprintf($bseetip,$this->Lang('recorded'));
 	$icon1 = sprintf($iconbsee,$t,$t);
-	$t = sprintf($exporttip,$sb);
-	$icon5 = sprintf($iconexport,$t,$t);
-	$t = sprintf($seetip,$sb);
-	$icon6 = sprintf($iconsee,$t,$t);
-	if ($pper) {
+	if ($bmod) {
+		$t = sprintf($baddtip,$this->Lang('user'));
+		$icon2 = sprintf($iconbadd,$t,$t);
 		$t = sprintf($bedittip,$this->Lang('recorded'));
-		$icon2 = sprintf($iconbedit,$t,$t);
+		$icon3 = sprintf($iconbedit,$t,$t);
+	}
+	$t = sprintf($exporttip,$sb);
+	$icon4 = sprintf($iconexport,$t,$t);
+	$t = sprintf($seetip,$sb);
+	$icon5 = sprintf($iconsee,$t,$t);
+	if ($pper) {
 		$t = sprintf($edittip,$sb);
-		$icon3 = sprintf($iconedit,$t,$t);
+		$icon6 = sprintf($iconedit,$t,$t);
 		$t = sprintf($deltip,$sb);
-		$icon4 = sprintf($icondel,$t,$t);
+		$icon7 = sprintf($icondel,$t,$t);
 	}
 	foreach ($rows as $row) {
-		$bid = (int)$row['booker_id'];
+		$bookerid = (int)$row['booker_id'];
 		$one = new stdClass();
 		$one->name = ($pper) ?
-			$this->CreateLink($id,'adminbooker',$returnid,$row['name'],array('booker_id'=>$bid,'task'=>'edit')):
+			$this->CreateLink($id,'adminbooker',$returnid,$row['name'],array('booker_id'=>$bookerid,'task'=>'edit')):
 			$row['name'];
 		$one->reg = ($row['publicid'] && $row['passhash']) ? $iconyes : $iconno;
 		if ($pper) {
 			$one->act = ($row['active']) ?
 				$this->CreateLink($id,'adminbooker',$returnid,$iconyes,
-					array('booker_id'=>$bid,'task'=>'toggle','active'=>TRUE)):
+					array('booker_id'=>$bookerid,'task'=>'toggle','active'=>TRUE)):
 				$this->CreateLink($id,'adminbooker',$returnid,$iconno,
-					array('booker_id'=>$bid,'task'=>'toggle','active'=>FALSE));
+					array('booker_id'=>$bookerid,'task'=>'toggle','active'=>FALSE));
 		} else {
 			$one->act = ($row['active']) ? $iconyes : $iconno;
 		}
 		$dt->setTimestamp($row['addwhen']);
 		$one->added = $dt->format('Y-m-d'); //sortable format
-		$data = $db->GetCol($sql,array($bid));
-		if ($data) {
-			$count = count($data);
-			$future = count(array_filter($data,function($v)use($st){return $v >= $st;}));
-			$dt->setTimestamp(reset($data));
-			$first = $dt->format('Y-m-d');
-			$dt->setTimestamp(end($data));
-			$last = $dt->format('Y-m-d');
+		if ($histdata) {
+			$belongs = array_filter($histdata,function($v)use($bookerid){return $v['B'] == $bookerid;});
+			if ($belongs) {
+				$count = count($belongs);
+				$v = reset($belongs);
+				$dt->setTimestamp($v['S']);
+				$first = $dt->format('Y-m-d');
+				$future = 0;
+				foreach ($belongs as $i=>$v) {
+					if ($v['S'] >= $st) {
+						$future = $count-$i;
+						break;
+					}
+				}
+				$v = end($belongs);
+				$dt->setTimestamp($v['S']);
+				$last = $dt->format('Y-m-d');
+			}
 		} else {
+			$belongs = FALSE;
+		}
+		if (!$belongs) {
 			$count = 0;
-			$future = '';
 			$first = '';
 			$last = '';
+			$future = '';
 		}
 		$one->total = $count;
 		$one->first = $first;
 		$one->last = $last;
-		$one->pending = $future;
+		$one->future = $future;
+
 		$one->bsee = ($count) ?
-			$this->CreateLink($id,'adminbooker',$returnid,$icon1,array('booker_id'=>$bid,'task'=>'bsee')):
+			$this->CreateLink($id,'bookerbookings',$returnid,$icon1,array('booker_id'=>$bookerid,'task'=>'see')):
 			NULL;
-		$one->export = $this->CreateLink($id,'adminbooker',$returnid,$icon5,array('booker_id'=>$bid,'task'=>'export'));
-		$one->see = $this->CreateLink($id,'adminbooker',$returnid,$icon6,array('booker_id'=>$bid,'task'=>'see'));
+		if ($bmod) {
+			$t = ($count) ? $icon3 : $icon2;
+			$one->bedit = $this->CreateLink($id,'bookerbookings',$returnid,$t,array('booker_id'=>$bookerid,'task'=>'edit'));
+		} else {
+			$one->bedit = NULL;
+		}
+		$one->export = ($count) ?
+			$this->CreateLink($id,'adminbooker',$returnid,$icon4,array('booker_id'=>$bookerid,'task'=>'export')):
+			NULL;
+		$one->see = $this->CreateLink($id,'adminbooker',$returnid,$icon5,array('booker_id'=>$bookerid,'task'=>'see'));
 		if ($pper) {
-			$one->bedit = ($count) ?
-				$this->CreateLink($id,'adminbooker',$returnid,$icon2,array('booker_id'=>$bid,'task'=>'bedit')):
-				NULL;
-			$one->edit = $this->CreateLink($id,'adminbooker',$returnid,$icon3,array('booker_id'=>$bid,'task'=>'edit'));
-			$one->delete = $this->CreateLink($id,'adminbooker',$returnid,$icon4,array('booker_id'=>$bid,'task'=>'delete'));
+			$one->edit = $this->CreateLink($id,'adminbooker',$returnid,$icon6,array('booker_id'=>$bookerid,'task'=>'edit'));
+			$one->delete = $this->CreateLink($id,'adminbooker',$returnid,$icon7,array('booker_id'=>$bookerid,'task'=>'delete'));
 		} else {
 			$one->bedit = NULL;
 			$one->edit = NULL;
 			$one->delete = NULL;
 		}
 		$t = sprintf($seltip,$sb);
-		$one->sel = $this->CreateInputCheckbox($id,'selbkr[]',$bid,-1,'title="'.$t.'"');
+		$one->sel = $this->CreateInputCheckbox($id,'selbkr[]',$bookerid,-1,'title="'.$t.'"');
 		$bkrs[] = $one;
 	}
 } //$rows
@@ -701,8 +729,8 @@ $owned = $db->GetOne('SELECT FIRST(item_id) AS own FROM '.$this->ItemTable.' WHE
 
 $sql =<<<EOS
 SELECT I.item_id,I.alias,I.name,I.owner,I.active,U.first_name,U.last_name
-FROM {$this->ItemTable} I
-LEFT JOIN {$this->UserTable} U ON I.owner = U.user_id
+FROM $this->ItemTable I
+LEFT JOIN $this->UserTable U ON I.owner = U.user_id
 ORDER BY I.name
 EOS;
 //TODO $utils->SafeExec()
@@ -712,38 +740,38 @@ if ($rs) {
 	while ($row = $rs->FetchRow()) {
 		//omit some choices when editing, but current user hasn't admin permission and doesn't own the item
 		$skip = $owned && $mod && !$padm && $row['owner'] > 0 && $row['owner'] != $uid;
-		$thisid	= (int)$row['item_id'];
-		$isitem = ($thisid < Booker::MINGRPID && $thisid != -Booker::MINGRPID);
+		$item_id	= (int)$row['item_id'];
+		$isitem = ($item_id < Booker::MINGRPID && $item_id != -Booker::MINGRPID);
 
 		$one = new stdClass();
 		//TODO make this sortable
 		if ($mod)
 			$one->name = $this->CreateLink($id,'process',$returnid,
 				strip_tags($row['name']),
-				array('item_id'=>$thisid,'task'=>'edit'));
+				array('item_id'=>$item_id,'task'=>'edit'));
 		else
 			$one->name	= strip_tags($row['name']);
 		//for group-name lookups
-		$gotnames[$thisid] = $one->name;
+		$gotnames[$item_id] = $one->name;
 
 		if ($pdev) {
 			if ($row['alias'])
 				$one->tag = '\''.$row['alias'].'\'';
 			else
-				$one->tag = $thisid;
+				$one->tag = $item_id;
 		}
 
 		$one->group = '';
 		if ($relations) {
 			foreach ($relations as $k=>$gdata) {
-				if ($gdata['child'] == $thisid) {
+				if ($gdata['child'] == $item_id) {
 					$p = (int)$gdata['parent'];
 					if (isset($grpnames[$p]))
 						$one->group = $grpnames[$p];
 					else
 						$one->group = '<'.$this->Lang('noname').'>';
 					$p = array_search($k,$relkeys) + 1;
-					if (isset($relkeys[$p]) && $relations[$relkeys[$p]]['child'] == $thisid)
+					if (isset($relkeys[$p]) && $relations[$relkeys[$p]]['child'] == $item_id)
 						$one->group .= ' +';
 					break;
 				}
@@ -759,48 +787,87 @@ if ($rs) {
 				$one->ownername = '';
 		}
 
-		//TODO omit see/edit/export icons when there's no booking/request[/history?] for the item
-//		$sql = 'SELECT FIRST(slotstart) AS booked FROM '.$this->HistoryTable.' WHERE item_id=?';
-//		OR get group members, check those
-		if (1) {
-			$t = sprintf($bseetip,($isitem)?$si:$sg);
+		if ($isitem && $histdata) { //group data in HistoryTable not translated into DataTable so no see/edit
+			//TODO CHECK ok to ignore group bookings? i.e. HistoryTable has group-derived entries ?
+			$belongs = array_filter($histdata,function($v)use($item_id){return $v['I'] == $item_id;});
+			if ($belongs) {
+				$count = count($belongs);
+//TODO array ordered by booker_id,slotstart, not item_id, not worth resorting?
+				$future = 0;
+				$min = PHP_INT_MAX;
+				$max = ~PHP_INT_MAX;
+				foreach ($belongs as $v) {
+					$t = $v['S'];
+					if ($t >= $st)
+						$future++;
+					if ($t > $max)
+						$max = $t;
+					if ($t < $min)
+						$min = $t;
+				}
+				$dt->setTimestamp($min);
+				$first = $dt->format('Y-m-d');
+				$dt->setTimestamp($max);
+				$last = $dt->format('Y-m-d');
+			}
+		} else {
+			$belongs = FALSE;
+		}
+
+		if ($belongs) {
+			$t = sprintf($bseetip,$si); //($isitem)?$si:$sg);
 			$t = sprintf($iconbsee,$t,$t);
-			$one->bsee = $this->CreateLink($id,'administer','',$t,array('item_id'=>$thisid,'task'=>'see'));
+			$one->bsee = $this->CreateLink($id,'itembookings','',$t,array('item_id'=>$item_id,'task'=>'see'));
 
 //			if ($isitem && $bmod && !$skip)
 			if ($mod && !$skip) {
-				$t = sprintf($bedittip,($isitem)?$si:$sg);
+				$t = sprintf($bedittip,$si); //($isitem)?$si:$sg);
 				$t = sprintf($iconbedit,$t,$t);
-				$one->bedit = $this->CreateLink($id,'administer','',$t,array('item_id'=>$thisid,'task'=>'edit'));
+				$one->bedit = $this->CreateLink($id,'itembookings','',$t,array('item_id'=>$item_id,'task'=>'edit'));
 			} else
 				$one->bedit = '';
 
-			$t = sprintf($exporttip,($isitem)?$si:$sg);
+			$t = sprintf($exporttip,$si); //($isitem)?$si:$sg);
 			$t = sprintf($iconexport,$t,$t);
-			$one->export = $this->CreateLink($id,'process','',$t,array('item_id'=>$thisid,'task'=>'export'));
+			$one->export = $this->CreateLink($id,'process','',$t,array('item_id'=>$item_id,'task'=>'export'));
 		} else {
+			$count = 0;
+			$first = '';
+			$last = '';
+			$future = '';
+
 			$one->bsee = '';
-			$one->bedit = '';
+			if ($mod && !$skip) {
+				$t = sprintf($baddtip,($isitem)?$si:$sg);
+				$t = sprintf($iconbadd,$t,$t);
+				$one->bedit = $this->CreateLink($id,'itembookings','',$t,array('item_id'=>$item_id,'task'=>'edit'));
+			} else
+				$one->bedit = '';
 			$one->export = '';
 		}
 
+		$one->total = $count;
+		$one->first = $first;
+		$one->last = $last;
+		$one->future = $future;
+
 		$t = sprintf($seetip,($isitem)?$si:$sg);
 		$t = sprintf($iconsee,$t,$t);
-		$one->see = $this->CreateLink($id,'process','',$t,array('item_id'=>$thisid,'task'=>'see'));
+		$one->see = $this->CreateLink($id,'process','',$t,array('item_id'=>$item_id,'task'=>'see'));
 
 		if ($mod && !$skip) {
 			if ($row['active'] > 0)
 				$one->active = $this->CreateLink($id,'process',$returnid,$iconyes,
-					array('item_id'=>$thisid,'task'=>'toggle','active'=>TRUE));
+					array('item_id'=>$item_id,'task'=>'toggle','active'=>TRUE));
 			elseif ($row['active'] == 0) //it's inactive so create an activate-link
 				$one->active = $this->CreateLink($id,'process',$returnid,$iconno,
-					array('item_id'=>$thisid,'task'=>'toggle','active'=>FALSE));
+					array('item_id'=>$item_id,'task'=>'toggle','active'=>FALSE));
 			else
 				$one->active = ''; //fake-deleted
 
 			$t = sprintf($edittip,($isitem)?$si:$sg);
 			$t = sprintf($iconedit,$t,$t);
-			$one->edit = $this->CreateLink($id,'process',$returnid,$t,array('item_id'=>$thisid,'task'=>'edit'));
+			$one->edit = $this->CreateLink($id,'process',$returnid,$t,array('item_id'=>$item_id,'task'=>'edit'));
 		} else {
 			if ($row['active'] > 0)
 				$one->active = $yes;
@@ -814,7 +881,7 @@ if ($rs) {
 		if ($padd) {
 			$t = sprintf($copytip,($isitem)?$si:$sg);
 			$t = sprintf($iconcopy,$t,$t);
-			$one->copy = $this->CreateLink($id,'process','',$t,array('item_id'=>$thisid,'task'=>'copy'));
+			$one->copy = $this->CreateLink($id,'process','',$t,array('item_id'=>$item_id,'task'=>'copy'));
 		} else {
 			$one->copy = '';
 		}
@@ -823,22 +890,22 @@ if ($rs) {
 			$s = ($isitem)?$si:$sg;
 			$t = sprintf($deltip,$s);
 			$t = sprintf($icondel,$t,$t);
-			$one->delete = $this->CreateLink($id,'process',$returnid,$t,array('item_id'=>$thisid,'task'=>'delete'));
+			$one->delete = $this->CreateLink($id,'process',$returnid,$t,array('item_id'=>$item_id,'task'=>'delete'));
 		} else {
 			$one->delete = '';
 		}
 
 		$t = sprintf($seltip,($isitem)?$si:$sg);
 		if ($isitem) {
-			$one->sel = $this->CreateInputCheckbox($id,'selitm[]',$thisid,-1,'title="'.$t.'"');
+			$one->sel = $this->CreateInputCheckbox($id,'selitm[]',$item_id,-1,'title="'.$t.'"');
 			$items[] = $one;
 			$icount++;
 		} else {
-			if (!empty($memcounts[$thisid]))
-				$one->count = (int)$memcounts[$thisid];
+			if (!empty($memcounts[$item_id]))
+				$one->count = (int)$memcounts[$item_id];
 			else
 				$one->count = 0;
-			$one->sel = $this->CreateInputCheckbox($id,'selgrp[]',$thisid,-1,'title="'.$t.'"');
+			$one->sel = $this->CreateInputCheckbox($id,'selgrp[]',$item_id,-1,'title="'.$t.'"');
 			$groups[] = $one;
 			$gcount++;
 		}
@@ -1167,7 +1234,7 @@ if ($pset) {
 /* TODO filter by permissions c.f. for admin users
 			$pref = cms_db_prefix();
 			$sql =<<<EOS
-SELECT DISTINCT U.user_id,U.username,U.first_name,U.last_name FROM {$this->UserTable} U
+SELECT DISTINCT U.user_id,U.username,U.first_name,U.last_name FROM $this->UserTable U
 JOIN {$pref}user_groups UG ON U.user_id = UG.user_id
 JOIN {$pref}group_perms GP ON GP.group_id = UG.group_id
 JOIN {$pref}permissions P ON P.permission_id = GP.permission_id
