@@ -1,11 +1,71 @@
 <?php
 #----------------------------------------------------------------------
 # Module: Booker - a resource booking module
-# Action: administer
+# Action: itembookings
 # Admin display bookings for resource or group, view or edit mode
 #----------------------------------------------------------------------
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
+
+$prettytype = FALSE;
+if (isset($params['delete1'])) {
+	if (!($this->_CheckAccess('admin') || $this->_CheckAccess('book'))) exit;
+	$funcs = new Booker\Bookingops();
+	if (empty($params['repeat'])) { //onetime
+		list($res,$msg) = $funcs->DeleteBkg($this,$params['bkg_id'],$params['custmsg']);
+		if ($res) {
+			$msg = $this->Lang('bookings_deleted',1);
+			$prettytype = TRUE;
+	//TODO payment reconciliation, if enough notice is given
+		}
+	} else { //repeat-booking
+		list($res,$msg) = $funcs->DeleteRepeat($this,$params['bkg_id']);
+		if ($res) {
+	//DO RELATED STUFF ?
+		}
+	}
+	$params['task'] = 'edit';
+} elseif (isset($params['delete'])) {
+	if (!($this->_CheckAccess('admin') || $this->_CheckAccess('book'))) exit;
+	if (isset($params['sel'])) {
+		$funcs = new Booker\Bookingops();
+		if (!empty($params['repeat'])) { //is repeat-booking
+			list($res,$msg) = $funcs->DeleteRepeat($this,$params['sel']);
+			if ($res) {
+		//DO STUFF ?
+				$msg = $this->Lang('bookings_deleted',count($params['sel']));
+				$prettytype = TRUE;
+			}
+		} else { //onetime
+			list($res,$msg) = $funcs->DeleteBkg($this,$params['sel'],$params['custmsg']);
+			if ($res) {
+		//TODO payment reconciliation, if enough notice is given
+				$msg = $this->Lang('bookings_deleted',count($params['sel']));
+				$prettytype = TRUE;
+			}
+		}
+	} else { //nothing selected
+		$msg = $this->Lang('notypesel',$this->Lang('booking_multi'));
+	}
+} elseif (isset($params['notify'])) {
+//	if (!($this->_CheckAccess('admin') || $this->_CheckAccess('book'))) exit;
+	if (isset($params['sel'])) {
+		$funcs = new Booker\Bookingops();
+		list($res,$msg) = $funcs->NotifyBooker($this,$params['sel'],$params['custmsg']);
+	} else {
+		$msg = $this->Lang('notypesel',$this->Lang('booking_multi'));
+	}
+} elseif (isset($params['export'])) {
+	if (!($this->_CheckAccess('admin') || $this->_CheckAccess('view'))) exit;
+	if (isset($params['sel'])) {
+		$funcs = new Booker\Bookingops();
+		list($res,$msg) = $funcs->ExportBkg($this,$params['sel']);
+		if ($res)
+			exit;
+	} else {
+		$msg = $this->Lang('notypesel',$this->Lang('booking_multi'));
+	}
+}
 
 if ($params['task'] == 'see') {
 	if ($this->_CheckAccess('view')) {
@@ -23,6 +83,10 @@ if ($params['task'] == 'see') {
 $tplvars = array();
 $tplvars['pmod'] = (($pmod)?1:0);
 
+if (!empty($msg)) {
+	$tplvars['message'] = $this->_PrettyMessage($msg,$prettytype,FALSE);
+}
+
 $ob = cms_utils::get_module('Notifier');
 if ($ob) {
 	unset($ob);
@@ -32,26 +96,15 @@ if ($ob) {
 $tplvars['tell'] = $tell;
 
 $item_id = (int)$params['item_id'];
+$is_group = ($item_id >= Booker::MINGRPID);
 
-//some of these values will be tailored as needed
-$linkparms = array(
-	'item_id'=>$item_id,
-	'bkg_id'=>0,
-	'resume'=>$params['action'],
-	'task'=>$params['task'],
-	'repeat'=>0
-);
-if ($pmod) {
-	$linkparms['bookedit'] = 1;
-}
-
-$tplvars['startform'] = $this->CreateFormStart($id,'multibooking',$returnid,'POST','','','',
-	array('item_id'=>$item_id,'resume'=>$params['action'],'task'=>$params['task'],'repeat'=>0,'custmsg'=>''));
-$tplvars['startform2'] = $this->CreateFormStart($id,'multibooking',$returnid,'POST','','','',
+$params['active_tab'] = ($is_group) ? 'groups':'items';
+$tplvars['pagenav'] = $this->_BuildNav($id,$returnid,'defaultadmin',$params);
+$tplvars['startform'] = $this->CreateFormStart($id,'itembookings',$returnid,'POST','','','',
+	array('item_id'=>$item_id,'resume'=>$params['action'],'task'=>$params['task'],'custmsg'=>''));
+$tplvars['startform2'] = $this->CreateFormStart($id,'itembookings',$returnid,'POST','','','',
 	array('item_id'=>$item_id,'resume'=>$params['action'],'task'=>$params['task'],'repeat'=>1));
 $tplvars['endform'] = $this->CreateFormEnd();
-
-$this->_BuildNav($id,$params,$returnid,$tplvars);
 
 if (!empty($params['message']))
 	$tplvars['message'] = $params['message'];
@@ -59,7 +112,6 @@ if (!empty($params['message']))
 $utils = new Booker\Utils();
 $idata = $utils->GetItemProperty($this,$item_id,'*',FALSE);
 
-$is_group = ($item_id >= Booker::MINGRPID);
 $type = ($is_group) ? $this->Lang('group'):$this->Lang('item');
 if (!empty($idata['name'])) {
 	if ($is_group)
@@ -156,7 +208,7 @@ function modalsetup(tg,\$d) {
   case 'notify':
    msg = "$notify";
    break;
-  case 'delbooking':
+  case 'delete1': //TODO
   case 'delete':
    msg = "$delete";
    break;
@@ -170,17 +222,30 @@ function modalsetup(tg,\$d) {
 }
 function savecustom(tg,\$d) {
  var custom = \$d.find('#{$id}customentry').val();
- $('input[name={$id}custmsg]').val(custom);
+ $('input[name="{$id}custmsg"]').val(custom);
+ return true;
 }
 function savecustom2(tg,\$d) {
  var custom = \$d.find('#{$id}customentry').val(),
    url = $(tg).attr('href'),
    curl = url+'&{$id}custmsg='+encodeURIComponent(custom);
  $(tg).attr('href',curl);
+ return true;
 }
 
 EOS;
 }
+
+//some of these values will be tailored as needed
+$linkparms = array(
+	'item_id'=>$item_id,
+	'bkg_id'=>0,
+	'resume'=>$params['action'],
+	'task'=>$params['task']
+);
+//if ($pmod) {
+//	$linkparms['bookedit'] = 1;
+//}
 
 $rows = array();
 if ($data) {
@@ -197,10 +262,10 @@ if ($data) {
 	$bfmt = $dfmt.' '.$tfmt;
 	$rfmt = $this->Lang('showrange');
 
-	$dtw = new DateTime('@0',new DateTimeZone('UTC'));
+	$dtw = new DateTime('@0',NULL);
 
 	foreach ($data as &$one) {
-		$bid = (int)$one['bkg_id'];
+		$bkgid = (int)$one['bkg_id'];
 		$oneset = new stdClass();
 
 		$dtw->setTimestamp($one['slotstart']);
@@ -215,7 +280,7 @@ if ($data) {
 		$st .= ' '.$stt;
 		$period = sprintf($rfmt,$st,$nd);
 
-		$linkparms['bkg_id'] = $bid;
+		$linkparms['bkg_id'] = $bkgid;
 		if ($pmod) //edit mode
 			$oneset->time = $this->CreateLink($id,'openbooking','',$period,$linkparms);
 		else
@@ -224,21 +289,21 @@ if ($data) {
 			$from_group = TRUE;
 			$oneset->time .= ' &Dagger;';
 		}
-		$oneset->user = $one['name'];
+		$oneset->name = $one['name'];
 		if ($payable)
 			$oneset->paid = ($one['paid']) ? $yes:$no;
 		else
 			$oneset->paid = '';
 		$oneset->open = $this->CreateLink($id,'openbooking','',$icon_open,$linkparms);
 		$oneset->export = $this->CreateLink($id,'exportbooking','',$icon_export,
-			array('item_id'=>$item_id,'bkg_id'=>$bid));
+			array('item_id'=>$item_id,'bkg_id'=>$bkgid,'task'=>$params['task']));
 		if ($tell)
 		 $oneset->tell = $this->CreateLink($id,'notifybooker','',$icon_tell,
-				array('item_id'=>$item_id,'bkg_id'=>$bid));
+				array('item_id'=>$item_id,'bkg_id'=>$bkgid,'task'=>$params['task']));
 		if ($pmod)
-		 $oneset->delete = $this->CreateLink($id,'delbooking','',$icon_delete,
-			array('item_id'=>$item_id,'bkg_id'=>$bid,'repeat'=>0));
-		$oneset->selected = $this->CreateInputCheckbox($id,'sel[]',$bid,-1);
+		 $oneset->delete = $this->CreateLink($id,'itembookings','',$icon_delete,
+			array('item_id'=>$item_id,'bkg_id'=>$bkgid,'delete1'=>1));
+		$oneset->selected = $this->CreateInputCheckbox($id,'sel[]',$bkgid,-1);
 		$rows[] = $oneset;
 	}
 	unset($one);
@@ -452,6 +517,7 @@ EOS;
 		$data = array_merge($data,$data2);
 }
 
+$linkparms['repeat'] = 1; //rest of links are for repeat bookings
 $rows = array();
 if ($data) {
 	//titles array same order as displayed columns
@@ -464,13 +530,11 @@ if ($data) {
 	$tplvars['colnames2'] = $titles;
 	$tplvars['colsorts2'] = $titles;
 
-	$linkparms['repeat'] = 1; //rest of links are for repeat bookings 
-
 	foreach ($data as &$one) {
-		$bid = (int)$one['bkg_id'];
+		$bkgid = (int)$one['bkg_id'];
 		$oneset = new stdClass();
 
-		$linkparms['bkg_id'] = $bid;
+		$linkparms['bkg_id'] = $bkgid;
 		if ($pmod)
 			$oneset->desc = $this->CreateLink($id,'openbooking','',$one['formula'],$linkparms);
 		else
@@ -479,7 +543,7 @@ if ($data) {
 			$from_group = TRUE;
 			$oneset->desc .= ' &Dagger;';
 		}
-		$oneset->user = $one['name'];
+		$oneset->name = $one['name'];
 		if ($is_group) {
 			$oneset->count = $one['subgrpcount'];
 		}
@@ -489,14 +553,14 @@ if ($data) {
 			$oneset->paid = '';
 		$oneset->open = $this->CreateLink($id,'openbooking','',$icon_open,$linkparms);
 		$oneset->export = $this->CreateLink($id,'exportbooking','',$icon_export,
-			array('item_id'=>$item_id,'bkg_id'=>$bid));
+			array('item_id'=>$item_id,'bkg_id'=>$bkgid,'task'=>$params['task']));
 		if ($tell)
 			$oneset->tell = $this->CreateLink($id,'notifybooker','',$icon_tell,
-				array('item_id'=>$item_id,'bkg_id'=>$bid));
+				array('item_id'=>$item_id,'bkg_id'=>$bkgid,'task'=>$params['task']));
 		if ($pmod)
-			$oneset->delete = $this->CreateLink($id,'delbooking','',$icon_delete,
-				array('item_id'=>$item_id,'bkg_id'=>$bid,'repeat'=>1));
-		$oneset->selected = $this->CreateInputCheckbox($id,'sel[]',$bid,-1);
+			$oneset->delete = $this->CreateLink($id,'itembookings','',$icon_delete,
+				array('item_id'=>$item_id,'bkg_id'=>$bkgid,'delete1'=>1,'repeat'=>1));
+		$oneset->selected = $this->CreateInputCheckbox($id,'sel[]',$bkgid,-1);
 		$rows[] = $oneset;
 	}
 	unset($one);
@@ -566,30 +630,9 @@ EOS;
 			$tplvars['header_checkbox2'] =
 				$this->CreateInputCheckbox($id,'selectall',TRUE,FALSE,'onclick="select_all2(this);"');
 		}
-		if ($tell) {
-			$jsloads[] = <<<EOS
- $('#{$id}moduleform_2 #{$id}delete').modalconfirm({
-  overlayID: 'confirm',
-  popupID: 'confmessage',
-  confirmBtnID: 'mc_conf2',
-  denyBtnID: 'mc_deny2',
-  doCheck: any_selected2,
-  preShow: modalsetup,
-  onConfirm: savecustom
- });
- $('#repeats .bkrdel > a').modalconfirm({
-  overlayID: 'confirm',
-  popupID: 'confmessage',
-  confirmBtnID: 'mc_conf2',
-  denyBtnID: 'mc_deny2',
-  preShow: modalsetup,
-  onConfirm: savecustom2
- });
 
-EOS;
-		} else { //no Notifier module
-			$t = $this->Lang('confirm_delete_type',$this->Lang('booking'),'%s');
-			$jsloads[] = <<<EOS
+		$t = $this->Lang('confirm_delete_type',$this->Lang('booking'),'%s');
+		$jsloads[] = <<<EOS
  $('#{$id}moduleform_2 #{$id}delete').modalconfirm({
   overlayID: 'confirm',
   popupID: 'confgeneral',
@@ -612,7 +655,6 @@ EOS;
  });
 
 EOS;
-		} //no Notifier
 	} //pmod
 } else { //rc i.e. data found
 	$tplvars['norecords'] = $this->Lang('nodata'); //maybe epeat assigment, don't care
@@ -645,9 +687,9 @@ $jsincs[] = <<<EOS
 EOS;
 if ($pmod)
 	$jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/include/jquery.modalconfirm.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/include/jquery.modalconfirm.js"></script>
 
 EOS;
 $tplvars['jsincs'] = $jsincs;
 
-echo Booker\Utils::ProcessTemplate($this,'administer.tpl',$tplvars);
+echo Booker\Utils::ProcessTemplate($this,'bookings.tpl',$tplvars);
