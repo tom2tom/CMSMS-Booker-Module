@@ -323,128 +323,83 @@ class Display
 	}
 
 	/*
-	Coalesce:
-	Merge overlapping slots in @slots c.f. Blocks::MergeBlocks($starts,$ends)
-	@slots: array with members each an array($bs,$be) for slot start,end
-	Returns: array with mergers done
-	*/
-	private function Coalesce($slots)
-	{
-		$c = count($slots);
-		if ($c < 2)
-			return $slots;
-		usort($slots, function ($a, $b)
-		{
-			if ($a[0] == $b[0])
-				return ($a[1] - $b[1]);
-			return ($a[0] - $b[0]);
-		});
-		$i = 0;
-		while ($i < $c) {
-			$e1 = $slots[$i][1];
-			for ($j=$i+1; $j<$c; $j++) {
-				if (isset($slots[$j])) {
-					if ($slots[$j][0] > $e1) {
-						break;
-					}
-					$e2 = $slots[$j][1];
-					if ($e2 > $e1) {
-						$slots[$i][1] = $e2;
-					}
-					unset($slots[$j]);
-				}
-			}
-			$i = $j;
-		}
-		return array_values($slots); //contiguous keys again
-	}
-
-	/*
 	FillCell:
 	Get object populated with data for a table-cell.
 
 	@idata: reference to array of resource parameters
 	@dt: UTC DateTime object
 	@ss: UTC timestamp for start of cell (usually also slot start)
-	@se: ditto for end of slot
+	@se: corresponding end of cell
 	@celloff: string representing cell coverage: '' for slotlength,
 		otherwise DateTime modifier '+1 X'
-	@bookob: reference to 'iterable' array-object for all bookings data, with
-		contents sorted (first) by booking-start ascending
-	@position: starting iterator-position in @bookob
+	@iter: reference to valid ArrayIterator for whole bookingsdata array whose
+		contents are sorted (first) by booking-start ASC
+	@position: @iter's offset in the bookingsdata array
 	@allresource: reference to array of all (possibly just 1) resource-ids
 		which may be used and if so, included in the display
 	@ufuncs: reference to Userops object
-	Returns: 2-member array, 1st is the object, 2nd is replacement position for next call
+	Returns: 2-member array:
+		[0] = object with properties for the cell
+		[1] = value of @position to use in next call
 	*/
-	private function FillCell(&$idata, $dt, $ss, $se, $celloff, &$bookob, $position, &$allresource, &$ufuncs)
+	private function FillCell(&$idata, $dt, $ss, $se, $celloff, &$iter, $position, &$allresource, &$ufuncs)
 	{
-		$iter = $bookob->getIterator();
-		try {
-			$iter->seek($position);
-		} catch (Exception $e) {
-			$one = new \stdClass();
-			$one->data = NULL; //$e->getMessage();
-			$one->style = 'class="vacant"';
-			return array($one,$position);
+		if ($celloff) {
+			$dtw = clone $dt; //preserve $dt
+			$dtw->modify($celloff);
+			$se = $dtw->getTimestamp();
 		}
 
-		$dtw = clone $dt; //preserve $dt
-		if ($celloff) {
-			$dtw->modify($celloff);
-			$re = $dtw->getTimestamp();
-		} else
-			$re = $se;
-
-		$resources = array(); //id(s) actually booked
-		$bslots = array(); //bookings (automatically) sorted by increasing $bs
 		$users = array(); //at most 2 members
-		$displayclass = array(); //ditto
-		$row = FALSE;
-		$nextpos = -1; //we can cache a single position cuz array-rows are sorted on start-stamp
+		$displayclass = FALSE; //first-found class to be used
+		$resources = array(); //id(s) actually booked
+		$starts = array(); //booking-starts (automatically) sorted by increasing $bs
+		$ends = array();
+		$ipos = -1;
 		//interrogate all bookings-data for the cell
-		while (1) {
-			$prevrow = $row;
+		while ($iter->valid()) {
 			$row = $iter->current();
 			$bs = (int)$row['slotstart'];
 			$be = $bs + $row['slotlen'];
-			if (($bs <= $ss && $be > $ss)
-			 || ($bs > $ss && $be < $re)
-			 || ($bs < $re && $be >= $re)) {
+			if ($bs <= $se - 20 && $be >= $ss + 20) {
 				//log relevant booking-slots
-				$bslots[] = array($bs,$be);
-				//log 1st such slot extending past end
-				if ($be > $re && $nextpos == -1) {
-					$nextpos = $position; //next time, start from this row
-				}
-				//log distinct users until count users > 1
+				$starts[] = $bs;
+				$ends[] = $be;
+				//log distinct users until count users > 1, so we can report as 'multiple'
 				if (!isset($users[1])) {
 					$t = $row['booker_id'];
-					$n = $ufuncs->GetName($this->mod,$t);
+					$n = $ufuncs->GetName($this->mod,$t); //TODO $row['user']
 					if (!in_array($n,$users)) {
 						$users[] = $n;
-						//log corresponding displayclass
-						$displayclass[] = $ufuncs->GetDisplayClass($this->mod,$t);
+						//log first-found displayclass
+						if(!$displayclass)
+							$displayclass = $ufuncs->GetDisplayClass($this->mod,$t); //TODO row['userclass']
 					}
 				}
-				//log distinct resource id's
-				$t = (int)$row['item_id'];
-				if (!in_array($t,$resources)) {
-					$resources[] = $t;
+				//log resource-name(s)
+				if ($row['name'])
+					$resources[$row['name']] = 1;
+				if ($be > $se + 20) { //20-second slop
+					//log back-seek position
+					if ($ipos == -1) {
+						$ipos = $position;
+					}
+				}
+				if ($bs > $ss + 20) {
+					break;
 				}
 				$iter->next();
-				if ($iter->valid())
-					$position++;
-				else
-					break;
-			} elseif ($prevrow != FALSE) {
-				$row = $prevrow; //backup to last relevant row
+				$position++;
+			} else {
 				break;
 			}
 		}
-
+		if ($ipos != -1) {
+			$iter->seek($ipos);
+			$position = $ipos;
+		}
 		$one = new \stdClass();
-		if ($bslots) { //found booking(s)
+		if ($starts) { //found booking(s)
 			if (count($users) == 1) {
 				$one->data = reset($users);
 				$multi = FALSE;
@@ -456,57 +411,50 @@ class Display
 				$one->data .= ' + '.$this->mod->Lang('title_vacancies');
 				$whole = FALSE;
 			} else {
-				$bslots = self::Coalesce($bslots);
-				$t = reset($bslots);
-				$whole = ($t[0] < $ss + 60); //1-minute slop
+				$t = reset($starts);
+				$whole = ($t < $ss + 20); //20-second slop
 				if ($whole) {
-					$t = end($bslots);
-					$whole = ($t[1] > $re - 60); //CHECKME intra-gap(s) OK?
+					$t = end($ends);
+					$whole = ($t > $se - 20);
 				}
+				//TODO CHECK handle intra-gap(s)? i.e. Blocks::MergeBlocks($starts,$ends) then check
 				if (!$whole) { //TODO not the whole cell where available
 					$one->data .= ' + '.$this->mod->Lang('title_vacancies');
 				}
 			}
 
-			$names = $this->mod->dbHandle->GetCol('SELECT name FROM '.$this->mod->ItemTable.
-			' WHERE item_id IN('.implode(',',$resources).') AND active=1');
-			$one->tip = implode(',',$names); //assume all have a name!
+			$one->tip = implode(',',array_keys($resources));
 
 			if ($multi) {
+//TODO	$one->bkgid = which one ?
 				if ($whole)
 					$one->style = 'class="fullm"';
 				else
 					$one->style = 'class="partm"';
-//TODO	$one->bkgid = (int)$row['bkg_id'];
 			} else { //single-user
-				$dtw->setTimestamp($bslots[0][0]);
+				$one->bkgid = (int)$row['bkg_id'];
+				if (!$celloff) {
+					$dtw = clone $dt; //preserve $dt
+				}
+				$dtw->setTimestamp($starts[0]);
 				$d = $this->utils->IntervalFormat($this->mod,$dtw,$idata['dateformat']);
 				$fmt = $idata['timeformat'];
 				if (!$fmt)
 					$fmt = 'G:i';
 				$t1 = $dtw->format($fmt);
-				$slotf = end($bslots);
-				$dtw->setTimestamp($slotf[1]);
+				$dtw->setTimestamp(end($ends));
 				$t2 = $dtw->format($fmt);
 				$one->tip .= '&#013;'.$d.'&#013;'.sprintf($this->rangefmt,$t1,$t2);
 
 				$type = ($whole) ? 'full':'part';
-				if ($displayclass[0])
-					$one->style = 'class="'.$type.$displayclass[0].'"';
+				if ($displayclass)
+					$one->style = 'class="'.$type.$displayclass.'"';
 				else
 					$one->style = 'class="'.$type.'"';
-//ALWAYS discoverable		if (count($bslots) == 1) //1-user, 1-booking : make it discoverable
-				$one->bkgid = (int)$row['bkg_id'];
 			}
-			//next-time start
-			if ($nextpos > -1) {
-				$position = $nextpos;
-			}
-			//otherwise, $position represents the last-processed row, or 1-past if available
 		} else { //all vacant
 			$one->data = NULL;
 			$one->style = 'class="vacant"';
-		  //$position unchanged
 		}
 		return array($one,$position);
 	}
@@ -611,11 +559,10 @@ class Display
 		$funcs = new Bookingops();
 		$booked = $funcs->GetTableBooked($this->mod,$allresource,$dts->getTimestamp(),$dte->getTimestamp()-1);
 		if ($booked) {
-			//setup iterator
-			$bookob = new \ArrayObject($booked);
+			$iter = new \ArrayIterator($booked);
 			$position = 0; //init array-iterator-position
 		} else {
-			$bookob = FALSE;
+			$iter = FALSE;
 		}
 		$funcs = new Userops();
 
@@ -639,22 +586,22 @@ class Display
 			for ($r = 1; $r < $rc; $r++) {
 				$se = $ss + $slotlen - 1; //end-stamp of current slot, maybe < end-of-cell
 				$dtw->setTimestamp($ss);
-				if ($bookob) {
+				if ($iter && $iter->valid()) {
 					list($one,$position) = self::FillCell(
-						$idata,$dtw,$ss,$se,$celloff,$bookob,$position,$allresource,$funcs);
+						$idata,$dtw,$ss,$se,$celloff,$iter,$position,$allresource,$funcs);
 				} else {
 					$one = new \stdClass();
 					$one->data = NULL;
 					$one->style = 'class="vacant"';
 				}
 				$cells[] = $one;
-
 				//skip to next cell start
 				if ($celloff) {
 					$dtw->modify($celloff);
 					$ss = $dtw->getTimestamp();
-				} else
+				} else {
 					$ss += $slotlen;
+				}
 			}
 			$columns[] = $cells;
 			//skip to next segment start
