@@ -65,8 +65,8 @@
 {foreach from=$reptrows item=bkg}{cycle values='row1,row2' assign='rowclass'}
       <tr class="{$rowclass}">
        <td>{$bkg->desc}</td>
-{if isset($bkg->count)}    <td>{$bkg->count}</td>{/if}
        <td>{$bkg->name}</td>
+{if isset($bkg->count)}    <td>{$bkg->count}</td>{/if}
        <td>{$bkg->paid}</td>
        <td>{$bkg->open}</td>
 {if $tell}    <td class="bkrtell">{$bkg->tell}</td>{/if}
