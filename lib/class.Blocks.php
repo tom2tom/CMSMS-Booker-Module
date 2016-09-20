@@ -395,7 +395,7 @@ class Blocks
 	{
 		$funcs = new WhenRules($mod);
 		if ($funcs->ParseDescriptor($descriptor)) {
-			$dts = new \DateTime('@'.$st,new \DateTimeZone('UTC'));
+			$dts = new \DateTime('@'.$st,NULL);
 			$dte = clone $dts;
 			$dte->setTimestamp($nd);
 			$timeparms = $funcs->TimeParms($idata);
@@ -414,7 +414,7 @@ class Blocks
 	@mod: reference to Booker module object
 	@idata: array of parameters for the resource being processed
 	@blockstart: UTC timestamp for start of range
-	@blocklen: length of range (seconds), extends to 1-past last-usable second 
+	@blocklen: length of range (seconds), extends to 1-past last-usable second
 	@rules: single rule, or array of rules sorted in order of decreasing priority,
 		[each rule] being a descriptor recognisable by WhenRuleLexer (or FALSE)
 	Returns: 2-member array,
@@ -627,6 +627,43 @@ class Blocks
 		return array(FALSE,FALSE,FALSE);
 	}
 
+	/**
+	Coalesce:
+	Merge overlapping slots in @slots c.f. self::MergeBlocks($starts,$ends)
+	@slots: array with members each an array($bs,$be) for slot start,end
+	Returns: array with mergers done
+	*/
+/*	public function Coalesce($slots)
+	{
+		$c = count($slots);
+		if ($c < 2)
+			return $slots;
+		usort($slots, function ($a, $b)
+		{
+			if ($a[0] == $b[0])
+				return ($a[1] - $b[1]);
+			return ($a[0] - $b[0]);
+		});
+		$i = 0;
+		while ($i < $c) {
+			$e1 = $slots[$i][1];
+			for ($j=$i+1; $j<$c; $j++) {
+				if (isset($slots[$j])) {
+					if ($slots[$j][0] > $e1) {
+						break;
+					}
+					$e2 = $slots[$j][1];
+					if ($e2 > $e1) {
+						$slots[$i][1] = $e2;
+					}
+					unset($slots[$j]);
+				}
+			}
+			$i = $j;
+		}
+		return array_values($slots); //contiguous keys again
+	}
+*/
 	/**
 	MergeBlocks:
 	Coalesce and sort-ascending the timestamp-blocks in @starts and @ends.
