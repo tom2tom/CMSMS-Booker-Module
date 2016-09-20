@@ -3,6 +3,7 @@
 {$jsstyler}
 //]]>
 </script>{/if}
+<div id="needjs">{$needjs}</div>
 {if !empty($message)}<p class="pagemessage">{$message}</p>{/if}
 <h4 class="bkgtitle">{$title}</h4>
 {if isset($desc)}<p class="bkgdesc">{$desc}</p><br />{/if}
@@ -12,8 +13,7 @@
 {/foreach}
 </div><br />{/if}
 {$startform}
-{foreach from=$hidden item=inc}{$inc}
-{/foreach}
+{foreach from=$hidden item=inc}{$inc}{/foreach}
 {if isset($actions)}{foreach from=$actions key=k item=btn}{if $k>0}&nbsp;&nbsp;{/if}{$btn}{/foreach}<br /><br />{/if}
 {if $columns}
 <div style="margin:2px 2px 12px 2px;height:30em;width:100%;">
@@ -48,8 +48,8 @@
 <tr>{section name=c loop=$actions2}<td>{$actions2[c]}</td>{/section}</tr>
 </table>
 </div>
-<div id="calendar"></div>
 {$endform}
+<div id="calendar"></div>
 
 {if !empty($jsincs)}{foreach from=$jsincs item=inc}{$inc}
 {/foreach}{/if}
