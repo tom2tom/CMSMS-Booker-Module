@@ -835,7 +835,7 @@ EOS;
 			'booker_id'
 			'gatedata'
 			*/
-			$dtw = new \DateTime('@0',new \DateTimeZone('UTC'));
+			$dtw = new \DateTime('@0',NULL);
 			//header line
 			$outstr = implode($sep,array_keys($translates));
 			$outstr .= "\n";
