@@ -1,5 +1,5 @@
 /* para containing feedback/error message */
-.pagemessage {
+.pagemessage, #needjs {
  color:red;
  font-weight:bold;
  text-align:center;
