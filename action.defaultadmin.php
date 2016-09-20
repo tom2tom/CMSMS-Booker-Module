@@ -512,6 +512,10 @@ $tplvars['findbtn'] = $this->CreateInputSubmit($id,'find',$this->Lang('find'),
 	'title="'.$this->Lang('tip_findbkg').'"');
 $tplvars['bexportbtn1'] = $this->CreateInputSubmit($id,'exportbkg',$this->Lang('exportbook'),
 	'title="'.$this->Lang('tip_exportbookseltype',$this->Lang('request_multi')).'" onclick="return confirm_reqcount();"');
+$tplvars['title_total'] = $this->Lang('title_bookings');
+$tplvars['title_first'] = $this->Lang('first');
+$tplvars['title_last'] = $this->Lang('last');
+$tplvars['title_future'] = $this->Lang('future');
 
 //BOOKERS TAB (& FORM)
 $tplvars['startform2'] = $this->CreateFormStart($id,'adminbooker',$returnid,
@@ -641,10 +645,6 @@ if ($pcount > 0) {
 	 'title_reg' => $this->Lang('registered'),
 	 'title_active' => $this->Lang('title_active'),
 	 'title_added' => $this->Lang('title_commenced'),
-	 'title_total' => $this->Lang('title_bookings'),
-	 'title_first' => $this->Lang('first'),
-	 'title_last' => $this->Lang('last'),
-	 'title_future' => $this->Lang('future')
 	);
 	if ($pcount > 1) {
 		$tplvars['selectall_bookers'] = $this->CreateInputCheckbox($id,'booker',TRUE,FALSE,'title="'.$this->Lang('selectall').'" onclick="select_all_bkr(this)"');
@@ -1569,6 +1569,7 @@ $jsloads[] = <<<EOS
 
 EOS;
 }
+
 //hacky js here to work around tab-specific forms, i.e. no single page-tab object
 $jsloads[] = <<<EOS
  $('input[type="submit"]').click(function() {
