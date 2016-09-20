@@ -50,7 +50,6 @@ STARTDATECHOOSER ENDDATECHOOSER
   </table>
 </div>
 {if !empty($hasnav)}<div class="browsenav">{$first}&nbsp;|&nbsp;{$prev}&nbsp;&lt;&gt;&nbsp;{$next}&nbsp;|&nbsp;{$last}</div>{/if}
-<div id="calendar"></div>
 <div class="pageoptions" style="margin-top:1em;">
 {if $mod} {$approvbtn} {$rejectbtn} {/if}{if $tell}{$notifybtn}{/if}{if $mod} {$deletebtn}{/if}
 </div>
