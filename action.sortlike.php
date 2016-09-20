@@ -99,21 +99,21 @@ if (!function_exists('array_like')) {
 'sort' => 'groups' or 'members'
 )
 */
-$funcs = new Booker\Utils();
+$utils = new Booker\Utils();
 $item_id = (int)$params['item_id'];
 $havegroups = array($item_id);
 $type = $params['sort'];
 if ($type == 'members')
-	$members = $funcs->GetGroupItems($this,$item_id,TRUE);
+	$members = $utils->GetGroupItems($this,$item_id);
 else
-	$members = $funcs->GetItemGroups($this,$item_id);
+	$members = $utils->GetItemGroups($this,$item_id);
 if ($members) {
 	if (count($members) > 1) {
 		$data = array();
 		foreach ($members as $i) {
-			$data[$i] = $funcs->GetItemProperty($this,$i,array('name','description','keywords'));
+			$data[$i] = $utils->GetItemProperty($this,$i,array('name','description','keywords'));
 			if (empty($data[$i]['name']))
-				$data[$i]['name'] = $funcs->GetItemNameForID($this,$i);
+				$data[$i]['name'] = $utils->GetItemNameForID($this,$i);
 			if ($i >= Booker::MINGRPID)
 				$havegroups[] = $i;
 		}
