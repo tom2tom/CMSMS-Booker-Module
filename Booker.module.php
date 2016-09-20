@@ -389,7 +389,7 @@ class Booker extends CMSModule
 		$this->SetParameterType('slide',CLEAN_INT); //value matches button label
 //		$this->SetParameterType('slotlen',CLEAN_INT);
 //		$this->SetParameterType('slotstart',CLEAN_INT);
-		$this->SetParameterType('startat',CLEAN_STRING);
+		$this->SetParameterType('showfrom',CLEAN_STRING);
 //		$this->SetParameterType('paramskey',CLEAN_STRING);
 		$this->SetParameterType('subgrpcount',CLEAN_INT);
 		$this->SetParameterType('submit',CLEAN_NONE);
@@ -420,7 +420,7 @@ class Booker extends CMSModule
 	public function InitializeAdmin()
 	{
 		$this->CreateParameter('item','',$this->Lang('help_item'));
-		$this->CreateParameter('startat','',$this->Lang('help_startat'));
+		$this->CreateParameter('showfrom','',$this->Lang('help_showfrom'));
 		$this->CreateParameter('range',$this->Lang('week'),$this->Lang('help_range'));
 		$this->CreateParameter('view','table',$this->Lang('help_view'));
 	}
@@ -467,6 +467,7 @@ class Booker extends CMSModule
 			$this->_ActivateItem($id, $params, $returnid); //trivial func, don't bother with separate action file
 			$action = 'defaultadmin';
 			break;
+		 case 'announce':
 		 case 'default':
 		 case 'defaultadmin':
 		 case 'delete':
@@ -479,7 +480,6 @@ class Booker extends CMSModule
 		 case 'openbooking':
 		 case 'openrequest':
 		 case 'requestbooking':
-		 case 'requestfinish':
 		 case 'openfees':
 		 case 'opencart':
 		 case 'setprefs':
