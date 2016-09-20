@@ -20,7 +20,6 @@
 {if $mod}{$submit} {/if}{$cancel}{if $mod} {$apply}<br /><br />{$approve} {$reject}{/if}{if $pmsg} {$ask} {$notify}{/if} {$find} {$table} {$list}
 </div>
 {$endform}
-<div id="calendar"></div>
 <div id="confirm" class="modal-overlay"></div>
 <div id="confgeneral" class="confirm-container">
 <p style="text-align:center;font-weight:bold;"></p>
@@ -35,7 +34,6 @@
 <p style="text-align:center;"><input id="mc_conf2" class="cms_submit btn_conf" type="submit" value="{$proceed}" />
 &nbsp;&nbsp;<input id="mc_deny2" class="cms_submit btn_deny" type="submit" value="{$abort}" /></p>
 </div>
-<div id="display"></div>
 {if !empty($jsincs)}{foreach from=$jsincs item=inc}{$inc}
 {/foreach}{/if}
 {if !empty($jsfuncs)}
