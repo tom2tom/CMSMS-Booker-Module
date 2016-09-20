@@ -139,7 +139,7 @@ $dict->ExecuteSQLArray($sqlarray);
 /*
 non-repeated bookings-data table schema:
  bkg_id: unique identifier
- rept_id: bkg_id of repeat booking, or 0
+ bulk_id: bkg_id of repeat-booking, or of group-boooking, or 0 TODO check need for separate repeat & group id's
  item_id: resource or group id
  slotstart: UTC timestamp
  slotlen: seconds booked, NOT seconds-per-slot
@@ -151,7 +151,7 @@ Booker\CSV::ImportBookings must conform to this
 */
 $fields = "
  bkg_id I(4) KEY,
- rept_id I(4) DEFAULT 0,
+ bulk_id I(4) DEFAULT 0,
  item_id I(4),
  slotstart I,
  slotlen I(4),
