@@ -292,10 +292,10 @@ $lang['help_publicid'] = 'Must be provided for a registered booker';
 $lang['help_range'] = 'Scope of bookings-data to display (string day|week|month|year)';
 $lang['help_ration'] = 'If 0 or empty, no limit applies.';
 $lang['help_record'] = 'Save data about bookings directly, without intervention by approver';
+$lang['help_showfrom'] = 'Display bookings starting from this date (as YYYY-[M]M-[M]M, default current day)';
 //$lang['help_slotlength'] = 'Together with the available-hours setting, these determine when bookings may start. The number may be integer or decimal.';
 $lang['help_smspattern']='Regular-expression - see <a href="http://www.regexlib.net/Search.aspx?k=phone">this documentation</a>, for example';
 $lang['help_smsprefix']='One or more numbers e.g. 1 for USA. <a href="http://countrycode.org">Search</a>';
-$lang['help_startat'] = 'Display bookings starting from this date (as YYYY-[M]M-[M]M, default current day)';
 $lang['help_taxrate'] = 'A value less than 1 will be treated as a proportion, >= 1 as a percentage';
 $lang['help_time'] = 'See advice for date format.';
 //$lang['help_upload'] = '%s or %s doesn\'t upload a selected file, so it must be done independently, via the button.';
@@ -383,6 +383,7 @@ $lang['missing_type'] = 'Missing %s';
 $lang['moddescription'] = 'Create and manage bookings of resources';
 $lang['month'] = 'month';
 $lang['move'] = 'Move';
+$lang['needjs'] = 'Please enable javascript in your browser, to allow this process to work properly.';
 $lang['never'] = 'Never';
 $lang['next'] = 'Next';
 $lang['nil'] = 'Nil'; //for no-payment
@@ -499,6 +500,7 @@ $lang['tip_down'] = 'move down';
 //$lang['tip_editbooking'] = 'edit booking';
 $lang['tip_editreq'] = 'edit booking request';
 $lang['tip_edittype'] = 'edit %s';
+$lang['tip_enter'] = 'example: %s';
 $lang['tip_export_selected_records'] = 'export data for selected items';
 $lang['tip_exportbookseltype'] = 'export bookings data for selected %s';
 $lang['tip_exportbooktype'] = 'export %s bookings data';
@@ -650,6 +652,7 @@ $lang['title_request'] = 'Lodge booking request';
 //$lang['title_request1'] = 'You can'; //start of sentence
 $lang['title_request1'] = 'If the booking is yours, you can'; //start of sentence
 $lang['title_request2'] = 'make a booking for %s'; //one option for rest of sentence
+//$lang['title_requeststatus'] = 'Request status';
 $lang['title_sender'] = 'Your name';
 $lang['title_sender2'] = 'Lodged by';
 $lang['title_short_desc'] = 'Brief description';
