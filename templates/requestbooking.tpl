@@ -3,6 +3,7 @@
 {$jsstyler}
 //]]>
 </script>{/if}
+<div id="needjs">{$needjs}</div>
 {if !empty($message)}<p class="pagemessage">{$message}</p>{/if}
 <h4 class="bkgtitle">{$title}: {$textwhat}</h4>
 {if isset($desc)}<p class="bkgdesc">{$desc}</p><br /><br />{/if}
@@ -26,7 +27,6 @@
 <br />
 {$submit}{if isset($cart)} {$cart}{/if} {$cancel} {if isset($choose)} {$choose}{/if}
 {$endform}
-<div id="calendar"></div>
 {if !empty($jsincs)}{foreach from=$jsincs item=inc}{$inc}
 {/foreach}{/if}
 <script type="text/javascript">

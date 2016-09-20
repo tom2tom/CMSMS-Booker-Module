@@ -3,6 +3,7 @@
 {$jsstyler}
 //]]>
 </script>{/if}
+<div id="needjs">{$needjs}</div>
 {if !empty($message)}<p class="pagemessage">{$message}</p><br />{/if}
 <h4 class="bkgtitle">{$title}</h4>
 {if !empty($desc)}<p class="bkgdesc">{$desc}</p><br /><br />{/if}

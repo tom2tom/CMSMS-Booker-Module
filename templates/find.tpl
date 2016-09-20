@@ -3,6 +3,7 @@
 {$jsstyler}
 //]]>
 </script>{/if}
+<div id="needjs">{$needjs}</div>
 {if !empty($message)}<p class="pagemessage">{$message}</p><br />{/if}
 <h4 class="bkgtitle">{$title}</h4>
 {$startform}
@@ -13,7 +14,6 @@
  <tr></tr><td>{$entry->title}</td><td>{$entry->input}</td><tr></tr>
 {/foreach}
  </tbody></table>
- <div id="calendar"></div>
 </div>
 {if $count}
 {if $hasnav}<div class="browsenav">{$first}&nbsp;|&nbsp;{$prev}&nbsp;&lt;&gt;&nbsp;{$next}&nbsp;|&nbsp;{$last}&nbsp;({$pageof})&nbsp;&nbsp;{$rowchanger}</div>
