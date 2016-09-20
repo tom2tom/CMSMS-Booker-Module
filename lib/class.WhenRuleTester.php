@@ -395,28 +395,4 @@ array('0..sunrise,sunset..11:59',	1),
 		}
 		$this->Crash();
 	}
-
-	/**
-	isodate_from_format:
-	Convert @dvalue to ISO format i.e. like Y-M-d H:i:s
-	For testing, at least
-	@dformat: string which includes one or more of many (not all) format-characters
-	 understood by PHP date(). If it includes 'z', the corresponding element of
-	 @dvalue must be 1-based
-	@dvalue: date-time string consistent with @dformat
-	*/
-	private function isodate_from_format($dformat, $dvalue)
-	{
-		$sformat = str_replace(
-			array('Y' ,'M' ,'m' ,'d' ,'H' ,'h' ,'i' ,'s' ,'a' ,'A' ,'z'),
-			array('%Y','%b','%m','%d','%H','%I','%M','%S','%P','%p','%j'),$dformat);
-		$parts = strptime($dvalue,$sformat); //PHP 5.1+
-		return sprintf('%04d-%02d-%02d %02d:%02d:%02d',
-			$parts['tm_year'] + 1900,  //tm_year = relative to 1900
-			$parts['tm_mon'] + 1,      //tm_mon = 0-based
-			$parts['tm_mday'],
-			$parts['tm_hour'],
-			$parts['tm_min'],
-			$parts['tm_sec']);
-	}
 }
