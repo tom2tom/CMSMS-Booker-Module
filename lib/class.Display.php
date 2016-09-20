@@ -323,7 +323,7 @@ class Display
 	}
 
 	/*
-	FillCell:
+	DocumentCell:
 	Get object populated with data for a table-cell.
 
 	@idata: reference to array of resource parameters
@@ -332,17 +332,17 @@ class Display
 	@se: corresponding end of cell
 	@celloff: string representing cell coverage: '' for slotlength,
 		otherwise DateTime modifier '+1 X'
-	@iter: reference to valid ArrayIterator for whole bookingsdata array whose
+	@countall: no. of usable resources for this cell
+	@position: @iter's offset in the data array
+	@iter: reference to valid ArrayIterator for whole data array whose
 		contents are sorted (first) by booking-start ASC
-	@position: @iter's offset in the bookingsdata array
-	@allresource: reference to array of all (possibly just 1) resource-ids
-		which may be used and if so, included in the display
-	@ufuncs: reference to Userops object
+	@ufuncs: reference to Userops-class object
+	@blocks: reference to Blocks-class object
 	Returns: 2-member array:
 		[0] = object with properties for the cell
 		[1] = value of @position to use in next call
 	*/
-	private function FillCell(&$idata, $dt, $ss, $se, $celloff, &$iter, $position, &$allresource, &$ufuncs)
+	private function DocumentCell(&$idata, $dt, $ss, $se, $celloff, $countall, $position, &$iter, &$ufuncs, &$blocks)
 	{
 		if ($celloff) {
 			$dtw = clone $dt; //preserve $dt
@@ -407,19 +407,20 @@ class Display
 				$one->data = $this->mod->Lang('title_various');
 				$multi = TRUE;
 			}
-			if (count($resources) < count($allresource)) {
+			if (count($resources) < $countall) {
 				$one->data .= ' + '.$this->mod->Lang('title_vacancies');
 				$whole = FALSE;
 			} else {
-				$t = reset($starts);
-				$whole = ($t < $ss + 20); //20-second slop
-				if ($whole) {
-					$t = end($ends);
-					$whole = ($t > $se - 20);
-				}
-				//TODO CHECK handle intra-gap(s)? i.e. Blocks::MergeBlocks($starts,$ends) then check
-				if (!$whole) { //TODO not the whole cell where available
+				$blocks->MergeBlocks($starts,$ends);
+				if ((
+					count($starts) < 2
+				 && reset($starts) < $ss + 20 //20-second slop
+				 && end($ends) > $se - 20
+				)) {
+					$whole = TRUE;
+				} else {
 					$one->data .= ' + '.$this->mod->Lang('title_vacancies');
+					$whole = FALSE;
 				}
 			}
 
@@ -516,10 +517,11 @@ class Display
 
 		$item_id = (int)$idata['item_id'];
 		$is_group = ($item_id >= \Booker::MINGRPID);
-		if ($is_group)
-			$allresource = $this->utils->GetGroupItems($this->mod,$item_id,TRUE); //include sub-groups
-		else
+		if ($is_group) {
+			$allresource = $this->utils->GetGroupItems($this->mod,$item_id);
+		} else {
 			$allresource = array($item_id);
+		}
 
 		//update respective last-processed-repeats dates, if relevant
 		$funcs = new Schedule();
@@ -564,7 +566,9 @@ class Display
 		} else {
 			$iter = FALSE;
 		}
+		$countall = count($allresource);
 		$funcs = new Userops();
+		$blocks = new Blocks();
 
 		$this->rangefmt = $this->mod->Lang('showrange'); //cache for FillCell()
 		$rels = array('+1 day','+7 days','+1 month','+1 year');
@@ -587,8 +591,8 @@ class Display
 				$se = $ss + $slotlen - 1; //end-stamp of current slot, maybe < end-of-cell
 				$dtw->setTimestamp($ss);
 				if ($iter && $iter->valid()) {
-					list($one,$position) = self::FillCell(
-						$idata,$dtw,$ss,$se,$celloff,$iter,$position,$allresource,$funcs);
+					list($one,$position) = self::DocumentCell(
+						$idata,$dtw,$ss,$se,$celloff,$countall,$position,$iter,$funcs,$blocks);
 				} else {
 					$one = new \stdClass();
 					$one->data = NULL;
