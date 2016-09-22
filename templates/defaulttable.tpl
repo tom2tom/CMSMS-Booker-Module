@@ -49,7 +49,6 @@
 </table>
 </div>
 {$endform}
-<div id="calendar"></div>
 
 {if !empty($jsincs)}{foreach from=$jsincs item=inc}{$inc}
 {/foreach}{/if}
