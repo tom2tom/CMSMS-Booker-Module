@@ -500,7 +500,7 @@ $lang['tip_down'] = 'move down';
 //$lang['tip_editbooking'] = 'edit booking';
 $lang['tip_editreq'] = 'edit booking request';
 $lang['tip_edittype'] = 'edit %s';
-$lang['tip_enter'] = 'example: %s';
+$lang['tip_enter'] = 'like %s';
 $lang['tip_export_selected_records'] = 'export data for selected items';
 $lang['tip_exportbookseltype'] = 'export bookings data for selected %s';
 $lang['tip_exportbooktype'] = 'export %s bookings data';
@@ -736,6 +736,7 @@ $lang['whatovrday'] = '%s on %s';
 //must be ordered shortest..longest, comma-separated, no whitespace
 $lang['periods'] = 'minute,hour,day,week,month,year';
 $lang['multiperiods'] = 'minutes,hours,days,weeks,months,years';
+$lang['meridiem'] = 'AM,PM'; //upper-case, comma-separated, ante-first
 
 //popup calendar titles
 //$lang['title_month'] = 'Month';
