@@ -54,12 +54,11 @@
  <p class="pageinput">{$nodata}</p>
 {/if}
 <div id="dataacts" class="pageoptions" style="margin-top:1em;">
-{if $bmod}{$addbooking}<span style="margin-left:5em;"> {/if}{$findbtn}
+{$findbtn}
 {if $dcount > 0}
 {if $bmod} {$approvbtn} {$rejectbtn}{/if}{if $tell} {$notifybtn}{/if}{if $del} {$deletebtn1}{/if}
-{if $bmod}</span>{/if}
 {/if}
-{if $bmod}<br /><span style="margin-left:12em;">{$importbtn1} {/if} {$bexportbtn1}
+{if $bmod} {$importbtn1} {/if} {$bexportbtn1}
 </div>
 {$endform}
 {$end_tab}
@@ -119,7 +118,7 @@
 {if $per}{$addbooker}{/if}
 {if $pcount > 0}
 <span style="margin-left:5em;">{if $per} {$ablebtn2} {$deletebtn2}{/if}</span>
-<br /><span style="margin-left:12em;">{$exportbtn2}{if $per} {$importbtn2}</span>{/if} {$bexportbtn2}
+ {$exportbtn2}{if $per} {$importbtn2}{/if} {$bexportbtn2}
 {else}
 {if $per}<span style="margin-left:3em">{$importbtn2}</span>{/if}
 {/if}
