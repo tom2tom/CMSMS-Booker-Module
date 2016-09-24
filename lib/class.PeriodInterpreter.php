@@ -413,7 +413,6 @@ class PeriodInterpreter
 						if ($d > 0)
 							$found['days'] = range(1,$d,$matches[1]);
 					} elseif ($elmt != 'D') {
-
 						$found['days'] = self::ToArray($elmt,'D');
 					} elseif (isset($parts[$i+1])) {
 						$parts[$i+1] = 'D'.$parts[$i+1];
