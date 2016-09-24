@@ -37,7 +37,7 @@ if (!function_exists('groupstable')) {
 				$one->dnlink = '';
 		}
 		if ($sel)
-			$m = (array_search($k,$relations) !== FALSE) ? $k:-1;
+			$m = (in_array($k,$relations)) ? $k:-1;
 		else
 			$m = -1;
 		$one->check = $mod->CreateInputCheckbox($id,$obname.'[]',$k,$m);
@@ -142,8 +142,8 @@ if (!function_exists('groupsupdate')) {
 	}
 
 	if ($current || $new) {
-		$funcs = new Booker\Utils();
-		$funcs->OrderGroups($mod);
+		$utils = new Booker\Utils();
+		$utils->OrderGroups($mod);
 	}
  }
 
@@ -178,17 +178,11 @@ if (!function_exists('groupsupdate')) {
 $item_id = (int)$params['item_id'];
 $is_group = ($item_id >= Booker::MINGRPID || $item_id == -Booker::MINGRPID);
 $act = $params['action'];
-if (isset($params['active_tab'])) {
-	$seetab = $params['active_tab'];
-	unset($params['active_tab']);
-} else
-	$seetab = 'basic'; //default to show this tab
+$seetab = (!empty($params['active_tab'])) ? $params['active_tab'] : 'basic'; //default shown tab
+unset($params['active_tab']); //if any
 
 //feedback-message-accumulator
-if (isset($params['message']))
-	$msg = $params['message'];
-else
-	$msg = '';
+$msg = (isset($params['message'])) ? $params['message'] : '';
 
 if (isset($params['apply']) || isset($params['submit'])) {
 	//===== FIELD CLEANUPS TO SUIT PRE-SAVE CONVERSION =====
@@ -278,7 +272,7 @@ if (isset($params['apply']) || isset($params['submit'])) {
 						fclose($h);
 						if ($content == FALSE)
 							$umsg = $this->Lang('err_upload',$this->Lang('err_perm'));
-						elseif (!preg_match('/\.bkgitem/',$content))
+						elseif (!preg_match('/\.bkgtitle/',$content)) //TODO some more-general test
 							$umsg = $this->Lang('err_upload',$this->Lang('err_file'));
 						unset($content);
 					} else
@@ -380,15 +374,15 @@ if (isset($params['cancel']) || $act == 'submit') {
 }
 
 // get data for the item with the passed-in id, or an empty one if that id not found
-$funcs = new Booker\Utils();
-//$item = $funcs->GetItem($this,$item_id,FALSE);
+$utils = new Booker\Utils();
+//$item = $utils->GetItem($this,$item_id,FALSE);
 $sql = 'SELECT * FROM '.$this->ItemTable.' WHERE item_id=?';
 $row = $db->GetRow($sql,array($item_id));
 if ($row) {
 	$item = (object) $row;
 	//cleanups
 	$item->item_id = (int)$item_id;
-	if ($item->stylesfile && !$funcs->GetStylesURL($this,$item->item_id,FALSE)) //styles file must be there
+	if ($item->stylesfile && !$utils->GetStylesURL($this,$item->item_id,FALSE)) //styles file must be there
 		$item->stylesfile = '';
 	if ($act == 'copy') {
 		$item_id = ($is_group) ? -Booker::MINGRPID : -1;
@@ -439,15 +433,14 @@ if (!$pmod)
 	$nolimit = $this->Lang('nolimit');
 
 // setup variables for the view-template
-$tplvars = array('mod' =>  $pmod);
-
-$t = array();
-$this->_BuildNav($id,$t,$returnid,$tplvars);
+$tplvars = array('mod' => $pmod);
 
 //multipart form needed for file uploads
-$tplvars['startform'] = $this->CreateFormStart($id,'update',$returnid,'POST',
-	'multipart/form-data','','',array('item_id'=>$item_id));
+$tplvars['startform'] = $this->CreateFormStart($id,'update',$returnid,'POST','multipart/form-data','','',
+	array('item_id'=>$item_id,'active_tab'=>''));
 $tplvars['endform'] = $this->CreateFormEnd();
+$params['active_tab'] = ($is_group) ? 'groups':'items';
+$tplvars['pagenav'] = $this->_BuildNav($id,$returnid,'defaultadmin',$params);
 $tplvars['tab_headers'] =  $this->StartTabHeaders().
 	$this->SetTabHeader('basic',$this->Lang('basic'),($seetab=='basic')).
 	$this->SetTabHeader('advanced',$this->Lang('advanced'),($seetab=='advanced')).
@@ -462,8 +455,6 @@ $tplvars += array(
 	'start_adv_tab' => $this->StartTab('advanced'),
 	'start_fmt_tab' => $this->StartTab('formats')
 );
-
-$hidden = $this->CreateInputHidden($id,'active_tab','');
 
 $tplvars['title'] = ($is_group) ? $this->Lang('title_group_page'):$this->Lang('title_item_page');
 $s = ($is_group) ? $this->Lang('group'):$this->Lang('item');
@@ -519,7 +510,7 @@ $basic[] = array('ttl'=>$t,
 if ($pmod)
 	$i = $this->CreateTextArea(TRUE,$id,$item->description,'description','','','','',80,5,'','','style="height:12em;"');
 elseif ($item->description)
-	$i = $funcs->StripTags($item->description,$cleartypes);
+	$i = $utils->StripTags($item->description,$cleartypes);
 else
 	$i = $none;
 $h = ($pmod) ? $this->Lang('help_use_smarty'):NULL;
@@ -530,7 +521,7 @@ $basic[] = array('ttl'=>$this->Lang('title_long_desc'),
 //------- image
 if ($pmod) {
 	$i = $this->CreateInputText($id,'image',$item->image,60,128);
-	$files = $funcs->GetUploadedFiles($this,'jpg,jpeg,gif,png,svg');
+	$files = $utils->GetUploadedFiles($this,'jpg,jpeg,gif,png,svg');
 	if ($files) {
 		$files = array_combine($files,$files); //keys match values
 		$files = array_merge(array($this->Lang('select')=>''),$files);
@@ -541,7 +532,7 @@ if ($pmod) {
 	if ($item->image && $files)
 		$i .= ' '.$this->CreateInputCheckbox($id,'imgdelete',1,-1).'&nbsp;'.$this->Lang('delete_upload',$item->image);
 } elseif ($item->image) {
-	$t = $funcs->GetImageURLs($this,$item->image,$item->name);
+	$t = $utils->GetImageURLs($this,$item->image,$item->name);
 	if ($t) {
 		$i = '';
 		foreach ($t as &$one) {
@@ -572,9 +563,9 @@ if ($is_group) {
 //------- slotcount, slottype (c.f. TimeIntervals())
 $alltypes = explode(',',$this->Lang('periods')); //'minute,hour,day,week,month,year'
 if ($pmod) {
-	$alltypes = array_flip($alltypes);
+	$choices = array_flip($alltypes);
 	$i = $this->CreateInputText($id,'slotcount',$item->slotcount,6,6).'&nbsp;'.
-		$this->CreateInputDropdown($id,'slottype',$alltypes,-1,$item->slottype);
+		$this->CreateInputDropdown($id,'slottype',$choices,-1,$item->slottype);
 } else {
 	$i = $item->slotcount.' '.$alltypes[$item->slottype];
 }
@@ -638,9 +629,27 @@ if ($sel) {
 	$t = $this->Lang('addfee');
 	$h = NULL;
 }
-if ($pmod)
-	$i .= '<br />'.$this->CreateInputSubmit($id,'modfee',$t,
-		'onclick="current_tab();return confirm(\''.$this->Lang('allsaved').'\');"');
+if ($pmod) {
+	$jsfuncs[] = <<<EOS
+function confirm_saved(btn) { //QQQ $.modalconfirm.show(
+ $.modalconfirm.show({
+  overlayID: 'confirm',
+  popupID: 'confgeneral',
+  showTarget: btn,
+  preShow: function(tg,\$d) {
+   var para = \$d.children('p:first')[0];
+   para.innerHTML = '{$this->Lang('allsaved')}';
+  },
+  onConfirm: function(tg,\$d) {
+   current_tab();
+  }
+ });
+ return false;
+}
+
+EOS;
+	$i .= '<br />'.$this->CreateInputSubmit($id,'modfee',$t,'onclick="return confirm_saved(this);"');
+}
 $basic[] = array('ttl'=>$cascade.$this->Lang('title_feeusage'),
 'inp'=>$i,
 'hlp'=>$h
@@ -985,19 +994,11 @@ if ($is_group) {
 	'hlp'=>$this->Lang('help_subgrpalloc'));
 }
 //------- leadcount, leadtype
-$alltypes = explode(',',$this->Lang('periods')); //'minute,hour,day,week,month,year'
-$alltypes[8] = $alltypes[5];
-$alltypes[7] = $alltypes[4];
-$alltypes[6] = $alltypes[3];
-$alltypes[5] = $alltypes[2];
-unset($alltypes[4]);
-$alltypes[3] = $alltypes[1];
-unset($alltypes[2]);
-unset($alltypes[1]);
 if ($pmod) {
-	$alltypes = array_flip($alltypes);
+	$choices = array_flip($alltypes);
+	array_shift($choices);
 	$i = $this->CreateInputText($id, 'leadcount', $item->leadcount, 6, 6).'&nbsp;'.
-		$this->CreateInputDropdown($id,'leadtype',$alltypes,-1,$item->leadtype);
+		$this->CreateInputDropdown($id,'leadtype',$choices,-1,$item->leadtype);
 } else {
 	$i = $item->leadcount.' '.$alltypes[$item->leadtype];
 }
@@ -1006,13 +1007,12 @@ $advanced[] = array('ttl'=>$cascade.$this->Lang('title_lead'),
 'hlp'=>$this->Lang('help_lead')
 );
 //------- keepcount, keeptype
-$alltypes = explode(',',$this->Lang('periods')); //'minute,hour,day,week,month,year'
-unset($alltypes[0]);
-unset($alltypes[1]);
 if ($pmod && $padm) {
-	$alltypes = array_flip($alltypes);
+	$choices = array_flip($alltypes);
+	array_shift($choices);
+	array_shift($choices);
 	$i = $this->CreateInputText($id,'keepcount',$item->keepcount,6,6).'&nbsp;'.
-		$this->CreateInputDropdown($id,'keeptype',$alltypes,-1,$item->keeptype);
+		$this->CreateInputDropdown($id,'keeptype',$choices,-1,$item->keeptype);
 } else {
 	$i = $item->keepcount.' '.$alltypes[$item->keeptype];
 }
@@ -1106,7 +1106,7 @@ if (is_object($ob)) {
 /* TODO filter by permissions c.f. for admin users
 		$pref = cms_db_prefix();
 		$sql =<<<EOS
-SELECT DISTINCT U.user_id,U.username,U.first_name,U.last_name FROM {$this->UserTable} U
+SELECT DISTINCT U.user_id,U.username,U.first_name,U.last_name FROM $this->UserTable U
 JOIN {$pref}user_groups UG ON U.user_id = UG.user_id
 JOIN {$pref}group_perms GP ON GP.group_id = UG.group_id
 JOIN {$pref}permissions P ON P.permission_id = GP.permission_id
@@ -1264,11 +1264,11 @@ $formats[] = array('ttl'=>$cascade.$this->Lang('listformat'),
 );
 //------- stylesfile
 //remember this, to support incremental change
-$hidden .= $this->CreateInputHidden($id,'oldstyles',$item->stylesfile);
+$hidden = $this->CreateInputHidden($id,'oldstyles',$item->stylesfile);
 //set explicit id for file input, cuz CMSMS doesn't!
 if ($pmod) {
 	$i = $this->CreateInputText($id,'stylesfile',$item->stylesfile,30,36);
-	$files = $funcs->GetUploadedFiles($this,'css');
+	$files = $utils->GetUploadedFiles($this,'css');
 	if ($files) {
 		$files = array_combine($files,$files); //keys match values
 		$files = array_merge(array($this->Lang('select')=>''),$files);
@@ -1313,7 +1313,7 @@ $tplvars['message'] = $msg;
 $jsfuncs[] = <<<EOS
 function current_tab() {
  var active = $('#page_tabs > .active');
- $('#{$id}active_tab').val(active.attr('id'));
+ $('input[name="{$id}active_tab"]').val(active.attr('id'));
 }
 function imgfile_selected(el) {
  var sel = el.value;

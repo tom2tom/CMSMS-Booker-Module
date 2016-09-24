@@ -24,8 +24,8 @@ if (!function_exists('GetRedirParms')) {
 if (!($this->_CheckAccess('admin') || $this->_CheckAccess('book'))) exit;
 
 if (isset($params['cancel'])) {
-	$parms = GetRedirParms($params);
-	$this->Redirect($id,$params['resume'],'',$parms);
+	$newparms = GetRedirParms($params);
+	$this->Redirect($id,$params['resume'],'',$newparms);
 }
 
 if (!empty($params['importitm']))
@@ -72,26 +72,26 @@ if (isset($_FILES) && isset($_FILES[$id.'csvfile'])) {
 		$msg = $this->_PrettyMessage($t,TRUE,FALSE);
 	} else
 		$msg = $this->_PrettyMessage($prop,FALSE);
-	$parms = GetRedirParms($params,$msg);
-	$this->Redirect($id,$params['resume'],'',$parms);
+	$newparms = GetRedirParms($params,$msg);
+	$this->Redirect($id,$params['resume'],'',$newparms);
 }
 
 $tplvars = array();
-$this->_BuildNav($id,$params,$returnid,$tplvars);
+$tplvars['pagenav'] = $this->_BuildNav($id,$returnid,'defaultadmin',$params);
 
 $hidden = array();
 switch ($params['action']) {
  case 'processrequest': //requests
  case 'adminbooking': //bookings
  case 'adminbooker': //bookers
- case 'process': //items
+ case 'processitem': //items
 	$hidden['resume'] = 'defaultadmin';
 	$hidden['active_tab'] = $params['active_tab'];
 	break;
- case 'multibooking':
-	$hidden['resume'] = 'administer';
-	if (isset($params['item_id']))
-		$hidden['item_id'] = $params['item_id'];
+ case 'itembookings':
+	$hidden['resume'] = 'itembookings';
+	$hidden['task'] = $params['task'];
+	$hidden['item_id'] = $params['item_id'];
 	break;
  default:
 	$this->Crash();
@@ -126,8 +126,8 @@ switch ($itype) {
 }
 $hidden[$k] = 1;
 
-$tplvars['startform'] = $this->CreateFormStart($id,'import',$returnid,'POST',
-	'multipart/form-data','','',$hidden);
+$tplvars['startform'] = $this->CreateFormStart($id,'import',$returnid,'POST','multipart/form-data','','',
+	$hidden);
 $tplvars['endform'] = $this->CreateFormEnd();
 $tplvars['title'] = $this->Lang($k2);
 $tplvars['chooser'] = $this->CreateInputFile($id,'csvfile','text/csv',25);

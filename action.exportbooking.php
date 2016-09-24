@@ -12,13 +12,13 @@ supplied $params
 */
 if ($this->_CheckAccess('admin') || $this->_CheckAccess('see')) {
 	if (isset($params['bkg_id']))
-		$bid = (int)$params['bkg_id'];
+		$bkgid = (int)$params['bkg_id'];
 	else {
-		$funcs = new Booker\Utils();
+		$utils = new Booker\Utils();
 		$sql = 'SELECT bkg_id FROM '.$mod->DataTable.' WHERE item_id=?';
-		$bid = $funcs->SafeGet($sql,array($params['item_id']),'col');
-		if (!$bid) {
-			$name = $funcs->GetItemNameForID($mod,$params['item_id']);
+		$bkgid = $utils->SafeGet($sql,array($params['item_id']),'col');
+		if (!$bkgid) {
+			$name = $utils->GetItemNameForID($mod,$params['item_id']);
 			$msg = $this->Lang('nodata_one',$name);
 			$msg = $this->_PrettyMessage($msg,FALSE,FALSE);
 			$tab = ($params['item_id'] >= Booker::MINGRPID) ? 'groups':'items';
@@ -26,10 +26,10 @@ if ($this->_CheckAccess('admin') || $this->_CheckAccess('see')) {
 		}
 	}
 	$funcs = new Booker\Bookingops();
-	list($res,$msg) = $funcs->ExportBkg($this,$bid);
+	list($res,$msg) = $funcs->ExportBkg($this,$bkgid);
 	if (!$res) {
 		if (isset($params['bkg_id'])) {
-			$resume = 'administer';
+			$resume = 'itembookings';
 			$newparms = array('item_id'=>$params['item_id'],'message'=>$msg);
 		} else {
 			$resume = 'defaultadmin';

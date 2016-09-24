@@ -10,19 +10,25 @@ namespace Booker;
 class Verify
 {
 	/**
-	VerifyAdmin:
-	Validate relevant members of @params, sourced from an admin page
+	VerifyData:
+	Validate relevant members of @params
 	@mod reference to current module-object
 	@utils: reference to Booker\Utils object
-	@params: reference to array of POST parameters
-	@is_new: boolean whether processing a new booking
+	@params: reference to array of request-parameters, sufficiently equivalent
+	 to a HistoryTable row, for:
+		a not-yet-recorded request OR
+		a recorded request now being edited OR
+		a recorded booking now being edited
+	@is_new: boolean whether validating data for a new request
+	@admin: boolean whether the caller is backend/admin
 	Returns: 2-member array, 1st is boolean indicating success, 2nd '' or array of error messages
 	*/
-	public function VerifyAdmin(&$mod, &$utils, &$params, $item_id, $is_new)
+	public function VerifyData(&$mod, &$utils, &$params, $item_id, $is_new, $admin)
 	{
 		$msg = array();
-		$tz = new \DateTimeZone('UTC');
-		$slen =  $utils->GetInterval($mod,$item_id,'slot');
+		$dtw = new \DateTime('@0',NULL);
+		$bs = 0;
+		$be = 0;
 /*supplied $params keys
 		'subgrpcount'? 'when' 'until'? 'user' 'conformuser' 'displayclass'
 		'conformstyle' 'contact' 'conformcontact' 'paid'
@@ -34,160 +40,83 @@ TODO support 'past' data without both date/time $params[]
 		if (isset($params['when'])) {
 			$fv = $params['when'];
 			if ($fv) {
-				try {
-					$dts = new \DateTime($fv,$tz);
-				}
-				catch (Exception $e) {
+				$lvl = error_reporting(0);
+				$res = $dtw->modify($fv);
+				error_reporting($lvl);
+				if ($res) {
+					$bs = $dtw->getTimestamp();
+				} else {
 					$msg[] = $mod->Lang('err_badstart');
 				}
 			} elseif ($is_new) //must be provided for new booking
 				$msg[] = $mod->Lang('err_badstart');
+		} else {
+$this->Crash();
 		}
 
+		//TODO NOT ok to assume the slot-pair come from same item?? e.g. 0-days current with 1-hour ancestor
+		$idata = $utils->GetItemProperty($mod,$item_id,array('slottype','slotcount','timezone'));
 		if (isset($params['until'])) {
 			$fv = $params['until'];
 			if ($fv) {
-				try {
-					$dte = new \DateTime($fv,$tz);
-				}
-				catch (Exception $e) {
+				$lvl = error_reporting(0);
+				$res = $dtw->modify($fv);
+				error_reporting($lvl);
+				if ($res) {
+					$be = $dtw->getTimestamp();
+				} else {
 					$msg[] = $mod->Lang('err_badend');
 				}
-			} elseif (isset($dts)) {
-				$dte = clone $dts;
-				$dte->modify('+'.($slen-1).' seconds');
-			} else
-				$msg[] = $mod->Lang('err_badend');
-		}
-
-		if (isset($dts) && isset($dte)) {
-			if ($dte > $dts) {
-				$funcs = new Schedule();
-				//rationalise specified times relative to slot length
-				$utils->TrimRange($dts,$dte,$slen);
-				$params['when'] = $dts->getTimestamp();
-				$params['until'] = $dte->getTimestamp();
-				if ($is_new) {
-					if ($funcs->ItemVacantCount($mod,$item_id,$dts,$dte) == 0) {
-						$msg[] = $mod->Lang('err_dup');
-					} elseif (!$funcs->ItemAvailable($mod,$utils,$item_id,$dts,$dte)) {
-						$msg[] = $mod->Lang('err_na');
-					}
-				} else { //update
-					$excl = (isset($params['bkg_id'])) ? $params['bkg_id'] : FALSE;
-					if ($funcs->ItemVacantCount($mod,$item_id,$dts,$dte,$excl) == 0) {
-						$msg[] = $mod->Lang('err_dup');
-					} elseif (!$funcs->ItemAvailable($mod,$utils,$item_id,$dts,$dte)) {
-						$msg[] = $mod->Lang('err_na');
-					}
-				}
-			} else {
-				$msg[] = $mod->Lang('err_badtime');
-			}
-		}
-
-		if (!$params['user'])
-			$msg[] = $mod->Lang('err_nosender');
-
-		if (!$params['contact'])
-			$msg[] = $mod->Lang('err_nocontact');
-
-		if (isset($params['subgrpcount'])) {
-			$fv = $params['subgrpcount'];
-			if (!$fv) //TODO or too big
-				$msg[] = $mod->Lang('err_parm');
-		}
-
-		if (!$msg)
-			return array(TRUE,'');
-		return array(FALSE,$msg);
-	}
-
-	/**
-	VerifyPublic:
-	Validate relevant members of @params, sourced from a frontend page
-	@mod reference to current module-object
-	@utils: reference to Booker\Utils object
-	@params: reference to array of POST parameters
-	@is_new: boolean whether processing a new booking-request
-	Returns: 2-member array, 1st is boolean indicating success, 2nd '' or array of error messages
-	*/
-	public function VerifyPublic(&$mod, &$utils, &$params, $is_new)
-	{
-//TODO make validation handle $past == TRUE
-//TODO CHECK validation enforces lead-time, lead-count limits ?
-		$msg = array();
-		$tz = new \DateTimeZone('UTC');
-/* supplied $params keys
-	'returnid' 'item_id' 'startat' 'range' 'view' 'bkgid'
-	'requesttype'? 'subgrpcount'? 'when'? 'until'? 'user' 'contact' 'captcha'? 'chooser'
-*/
-		//always want these $params keys: 'user','contact'
-		//maybe-present keys
-		//'requesttype','subgrpcount','when','until'(maybe empty),'captcha'
-		if (isset($params['when'])) {
-			$item_id = $params['item_id'];
-			$fv = $params['when'];
-			if ($fv) {
-				try {
-					$dts = new \DateTime($fv,$tz);
-				} catch(Exception $e) {
-					$msg[] = $mod->Lang('err_badstart');
-				}
-			} elseif ($is_new) //must be provided for new booking
-				$msg[] = $mod->Lang('err_badstart');
-		}
-
-		if (isset($params['until'])) {
-			$fv = $params['until'];
-			if ($fv) {
-				try {
-					$dte = new \DateTime($fv,$tz);
-				} catch(Exception $e) {
-					$msg[] = $mod->Lang('err_badend');
-				}
-			} elseif (isset($dts)) {
+			} elseif ($bs > 0) {
 				//set default
-				$dte = clone $dts;
-				$slen = $utils->GetInterval($mod,$item_id,'slot');
-				$dte->modify('+'.$slen.' seconds');
+				$be = $bs + $utils->GetCurrentSlotlen($bs,$idata['slottype'],$idata['slotcount']);
 			} else
 				$msg[] = $mod->Lang('err_badend');
 		}
 
-		if (isset($dts) && isset($dte)) {
-			$timely = ($dte > $dts);
-			if ($timely && isset($params['item_id'])) {
-				$idata = $utils->GetItemProperty($mod,$params['item_id'],'timezone');
-				$t = $utils->GetZoneTime($idata['timezone']);
-				$timely = ($dts->getTimestamp() >= $t);
-			}
-
-			if ($timely) {
-				$funcs = new Schedule();
+		if ($bs > 0 && $be > 0) {
+			if ($be > $bs) {
 				//rationalise specified times relative to slot length
-				if ($is_new) {
-					if ($funcs->ItemVacantCount($mod,$item_id,$dts,$dte) == 0) {
-						$msg[] = $mod->Lang('err_dup');
-					} elseif (!$funcs->ItemAvailable($mod,$utils,$item_id,$dts,$dte)) {
-						$msg[] = $mod->Lang('err_na');
+				list($bs,$be) = $utils->TrimRange($idata['slottype'],$idata['slotcount'],$bs,$be);
+				$params['slotstart'] = $bs;
+				$params['slotlen'] = $be - $bs;
+				$timely = ($be > $bs);
+				if ($timely && !$admin) {
+					if ($idata['timezone']) {
+						$t = $utils->GetZoneTime($idata['timezone']);
+						$timely = ($bs >= $t);
+					} else {
+						$msg[] = $mod->Lang('err_system');
 					}
-				} else { //update
-					if ($funcs->ItemVacantCount($mod,$item_id,$dts,$dte,$params['bkgid']) == 0) {
-						$msg[] = $mod->Lang('err_dup');
-					} elseif (!$funcs->ItemAvailable($mod,$utils,$item_id,$dts,$dte)) {
-						$msg[] = $mod->Lang('err_na');
+				}
+				if ($timely) {
+					$funcs = new Schedule();
+					if ($is_new || !isset($params['bkg_id'])) {
+						$excl = FALSE;
+					} else {
+						$excl = $params['bkg_id'];
 					}
+					if ($funcs->ItemVacantCount($mod,$item_id,$bs,$be,$excl) == 0) {
+						$msg[] = $mod->Lang('err_dup');
+					} else {
+						$dts = new \DateTime('@'.$bs,NULL);
+						$dte = new \DateTime('@'.$be,NULL);
+						if (!$funcs->ItemAvailable($mod,$utils,$item_id,$dts,$dte)) {
+							$msg[] = $mod->Lang('err_na');
+						}
+					}
+				} else {
+					$msg[] = $mod->Lang('err_badtime');
 				}
 			} else {
 				$msg[] = $mod->Lang('err_badtime');
 			}
 		}
 
-		if (!$params['user'])
+		if (!$params['name'])
 			$msg[] = $mod->Lang('err_nosender');
 
-		if (!$params['contact'])
+		if (isset($params['contact']) && !$params['contact'])
 			$msg[] = $mod->Lang('err_nocontact');
 
 		if (isset($params['subgrpcount'])) {
@@ -295,18 +224,20 @@ TODO support 'past' data without both date/time $params[]
 
 	/**
 	VerifyScript:
-	Construct js string for verification of booking/request data
-	If @admin, uses modalconfirm dialogs for interaction, with modal
-	 div '#confgeneral' and buttons '#mc_conf' and '#mc_deny'
+	Construct js string for in-browser verification of booking/request data
+	If @admin, uses modalconfirm dialogs for interaction, with modal div
+	'#confgeneral' and buttons '#mc_conf' and '#mc_deny'
 	@mod: reference to current module-object
+	@utils: reference to Utils-class object
 	@id: session identifier
-	@admin: boolean, whether for admin-page
+	@item_id: requested-item identifier
 	@withdates: boolean, whether to check start,end dates
 	@nopast: boolean, whether to fail dates before 'now'
 	@zonename: timezone identifier like 'europe/paris'
+	@admin: boolean, whether for admin-page
 	Returns: js string
 	*/
-	public function VerifyScript(&$mod, $id, $admin, $withdates, $nopast, $zonename)
+	public function VerifyScript(&$mod, &$utils, $id, $item_id, $withdates, $nopast, $zonename, $admin)
 	{
 		if ($admin) {
 			$js1 = <<<EOS
@@ -347,29 +278,58 @@ EOS;
 		 $mod->Lang('err_nosender');
 
 		if ($withdates) {
+			$overday = ($utils->GetInterval($mod,$item_id,'slot') >= 84600);
+			if ($admin) {
+				$dayfmt='';
+				$timefmt='';
+			} else {
+				$idata = $utils->GetItemProperty($mod,$item_id,array('dateformat','timeformat'));
+				$dayfmt = $idata['dateformat'];
+				$timefmt = $idata['timeformat'];
+			}
+			$datetimefmt = $utils->DateTimeFormat(FALSE,$admin,TRUE,!$overday,$dayfmt,$timefmt);
+			$t = $mod->Lang('longdays');
+			$dnames = "'".str_replace(",","','",$t)."'";
+			$t = $mod->Lang('shortdays');
+			$sdnames = "'".str_replace(",","','",$t)."'";
+			$t = $mod->Lang('longmonths');
+			$mnames = "'".str_replace(",","','",$t)."'";
+			$t = $mod->Lang('shortmonths');
+			$smnames = "'".str_replace(",","','",$t)."'";
+			$t = $mod->Lang('meridiem');
+			$meridiem = "'".str_replace(",","','",$t)."'";
 			$js2 = <<<EOS
 var clicker = null;
 function validate(ev) {
  var ok = true,
-   f = 'D M YYYY h:mm',
+   f = '{$datetimefmt}',
+   fmt = new DateFormatter({
+    longDays: [{$dnames}],
+    shortDays: [{$sdnames}],
+    longMonths: [{$mnames}],
+    shortMonths: [{$smnames}],
+    meridiem: [{$meridiem}],
+    ordinal: function (number) {
+     var n = number % 10, suffixes = {1: 'st', 2: 'nd', 3: 'rd'};
+     return Math.floor(number % 100 / 10) === 1 || !suffixes[n] ? 'th' : suffixes[n];
+    }
+   }),
+   tg = document.getElementById('{$id}when'),
    ds = null,
-   de = null,
-   tg = document.getElementById('{$id}when');
+   de = null;
  if (tg !== null){
   var str = tg.value;
   if (typeof me.trim === "function") str = str.trim();
-   var fs = moment(str).format(f);
-   ds = new Date(fs);
-   ok = ds instanceof Date && isFinite(ds);
+   ds = fmt.parseDate(str,f); //null upon failure
+   ok = (ds !== null);
  }
  if (ok) {
   tg = document.getElementById('{$id}until');
   if (tg !== null) {
    str = tg.value;
    if (typeof me.trim === "function") str = str.trim();
-   fs = moment(str).format(f);
-   var de = new Date(fs);
-   ok = de instanceof Date && isFinite(de);
+    de = fmt.parseDate(str,f);
+    ok = (de !== null);
   }
  }
 

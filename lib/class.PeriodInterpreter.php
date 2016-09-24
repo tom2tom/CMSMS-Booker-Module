@@ -505,9 +505,6 @@ class PeriodInterpreter
 	{
 		$ret = array();
 		if ($years[0] != '-') { //numeric year(s)
-if ($years[0] == '*') { //DEBUG
-	$this->Crash();
-}
 			foreach ($years as $yn) {
 				$doy = self::DaysinYear($yn,$months,$weeks,$days,$dtw);
 				if ($doy)

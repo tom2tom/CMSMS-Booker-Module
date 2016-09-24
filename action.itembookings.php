@@ -50,7 +50,7 @@ if (isset($params['delete1'])) {
 } elseif (isset($params['notify'])) {
 //	if (!($this->_CheckAccess('admin') || $this->_CheckAccess('book'))) exit;
 	if (isset($params['sel'])) {
-		$funcs = new Booker\Bookingops();
+		$funcs = new Booker\Messager();
 		list($res,$msg) = $funcs->NotifyBooker($this,$params['sel'],$params['custmsg']);
 	} else {
 		$msg = $this->Lang('notypesel',$this->Lang('booking_multi'));
@@ -72,7 +72,7 @@ if ($params['task'] == 'see') {
 		$pmod = FALSE;
 	} else
 		exit;
-} elseif ($params['task'] == 'edit') {
+} elseif ($params['task'] == 'edit' || $params['task'] == 'add') {
 	if ($this->_CheckAccess('admin') || $this->_CheckAccess('book')) {
 		$pmod = TRUE;
 	} else
@@ -90,7 +90,7 @@ if (!empty($msg)) {
 $ob = cms_utils::get_module('Notifier');
 if ($ob) {
 	unset($ob);
-	$tell = TRUE;
+	$tell = $pmod; //messages here are about changing a booking
 } else
 	$tell = FALSE;
 $tplvars['tell'] = $tell;
@@ -193,7 +193,7 @@ if ($tell) {
 	$what = '{'.$this->Lang('item').'}';
 	$on = '{'.$this->Lang('date').'}';
 	$detail = $this->Lang('whatovrday',$what,$on);
-	$notify = $this->Lang('email_changed',$detail); //ETC
+	$notify = $this->Lang('email_change',$detail); //ETC
 	$delete = $this->Lang('email_cancel',$detail);
 	$jsfuncs[] = <<<EOS
 function modalsetup(tg,\$d) {
@@ -208,7 +208,7 @@ function modalsetup(tg,\$d) {
   case 'notify':
    msg = "$notify";
    break;
-  case 'delete1': //TODO
+  case 'itembookings':
   case 'delete':
    msg = "$delete";
    break;
@@ -395,40 +395,18 @@ function any_selected() {
 }
 
 EOS;
+	$tplvars['export'] = $this->CreateInputSubmit($id,'export',$this->Lang('export'),
+		'title="'.$this->Lang('tip_export_selected_records').'"');
 
-	if ($this->_CheckAccess('view') || $this->_CheckAccess('admin')) {
+	if ($pmod) {
+
+		$tplvars['delete'] = $this->CreateInputSubmit($id,'delete',$this->Lang('delete'),
+		'title="'.$this->Lang('tip_delsel_items').'"');
+		
 		if ($tell) {
 			$tplvars['notify'] = $this->CreateInputSubmit($id,'notify',$this->Lang('notify'),
 			'title="'.$this->Lang('tip_notify_selected_records').'"');
-			$jsloads[] = <<<EOS
- $('#{$id}moduleform_1 #{$id}notify').modalconfirm({
-  overlayID: 'confirm',
-  popupID: 'confmessage',
-  confirmBtnID: 'mc_conf2',
-  denyBtnID: 'mc_deny2',
-  doCheck: any_selected,
-  preShow: modalsetup,
-  onConfirm: savecustom
- });
- $('#bookings .bkrtell > a').modalconfirm({
-  overlayID: 'confirm',
-  popupID: 'confmessage',
-  confirmBtnID: 'mc_conf2',
-  denyBtnID: 'mc_deny2',
-  preShow: modalsetup,
-  onConfirm: savecustom2
- });
 
-EOS;
-		}
-		$tplvars['export'] = $this->CreateInputSubmit($id,'export',$this->Lang('export'),
-		'title="'.$this->Lang('tip_export_selected_records').'"');
-	}
-	if ($pmod) {
-		$tplvars['delete'] = $this->CreateInputSubmit($id,'delete',$this->Lang('delete'),
-		'title="'.$this->Lang('tip_delsel_items').'"');
-		$t = $this->Lang('confirm_delete_type',$this->Lang('booking'),'%s');
-		if ($tell) {
 			$jsloads[] = <<<EOS
  $('#{$id}moduleform_1 #{$id}delete').modalconfirm({
   overlayID: 'confirm',
@@ -440,6 +418,23 @@ EOS;
   onConfirm: savecustom
  });
  $('#bookings .bkrdel > a').modalconfirm({
+  overlayID: 'confirm',
+  popupID: 'confmessage',
+  confirmBtnID: 'mc_conf2',
+  denyBtnID: 'mc_deny2',
+  preShow: modalsetup,
+  onConfirm: savecustom2
+ });
+ $('#{$id}moduleform_1 #{$id}notify').modalconfirm({
+  overlayID: 'confirm',
+  popupID: 'confmessage',
+  confirmBtnID: 'mc_conf2',
+  denyBtnID: 'mc_deny2',
+  doCheck: any_selected,
+  preShow: modalsetup,
+  onConfirm: savecustom
+ });
+ $('#bookings .bkrtell > a').modalconfirm({
   overlayID: 'confirm',
   popupID: 'confmessage',
   confirmBtnID: 'mc_conf2',
@@ -522,10 +517,10 @@ $rows = array();
 if ($data) {
 	//titles array same order as displayed columns
 	$titles = array( $this->Lang('description'));
-	if ($is_group) {
-		$titles[] = $this->Lang('title_count');
-	}
 	$titles[] = $this->Lang('title_user');
+	if ($is_group) {
+		$titles[] = $this->Lang('title_gcount');
+	}
 	$titles[] = $this->Lang('title_paid');
 	$tplvars['colnames2'] = $titles;
 	$tplvars['colsorts2'] = $titles;
@@ -567,6 +562,7 @@ if ($data) {
 
 	$tplvars['reptrows'] = $rows;
 } //data
+
 $rc = count($rows);
 $tplvars['rcount'] = $rc;
 if ($rc) {
@@ -577,7 +573,31 @@ function any_selected2() {
 }
 
 EOS;
-	if ($this->_CheckAccess('view') || $this->_CheckAccess('admin')) {
+	if ($pmod) {
+		if ($rc > 1) {
+				//assume small no. of bookings, so no pagination
+			$jsloads[] = <<<EOS
+ $('#repeats').addClass('table_sort').SSsort({
+  sortClass: 'SortAble',
+  ascClass: 'SortUp',
+  descClass: 'SortDown',
+  oddClass: 'row1',
+  evenClass: 'row2',
+  oddsortClass: 'row1s',
+  evensortClass: 'row2s'
+ });
+
+EOS;
+			$jsfuncs[] = <<<EOS
+function select_all2(cb) {
+ $('#repeats > tbody').find('input[type="checkbox"]').attr('checked',cb.checked);
+}
+
+EOS;
+			$tplvars['header_checkbox2'] =
+				$this->CreateInputCheckbox($id,'selectall',TRUE,FALSE,'onclick="select_all2(this);"');
+		}
+
 		if ($tell) {
 			$tplvars['notify2'] = $this->CreateInputSubmit($id,'notify',$this->Lang('notify'),
 			 'title="'.$this->Lang('tip_notify_selected_records').'"');
@@ -602,34 +622,9 @@ EOS;
 
 EOS;
 		}
-	}
-	if ($pmod) {
+
 		$tplvars['delete2'] = $this->CreateInputSubmit($id,'delete',$this->Lang('delete'),
 		 'title="'.$this->Lang('tip_delsel_items').'"');
-
-		if ($rc > 1) {
-				//assume small no. of bookings, so no pagination
-			$jsloads[] = <<<EOS
- $('#repeats').addClass('table_sort').SSsort({
-  sortClass: 'SortAble',
-  ascClass: 'SortUp',
-  descClass: 'SortDown',
-  oddClass: 'row1',
-  evenClass: 'row2',
-  oddsortClass: 'row1s',
-  evensortClass: 'row2s'
- });
-
-EOS;
-			$jsfuncs[] = <<<EOS
-function select_all2(cb) {
- $('#repeats > tbody').find('input[type="checkbox"]').attr('checked',cb.checked);
-}
-
-EOS;
-			$tplvars['header_checkbox2'] =
-				$this->CreateInputCheckbox($id,'selectall',TRUE,FALSE,'onclick="select_all2(this);"');
-		}
 
 		$t = $this->Lang('confirm_delete_type',$this->Lang('booking'),'%s');
 		$jsloads[] = <<<EOS
@@ -687,7 +682,7 @@ $jsincs[] = <<<EOS
 EOS;
 if ($pmod)
 	$jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/include/jquery.modalconfirm.js"></script>
+<script type="text/javascript" src="{$baseurl}/include/jquery.modalconfirm.min.js"></script>
 
 EOS;
 $tplvars['jsincs'] = $jsincs;

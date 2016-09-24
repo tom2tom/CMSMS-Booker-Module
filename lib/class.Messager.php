@@ -187,7 +187,6 @@ class Messager
 		$what = $utils->GetItemName($mod,$idata);
 		if ($item_id >= \Booker::MINGRPID)
 			$what = $mod->Lang('countof2',$params['subgrpcount'],$what);
-$this->Crash;
 		$dt = new \DateTime('@'.$params['slotstart'],NULL);
 		$on = $utils->IntervalFormat($mod,$dt,'D j M');
 		if ($overday) {

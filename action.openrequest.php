@@ -7,30 +7,41 @@
 #----------------------------------------------------------------------
 /*first-time redirect, $params = array
 'history_id'=>identifier
-'mode'=>'inspect' OR 'edit'
+'task'=>'see' OR 'edit'
 */
+
 if (!$this->_CheckAccess()) exit;
 
 if (isset($params['cancel'])) {
 	$this->Redirect($id,'defaultadmin');
 }
 
-$sql = 'SELECT * FROM '.$this->HistoryTable.' WHERE history_id=?'; //TODO condition = get requests
+$sql = 'SELECT H.*,B.name,B.publicid,B.address,B.phone FROM '.$this->HistoryTable.
+	' H LEFT JOIN '.$this->BookerTable.' B ON H.booker_id=B.booker_id WHERE history_id=?';
 $rdata = $db->GetRow($sql,array($params['history_id']));
 $is_group = ($rdata['item_id'] >= Booker::MINGRPID);
 $type = ($is_group) ? $this->Lang('group'):$this->Lang('item');
-$is_new = ($rdata['status'] == Booker::STATNEW); //ETC?
-$viewmode = ($params['mode'] == 'inspect');
-$funcs = new Booker\Utils();
+$is_new = ($rdata['status'] == Booker::STATNEW); //TODO ETC?
+$viewmode = ($params['task'] == 'see');
+$utils = new Booker\Utils();
+
+$utils->DecodeParameters($params,array(
+	'contact',
+	'customentry',
+	'name',
+	'subgrpcount',
+	'until',
+	'when'
+));
 
 if (isset($params['submit']) || isset($params['apply'])) {
 	if (!($this->_CheckAccess('admin') || $this->_CheckAccess('book'))) exit;
 	//validate
-	$funcs2 = new Booker\Verify();
-	list($res,$msg) = $funcs2->VerifyAdmin($this,$funcs,$params,$rdata['item_id'],$is_new);
+	$funcs = new Booker\Verify();
+	list($res,$msg) = $funcs->VerifyData($this,$utils,$params,$rdata['item_id'],$is_new,TRUE);
 	if ($res) {
-		$funcs2 = new Booker\Requestops();
-		$funcs2->SaveReq($this,$params,$rdata,FALSE);
+		$funcs = new Booker\Requestops();
+		$funcs->SaveReq($this,$utils,$params,FALSE);
 		//TODO message to lodger
 		if (isset($params['submit']))
 			$this->Redirect($id,'defaultadmin');
@@ -44,10 +55,10 @@ if (isset($params['submit']) || isset($params['apply'])) {
 } elseif (isset($params['approve'])) {
 /*supplied $params[]
 'history_id' => string '6'
-'mode' => string 'edit'
+'task' => string 'edit'
 'when' => string '9 November 2015 11:00'
 'until' => string '9 November 2015 11:59'
-'user' => string 'HiThere'
+'name' => string 'HiThere'
 'displayclass' => string '1'
 'contact' => string '@myhandle'
 'comment' => string 'asdad dfgdf dhdfg'
@@ -69,19 +80,26 @@ if (isset($params['find'])) {
 }
 
 $tplvars = array();
-$tplvars['startform'] =
-	$this->CreateFormStart($id,'openrequest',$returnid,'POST','','','',array(
-		'history_id'=>$params['history_id'],'mode'=>$params['mode'],'custmsg'=>''));
-$tplvars['endform'] = $this->CreateFormEnd();
 
-$this->_BuildNav($id,$params,$returnid,$tplvars);
+$tplvars['startform'] = $this->CreateFormStart($id,'openrequest',$returnid,'POST','','','',
+	array('history_id'=>$params['history_id'],'task'=>$params['task'],'custmsg'=>''));
+$tplvars['endform'] = $this->CreateFormEnd();
+/*
+first-call $params = array
+'history_id' => string '32'
+'task' => string 'edit'
+'action' => string 'openrequest'
+*/
+$resume = 'defaultadmin';
+$params['active_tab'] = 'data';
+$tplvars['pagenav'] = $this->_BuildNav($id,$returnid,$resume,$params);
 if (!empty($params['message']))
 	$tplvars['message'] = $params['message'];
 
 if (!$viewmode)
 	$tplvars['compulsory'] = $this->Lang('help_compulsory');
 
-$idata = $funcs->GetItemProperty($this,$rdata['item_id'],"*");
+$idata = $utils->GetItemProperty($this,$rdata['item_id'],"*");
 
 $key = ($is_new) ? 'title_booknewfor':'title_bookfor';
 if (!empty($idata['name'])) {
@@ -107,12 +125,11 @@ $choosend = ($idata['bookcount'] != 1);
 
 $vars = array();
 
-$dt = new DateTime('1900-1-1',new DateTimeZone('UTC'));
-$dt->setTimestamp($rdata['slotstart']);
-$fmt = $idata['dateformat'].' '.$idata['timeformat'];
+$dt = new DateTime('@'.$rdata['slotstart'],NULL);
+$fmt = 'Y-n-j G:i';
 $t = $dt->format($fmt);
 if ($rdata['item_id'])
-	$overday = ($funcs->GetInterval($this,$rdata['item_id'],'slot') >= 84600);
+	$overday = ($utils->GetInterval($this,$rdata['item_id'],'slot') >= 84600);
 else {
 //TODO support 'un-targeted' bookings - preference?
 	$overday = FALSE;
@@ -129,44 +146,61 @@ if ($viewmode) {
 	$nextm = $this->Lang('nextm');
 	$prevm = $this->Lang('prevm');
 	//js wants quoted period-names
-	$t = $this->Lang('longmonths');
-	$mnames = "'".str_replace(",","','",$t)."'";
 	$t = $this->Lang('longdays');
 	$dnames = "'".str_replace(",","','",$t)."'";
 	$t = $this->Lang('shortdays');
 	$sdnames = "'".str_replace(",","','",$t)."'";
+	$t = $this->Lang('longmonths');
+	$mnames = "'".str_replace(",","','",$t)."'";
+	$t = $this->Lang('shortmonths');
+	$smnames = "'".str_replace(",","','",$t)."'";
+	$t = $this->Lang('meridiem');
+	$meridiem = "'".str_replace(",","','",$t)."'";
+	$datetimefmt = $utils->DateTimeFormat(FALSE,TRUE,TRUE,!$overday);
 	if ($choosend) {
 		$sl = (int)$rdata['slotlen'];
 		$t2 = <<<EOS
-    d2 = moment(d).add($sl,'s').format(f);
-    $('#{$id}until').val(d2);
+,
+ onClose: function() {
+  if ('_d' in this && this._d) {
+   var ob = new Date(this._d.getTime() + {$sl}*1000);
+   var dt = fmt.formatDate(ob,'{$datetimefmt}');
+   $('#{$id}until').val(dt);
+  }
+ }
 
 EOS;
 	} else {
 		$t2 = '';
 	}
-	$momentfmt = ($overday) ? 'YYYY-MM-DD':'YYYY-MM-DD H:mm';
 
 	$jsloads[] = <<<EOS
- new Pikaday({
-  field: document.getElementById('calendar'),
-  trigger: document.getElementById('{$id}when'),
-  format: '{$momentfmt}',
+ var fmt = new DateFormatter({
+  longDays: [{$dnames}],
+  shortDays: [{$sdnames}],
+  longMonths: [{$mnames}],
+  shortMonths: [{$smnames}],
+  meridiem: [{$meridiem}],
+  ordinal: function (number) {
+   var n = number % 10, suffixes = {1: 'st', 2: 'nd', 3: 'rd'};
+   return Math.floor(number % 100 / 10) === 1 || !suffixes[n] ? 'th' : suffixes[n];
+  }
+ });
+ $('#{$id}when').pikaday({
+  format: '{$datetimefmt}',
+  reformat: function(target,f) {
+   return fmt.formatDate(target,f);
+  },
+  getdate: function(target,f) {
+   return fmt.parseDate(target,f);
+  },
   i18n: {
    previousMonth: '{$prevm}',
    nextMonth: '{$nextm}',
    months: [{$mnames}],
    weekdays: [{$dnames}],
    weekdaysShort: [{$sdnames}]
-  },
-  onClose: function() {
-   var sel = $('#calendar').val();
-   if (sel !== '') { //not cancelled
-    var d = moment(sel).format('{$momentfmt}');
-    $('#{$id}when').val(d);
-{$t2}
-   }
-  }
+  }{$t2}
  });
 
 EOS;
@@ -192,12 +226,12 @@ if ($choosend) {
 //==
 $one = new stdClass();
 $one->title = $this->Lang('title_sender2');
-$t = $rdata['sender'];
+$t = $rdata['name'] ? $rdata['name'] : $rdata['publicid'];
 if ($viewmode) {
 	$one->input = ($t) ? $t:'&lt;'.$this->Lang('missing').'&gt;';
 } else {
 	$one->must = 1;
-	$one->input = $this->CreateInputText($id,'user',$t,20,64);
+	$one->input = $this->CreateInputText($id,'name',$t,20,64);
 }
 $one->help = $this->Lang('help_lodger');
 $vars[] = $one;
@@ -209,6 +243,7 @@ if (!$viewmode) {
 	$one->help = $this->Lang('help_conformuser');
 	$vars[] = $one;
 }
+/*
 //==
 if (!$viewmode) {
 	$one = new stdClass();
@@ -249,6 +284,7 @@ if (!$viewmode) {
 	$one->help = $this->Lang('help_conformcontact');
 	$vars[] = $one;
 }
+*/
 //==
 $one = new stdClass();
 $one->title = $this->Lang('title_comment');
@@ -263,7 +299,7 @@ if ($viewmode) {
 $vars[] = $one;
 //==
 if ($is_group) {
-	$n = $funcs->GetGroupItems($this,$rdata['item_id']);
+	$n = $utils->GetGroupItems($this,$rdata['item_id']);
 	if ($n && count($n) > 1) {
 		$one = new stdClass();
 		$one->title = $this->Lang('title_howmany',$idata['membersname']);
@@ -280,7 +316,7 @@ if ($is_group) {
 }
 //==
 $condition = NULL; //TODO payable-condition time,requestor etc
-$payable = $funcs->GetItemPayable($this,$item_id,FALSE,$condition);
+$payable = $utils->GetItemPayable($this,$rdata['item_id'],FALSE,$condition);
 if ($payable) {
 	$one = new stdClass();
 	$one->title = $this->Lang('title_paid');
@@ -360,8 +396,8 @@ if ($viewmode) {
 		$tplvars['approve'] = $this->CreateInputSubmit($id,'approve',$this->Lang('approve'));
 		$tplvars['reject'] = $this->CreateInputSubmit($id,'reject',$this->Lang('reject'));
 	}
-	$funcs2 = new Booker\Verify();
-	$jsfuncs[] = $funcs2->VerifyScript($this,$id,TRUE,TRUE,TRUE,$idata['timezone']);
+	$funcs = new Booker\Verify();
+	$jsfuncs[] = $funcs->VerifyScript($this,$utils,$id,$rdata['item_id'],TRUE,TRUE,$idata['timezone'],TRUE);
 	$jsloads[] = <<<EOS
  var \$appbtn = $('#{$id}approve'),
   \$rejbtn = $('#{$id}reject'),
@@ -384,23 +420,23 @@ if ($ob) {
 	$tplvars['ask'] = $this->CreateInputSubmit($id,'ask',$this->Lang('ask'));
 	$tplvars['notify'] = $this->CreateInputSubmit($id,'notify',$this->Lang('notify'));
 
-	$what = (isset($params['subgrpcount'])) ?
-		sprintf('%d %s',$params['subgrpcount'],$idata['membersname']):
-		$funcs->GetItemName($this,$idata);
+	$what = $utils->GetItemName($this,$idata);
+	if ($is_group)
+		$what = $this->Lang('countof2',$rdata['subgrpcount'],$what);
 	$dt->setTimestamp($rdata['slotstart']);
-	$on = $funcs->IntervalFormat($this,$dt,'D j M');
+	$on = $utils->IntervalFormat($this,$dt,'D j M');
 	if ($overday) {
-		$approve = $this->Lang('email_approve',$what,$on);
-		$reject = $this->Lang('email_reject',$what,$on);
-		$notify = $this->Lang('email_changed',$what,$on); //ETC
-		$ask = $this->Lang('email_ask',$what,$on);
+		$detail = $this->Lang('whatovrday',$what,$on);
 	} else {
 		$at = $dt->format('g:i A');
-		$approve = $this->Lang('email_approveat',$what,$on,$at);
-		$reject = $this->Lang('email_rejectat',$what,$on,$at);
-		$notify = $this->Lang('email_changedat',$what,$on,$at); //ETC
-		$ask = $this->Lang('email_askat',$what,$on,$at);
+		$detail = $this->Lang('whatonday',$what,$on,$at);
 	}
+	$approve = $this->Lang('email_approve',$detail);
+	$reject = $this->Lang('email_reject',$detail);
+	$notify = $this->Lang('email_change',$detail); //ETC
+	$ask = $this->Lang('email_ask',$detail);
+	$delete = $this->Lang('email_cancel',$detail);
+
 	//modal overlay
 	$tplvars['modaltitle'] = $this->Lang('title_feedback');
 	$tplvars['customentry'] = $this->CreateInputText($id,'customentry','',20,30);
@@ -424,6 +460,9 @@ function modalsetup(tg,\$d) {
   case 'notify':
    msg = "$notify";
    break;
+  case 'delete':
+   msg = "$delete";
+   break;
   default:
    msg = '?';
    break;
@@ -434,7 +473,8 @@ function modalsetup(tg,\$d) {
 }
 function savecustom(tg,\$d) {
  var custom = \$d.find('#{$id}customentry').val();
- $('input[name={$id}custmsg]').val(custom);
+ $('input[name="{$id}custmsg"]').val(custom);
+ return true;
 }
 
 EOS;
@@ -466,15 +506,15 @@ $tplvars['mod'] = !$viewmode;
 if (!$viewmode) {
 	//for picker & mail-validation & confirmation
 	$jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/include/moment.min.js"></script>
 <script type="text/javascript" src="{$baseurl}/include/pikaday.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/include/pikaday.jquery.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/include/php-date-formatter.min.js"></script>
 <script type="text/javascript" src="{$baseurl}/include/mailcheck.js"></script>
 <script type="text/javascript" src="{$baseurl}/include/levenshtein.min.js"></script>
-
 EOS;
 }
 $jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/include/jquery.modalconfirm.js"></script>
+<script type="text/javascript" src="{$baseurl}/include/jquery.modalconfirm.min.js"></script>
 
 EOS;
 $tplvars['jsincs'] = $jsincs;

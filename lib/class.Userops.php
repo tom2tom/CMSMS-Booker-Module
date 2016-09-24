@@ -282,8 +282,8 @@ class Userops
 		} else {
 			if (!empty($params['name']))
 				$main = $params['name'];
-			elseif (!empty($params['user']))
-				$main = $params['user'];
+//			elseif (!empty($params['user']))
+//				$main = $params['user'];
 			else
 				$main = FALSE;
 			if (!empty($params['address']))
@@ -323,7 +323,8 @@ class Userops
 	{
 		$r = $mod->dbHandle->GetOne('SELECT name FROM '.$mod->BookerTable.' WHERE booker_id=?',
 			array($bookerid));
-		if (!$r) $r = '';
+		if (!$r)
+			$r = '<'.$mod->Lang('noname').'>';
 		return $r;
 	}
 
@@ -336,15 +337,13 @@ class Userops
 	*/
 	public function SetContact(&$mod, $bookerid, $contact)
 	{
-		$addresspatn = '/^.+@.+\..+$/';
-		$phonepatn = '/^(\+\d{1,4} *)?[\d ]{5,15}$/';
 		if (is_array($contact)) {
 			$fields = array();
 			foreach ($contact as $val) {
 				$val = trim($val);
-				if (!$val || preg_match($addresspatn,$val)) {
+				if (!$val || preg_match(\Booker::PATNADDRESS,$val)) {
 					$fields['address=?'] = $val;
-				} elseif (preg_match($phonepatn,$val)) {
+				} elseif (preg_match(\Booker::PATNPHONE,$val)) {
 					$fields['phone=?'] = $val;
 				}
 			}
@@ -355,9 +354,9 @@ class Userops
 				return FALSE;
 		} else {
 			$val = trim($contact);
-			if (!$val || preg_match($addresspatn,$val)) {
+			if (!$val || preg_match(\Booker::PATNADDRESS,$val)) {
 				$sql2 = 'address=?'; //clear address - BAD!
-			} elseif (preg_match($phonepatn,$val)) {
+			} elseif (preg_match(\Booker::PATNPHONE,$val)) {
 				$sql2 = 'phone=?';
 			} else {
 				return FALSE;
@@ -633,4 +632,103 @@ class Userops
 			$r = 1;
 		return $r;
 	}
+
+	/*
+	ConformUserHistory:
+	Conform tabled user value per @params value
+	@mod: reference to current Booker module
+	@params: reference to parameters array
+	Returns: booker identifier indicating success, or FALSE
+	*/
+/*	private function ConformUserHistory(&$mod, &$params)
+	{
+/ * when updating a pending request, $params[] =
+ 'history_id' => string '42'
+ 'custmsg' => string '' (length=0)
+ 'when' => int 1474210800
+ 'until' => int 1474214399
+ 'user' => string 'Tester' (length=6)
+ 'comment' => string 'None' (length=4)
+ 'subgrpcount' => string '1' (length=1)
+* /
+		$sql = 'SELECT booker_id FROM '.$mod->HistoryTable.' WHERE history_id=?';
+		$bookerid = $mod->dbHandle->GetOne($sql,array($params['history_id']));
+		if (!$bookerid)
+			return FALSE; //should never happen
+		$sql = 'UPDATE '.$mod->BookerTable.' SET name=? WHERE booker_id=?';
+		$mod->dbHandle->Execute($sql,array($params['user'],$bookerid));
+		return $bookerid;
+	}
+*/
+	/**
+	ConformUserData:
+	Conform tabled values: contact,displayclass and/or user according to @params values
+	@mod: reference to current Booker module
+	@params: reference to parameters array
+	Returns: T/F indicating successful completion
+	*/
+	public function ConformUserData(&$mod, &$params)
+	{
+		$ret = FALSE;
+		$utils = new Utils();
+		if (isset($params['history_id'])) {
+			$sql = <<<EOS
+UPDATE $mod->BookerTable B
+JOIN $mod->HistoryTable H ON B.booker_id = H.booker_id
+SET B.name=?
+WHERE H.history_id=?
+EOS;
+			$ret = $utils->SafeExec($sql,array($params['name'],$params['history_id']));
+		}
+
+		if (isset($params['bkg_id'])) {
+			$sql2 = array();
+			$args = array();
+			foreach (array('publicid','name') as $k) {
+				if (isset($params[$k])) {
+					$sql2[] = 'B.'.$k.'=?';
+					$args[] = trim($params[$k]);
+				}
+			}
+			$k = 'passwd';
+			if (isset($params[$k])) {
+				$sql2[] = 'B.passhash=?';
+				$args[] = $this->HashPassword(trim($params[$k]));
+			}
+			$k = 'contact';
+			if (!empty($params[$k])) {
+				$val = trim($params[$k]);
+				if (preg_match(\Booker::PATNADDRESS,$val)) {
+					$sql2[] = 'B.address=?';
+					$args[] = $val;
+				} elseif (preg_match(\Booker::PATNPHONE,$val)) {
+					$sql2[] = 'B.phone=?';
+					$args[] = $val;
+				}
+			}
+			$k = 'displayclass';
+			if (isset($params[$k])) {
+				$val = (int)$params[$k];
+				if ($val >= 1 && $val <= \Booker::USERSTYLES) {
+					$sql2[] = 'B.'.$k.'=?';
+					$args[] = $val;
+				}
+			}
+
+			if ($sql2) {
+				$table = (empty($params['repeat'])) ? $mod->DataTable : $mod->RepeatTable;
+				$fields = implode(',',$sql2);
+				$sql = <<<EOS
+UPDATE $mod->BookerTable B
+JOIN $table T ON B.booker_id = T.booker_id
+SET {$fields}
+WHERE T.bkg_id=?
+EOS;
+				$args[] = $params['bkg_id'];
+				$ret = $utils->SafeExec($sql,$args);
+			}
+		}
+		return $ret;
+	}
+
 }

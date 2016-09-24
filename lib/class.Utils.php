@@ -17,7 +17,19 @@ class bkr_itemname_cmp
 	}
 	public function namecmp($a, $b)
 	{
-		return $this->coll->compare($a,$b);
+		$d = $this->coll->compare($a,$b);
+		if ($d != 0) {
+			$na = preg_match('/\d+/', $a,$ma,PREG_OFFSET_CAPTURE);
+			if ($na == 1) {
+				$nb = preg_match('/\d+/', $b,$mb,PREG_OFFSET_CAPTURE);
+				if ($nb == 1) {
+					if ($ma[0][1] == $mb[0][1]) { //same offsets
+						$d = $ma[0][0] - $mb[0][0]; //order based on the numbers
+					}
+				}
+			}
+		}
+		return $d;
 	}
 }
 
@@ -184,6 +196,52 @@ class Utils
 	}
 
 	/**
+	GetItemPicker:
+	@mod: reference to current Booker module object
+	@id: session identifier
+	@name: created-object name
+	@alwayspick: item_id of choice to always include
+	@currentpick: item_id of 'current' choice
+	Returns: string, XHTML dropdown or empty
+	 */
+	public function GetItemPicker(&$mod, $id, $name, $alwayspick, $currentpick)
+	{
+		$choices = $this->GetItemGroups($mod,$currentpick);
+		if ($choices && $choices[0] != $alwayspick) {
+			$choices = array_merge($choices,$this->GetGroupItems($mod,$choices[0],TRUE));
+		} elseif ($currentpick >= \Booker::MINGRPID) {
+			$choices = $this->GetGroupItems($mod,$currentpick,TRUE);
+		} elseif ($alwayspick >= \Booker::MINGRPID) {
+			$choices = $this->GetGroupItems($mod,$alwayspick,TRUE);
+			array_unshift($choices,$currentpick);
+		} else {
+			$choices = array($currentpick);
+		}
+		if ($alwayspick) {
+			array_unshift($choices,$alwayspick);
+		}
+		$choices = array_unique($choices,SORT_NUMERIC);
+		$picknames = $this->GetNamedItems($mod,$choices);
+
+		if (count($choices) > 1) {
+			if (class_exists('Collator')) {
+				try {
+					$col = new \Collator(self::GetLocale());
+					uasort($picknames,array(new bkr_itemname_cmp($col),'namecmp'));
+//					$col->sort($picknames,SORT_STRING);
+					//TODO preserve keys like asort
+				} catch (Exception $e) {
+					asort($picknames,SORT_LOCALE_STRING);
+				}
+			} else {
+				asort($picknames,SORT_LOCALE_STRING);
+			}
+		}
+		return $mod->CreateInputDropdown($id,$name,array_flip($picknames),
+			-1,$currentpick,'id="'.$id.$name.'"');
+	}
+
+	/* *
 	GetItemFamily:
 	Get array of 'parents' and 'siblings' of @item_id e.g. for populating a
 	dropdown-object. Unlike GetItemGroups() and GetGroupItems(), no further
@@ -194,7 +252,7 @@ class Utils
 		partitioned between groups (if any) and non-groups (if any), either or both
 		such partition(s) sorted (if the system supports the locale) by name
 	*/
-	public function GetItemFamily(&$mod, $item_id)
+/*	public function GetItemFamily(&$mod, $item_id)
 	{
 		$db = $mod->dbHandle;
 		$sql = 'SELECT DISTINCT parent FROM '.$mod->GroupTable.' WHERE child=?';
@@ -251,7 +309,7 @@ class Utils
 		}
 		return $grps;
 	}
-
+*/
 	/**
 	GetItemGroups:
 	Get proximity-sorted array of 'ancestors' of @item_id i.e. closest-ancestor-first
@@ -294,25 +352,31 @@ class Utils
 			if ($members) {
 				foreach ($members as $mid) {
 					if ($mid >= \Booker::MINGRPID) {
-						$downers = self::GetGroupItems($mod,$mid,$withgrps,$down+1); //recurse
+						$downers = self::GetGroupItems($mod,$mid,TRUE,$down+1); //recurse
 						if ($downers)
 							$ids = array_merge($ids,$downers);
-						if ($withgrps && !in_array($mid,$ids))
+						if (!in_array($mid,$ids))
 							array_unshift($ids,(int)$mid);
 					} else
 						$ids[] = (int)$mid;
 				}
 			}
-			if ($withgrps && !in_array($mid,$ids))
+			if (!in_array($mid,$ids))
 				array_unshift($ids,(int)$gid);
 		} else
 			$ids[] = (int)$gid;
 
 		if ($down == 0) {
-			if ($withgrps && !in_array($gid,$ids))
+			if (!in_array($gid,$ids)) {
 				array_unshift($ids,(int)$gid);
-			if (count($ids) > 1)
+			}
+			if (!$withgrps) {
+				$ids = array_filter($ids,function($mid){ return ($mid < \Booker::MINGRPID); });
+			}
+			if (count($ids) > 1) {
 				$ids = array_unique($ids);
+			}
+			return array_values($ids);
 		}
 		return $ids;
 	}
@@ -323,12 +387,12 @@ class Utils
 	Create associative array of group-data, sorted by field 'likeorder',
 	each array member's key is the group id, value is an object
 
-	@id used in link, when $full is TRUE
-	@returnid ditto
-	@full FALSE	return group_id and name only
-	@full TRUE return all table 'raw' data for the group, plus a link TODO describe
-	@anyowner TRUE return all groups
-	@anyowner FALSE return groups whose owner is 0 or matches the current user
+	@id: session identifier used in link, when $full is TRUE
+	@returnid: ditto
+	@full: FALSE	return group_id and name only
+	@full: TRUE return all table 'raw' data for the group, plus a link TODO describe
+	@anyowner: TRUE to return all groups or FALSE to return groups whose owner
+	  is 0 or matches the current user
 	*/
 /*	public function GetGroups(&$mod, $id=0, $returnid=0, $full=FALSE, $anyowner=TRUE)
 	{
@@ -497,6 +561,7 @@ class Utils
 		groups (if any), default TRUE
 	Returns: array with key(s) = field name(s), value(s) = corresponding value(s)
 		if available or NULL if not, or empty array upon error
+	Flavours of FALSE other than NULL,'' are assumed to be actual parameter values.
 	*/
 	public function GetItemProperty(&$mod, $item_id, $wantedprops, $same=FALSE, $search=TRUE)
 	{
@@ -515,26 +580,27 @@ class Utils
 			}
 			if ($same)
 				$rc = count($gets);
-			$ret = array();
+			$got = array();
 			$k = 'item_id';
 			if (array_key_exists($k,$gets)) {
-				$ret[$k] = (int)$item_id;
+				$got[$k] = (int)$item_id;
 				unset($gets[$k]);
 			}
 			foreach ($found as $row) {
 				foreach ($gets as $k=>$val) {
-					if (!isset($ret[$k]) && $row[$k]) {
-						$ret[$k] = $row[$k];
+					if (!isset($got[$k]) && !($row[$k] === NULL || $row[$k] === '')) {
+						$got[$k] = $row[$k];
 					}
 				}
 				if ($same) {
-					if (count($ret) < $rc)
-						$ret = array(); //keep looking
-					else
-						break;
+					if (count($got) < $rc) {
+						$got = array(); //keep looking
+					} else {
+						return $got;
+					}
 				}
 			}
-			return array_merge($gets,$ret);
+			return $got+$gets; //infill NULL's
 		} else { //no search
 			if (!is_array($wantedprops)) {
 				$wantedprops = explode(',',$wantedprops);
@@ -562,10 +628,11 @@ class Utils
 	public function GetHeritableProperty(&$mod, $item_id, $wantedprops)
 	{
 		if (!is_array($wantedprops)) {
+			$adbg = $wantedprops;
 			$wantedprops = explode(',',$wantedprops);
+			$adbg2 = $wantedprops;
 		}
 		$getcols = implode(',',array_filter($wantedprops)); //no name-validation, only presence-checks
-
 		$getids = array($item_id);
 		$db = $mod->dbHandle;
 		$sql = 'SELECT DISTINCT parent FROM '.$mod->GroupTable.' WHERE child=? ORDER BY proximity,likeorder';
@@ -581,6 +648,7 @@ class Utils
 
 		if ($getcols != '*')
 			$getcols = 'item_id,'.$getcols;
+
 		$sql = 'SELECT '.$getcols.' FROM '.$mod->ItemTable.' WHERE item_id IN('.implode(',',$getids).')';
 		$found = $db->GetAssoc($sql);
 		if ($found) {
@@ -605,6 +673,8 @@ class Utils
 				return ($all[$a] - $all[$b]);
 			});
 			$prefs = reset($found);
+		} elseif ($getcols == '*') {
+			return array(); //sould never happen!
 		} else {
 			$found = array();
 			$prefs = array_flip($wantedprops);
@@ -639,7 +709,9 @@ class Utils
 	}
 
 	/**
+	GetItemName:
 	Get name for an item, with fallback
+	@idata: reference to array of item-parameters
 	*/
 	public function GetItemName(&$mod, &$idata)
 	{
@@ -651,16 +723,47 @@ class Utils
 		}
 	}
 
+	/*
+	@mod: reference to current Booker module object
+	@items: array of item_id's for resource(s) and/or group(s)
+	Returns: associative array, or maybe empty
+	*/
+	private function GetNamedItems(&$mod, $items)
+	{
+		$sql = 'SELECT item_id,name FROM '.$mod->ItemTable.' WHERE item_id IN('.implode(',',$items).')';
+		$rows = $mod->dbHandle->GetAssoc($sql);
+		$ret = array();
+		if ($rows) {
+			$iname = FALSE;
+			foreach ($rows as $id=>$name) {
+				if ($name) {
+					$ret[$id] = $name;
+				} else {
+					if (!$iname) {
+						$iname = $mod->Lang('item');
+						$gname = $mod->Lang('group');
+					}
+					$type = ($id >= \Booker::MINGRPID) ? $gname:$iname;
+					$ret[$id] = $mod->Lang('title_noname',$type,$id);
+				}
+			}
+		}
+		return $ret;
+	}
+
 	/**
-	Get name for an item_id, with fallback
+	GetItemNameForID:
+	Get name for @item_id, with fallback
+	@mod: reference to current Booker module object
+	@item_id: identifier of resource or group whose name is wanted
 	*/
 	public function GetItemNameForID(&$mod, $item_id)
 	{
-		$idata = self::GetItemProperty($mod,$item_id,'name',FALSE,FALSE);
-		if (!empty($idata['name']))
-			return $idata['name'];
-		$idata = array('name'=>FALSE,'item_id'=>$item_id);
-		return self::GetItemName($mod,$idata);
+		$name = $this->GetNamedItems($mod,array($item_id));
+		if ($name) {
+			return reset($name);
+		}
+		return '';
 	}
 
 	/**
@@ -769,118 +872,6 @@ class Utils
 	{
 		$fee = self::GetItemFee($mod,$item_id,$search,$conditional);
 		return ($fee !== FALSE && $fee > 0);
-	}
-
-	/**
-	GetDefaultRange:
-	Determine the default timespan for which to display bookings
-	@mod: reference to Booker module object
-	@item_id: resource or group identifier
-	Returns: display-interval enum 0..3 consistent with DisplayIntervals()
-	*/
-	public function GetDefaultRange(&$mod, $item_id)
-	{
-		$idata = self::GetItemProperty($mod,$item_id,array('leadtype','leadcount'),TRUE);
-		if ($idata && !is_null($idata['leadtype']) && !is_null($idata['leadcount'])) {
-			$c = (int)$idata['leadcount'];
-			switch ($idata['leadtype']) { //enum 0..5 consistent with TimeIntervals()
-			 case 0: //minutes
-				$c = (int)$c/15; //to qtr-hrs
-			 case 1: //hours
-				if ($c > 672) //28*24
-					return 3;	//year-range
-				elseif ($c > 168) //7*24
-					return 2;	//month-range
-				elseif ($c > 24) //1*24
-					return 1; //week-range
-				else
-					return 0; //day-range
-			 case 2: //days
-				if ($c > 28)
-					return 3;	//year-range
-				elseif ($c > 7)
-					return 2;	//month-range
-				elseif ($c > 1)
-					return 1; //week-range
-				else
-					return 0; //day-range
-			 case 3: //weeks
-				if ($c > 4)
-					return 3;	//year-range
-				elseif ($c > 1)
-					return 2;	//month-range
-				else
-					return 1; //week-range
-			 case 4: //months
-				if ($c > 1)
-					return 3;
-				return 2;
-			 case 5: //years
-				return 3;
-			}
-		}
-		//default
-		return (int)$mod->GetPreference('pref_showrange');
-	}
-
-	/**
-	TrimRange:
-	Rationalise slot start and end times in objects @dts and @dte
-	@dts if 'near' either extreme of a slot will be rounded to that extreme.
-	@dte if 'near' the end of a slot will be rounded up. The minimum difference
-	between the pair will be @slen.
-	@dts: populated DateTime object
-	@dte: ditto, may be <= @ststart
-	@slen: slot length, in seconds
-	@part: optional boolean, whether to accept intra-slot times for @slen >= 3600, default FALSE
-	*/
-	public function TrimRange($dts, $dte, $slen, $part=FALSE)
-	{
-		if ($slen >= 3600 && $part) {
-			if ($slen <= 86400) {
-				$slop = $slen * 0.25;
-				$rounder = 3600;
-			} else {
-				$slop = 84600;
-				$rounder = 84600;
-			}
-		} else {
-			$slop = (int)($slen/2);
-			$rounder = 1; //unused
-		}
-
-		$st = $dts->getTimestamp();
-		$nd = $dte->getTimestamp();
-		if ($st > $nd) {
-			$t = $nd;
-			$nd = $st;
-			$st = $t;
-		} elseif ($st == $nd) {
-			$nd = $st + 60; //this will change
-		}
-
-		$t = $st % $slen;
-		if ($t < $slop) {
-			$st1 = $st - $t;
-		} elseif ($t > $slen - $slop) {
-			$st1 = $st + $slen - $t;
-		} else {
-			$st1 = floor($st/$slen) * $slen + $slen;
-		}
-		$nd += $st1 - $st;
-		$t = ($nd-$st1) % $slen;
-		if ($t < $slop) {
-			$nd = $nd - $t - 1;
-		} elseif ($t > $slen - $slop) {
-			$nd = $nd + $slen - $t - 1;
-		} else {
-			$nd = floor($nd/$rounder) * $rounder;
-		}
-		if ($nd-$st1 < $slen-1) {
-			$nd = $st1 + $slen - 1;
-		}
-		$dts->setTimestamp($st1);
-		$dte->setTimestamp($nd);
 	}
 
 	/**
@@ -1116,6 +1107,7 @@ class Utils
 			$tz = new \DateTimeZone($zonename);
 			$offt = $tz->getOffset($dt);
 		} catch (Exception $e) {
+$this->Crash();
 			$offt = 0;
 		}
 		return $offt + $stamp;
@@ -1123,7 +1115,7 @@ class Utils
 
 	/**
 	GetTimeZones(&$mod)
-	Requires: PHP >= 5.2
+	Requires: PHP 5.2+
 	Generate an array looking like:
 	 [Pacific/Midway] => (UTC-11:00) Pacific/Midway
 	 [Pacific/Pago_Pago] => (UTC-11:00) Pacific/Pago_Pago
@@ -1186,6 +1178,118 @@ class Utils
 	}
 
 	/**
+	GetDefaultRange:
+	Determine the default timespan for which to display bookings
+	@mod: reference to Booker module object
+	@item_id: resource or group identifier
+	Returns: display-interval enum 0..3 consistent with DisplayIntervals()
+	*/
+	public function GetDefaultRange(&$mod, $item_id)
+	{
+		$idata = self::GetItemProperty($mod,$item_id,array('leadtype','leadcount'),TRUE);
+		if ($idata && !is_null($idata['leadtype']) && !is_null($idata['leadcount'])) {
+			$c = (int)$idata['leadcount'];
+			switch ($idata['leadtype']) { //enum 0..5 consistent with TimeIntervals()
+			 case 0: //minutes
+				$c = (int)$c/15; //to qtr-hrs
+			 case 1: //hours
+				if ($c > 672) //28*24
+					return 3;	//year-range
+				elseif ($c > 168) //7*24
+					return 2;	//month-range
+				elseif ($c > 24) //1*24
+					return 1; //week-range
+				else
+					return 0; //day-range
+			 case 2: //days
+				if ($c > 28)
+					return 3;	//year-range
+				elseif ($c > 7)
+					return 2;	//month-range
+				elseif ($c > 1)
+					return 1; //week-range
+				else
+					return 0; //day-range
+			 case 3: //weeks
+				if ($c > 4)
+					return 3;	//year-range
+				elseif ($c > 1)
+					return 2;	//month-range
+				else
+					return 1; //week-range
+			 case 4: //months
+				if ($c > 1)
+					return 3;
+				return 2;
+			 case 5: //years
+				return 3;
+			}
+		}
+		//default
+		return (int)$mod->GetPreference('pref_showrange');
+	}
+
+	/**
+	TrimRange:
+	Rationalise slot start and end times @bs, @be
+	@bs if 'near' either extreme of a slot will be rounded to that extreme.
+	@be if 'near' the end of a slot will be rounded up. The minimum difference
+	between the pair will be the slotlen derived from @slottype and @slotcount.
+	@slottype: enum 0..5 per Utils::TimeIntervals() i.e. for minute,hour,day,week,month,year
+	@slotcount: no. of @slottype's comprising a slot
+	@bs: timestamp for start of range
+	@be: timestamp for end of range ditto, may be <= @start
+	@part: optional boolean, whether to accept intra-slot times for @slen >= 3600, default FALSE
+	Returns: 2-member array, replacements for @bs, @be
+	*/
+	public function TrimRange($slottype, $slotcount, $bs, $be, $part=FALSE)
+	{
+		$slen = $this->GetCurrentSlotlen($bs, $slottype, $slotcount);
+		if ($slen >= 3600 && $part) {
+			if ($slen <= 86400) {
+				$slop = $slen * 0.25;
+				$rounder = 3600;
+			} else {
+				$slop = 84600;
+				$rounder = 84600;
+			}
+		} else {
+			$slop = (int)($slen/2);
+			$rounder = 1; //unused
+		}
+
+		if ($bs > $be) {
+			$t = $be;
+			$be = $bs;
+			$bs = $t;
+		} elseif ($bs == $be) {
+			$be = $bs + 60; //this will change
+		}
+
+		$t = $bs % $slen;
+		if ($t < $slop) {
+			$st = $bs - $t;
+		} elseif ($t > $slen - $slop) {
+			$st = $bs + $slen - $t;
+		} else {
+			$st = floor($bs/$slen) * $slen + $slen;
+		}
+		$be += $st - $bs;
+		$t = ($be-$st) % $slen;
+		if ($t < $slop) {
+			$be = $be - $t - 1;
+		} elseif ($t > $slen - $slop) {
+			$be = $be + $slen - $t - 1;
+		} else {
+			$be = floor($be/$rounder) * $rounder;
+		}
+		if ($be-$st < $slen-1) {
+			$be = $st + $slen - 1;
+		}
+		return array($st,$be);
+	}
+
+	/**
 	RangeStamps:
 	@st: UTC timestamp for start of range
 	@range: enum 0..3 indicating span of range
@@ -1195,7 +1299,7 @@ class Utils
 	public function RangeStamps($st, $range)
 	{
 		//start of day including $st
-		$dts = new \DateTime('@'.$st,new \DateTimeZone('UTC'));
+		$dts = new \DateTime('@'.$st,NULL);
 		$dts->setTime(0,0,0);
 		//start of day after end
 		$dte = clone $dts;
@@ -1229,6 +1333,43 @@ class Utils
 		return FALSE;
 	}
 */
+
+	/**
+	GetCurrentSlotlen:
+	@bs: timestamp for start of slot
+	@slottype: enum 0..5 per Utils::TimeIntervals() i.e. for minute,hour,day,week,month,year
+	@slotcount: no. of @slottype's comprising the slot
+	Returns: length in seconds
+	*/
+	public function GetCurrentSlotlen($bs, $slottype, $slotcount)
+	{
+		if ($slotcount < 1)
+			$slotcount = 1;
+		switch ($slottype) {
+		 case 0:
+			$offs = '+'.($slotcount*60).' seconds';
+			break;
+		 case 2:
+			$offs = '+'.$slotcount.' days';
+			break;
+		 case 3:
+			$offs = '+'.($slotcount*7).' days';
+			break;
+		 case 4:
+			$offs = '+'.$slotcount.' months';
+			break;
+		 case 5:
+			$offs = '+'.$slotcount.' years';
+			break;
+		 default:
+			$offs = '+'.($slotcount*3600).' seconds';
+			break;
+		}
+		$dtw = new \DateTime('@'.$bs,NULL);
+		$dtw->modify($offs);
+		return $dtw->getTimestamp() - $bs;
+	}
+
 	/**
 	GetInterval:
 	Determine an interval (in seconds) to use. (Calculated per server-time)
@@ -1246,7 +1387,7 @@ class Utils
 		{
 			$c = (int)$idata[$prefix.'count'];
 			if ($c < 1)
-				$c = 1;
+				return 0;
 			$t = (int)$idata[$prefix.'type']; //enum 0..5 consistent with TimeIntervals()
 			switch ($t) {
 			 case 0:
@@ -1356,6 +1497,78 @@ class Utils
 		} else
 			return $dt->format($format);
 	}
+
+	/**
+	DateTimeFormat:
+	@iso: whether to generate ISO format
+	@admin: whether to generate admin-suitable format, if @iso is FALSE
+	@withyear: whether to add a year-value, if not already present
+	@withtime: whether to include time-component in the format
+	@dayfmt: optional date()-compatible day/month/year formatter to use when relevant
+	@timefmt: optional date()-compatible time formatter to use when relevant
+	Returns: date()-compatible format string
+	*/
+	public function DateTimeFormat($iso, $admin, $withyear, $withtime, $dayfmt='', $timefmt='')
+	{
+		if ($iso) {
+			$fmt = 'Y-m-d';
+			if ($withtime) {
+				$fmt .= ' G:i';
+			}
+		} elseif ($admin) {
+			$fmt = 'Y-m-j';
+			if ($withtime) {
+				$fmt .= ' G:i';
+			}
+		} else { //frontend
+			if ($dayfmt) {
+				$fmt = $dayfmt;
+				if ($withyear && stripos($fmt,'Y') === FALSE) { //no year of any sort
+					if (strpos($fmt,'/') !== FALSE)
+						$fmt .= '/Y';
+					elseif (strpos($fmt,'-') !== FALSE)
+						$fmt = 'Y-'.$fmt;
+					else
+						$fmt .= ' Y';
+				}
+			} else {
+				$fmt = 'j M Y';
+			}
+			if ($withtime) {
+				if ($timefmt) {
+					$fmt .= ' '.$timefmt;
+				} else {
+					$fmt .= ' G:i';
+				}
+			}
+		}
+		return $fmt;
+	}
+
+	/*
+	isodate_from_format:
+	Convert @dvalue to ISO format i.e. like Y-M-d H:i:s
+	For testing, at least
+	@dformat: string which includes one or more of many (not all) format-characters
+	 understood by PHP date(). If it includes 'z', the corresponding element of
+	 @dvalue must be 1-based
+	@dvalue: date-time string consistent with @dformat
+	*/
+/*	private function isodate_from_format($dformat, $dvalue)
+	{
+		$sformat = str_replace(
+			array('Y' ,'M' ,'m' ,'d' ,'H' ,'h' ,'i' ,'s' ,'a' ,'A' ,'z'),
+			array('%Y','%b','%m','%d','%H','%I','%M','%S','%P','%p','%j'),$dformat);
+		$parts = strptime($dvalue,$sformat); //PHP 5.1+
+		return sprintf('%04d-%02d-%02d %02d:%02d:%02d',
+			$parts['tm_year'] + 1900,  //tm_year = relative to 1900
+			$parts['tm_mon'] + 1,      //tm_mon = 0-based
+			$parts['tm_mday'],
+			$parts['tm_hour'],
+			$parts['tm_min'],
+			$parts['tm_sec']);
+	}
+*/
 
 	/* *
 	IntervalNames:
@@ -1505,7 +1718,7 @@ class Utils
 	*/
 	public function RangeDescriptor(&$mod, $st, $nd, &$daynames=NULL)
 	{
-		$dts = new \DateTime('@'.$st,new \DateTimeZone('UTC'));
+		$dts = new \DateTime('@'.$st,NULL);
 		$dte = clone $dts;
 		$dte->setTimestamp($nd);
 		if ($daynames == NULL) {
@@ -1532,6 +1745,67 @@ class Utils
 	}
 
 	/**
+	GetStatus:
+	@params: variables to be used to determine the status
+	Returns: a suitable \Booker::STAT* constant
+	*/
+	public function GetStatus($params)
+	{
+		return \Booker::STATOK; //TODO
+	}
+
+	/**
+	GetStatusChoices:
+	@mod: reference to current module-object
+	@mode:
+	Returns: array suitable for dropdown picklist
+	*/
+	public function GetStatusChoices(&$mod, $mode)
+	{
+/*	const STATNONE = 0;//unknown/normal/default
+	//request-stage
+	const STATNEW = 1;//new, approver consideration pending
+	const STATCHG = 2;//change request, approver consideration pending
+	const STATDEL = 3;//delete request, approver consideration pending
+	const STATTELL = 4;//further information submitted
+	const STATASK = 5;//booker queried, waiting for response
+ 	const STATCANCEL = 6;//abandoned by user or admin on user's behalf
+	const STATMAXREQ = 9;//last-recognised request-status value
+	//later status
+	const STATOK = 20;//aka APPROVED done/processed
+	const STATADMINREC = 21;//booking recorded by admin
+	const STATSELFREC = 22;//recorded by approved user (i.e. no request)
+	const STATTEMP = 23;//user-recorded, pending admin confirmation
+	const STATDEFERRED = 40;//booking to be re-scheduled, per user request or admin imposition
+ 	const STATGONE = 90;//deletion pending, while its historical data needed
+	//problems
+	const STATBIG = 80;//too many slots requested
+	const STATDEFER = 81;//request not yet processed cuz' too far ahead
+	const STATLATE = 82;//request past or not far-enough ahead
+	const STATNA = 83;//resouce N/A at requested time, cannot accept
+	const STATDUP = 84;//duplicate request, cannot accept
+ 	const STATERR = 85;//system error while processing
+ 	const STATRETRY = 86;//some temporary problem, try again later
+	const STATFAILED = 89;//generic request-failure
+	//HistoryTable payment codes
+	const STATFREE = 0;//no fee for use
+	const STATPAYABLE = 1;//fee applies, not yet paid
+	const STATPAID = 2;//fee pre- or post-paid
+	const STATCREDITED = 3;//fee to be paid upon request
+ 	const STATNOTPAID = 9;//payable but unpaid for some non-credit-related reason
+	const STATCREDITUSED = 10;//past credit offset against other use
+	const STATCREDITEXPIRED = 11;//past credit timed out
+	const STATCREDITADDED = 12;//prepayment amount
+*/
+		$choices = array(); //TODO
+		foreach ($choices as &$key) {
+			$key = $mod->Lang($key);
+		}
+		unset($key);
+		return array_flip($choices);
+	}
+
+	/**
 	StripTags:
 	Remove and/or modify substring(s) of @str which are surrounded by <> and in @tags[]
 	This is a simpler variant of PHP's strip_tags(), with custom treatment of
@@ -1549,66 +1823,153 @@ class Utils
 		return $str;
 	}
 
-	/**
-	SaveParameters:
-
-	Store all or some of @params array and @cart object in cache, for 12-hours.
-	Adds @params['storedparams'] before saving, if that's not present already.
-	That key is session-specfic. @params is not changed.
-
-	@cache: reference to Cache oject
-	@params: reference to request-parameters associative array to be (updated &) cached
-	@except: parameter key, or array of them, to be omitted from cached @params, or FALSE
-	@cart: optional cart-object to also be cached
-	Returns: nothing
-	*/
-	public function SaveParameters (&$cache, &$params, $except=FALSE, $cart=FALSE)
+	public function mb_asort(&$array)
 	{
-		if ($except) {
-			if (is_array($except)) {
-				$store = array_diff_key($params,array_flip($except));
-			} else {
-				$store = $params;
-				unset($store[$except]);
-			}
+		if (extension_loaded('intl') === TRUE) {
+			collator_asort(collator_create('root'),$array);
 		} else {
-			$store = $params;
+			array_multisort(array_map(function($str)
+			{
+				return preg_replace('~&([a-z]{1,2})(acute|cedil|circ|grave|lig|orn|ring|slash|tilde|uml);~i',
+				'$1'.chr(255).'$2',htmlentities($str,ENT_QUOTES,'UTF-8'));
+			},$array),$array);
 		}
-		if (empty($params['storedparams'])) {
-			$params['storedparams'] = Cache::GetKey(\Booker::PARMKEY); //Cache::GetKey(session_id());
-		}
-		$cache->set($params['storedparams'],$store,43200);
-		if ($cart && $params['cartkey'])
-			$cache->set($params['cartkey'],$cart,43200);
 	}
 
 	/**
-	RetrieveParameters:
-	@cache: reference to Cache oject
-	@params: reference to reqest-parameters array
-	@except: parameter key, or array of them, to be omitted from cached @params, default FALSE
-	Update @params from @cache, if possible
+	Create array with members as in @params but without member(s) named in @except.
+	Keys in the array will have 'bkr_' prefix. Any value which is an array will
+	be json'd.
+	@params: reference to request-parameters associative array to be cached
+	@except: optional parameter key, or array of them, to be omitted from
+		returned array, or FALSE
+	Returns: array
+	*/
+	public function FilterParameters(&$params, $except=FALSE)
+	{
+		if (!$except) {
+			$filter = array();
+		} elseif (!is_array($except)) {
+			$filter = array($except);
+		} else {
+			$filter = $except;
+		}
+		$filter = array_diff_key($params,array_flip($filter));
+		$keep = array();
+		foreach ($filter as $k=>$v) {
+			if (is_array($v)) {
+				$v = json_encode($v);
+			}
+			$keep['bkr_'.$k] = $v;
+		}
+		return $keep;
+	}
+
+	/**
+	UnFilterParameters:
+	Remove key-prefix and otherwise filter @params
+	@params: reference to request-parameters array
+	@except: optional parameter key, or array of them, to be ignored if present
+	in @params, or FALSE
 	Returns: nothing
 	*/
-	public function RetrieveParameters (&$cache, &$params, $except=FALSE)
+	public function UnFilterParameters(&$params, $except=FALSE)
 	{
-		if (!empty($params['storedparams'])) {
-			$saved = $cache->get($params['storedparams']);
-			if (!empty($saved)) {
-				if ($except) {
-					if (is_array($except)) {
-						$saved = array_diff_key($saved,array_flip($except));
-					} else {
-						unset($saved[$except]);
+		$keep = array();
+		foreach ($params as $k=>$v) {
+			if (strpos($k,'bkr_') === 0) {
+				$kn = substr($k,4);
+			} else {
+				$kn = $k;
+			}
+			if (!((is_array($except) && in_array($kn,$except)) || $except==$kn)) {
+				if (is_array($v) || $v == '' || $v[0] != '[') {
+					if ($kn != $k) {
+						unset($params[$k]);
+						$params[$kn] = $v;
+					}
+				} else {
+					$t = json_decode(html_entity_decode($v));
+					if (json_last_error() == JSON_ERROR_NONE) {
+						if ($kn != $k)
+							unset($params[$k]);
+						$params[$kn] = $t;
+					} elseif ($kn != $k) {
+						unset($params[$k]);
+						$params[$kn] = $v;
 					}
 				}
-				$params = array_merge($params,$saved); //prefer cached values
-				return;
-			} else {
-				$cache->delete($params['storedparams']);
-				unset($params['storedparams']);
+			} elseif ($kn != $k) {
+				unset($params[$k]);
 			}
 		}
+		return $keep;
+	}
+
+	/**
+	DecodeParameters:
+	Cleanup @params: numerics to numbers, htmlentities to chars, injection disabled
+	@params: reference to request-parameters array
+	@include: optional parameter key, or array of them, to be processed, or '*', default '*'
+	Returns: nothing
+	*/
+	public function DecodeParameters(&$params, $include='*')
+	{
+		if ($include) {
+			if (!is_array($include)) {
+				if ($include == '*') {
+					$include = array_keys($params);
+				} else {
+					$include = array($include);
+				}
+			}
+			$patn = '/[\'"] ?[Oo][Rr] ?["\']/';
+			foreach ($include as $key) {
+				if (isset($params[$key])) {
+					$val = $params[$key];
+					if (!is_array($val)) {
+						if (is_string($val) && $val) {
+							if (is_numeric($val)) {
+								$i = (int)$val;
+								$params[$key] = ($i == $val) ? $i : (float)$val;
+							} else {
+								if (strpos($val,'&') !== FALSE) {
+									$val = html_entity_decode($val,ENT_QUOTES|ENT_HTML401);
+								}
+								$val = str_replace('`','',$val);
+								$val = preg_replace($patn,'_',$val);
+								$params[$key] = $val;
+							}
+						}
+					} else {
+						foreach ($val as $j=>&$one) {
+							if (is_string($one) && $one) {
+								if (is_numeric($one)) {
+									$i = (int)$one;
+									$params[$key][$j] = ($i == $one) ? $i : (float)$one;
+								} else {
+									if (strpos($one,'&') !== FALSE) {
+										$one = html_entity_decode($one,ENT_QUOTES|ENT_HTML401);
+									}
+									$one = str_replace('`','',$one);
+									$one = preg_replace($patn,'_',$one);
+									$params[$key][$j] = $one;
+								}
+							}
+						}
+						unset ($one);
+					}
+				}
+			}
+		}
+	}
+
+	public function SaveCart($cart, &$cache, &$params)
+	{
+		if (empty($params['cartkey'])) {
+			$params['cartkey'] = Cache::GetKey(\Booker::CARTKEY);
+		}
+		$cache->set($params['cartkey'],$cart,43200);
 	}
 
 	/**
@@ -1661,7 +2022,7 @@ class Utils
 	OpenPaymentForm:
 	Arrange for and display payment-gateway form
 	@mod: reference to current module-object
-	@id: module identifier
+	@id: session identifier
 	@returnid:
 	@params: array of parameters for the action
 	@idata: array of data for the resource being booked
@@ -1685,9 +2046,9 @@ class Utils
 				 'errmsg'=>'msg',
 				 'success'=>'result',
 				 'transactid'=>'identifier',
-				 'passthru'=>'storedparams'
+				 'passthru'=>'paramskey'
 				),
-				array($mod->GetName(),'requestfinish'),
+				array($mod->GetName(),'method.requestfinish'),
 				array($id,'default',$returnid)
 			)) {
 				$num = $cart->countItems(); //TODO count only the payable items

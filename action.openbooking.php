@@ -7,28 +7,56 @@
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
 /*first-time $params = array
- 'item_id'=>$item_id
- 'bkg_id'=> -1 (add) OR real id (edit)
- 'repeat'=> '' OR '1'
- 'resume'=> 'administer' OR 'inspect' OR absent (meaning 'administer')
-*/
+'item_id'=>$item_id
+'bkg_id'=> -1 (add) OR real id (see/edit)
+'resume' => string 'itembookings' or ?
+'task' => string 'edit' or 'see'
+'repeat' => string '1' or ''
+//'bookedit'=>1 in edit mode, not set for see mode
 
+cancellation $params = array
+'item_id' => string
+'bkg_id' => string
+'repeat' => string '1' or ''
+'resume' => string 'itembookings'
+'task' => string 'edit' or 'see'
+if edit
+'when' => string
+'until' => string
+'name' => string
+'contact' => string
+*/
 if (!$this->_CheckAccess()) exit;
 
 $item_id = (int)$params['item_id'];
-if (isset($params['resume']))
-	$resume = $params['resume'];
-else
-	$resume = 'administer';
+if (!isset($params['resume']))
+	$params['resume'] = 'itembookings';
+$resume = $params['resume'];
 
-if (isset($params['cancel']))
-	$this->Redirect($id,$resume,'',array('item_id'=>$item_id));
+if (isset($params['cancel'])) {
+	$newparms = array('item_id'=>$item_id,'task'=>$params['task']);
+	if ($resume == 'bookerbookings') {
+		$newparms['booker_id'] = $params['booker_id'];
+	}	
+	$this->Redirect($id,$resume,'',$newparms);
+}
+
+$utils = new Booker\Utils();
+$utils->DecodeParameters($params,array(
+	'bkg_id',
+	'contact',
+	'formula',
+	'name',
+	'subgrpcount',
+	'until',
+	'when'
+));
+
 
 $is_group = ($item_id >= Booker::MINGRPID);
 $type = ($is_group) ? $this->Lang('group'):$this->Lang('item');
 $is_new = ($params['bkg_id'] == -1);
-$viewmode = ($resume == 'inspect');
-$funcs = new Booker\Utils();
+$viewmode = !($params['task'] == 'edit' || $params['task'] == 'add'); //empty($params['bookedit']);?
 $funcs2 = new Booker\Bookingops();
 
 if (isset($params['submit']) || isset($params['apply'])) {
@@ -37,10 +65,10 @@ if (isset($params['submit']) || isset($params['apply'])) {
   'item_id' => string '8'
   'bkg_id' => string '9'
   'repeat' => string '' OR '1'
-  'resume' => string 'administer'
+  'resume' => string 'itembookings'
   'when' => string '17 October 2015 12:00'
   'until' => string '17 October 2015 12:59'
-  'user' => string 'Mary'
+  'name' => string 'Mary'
   'conformuser' => string '1' MAYBE
   'displayclass' => string '1'
   'conformstyle' => string '1' MAYBE
@@ -48,9 +76,9 @@ if (isset($params['submit']) || isset($params['apply'])) {
   'conformcontact' => string '1' MAYBE
 */
 	$msg = array();
-	$t = trim($params['user']);
+	$t = trim($params['name']);
 	if ($t)
-		$params['user'] = $t;
+		$params['name'] = $t;
 	else
 		$msg[] = $this->Lang('missing_type',$this->Lang('user'));
 	$t = trim($params['contact']);
@@ -59,24 +87,48 @@ if (isset($params['submit']) || isset($params['apply'])) {
 	else
 		$msg[] = $this->Lang('missing_type',$this->Lang('contact'));
 
-	if ($params['repeat']) {
+	if (empty($params['repeat'])) { //onetime booking
+		$funcs3 = new Booker\Verify();
+		list($res,$xmsg) = $funcs3->VerifyData($this,$utils,$params,$item_id,$is_new,TRUE);
+		if ($res) {
+	//TODO this is CRAP!! never save a booking direct to DataTable!
+	//MUST save to HistoryTable then [re]schedule the booking!
+//			if(
+//			$funcs2->SaveBkg($this,$params,$is_new); //TODO extra arg $bulk_id if $is_group
+/*			) {
+				if ($is_new) {
+//TODO	send notice if appropriate
+				} else { //update
+//TODO	send notice if appropriate
+					Userops->ConformUserData($this,$params); //TODO check - downstream expects $params['name'] NOT 'user'
+				}
+			}
+*/
+$this->Crash();
+			$res = FALSE;
+			$msg[] = 'NOT SAVED - TODO';
+
+		} else {
+			$msg = array_merge($msg,$xmsg);
+		}
+	} else { //repeat booking
 		$t = trim($params['formula']);
 		if ($t) {
-			$funcs3 = new Booker\RepeatLexer($this);
-			$t = $funcs3->CheckCondition($t);
+			$funcs3 = new Booker\WhenRuleLexer($this);
+			$t = $funcs3->CheckDescriptor($t);
 		}
 		if ($t) {
+			$funcs3 = new Booker\Userops();
 			if ($is_new) {
-				$sql2 = 'bkg_id,item_id,formula,user,contact,displayclass';
-				$fillers = '?,?,?,?,?,?';
-				$bid = $db->GenID($this->DataTable.'_seq');
+				list($bookerid,$newbkr) = $funcs3->GetParamsID($this,$params);
+				$sql2 = 'bkg_id,item_id,formula,booker_id';
+				$fillers = '?,?,?,?';
+				$bkgid = $db->GenID($this->DataTable.'_seq');
 				$args = array(
-					$bid,
+					$bkgid,
 					(int)$params['item_id'],
 					$t,
-					$params['user'],
-					$params['contact'],
-					(int)$params['displayclass']
+					$bookerid
 				);
 				foreach (array('subgrpcount','paid') as $k) {
 					if (isset($params[$k])) {
@@ -86,16 +138,14 @@ if (isset($params['submit']) || isset($params['apply'])) {
 					}
 				}
 				$sql = 'INSERT INTO '.$this->RepeatTable.' ('.$sql2.') VALUES ('.$fillers.')';
+		//TODO $utils->SafeExec()
 				$db->Execute($sql,$args);
+				$params['bkg_id'] == $bkgid;
+				$is_new = FALSE;
 			} else { //update
-				$funcs2->ConformBookingData($this,$params); //general update where needed, before we change user
-				$sql2 = 'formula=?,user=?,contact=?,displayclass=?';
-				$args = array(
-					$t,
-					$params['user'],
-					$params['contact'],
-					(int)$params['displayclass']
-				);
+				$funcs3->ConformUserData($this,$params);
+				$sql2 = 'formula=?';
+				$args = array($t);
 				foreach (array('subgrpcount','paid') as $k) {
 					if (isset($params[$k])) {
 						$sql2 .= ",$k=?";
@@ -104,45 +154,34 @@ if (isset($params['submit']) || isset($params['apply'])) {
 				}
 				$args[] = (int)$params['bkg_id'];
 				$sql = 'UPDATE '.$this->RepeatTable.' SET '.$sql2.' WHERE bkg_id=?';
+		//TODO $utils->SafeExec()
 				$db->Execute($sql,$args);
-
-				$dtn = new DateTime('now',new DateTimeZone('UTC'));
-				$dtn->setTime(0,0,0);
+				$dtw = new DateTime('now',new DateTimeZone('UTC'));
+				$dtw->setTime(0,0,0);
 				if ($is_group) {
-					$membrs = $funcs->GetGroupItems($this,$item_id);
+					$membrs = $utils->GetGroupItems($this,$item_id);
 					if ($membrs) {
-						$dtn->modify('-1 day');
-						$st = $dtn->getTimestamp();
-						$sql = 'UPDATE '.$this->ItemTable.' SET repeatsuntil=? WHERE item_id IN ('.
-						implode(',',$membrs).') AND repeatsuntil>?';
+						$dtw->modify('-1 day');
+						$st = $dtw->getTimestamp();
+		//TODO checkedfrom too
+						$sql = 'UPDATE '.$this->RepeatTable.' SET checkedto=? WHERE bkg_id IN ('.
+							implode(',',$membrs).') AND checkedto>?';
+		//TODO $utils->SafeExec()
 						$db->Execute($sql,array($st,$st));
-						$dtn->modify('+1 day');
+						$dtw->modify('+1 day');
 					}
 				}
 				//remove future derived booking-slots
-				$dtn->modify('+1 day');
-				$st = $dtn->getTimestamp();
+				$dtw->modify('+1 day');
+				$st = $dtw->getTimestamp();
 				$args = array($params['bkg_id'],$st);
 				$sql = 'DELETE FROM '.$this->DataTable.' WHERE bkg_id=? AND slotstart>?';
-				$funcs->SafeExec($sql,$args);
+				$utils->SafeExec($sql,$args);
 //TODO	send notice(s) if appropriate
 			}
 		} else {
-			$msg[] = $this->Lang('err_parm'); //TODO better message
+			$msg[] = $this->Lang('invalid_type',$this->Lang('booking')); //formula
 		}
-	} else { //onetime booking
-		$funcs3 = new Booker\Verify();
-		list($res,$xmsg) = $funcs3->VerifyAdmin($mod,$funcs,$params,$item_id,$is_new);
-		if ($res) {
-			$funcs2->SaveBkg($this,$params,$is_new);
-/*			if ($is_new) {
-//TODO	send notice if appropriate
-			} else { //update
-//TODO	send notice if appropriate
-			}
-*/
-		} else
-			$msg = array_merge($msg,$xmsg);
 	}
 	if ($msg) { //error
 		$t = implode(' ',$msg);
@@ -150,36 +189,67 @@ if (isset($params['submit']) || isset($params['apply'])) {
 			$params['message'] = $t;
 		else
 			$params['message'] .= '<br />'.$t;
-	} elseif (isset($params['submit']))
-		$this->Redirect($id,$resume,'',array('item_id'=>$item_id));
+	} elseif (isset($params['submit'])) {
+		$this->Redirect($id,$resume,'',array('item_id'=>$item_id,'task'=>$params['task']));
+	}
+	$bdata = array(
+		'name'=>$params['name'],
+		'address'=>$params['contact'],
+		'phone'=>$params['contact'],
+		'displayclass'=>$params['displayclass'],
+	);
+	if (array_key_exists('subgrpcount',$params)) {
+		$bdata['subgrpcount'] = $params['subgrpcount'];
+	}
+	$bdata['paid'] = !empty($params['paid']);
+	if (empty($params['repeat'])) {
+		$bdata['when'] = $params['when'];
+		if (array_key_exists('until',$params)) {
+			$bdata['until'] = $params['until'];
+		}
+	} else {
+		$bdata['formula'] = $params['formula'];
+	}
+	$params['task'] = 'edit'; //in case we we adding
 } elseif (isset($params['find'])) {
 	//TODO
 	$params['message'] = $this->Lang('notyet');
 }
 
 $tplvars = array();
-$tplvars['startform'] =
-		$this->CreateFormStart($id,'openbooking',$returnid,'POST','','','',array(
-		 'item_id'=>$item_id,'bkg_id'=>$params['bkg_id'],
-		 'repeat'=>$params['repeat'],'resume'=>$resume));
+
+$hidden = array('item_id'=>$item_id,'bkg_id'=>$params['bkg_id'],'resume'=>$resume,'task'=>$params['task']);
+if (!empty($params['booker_id']))
+	$hidden['booker_id'] = $params['booker_id'];
+if (!empty($params['repeat']))
+	$hidden['repeat'] = 1;
+//if (!empty($params['bookedit']))
+//	$hidden['bookedit'] = 1;
+$tplvars['startform'] = $this->CreateFormStart($id,'openbooking',$returnid,'POST','','','',$hidden);
 $tplvars['endform'] = $this->CreateFormEnd();
 
-$this->_BuildNav($id,$params,$returnid,$tplvars);
+$params['active_tab'] = 'people'; //for admin link
+$tplvars['pagenav'] = $this->_BuildNav($id,$returnid,array('defaultadmin',$params['resume']),$params);
 if (!empty($params['message']))
 	$tplvars['message'] = $params['message'];
 
 $tplvars['mod'] = !$viewmode;
-if (!$viewmode)
+if ($viewmode)
+	$missing = '&lt;'.$this->Lang('missing').'&gt;';
+else
 	$tplvars['compulsory'] = $this->Lang('help_compulsory');
 
-$idata = $funcs->GetItemProperty($this,$item_id,"*");
+if (empty($bdata)) {
+	$table = (empty($params['repeat'])) ? $this->DataTable : $this->RepeatTable;
+	$sql = <<<EOS
+SELECT D.*,B.name,B.publicid,B.address,B.phone,B.displayclass FROM {$table} D
+JOIN {$this->BookerTable} B ON D.booker_id=B.booker_id
+WHERE D.bkg_id=?
+EOS;
+	$bdata = $utils->SafeGet($sql,array($params['bkg_id']),'row');
+}
 
-if ($params['repeat'])
-	$sql = 'SELECT * FROM '.$this->RepeatTable.' WHERE bkg_id=?';
-else
-	$sql = 'SELECT * FROM '.$this->DataTable.' WHERE bkg_id=?';
-$bdata = $funcs->SafeGet($sql,array($params['bkg_id']),'row');
-
+$idata = $utils->GetItemProperty($this,$item_id,"*");
 $key = ($is_new) ? 'title_booknewfor':'title_bookfor';
 if (!empty($idata['name'])) {
 	$tplvars['title'] = $this->Lang($key,$type,$idata['name']);
@@ -202,86 +272,91 @@ $baseurl = $this->GetModuleURLPath();
 
 $vars = array();
 
-if ($params['repeat']) {
-	$one = new stdClass();
-	$one->title = $this->Lang('title_description');
-	$t = ($is_new) ? '':$bdata['formula'];
-	if ($viewmode)
-		$one->input = ($t) ? $t:'&lt;'.$this->Lang('missing').'&gt;';
-	else {
-		$one->must = 1;
-		$one->input = $this->CreateInputText($id,'formula',$t,50,256);
-	}
-	$one->help = $this->Lang('help_intervals');
-	$vars[] = $one;
-} else { //onetime booking
+if (empty($params['repeat'])) { //onetime booking
 	$choosend = ($idata['bookcount'] != 1);
 
 	$one = new stdClass();
-	$one->title = $this->Lang('title_when');
-	if ($is_new) {
-		$t = '';
+	$one->title = $this->Lang('title_starting');
+	if ($bdata) {
+		if (array_key_exists('when',$bdata)) {
+			$t = $bdata['when'];
+		} else {
+			$dtw = new DateTime('@'.$bdata['slotstart'],new DateTimeZone('UTC'));
+			$t = $dtw->format('Y-n-j G:i'); //TODO ovrday support
+		}
 	} else {
-		$dt = new DateTime('1900-1-1',new DateTimeZone('UTC'));
-		$dt->setTimestamp($bdata['slotstart']);
-		$fmt = $idata['dateformat'].' '.$idata['timeformat'];
-		$t = $dt->format($fmt);
+		$t = '';
 	}
 	if ($viewmode) {
-		$one->input = ($t) ? $t:'&lt;'.$this->Lang('missing').'&gt;';
+		$one->input = ($t) ? $t:$missing;
 	} else {
 		$one->must = 1;
 		$one->input = $this->CreateInputText($id,'when',$t,20,30);
 		//for date-picker
 		$jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/include/moment.min.js"></script>
 <script type="text/javascript" src="{$baseurl}/include/pikaday.min.js"></script>
-
+<script type="text/javascript" src="{$baseurl}/include/pikaday.jquery.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/include/php-date-formatter.min.js"></script>
 EOS;
 		$nextm = $this->Lang('nextm');
 		$prevm = $this->Lang('prevm');
 		//js wants quoted period-names
-		$t = $this->Lang('longmonths');
-		$mnames = "'".str_replace(",","','",$t)."'";
 		$t = $this->Lang('longdays');
 		$dnames = "'".str_replace(",","','",$t)."'";
 		$t = $this->Lang('shortdays');
 		$sdnames = "'".str_replace(",","','",$t)."'";
+		$t = $this->Lang('longmonths');
+		$mnames = "'".str_replace(",","','",$t)."'";
+		$t = $this->Lang('shortmonths');
+		$smnames = "'".str_replace(",","','",$t)."'";
+		$t = $this->Lang('meridiem');
+		$meridiem = "'".str_replace(",","','",$t)."'";
+		$overday = ($utils->GetInterval($this,$item_id,'slot') >= 84600);
+		$datetimefmt = $utils->DateTimeFormat(FALSE,TRUE,TRUE,!$overday);
 		if ($choosend) {
-			$sl = ($is_new) ? /*$idata['slotlen']*/3600:$bdata['slotlen']; //TODO
+			$sl = ($bdata && !empty($bdata['slotlen'])) ? $bdata['slotlen']:/*$idata['slotlen']*/3600; //TODO
 			$t2 = <<<EOS
-    d2 = moment(d).add($sl,'s').format(f);
-    $('#{$id}until').val(d2);
+,
+  onClose: function() {
+   if('_d' in this && this._d) {
+    var ob = new Date(this._d.getTime() + {$sl}*1000);
+    var dt = fmt.formatDate(ob,'{$datetimefmt}');
+    $('#{$id}until').val(dt);
+   }
+  }
 
 EOS;
 		} else {
 			$t2 = '';
 		}
-		$overday = ($funcs->GetInterval($this,$item_id,'slot') >= 84600);
-		$momentfmt = ($overday) ? 'YYYY-MM-DD':'YYYY-MM-DD h:mm';
 
 		$jsloads[] = <<<EOS
- new Pikaday({
-  field: document.getElementById('calendar'),
-  trigger: document.getElementById('{$id}when'),
-  format: 'YYYY-MM-DD',
+  var fmt = new DateFormatter({
+   longDays: [{$dnames}],
+   shortDays: [{$sdnames}],
+   longMonths: [{$mnames}],
+   shortMonths: [{$smnames}],
+   meridiem: [{$meridiem}],
+   ordinal: function (number) {
+    var n = number % 10, suffixes = {1: 'st', 2: 'nd', 3: 'rd'};
+    return Math.floor(number % 100 / 10) === 1 || !suffixes[n] ? 'th' : suffixes[n];
+   }
+  });
+  $('#{$id}when').pikaday({
+  format: '{$datetimefmt}',
+  reformat: function(target,f) {
+   return fmt.formatDate(target,f);
+  },
+  getdate: function(target,f) {
+   return fmt.parseDate(target,f);
+  },
   i18n: {
    previousMonth: '{$prevm}',
    nextMonth: '{$nextm}',
    months: [{$mnames}],
    weekdays: [{$dnames}],
    weekdaysShort: [{$sdnames}]
-  },
-  onClose: function() {
-   var sel = $('#calendar').val();
-   if (sel !== '') { //not cancelled
-    var d = new Date(sel);
-    var f = '{$momentfmt}';
-    var d2 = moment(d).format(f);
-    $('#{$id}when').val(d2);
-{$t2}
-   }
-  }
+  }{$t2}
  });
 
 EOS;
@@ -291,13 +366,19 @@ EOS;
 //==
 	if ($choosend) {
 		$one = new stdClass();
-		$one->title = $this->Lang('title_until');
-		if (!$is_new) {
-			$dt->setTimestamp($bdata['slotstart'] + $bdata['slotlen']);
-			$t = $dt->format($fmt);
+		$one->title = $this->Lang('title_ending');
+		if ($bdata) {
+			if (array_key_exists('until',$bdata)) {
+				$t = $bdata['until'];
+			} else {
+				$dtw->setTimestamp($bdata['slotstart'] + $bdata['slotlen']);
+				$t = $dtw->format('Y-n-j G:i');
+			}
+		} else {
+			$t = '';
 		}
 		if ($viewmode) {
-			$one->input = ($t) ? $t:'&lt;'.$this->Lang('missing').'&gt;';
+			$one->input = ($t) ? $t:$missing;
 		} else {
 			$one->must = 0;
 			$one->input = $this->CreateInputText($id,'until',$t,20,30);
@@ -305,14 +386,26 @@ EOS;
 		$one->help = NULL; //$this->Lang('help_book_end');
 		$vars[] = $one;
 	}
-} //end 1-time booking
+} else { //repeat booking
+	$one = new stdClass();
+	$one->title = $this->Lang('title_description');
+	$t = ($bdata) ? $bdata['formula']:'';
+	if ($viewmode) {
+		$one->input = ($t) ? $t:$missing;
+	} else {
+		$one->must = 1;
+		$one->input = $this->CreateInputText($id,'formula',$t,50,256);
+	}
+	$one->help = $this->Lang('help_intervals');
+	$vars[] = $one;
+}
 //==
 if ($is_group) {
 	$one = new stdClass();
 	$one->title = $this->Lang('title_subgrpcount');
-	$t = ($is_new) ? '':(int)$bdata['subgrpcount'];
+	$t = ($bdata) ? (int)$bdata['subgrpcount']:'';
 	if ($viewmode)
-		$one->input = ($t) ? $t:'&lt;'.$this->Lang('missing').'&gt;';
+		$one->input = ($t) ? $t:$missing;
 	else {
 		$one->must = 1;
 		$one->input = $this->CreateInputText($id,'subgrpcount',$t,3,5);
@@ -323,70 +416,61 @@ if ($is_group) {
 //==
 $one = new stdClass();
 $one->title = $this->Lang('title_user');
-$t = ($is_new) ? '':$bdata['user'];
+$t = ($bdata) ? $bdata['name']:'';
 if ($viewmode) {
-	$one->input = ($t) ? $t:'&lt;'.$this->Lang('missing').'&gt;';
+	$one->input = ($t) ? $t:$missing;
 } else {
 	$one->must = 1;
-	$one->input = $this->CreateInputText($id,'user',$t,20,64);
+	$one->input = $this->CreateInputText($id,'name',$t,20,64);
+	if (!$is_new)
+		$one->help = $this->Lang('help_conformuser');
 }
 $vars[] = $one;
-//==
-if (!($is_new || $viewmode)) {
-	$one = new stdClass();
-	$one->title = $this->Lang('title_conformuser');
-	$one->input = $this->CreateInputCheckbox($id,'conformuser',1,-1);
-	$one->help = $this->Lang('help_conformuser');
-	$vars[] = $one;
-}
-//==
-$one = new stdClass();
-$one->title = $this->Lang('displayclass');
-$t = ($is_new) ? 0:(int)$bdata['displayclass'];
-if ($viewmode) {
-	$one->input = $t;
-} else {
-	$one->must = 0;
-	$choices = array(1=>1,2=>2,3=>3,4=>4,5=>5);
-	$one->input = $this->CreateInputDropdown($id,'displayclass',$choices,-1,$t);
-}
-$one->help = $this->Lang('help_book_style');
-$vars[] = $one;
-//==
-if (!($is_new || $viewmode)) {
-	$one = new stdClass();
-	$one->title = $this->Lang('title_conformstyle');
-	$one->input = $this->CreateInputCheckbox($id,'conformstyle',1,-1);
-	$one->help = $this->Lang('help_conformstyle');
-	$vars[] = $one;
-}
 //==
 $one = new stdClass();
 $one->title = $this->Lang('title_contact');
-$t = ($is_new) ? '':$bdata['contact'];
+if ($bdata) {
+	$t = ($bdata['address']) ? $bdata['address'] : $bdata['phone'];
+} else {
+	$t = '';
+}
 if ($viewmode) {
-	$one->input = ($t) ? $t:'&lt;'.$this->Lang('missing').'&gt;';
+	$one->input = ($t) ? $t:$missing;
 } else {
 	$one->must = 1;
 	$one->input = $this->CreateInputText($id,'contact',$t,30,128);
 }
 $one->help = $this->Lang('help_book_contact');
+if (!($viewmode || $is_new)) {
+	$one->help .= '<br />'.$this->Lang('help_conformcontact');
+}
+$vars[] = $one;
+//TOTO UI for both address & phone
+//==
+$one = new stdClass();
+$one->title = $this->Lang('title_displayclass');
+$t = ($bdata) ? (int)$bdata['displayclass']:1;
+if ($viewmode) {
+	$one->input = $t;
+} else {
+	$one->must = 0;
+	$styles = range(1,Booker::USERSTYLES);
+	$choices = array_combine($styles,$styles);
+	$one->input = $this->CreateInputDropdown($id,'displayclass',$choices,-1,$t);
+}
+$one->help = $this->Lang('help_displayclass');
+if (!($viewmode || $is_new)) {
+	$one->help .= '<br />'.$this->Lang('help_conformstyle');
+}
+
 $vars[] = $one;
 //==
-if (!($is_new || $viewmode)) {
-	$one = new stdClass();
-	$one->title = $this->Lang('title_conformcontact');
-	$one->input = $this->CreateInputCheckbox($id,'conformcontact',1,-1);
-	$one->help = $this->Lang('help_conformcontact');
-	$vars[] = $one;
-}
-//==
 $condition = NULL; //TODO payable-condition time,requestor etc
-$payable = $funcs->GetItemPayable($this,$item_id,FALSE,$condition);
+$payable = $utils->GetItemPayable($this,$item_id,FALSE,$condition);
 if ($payable) {
 	$one = new stdClass();
 	$one->title = $this->Lang('title_paid');
-	$t = ($is_new) ? 0:(int)$bdata['paid'];
+	$t = ($bdata) ? (int)$bdata['paid']:0;
 	if ($viewmode) {
 		$one->input = ($t) ? $this->Lang('yes'):$this->Lang('no');
 	} else {
@@ -407,7 +491,7 @@ if ($viewmode) {
 	$tplvars['cancel'] = $this->CreateInputSubmit($id,'cancel',$this->Lang('cancel'));
 	$tplvars['find'] = $this->CreateInputSubmit($id,'find',$this->Lang('find'),
 		'title="'.$this->Lang('tip_finditm').'"');
-	if (!$params['repeat']) {
+	if (empty($params['repeat'])) { //onetime booking
 		$jsincs[] = <<<EOS
 <script type="text/javascript" src="{$baseurl}/include/jquery.modalconfirm.min.js"></script>
 
@@ -415,7 +499,7 @@ EOS;
 		$tplvars['yes'] = $this->Lang('yes');
 		$tplvars['no'] = $this->Lang('no');
 		$funcs3 = new Booker\Verify();
-		$jsfuncs[] = $funcs3->VerifyScript($this,$id,TRUE,TRUE,FALSE,$idata['timezone']);
+		$jsfuncs[] = $funcs3->VerifyScript($this,$utils,$id,$item_id,TRUE,FALSE,$idata['timezone'],TRUE);
 		$jsloads[] = <<<EOS
  var obs = [$('#{$id}submit'),$('#{$id}apply')];
  $.each(obs,function(indx,\$ob) {

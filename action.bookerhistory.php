@@ -11,15 +11,15 @@ if (isset($params['cancel'])) {
 if (isset($params['X'])) {
 }
 
-$funcs = new Booker\Utils();
+$utils = new Booker\Utils();
 
-$hidden = $this->CreateInputHidden($id,'item_id',$item_id); //MORE
+$hidden = array('item_id'=>$item_id); //TODO MORE
 
 $tplvars = array(
 	'mod' => $pmod,
-	'startform' => $this->CreateFormStart($id,'openfees',$returnid),
+	'startform' => $this->CreateFormStart($id,'openfees',$returnid,'POST','','','',$hidden),
 	'endform' => $this->CreateFormEnd(),
-	'hidden' => $hidden,
+	'hidden' => NULL,
 	'title' => $this->Lang('TODO')
 );
 if (isset($params['message']))

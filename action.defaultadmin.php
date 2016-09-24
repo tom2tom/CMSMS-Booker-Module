@@ -97,7 +97,7 @@ $seetab3 = ($showtab=='groups');
 $seetab4 = ($showtab=='reports');
 $seetab5 = ($showtab=='settings');
 
-$tplvars['hidden'] = $this->CreateInputHidden($id,'active_tab',$showtab);
+$tplvars['hidden'] = NULL; //$this->CreateInputHidden($id,'active_tab',$showtab);
 
 $tplvars['tab_headers'] = $this->StartTabHeaders().
 	$this->SetTabHeader('data',$this->Lang('title_bookings')).
@@ -130,14 +130,14 @@ $tablerows = array();
 
 //BOOKINGS TAB (& FORM)
 $tplvars['startform1'] = $this->CreateFormStart($id,'processrequest',$returnid,
-	'POST','','','',array('custmsg'=>''));
+	'POST','','','',array('active_tab'=>'data','custmsg'=>''));
 $tplvars['start_data_tab'] = $this->StartTab('data');
 
 $tablerows[1] = 0;
 $pending = array();
 $sql = 'SELECT H.*,B.name,B.publicid,B.address,B.phone FROM '.$this->HistoryTable.
 ' H LEFT JOIN '.$this->BookerTable.' B ON H.booker_id = B.booker_id WHERE status<='.
-Booker::STATMAXREQ.' ORDER BY lodged';
+Booker::STATMAXREQ.' OR status>'.Booker::STATMAXOK.' ORDER BY lodged';
 $data = $db->GetArray($sql);
 if ($data) {
 	$t = $this->Lang('request');
@@ -157,16 +157,28 @@ if ($data) {
 	$fmt = 'j M Y G:i'; //specific format, not the 'public' (frontend) format, to restrict table width
 	$tz = new DateTimeZone('UTC');
 	$dt = new DateTime('@0',$tz);
-	$statNONE = $this->Lang('stat_none');
-	$statTEMP = $this->Lang('stat_temp');
-	$statNEW = $this->Lang('stat_new');
-	$statCHG = $this->Lang('stat_chg');
-	$statDEL = $this->Lang('stat_del');
-	$statTELL = $this->Lang('stat_tell');
-	$statASK = $this->Lang('stat_ask');
-	$statNOPAY = $this->Lang('stat_nopay');
-	$statOK = $this->Lang('stat_ok');
-	$statCANCEL = $this->Lang('stat_cancel');
+	$statnames = array(
+		Booker::STATNONE => $this->Lang('stat_none'),//unknown/normal/default
+		Booker::STATNEW => $this->Lang('stat_new'),//new, approver consideration pending
+		Booker::STATCHG => $this->Lang('stat_chg'),//change request, approver consideration pending
+		Booker::STATDEL => $this->Lang('stat_del'),//delete request, approver consideration pending
+		Booker::STATTELL => $this->Lang('stat_tell'),//further information submitted
+		Booker::STATASK => $this->Lang('stat_ask'),//booker queried, waiting for response
+		Booker::STATCANCEL => $this->Lang('stat_cancel'),//abandoned by user or admin on user's behalf
+		Booker::STATTEMP => $this->Lang('stat_temp'),//user-recorded, pending admin confirmation
+		Booker::STATDEFERRED => 40,//booking to be re-scheduled, per user request or admin imposition
+		Booker::STATGONE => 90,//deletion pending, while its historical data needed
+		Booker::STATBIG => 80,//too many slots requested
+		Booker::STATDEFER => $this->Lang('stat_defer'),//request not yet processed cuz' too far ahead
+		Booker::STATLATE => 82,//request past or not far-enough ahead
+		Booker::STATNA => 83,//resouce N/A at requested time, cannot accept
+		Booker::STATDUP => 84,//duplicate request, cannot accept
+		Booker::STATERR => 85,//system error while processing
+		Booker::STATRETRY => 86,//some temporary problem, try again later
+		Booker::STATFAILED => 89//generic request-failure
+	);
+	//$statNOPAY = $this->Lang('stat_nopay');
+	//$statOK = $this->Lang('stat_ok');
 
 	foreach ($data as &$row) {
 		$one = new stdClass();
@@ -183,41 +195,11 @@ if ($data) {
 		$dt->setTimestamp($row['slotstart']);
 		$one->start = $dt->format($fmt);
 		$t = (int)$row['status'];
-		switch ($t) {
-		 case Booker::STATNONE:
-			$t = $statNONE;
-			break;
-		 case Booker::STATTEMP:
-			$t = $statTEMP;
-			break;
-		 case Booker::STATNEW:
-			$t = $statNEW;
-			break;
-		 case Booker::STATCHG:
-			$t = $statCHG;
-			break;
-		 case Booker::STATDEL:
-			$t = $statDEL;
-			break;
-		 case Booker::STATTELL:
-			$t = $statTELL;
-			break;
-		 case Booker::STATASK:
-			$t = $statASK;
-			break;
-		 case Booker::STATNOTPAID:
-			$t = $statNOPAY;
-			break;
-		 case Booker::STATOK:
-			$t = $statOK;
-			break;
-		 case Booker::STATCANCEL:
-			$t = $statCANCEL;
-			break;
-		 default:
-			break;
+		if (array_key_exists($t,$statnames)) {
+			$one->status = $statnames[$t];
+		} else {
+			$one->status = $t;
 		}
-		$one->status = $t;
 		switch ($row['payment']) {
 		 case Booker::STATFREE:
  			$one->paid = NULL;
@@ -298,7 +280,7 @@ EOS;
 		$detail = $this->Lang('whatovrday',$what,$on);
 		$approve = $this->Lang('email_approve',$detail);
 		$reject = $this->Lang('email_reject',$detail);
-		$notify = $this->Lang('email_changed',$detail); //ETC
+		$notify = $this->Lang('email_ask',$detail);
 
 		$jsfuncs[] =<<<EOS
 function modalsetup(tg,\$d) {
@@ -519,15 +501,15 @@ $tplvars['title_future'] = $this->Lang('future');
 
 //BOOKERS TAB (& FORM)
 $tplvars['startform2'] = $this->CreateFormStart($id,'adminbooker',$returnid,
-	'POST','','','',array('custmsg'=>''));
+	'POST','','','',array('active_tab'=>'people','custmsg'=>''));
 $tplvars['start_people_tab'] = $this->StartTab('people');
 $tablerows[2] = 0;
 
 $histdata = FALSE;
 $bkrs = array();
-$sql = 'SELECT * FROM '.$this->BookerTable.' ORDER BY name';
-$rows = $db->GetArray($sql);
-if ($rows) {
+$sql = 'SELECT booker_id,name,publicid,passhash,addwhen,active FROM '.$this->BookerTable.' ORDER BY name';
+$data = $db->GetArray($sql);
+if ($data) {
 	$sb = $this->Lang('booker');
 	$st = $utils->GetZoneTime('UTC'); //'now' timestamp with same zone as booking data
 	$dt = new DateTime('@0',NULL);
@@ -551,7 +533,7 @@ if ($rows) {
 		$t = sprintf($deltip,$sb);
 		$icon7 = sprintf($icondel,$t,$t);
 	}
-	foreach ($rows as $row) {
+	foreach ($data as $row) {
 		$bookerid = (int)$row['booker_id'];
 		$one = new stdClass();
 		$one->name = ($pper) ?
@@ -626,18 +608,19 @@ if ($rows) {
 		$one->sel = $this->CreateInputCheckbox($id,'selbkr[]',$bookerid,-1,'title="'.$t.'"');
 		$bkrs[] = $one;
 	}
-} //$rows
+} //$data
 $pcount = count($bkrs);
 $tablerows[2] = $pcount;
 $tplvars['pcount'] = $pcount;
 
-if($padd)
-	$tplvars['addbooking'] = $this->CreateLink($id,'adminbooker',$returnid,
+/*if($padd)
+	$tplvars['addbooking'] = $this->CreateLink($id,'processrequest',$returnid,
 		 $theme->DisplayImage('icons/system/newobject.gif',$this->Lang('addbooking'),'','','systemicon'),
-		 array('booker_id'=>-1,'task'=>'add'),'',FALSE,FALSE,'')
-	 .' '.$this->CreateLink($id,'adminbooker',$returnid,
+		 array('history_id'=>-1,'task'=>'add'),'',FALSE,FALSE,'')
+	 .' '.$this->CreateLink($id,'processrequest',$returnid,
 		 $this->Lang('addbooking'),
-		 array('booker_id'=>-1,'task'=>'add'),'',FALSE,FALSE,'class="pageoptions"');
+		 array('history_id'=>-1,'task'=>'add'),'',FALSE,FALSE,'class="pageoptions"');
+*/
 if ($pcount > 0) {
 	$tplvars += array(
 	 'bookers' => $bkrs,
@@ -734,10 +717,20 @@ LEFT JOIN $this->UserTable U ON I.owner = U.user_id
 ORDER BY I.name
 EOS;
 //TODO $utils->SafeExec()
-$rs = $db->Execute($sql);
-if ($rs) {
+$data = $db->GetArray($sql);
+if ($data) {
 	$uid = ($owned) ? get_userid(FALSE) : 0; //current user
-	while ($row = $rs->FetchRow()) {
+	foreach ($data as $row) {
+/*$data = array
+ 0 => array
+'item_id' => string '10001'
+'alias' => string 'allcourts'
+'name' => string 'All courts'
+'owner' => null
+'active' => string '1'
+'first_name' => null
+'last_name' => null
+*/
 		//omit some choices when editing, but current user hasn't admin permission and doesn't own the item
 		$skip = $owned && $mod && !$padm && $row['owner'] > 0 && $row['owner'] != $uid;
 		$item_id	= (int)$row['item_id'];
@@ -746,7 +739,7 @@ if ($rs) {
 		$one = new stdClass();
 		//TODO make this sortable
 		if ($mod)
-			$one->name = $this->CreateLink($id,'process',$returnid,
+			$one->name = $this->CreateLink($id,'processitem',$returnid,
 				strip_tags($row['name']),
 				array('item_id'=>$item_id,'task'=>'edit'));
 		else
@@ -786,8 +779,7 @@ if ($rs) {
 			} else
 				$one->ownername = '';
 		}
-
-		if ($isitem && $histdata) { //group data in HistoryTable not translated into DataTable so no see/edit
+		if ($histdata) {
 			//TODO CHECK ok to ignore group bookings? i.e. HistoryTable has group-derived entries ?
 			$belongs = array_filter($histdata,function($v)use($item_id){return $v['I'] == $item_id;});
 			if ($belongs) {
@@ -829,7 +821,7 @@ if ($rs) {
 
 			$t = sprintf($exporttip,$si); //($isitem)?$si:$sg);
 			$t = sprintf($iconexport,$t,$t);
-			$one->export = $this->CreateLink($id,'process','',$t,array('item_id'=>$item_id,'task'=>'export'));
+			$one->export = $this->CreateLink($id,'processitem',$returnid,$t,array('item_id'=>$item_id,'task'=>'export'));
 		} else {
 			$count = 0;
 			$first = '';
@@ -853,21 +845,21 @@ if ($rs) {
 
 		$t = sprintf($seetip,($isitem)?$si:$sg);
 		$t = sprintf($iconsee,$t,$t);
-		$one->see = $this->CreateLink($id,'process','',$t,array('item_id'=>$item_id,'task'=>'see'));
+		$one->see = $this->CreateLink($id,'processitem',$returnid,$t,array('item_id'=>$item_id,'task'=>'see'));
 
 		if ($mod && !$skip) {
 			if ($row['active'] > 0)
-				$one->active = $this->CreateLink($id,'process',$returnid,$iconyes,
+				$one->active = $this->CreateLink($id,'processitem',$returnid,$iconyes,
 					array('item_id'=>$item_id,'task'=>'toggle','active'=>TRUE));
 			elseif ($row['active'] == 0) //it's inactive so create an activate-link
-				$one->active = $this->CreateLink($id,'process',$returnid,$iconno,
+				$one->active = $this->CreateLink($id,'processitem',$returnid,$iconno,
 					array('item_id'=>$item_id,'task'=>'toggle','active'=>FALSE));
 			else
 				$one->active = ''; //fake-deleted
 
 			$t = sprintf($edittip,($isitem)?$si:$sg);
 			$t = sprintf($iconedit,$t,$t);
-			$one->edit = $this->CreateLink($id,'process',$returnid,$t,array('item_id'=>$item_id,'task'=>'edit'));
+			$one->edit = $this->CreateLink($id,'processitem',$returnid,$t,array('item_id'=>$item_id,'task'=>'edit'));
 		} else {
 			if ($row['active'] > 0)
 				$one->active = $yes;
@@ -881,7 +873,7 @@ if ($rs) {
 		if ($padd) {
 			$t = sprintf($copytip,($isitem)?$si:$sg);
 			$t = sprintf($iconcopy,$t,$t);
-			$one->copy = $this->CreateLink($id,'process','',$t,array('item_id'=>$item_id,'task'=>'copy'));
+			$one->copy = $this->CreateLink($id,'processitem',$returnid,$t,array('item_id'=>$item_id,'task'=>'copy'));
 		} else {
 			$one->copy = '';
 		}
@@ -890,7 +882,7 @@ if ($rs) {
 			$s = ($isitem)?$si:$sg;
 			$t = sprintf($deltip,$s);
 			$t = sprintf($icondel,$t,$t);
-			$one->delete = $this->CreateLink($id,'process',$returnid,$t,array('item_id'=>$item_id,'task'=>'delete'));
+			$one->delete = $this->CreateLink($id,'processitem',$returnid,$t,array('item_id'=>$item_id,'task'=>'delete'));
 		} else {
 			$one->delete = '';
 		}
@@ -910,9 +902,7 @@ if ($rs) {
 			$gcount++;
 		}
 	}
-	$rs->Close();
-}
-
+} //data
 if ($icount > 0 || $gcount > 0) {
 	$tplvars['own'] = $owned;
 	if ($pdev)
@@ -923,7 +913,8 @@ if ($icount > 0 || $gcount > 0) {
 }
 
 //RESOURCES TAB
-$tplvars['startform3'] = $this->CreateFormStart($id,'process',$returnid);
+$tplvars['startform3'] = $this->CreateFormStart($id,'processitem',$returnid,
+	'POST','','','',array('active_tab'=>'items'));
 $tplvars['start_items_tab'] = $this->StartTab('items');
 
 $tablerows[3] = $icount;
@@ -996,10 +987,10 @@ EOS;
 	$tplvars['noitems'] = $this->Lang('noitems');
 
 if ($padd) {
-	$tplvars['additem'] = $this->CreateLink($id,'process',$returnid,
+	$tplvars['additem'] = $this->CreateLink($id,'processitem',$returnid,
 		 $theme->DisplayImage('icons/system/newobject.gif',$this->Lang('additem'),'','','systemicon'),
 		 array('item_id'=>-1,'task'=>'add'),'',FALSE,FALSE,'')
-	 .' '.$this->CreateLink($id,'process',$returnid,
+	 .' '.$this->CreateLink($id,'processitem',$returnid,
 		 $this->Lang('additem'),
 		 array('item_id'=>-1,'task'=>'add'),'',FALSE,FALSE,'class="pageoptions"');
 
@@ -1011,7 +1002,8 @@ if ($padd) {
 
 //GROUPS TAB
 $tplvars['start_grps_tab'] = $this->StartTab('groups');
-$tplvars['startform4'] = $this->CreateFormStart($id,'process',$returnid);
+$tplvars['startform4'] = $this->CreateFormStart($id,'processitem',$returnid,
+	'POST','','','',array('active_tab'=>'groups'));
 
 $tablerows[4] = $gcount;
 $tplvars['gcount'] = $gcount;
@@ -1085,10 +1077,10 @@ EOS;
 	$tplvars['nogroups'] = $this->Lang('nogroups');
 
 if ($mod) {
-	$tplvars['addgrp'] = $this->CreateLink($id,'process',$returnid,
+	$tplvars['addgrp'] = $this->CreateLink($id,'processitem',$returnid,
 		 $theme->DisplayImage('icons/system/newobject.gif',$this->Lang('addgroup'),'','','systemicon'),
 		 array('item_id'=>-Booker::MINGRPID,'task'=>'add'),'',FALSE,FALSE,'')
-	 .' '.$this->CreateLink($id,'process',$returnid,
+	 .' '.$this->CreateLink($id,'processitem',$returnid,
 		 $this->Lang('addgroup'),
 		 array('item_id'=>-Booker::MINGRPID,'task'=>'add'),'',FALSE,FALSE,'class="pageoptions"');
 	$tplvars['importbtn4'] = $tplvars['importbtn3'];
@@ -1096,12 +1088,14 @@ if ($mod) {
 }
 
 //REPORTS TAB (&FORM)
-$tplvars['startform5'] = $this->CreateFormStart($id,'processreport',$returnid);
+$tplvars['startform5'] = $this->CreateFormStart($id,'processreport',$returnid,
+	'POST','','','',array('active_tab'=>'reports'));
 $tplvars['start_reports_tab'] = $this->StartTab('reports');
 //TODO content
 
 //SETTINGS TAB
-$tplvars['startform6'] = $this->CreateFormStart($id,'setprefs',$returnid);
+$tplvars['startform6'] = $this->CreateFormStart($id,'setprefs',$returnid,
+	'POST','','','',array('active_tab'=>'settings'));
 $tplvars['start_settings_tab'] = $this->StartTab('settings');
 if ($pset) {
 	$settings = array();
@@ -1571,7 +1565,7 @@ EOS;
 }
 
 //hacky js here to work around tab-specific forms, i.e. no single page-tab object
-$jsloads[] = <<<EOS
+/*$jsloads[] = <<<EOS
  $('input[type="submit"]').click(function() {
   var active = $('#page_tabs > .active');
   $(this).closest('form').append("<input type='hidden' name='{$id}active_tab' value='"+
@@ -1580,6 +1574,7 @@ $jsloads[] = <<<EOS
  });
 
 EOS;
+*/
 
 $jsfuncs[] = '$(document).ready(function() {
 ';

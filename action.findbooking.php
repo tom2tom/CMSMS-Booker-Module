@@ -6,82 +6,119 @@
 #----------------------------------------------------------------------
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
+
 /*
-if arrive via frontend redirect
-$params array
- 'item_id'=>
- 'startat'=>,
- 'range'=>
- 'view'=>
- MAYBE
- 'bookat'=>
-or upon return from form
- 'item_id'=>
- 'startat'=>
- 'range'=>
- 'view'=>
+if arrive via frontend redirect, $params array
+ 'itempick' => int
+ 'action'=>'findbooking',
+ 'returnid'=>page no.
+and upon return from form
+ 'findpick'=>,
+ 'findfirst'=>,
+ 'findlast'=>,
+ 'finduser'=>,
+ 'findusertype'=>,
+ 'item_id'=>,
+ 'pagerows'=>,
+ 'search'=>,
+ 'searchsel'=>,
  'submit'=> OR 'cancel'=>
-MORE
 OR admin action
-'find' =>
 'active_tab' =>
 'action' => string 'adminbooking'
 */
-//parameter keys used locally, but not to be cached before departure
+//parameter keys filtered out before redirect etc
 $localparams = array(
+	'action',
 	'cancel',
-	'find', //not set here, but don't return anyway
-	'findchooser',
 	'findfirst',
 	'findlast',
+	'findpick',
 	'finduser',
 	'findusertype',
+	'pagerows',
 	'search',
 	'searchsel',
 	'submit'
 );
 
-$cache = Booker\Cache::GetCache($this);
 $utils = new Booker\Utils();
-$utils->RetrieveParameters($cache,$params);
-
-if (isset($params['cancel'])) { //user cancelled
-	if (!(is_numeric($params['startat']) || strtotime($params['startat']))) {
-		$params['message'] = $this->Lang('err_system').' '.$params['startat'];
-		$params['startat'] = (int)(time()/86400);
-	} elseif (!isset($params['message']))
-		$params['message'] = '';
-	$utils->SaveParameters($cache,$params,$localparams);
-	$this->Redirect($id,$params['action'],$params['returnid'],
-		array('storedparams'=>$params['storedparams']));
+$admin = isset($params['active_tab']); //TODO
+if (!$admin) { //if frontend
+//	$cache = Booker\Cache::GetCache($this);
+	$utils->UnFilterParameters($params);
 }
 
+/*$params[] after retrieval
+ 'returnid' => int
+ 'itempick' => int 10001
+ 'action' => string
+ 'range' => int 0
+ 'item_id' => int 10001
+ 'cartkey' => string
+ 'resume' => array
+     0 => string 'default'
+*/
+
+if (isset($params['cancel'])) { //user cancelled
+	if (!$admin) { //frontend
+		do {
+			$resume = array_pop($params['resume']);
+		} while ($resume == $params['action'] && $params['resume']);
+		if ($resume == $params['action']) {
+			$resume = 'default'; //should never happen
+		}
+		$newparms = $utils->FilterParameters($params,$localparams);
+		$this->Redirect($id,$resume,$params['returnid'],$newparms);
+	} else {
+		$newparms = array();
+		if (isset($params['active_tab']))
+			$newparms['active_tab'] = $params['active_tab'];
+		$this->Redirect($id,$params['resume'],'',$newparms);
+	}
+}
+
+$utils->DecodeParameters($params,'finduser');
+
 if (isset($params['submit'])) {
-	$params['chooser'] = $params['findchooser'];
+	$params['itempick'] = $params['findpick'];
 	if (!empty($params['searchsel'])) {
 		$use = (int)reset($params['searchsel']);
 		if ($use) {
 			$use = $db->GetOne('SELECT slotstart FROM '.$this->DataTable.' WHERE bkg_id=?',array($use));
 			if ($use) {
-				$params['startat'] = (int)$use;
+				$params['showfrom'] = (int)$use;
 			}
 		}
-//		$params['slotid'] = $use; //go directly to 'request' view
+//		$params['bkgid'] = $use; //go directly to 'request' view
 	}
-	$utils->SaveParameters($cache,$params,$localparams);
-	$this->Redirect($id,$params['action'],$params['returnid'],
-		array('storedparams'=>$params['storedparams']));
+	do {
+		$resume = array_pop($params['resume']);
+	} while ($resume == $params['action'] && $params['resume']);
+	if ($resume == $params['action']) {
+		$resume = 'default'; //should never happen
+	}
+	$newparms = $utils->FilterParameters($params,$localparams);
+	$this->Redirect($id,$resume,$params['returnid'],$newparms);
 }
 
-if (isset($params['item_id'])) {
-	$item_id = (int)$params['item_id'];
-	$is_group = ($item_id >= Booker::MINGRPID);
-	$idata = $utils->GetItemProperty($this,$item_id,'name');
-	$choices = $utils->GetItemFamily($this,$item_id);
+$overday = ($utils->GetInterval($this,$params['item_id'],'slot') >= 84600);
+$idata = $utils->GetItemProperty($this,$params['item_id'],array('dateformat','timeformat','timezone'));
+$now = $utils->GetZoneTime($idata['timezone']);
+$dts = new DateTime('@'.$now,NULL);
+if ($admin) {
+	$dayfmt='';
+	$timefmt='';
+	$nowformat = ($overday) ? 'YYYY-M-D':'YYYY-M-D H:mm';
+	$example = $utils->IntervalFormat($this,$dts,$nowformat,FALSE);
 } else {
-	$idata = array('name'=>$this->Lang('all'));
-	$choices = $db->GetAssoc('SELECT item_id,name FROM '.$this->ItemTable.' WHERE active>0');
+	$dayfmt =  $idata['dateformat'];
+	$timefmt = $idata['timeformat'];
+	$example = $utils->IntervalFormat($this,$dts,$dayfmt,TRUE);
+	if (!$overday)
+		$example .= ' '.$dts->format($timefmt);
 }
+$datetimefmt = $utils->DateTimeFormat(FALSE,$admin,TRUE,!$overday,$dayfmt,$timefmt);
 
 //script accumulators
 $jsfuncs = array();
@@ -90,17 +127,18 @@ $jsincs = array();
 $baseurl = $this->GetModuleURLPath();
 $tableid = 'details';
 
-$tplvars = array();
+$jsloads[] = <<<EOS
+ $('#needjs').css('display','none');
 
-$utils->SaveParameters($cache,$params,$localparams);
-$tplvars['startform'] = $this->CreateFormStart($id,'findbooking',$returnid,
-	'POST','','','',array(
-	'item_id'=>$item_id,
-	'storedparams'=>$params['storedparams']
-	));
-$tplvars['endform'] = $this->CreateFormEnd();
-$hidden = NULL; //TODO
-$tplvars['hidden'] = $hidden;
+EOS;
+
+$hidden = $utils->FilterParameters($params,$localparams);
+$tplvars = array(
+	'needjs' => $this->Lang('needjs'),
+	'startform' => $this->CreateFormStart($id,'findbooking',$returnid,'POST','','','',$hidden),
+	'endform' => $this->CreateFormEnd(),
+	'hidden' => NULL
+);
 
 if (!empty($params['message']))
 	$tplvars['message'] = $params['message'];
@@ -111,29 +149,28 @@ $selects = array();
 
 $oneset = new stdClass();
 $oneset->title = $this->Lang('title_item');
-if ($choices) {
-	if (count($choices) > 1) {
-		asort($choices,SORT_NATURAL);
-		$t2 = isset($params['findchooser']) ? $params['findchooser'] : $item_id;
-		$t1 = $this->CreateInputDropdown($id,'findchooser',array_flip($choices),-1,$t2,'id="'.$id.'chooser"');
-	} else {
-		$t1 = $idata['name'];
-	}
+$current = (isset($params['findpick'])) ? $params['findpick'] : $params['itempick'];
+$chooser = $utils->GetItemPicker($this,$id,'findpick',$params['firstpick'],$current);
+if ($chooser) {
+	$oneset->input = $chooser;
+} elseif (isset($params['item_id'])) {
+	$oneset->input = $utils->GetItemNameForID($params['item_id']);
 } else {
-	$t1 = $idata['name'];
+	$oneset->input = $this->Lang('all');
 }
-$oneset->input = $t1;
 $selects[] = $oneset;
 
 $oneset = new stdClass();
 $oneset->title = $this->Lang('start');
 
 $t1 = isset($params['findfirst']) ? $params['findfirst'] : '';
-$t1 = $this->CreateInputText($id,'findfirst',$t1,10);
+$t1 = $this->CreateInputText($id,'findfirst',$t1,18,20,'title="'.$this->Lang('tip_enter',$example).'"');
 $t1 = str_replace('class="cms_textfield"','class="dateinput cms_textfield"',$t1);
+
 $t2 = isset($params['findlast']) ? $params['findlast'] : '';
-$t2 = $this->CreateInputText($id,'findlast',$t2,10);
+$t2 = $this->CreateInputText($id,'findlast',$t2,18,20,'title="'.$this->Lang('tip_enter',$example).'"');
 $t2 = str_replace('class="cms_textfield"','class="dateinput cms_textfield"',$t2);
+
 $oneset->input = $this->Lang('showrange',$t1,$t2);
 $selects[] = $oneset;
 
@@ -154,7 +191,7 @@ $tplvars['selects'] = $selects;
 
 if (isset($params['search'])) {
 /* use $params[] members:
- 'findchooser' => int item_id
+ 'findpick' => int item_id
  'findfirst' => string e.g. '2016-07-14'
  'findlast' => string e.g. ''
  'findusertype' => int 1 or 2 for exact or partial name-match
@@ -162,7 +199,7 @@ if (isset($params['search'])) {
  */
 	$utils = new Booker\Utils();
 	$cond = array();
-	$t = (int)$params['findchooser'];
+	$t = (int)$params['findpick'];
 	if ($t < Booker::MINGRPID) {
 		$cond[] = 'D.item_id='.$t;
 	} else {
@@ -190,7 +227,7 @@ if (isset($params['search'])) {
 		$cond[] = 'D.slotstart<='.$dts->getTimestamp();
 	}
 	$sql = <<<EOS
-SELECT D.bkg_id,D.slotstart,D.slotlen,B.name AS user,I.name FROM {$this->DataTable} D
+SELECT D.bkg_id,D.slotstart,D.slotlen,B.name,I.name AS what FROM {$this->DataTable} D
 JOIN {$this->BookerTable} B ON D.booker_id=B.booker_id
 JOIN {$this->ItemTable} I ON D.item_id=I.item_id
 EOS;
@@ -210,10 +247,10 @@ EOS;
 		while ($one = $rs->FetchRow()) {
 			$oneset = new stdClass();
 			$oneset->rowclass = $class;
-			$oneset->what = $one['name'];
+			$oneset->what = $one['what'];
 			$t = (int)$one['slotstart'];
 			$oneset->when = $utils->RangeDescriptor($this,$t,$t+$one['slotlen'],$daynames); //Mon 2016-9-13 from 9:00 to 9:59';
-			$oneset->who = $one['user'];
+			$oneset->who = $one['name'];
 			$oneset->sel = $this->CreateInputCheckbox($id,'searchsel[]',(int)$one['bkg_id'],-1,'class="pagecheckbox"');
 			$items[] = $oneset;
 			$class = ($class = 'row1') ? 'row2':'row1';
@@ -322,12 +359,95 @@ EOS;
 	$count = 0;
 }
 $tplvars['count'] = $count;
-
-$xtra = ($count) ? '' : 'disabled="disabled"';
-$tplvars['submit'] = $this->CreateInputSubmit($id,'submit',$this->Lang('useselection'),$xtra);
-$tplvars['cancel'] = $this->CreateInputSubmit($id,'cancel',$this->Lang('cancel'));
 $tplvars['search'] = $this->CreateInputSubmit($id,'search',$this->Lang('find'));
 
+if (!$admin) { //frontend
+	$xtra = ($count) ? '' : 'disabled="disabled"';
+	$tplvars['submit'] = $this->CreateInputSubmit($id,'submit',$this->Lang('useselection'),$xtra);
+	$tplvars['cancel'] = $this->CreateInputSubmit($id,'cancel',$this->Lang('cancel'));
+
+	$jsfuncs[] = <<<EOS
+function showerr(msg) {
+ alert(msg);
+}
+
+EOS;
+} else { //admin search
+	$tplvars['submit'] = NULL;
+	$tplvars['cancel'] = $this->CreateInputSubmit($id,'cancel',$this->Lang('close'));
+
+	$jsincs[] =
+'<script type="text/javascript" src="'.$baseurl.'/include/jquery.modalconfirm.min.js"></script>';
+
+	$tplvars['yes'] = '';
+	$tplvars['no'] = $this->Lang('close');
+	$jsfuncs[] = <<<EOS
+function showerr(msg) { //QQQ $.modalconfirm.show({ //error message, ok-button only, prompt msg
+ $.modalconfirm.show({
+  overlayID: 'confirm',
+  popupID: 'confgeneral',
+  seeButtons: 'deny',
+  preShow: function(tg,\$d) {
+   var para = \$d.children('p:first')[0];
+   para.innerHTML = msg;
+   \$d.find('#mc_deny').val('{$this->Lang('close')}');
+  }
+ });
+}
+
+EOS;
+}
+
+//js wants quoted period-names
+$t = $this->Lang('longdays');
+$dnames = "'".str_replace(",","','",$t)."'";
+$t = $this->Lang('shortdays');
+$sdnames = "'".str_replace(",","','",$t)."'";
+$t = $this->Lang('longmonths');
+$mnames = "'".str_replace(",","','",$t)."'";
+$t = $this->Lang('shortmonths');
+$smnames = "'".str_replace(",","','",$t)."'";
+$t = $this->Lang('meridiem');
+$meridiem = "'".str_replace(",","','",$t)."'";
+
+$jsfuncs[] = <<<EOS
+function validate(ev) {
+ var f = '{$datetimefmt}',
+  \$os = $('#{$id}findfirst'),
+  s = \$os.val(),
+  \$oe = $('#{$id}findlast'),
+  e = \$oe.val(),
+  ds, de, ok;
+ if (s) {
+  ds = fmt.parseDate(s,f); //null upon failure
+ } else {
+  ds = false;
+ }
+ if (e) {
+  de = fmt.parseDate(e,f);
+ } else {
+  de = false;
+ }
+ ok = (ds && de) ? (de >= ds) : (ds !== null && de !== null);
+ if (ok) {
+  var dt;
+  if (ds) {
+   dt = fmt.formatDate(s,f);
+   \$os.val(dt);
+  }
+  if (de) {
+   dt = fmt.formatDate(e,f);
+   \$oe.val(dt);
+  }
+  return true;
+ }
+ showerr('{$this->Lang('err_badtime')}');
+ ev.stopImmediatePropagation();
+ ev.preventDefault();
+ return false;
+}
+
+EOS;
 
 $jsloads[] = <<<EOS
  $('#{$id}submit').prop('disabled',true).bind('click',validate);
@@ -353,25 +473,35 @@ $stylers = <<<EOS
 EOS;
 
 $jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/include/moment.min.js"></script>
 <script type="text/javascript" src="{$baseurl}/include/pikaday.min.js"></script>
-<script type="text/javascript" src="{$baseurl}/include/jquery.pikaday.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/include/pikaday.jquery.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/include/php-date-formatter.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/include/jquery.watermark.min.js"></script>
 EOS;
 
 $nextm = $this->Lang('nextm');
 $prevm = $this->Lang('prevm');
-//js wants quoted period-names
-$t = $this->Lang('longmonths');
-$mnames = "'".str_replace(",","','",$t)."'";
-$t = $this->Lang('longdays');
-$dnames = "'".str_replace(",","','",$t)."'";
-$t = $this->Lang('shortdays');
-$sdnames = "'".str_replace(",","','",$t)."'";
 
 $jsloads[] = <<<EOS
- $('.dateinput').Pikaday({
-  container: document.getElementById('calendar'),
-  format: 'YYYY-MM-DD',
+ var fmt = new DateFormatter({
+  longDays: [{$dnames}],
+  shortDays: [{$sdnames}],
+  longMonths: [{$mnames}],
+  shortMonths: [{$smnames}],
+  meridiem: [{$meridiem}],
+  ordinal: function (number) {
+   var n = number % 10, suffixes = {1: 'st', 2: 'nd', 3: 'rd'};
+   return Math.floor(number % 100 / 10) === 1 || !suffixes[n] ? 'th' : suffixes[n];
+  }
+ });
+ $('.dateinput').watermark().pikaday({
+  format: '{$datetimefmt}',
+  reformat: function(target,f) {
+   return fmt.formatDate(target,f);
+  },
+  getdate: function(target,f) {
+   return fmt.parseDate(target,f);
+  },
   i18n: {
    previousMonth: '{$prevm}',
    nextMonth: '{$nextm}',
@@ -383,58 +513,18 @@ $jsloads[] = <<<EOS
 
 EOS;
 
-$jsfuncs[] = <<<EOS
-function showerr(msg) {
- confirm(msg);
-}
-function validate(ev) {
- var \$os = $('input[name="{$id}findfirst"]'),
-  s = \$os.val(),
-  \$oe = $('input[name="{$id}findlast"]'),
-  e = \$oe.val(),
-  ds, de, ok;
- if (s) {
-  ds = (!isNaN(Date.parse(s))) ? new Date(s) : null;
- } else {
-  ds = false;
- }
- if (e) {
-  de = (!isNaN(Date.parse(e))) ? new Date(e) : null;
- } else {
-  de = false;
- }
- ok = (ds && de) ? (de >= ds) : (ds !== null && de !== null);
- if (ok) {
-  var f = 'YYYY-MM-DD',
-   dn;
-  if (ds) {
-   dn = moment(ds).format(f);
-   \$os.val(dn);
-  }
-  if (de) {
-   dn = moment(de).format(f);
-   \$oe.val(dn);
-  }
-  return true;
- }
- showerr('{$this->Lang('err_badtime')}');
- ev.stopImmediatePropagation();
- ev.preventDefault();
- return false;
-}
-
-EOS;
-
 $stylers .= <<<EOS
 <link rel="stylesheet" type="text/css" href="{$baseurl}/css/public.css" />
 EOS;
-$customcss = $utils->GetStylesURL($this,$item_id);
-if ($customcss)
-	$stylers .= <<<EOS
+if (isset($params['item_id'])) {
+	$customcss = $utils->GetStylesURL($this,$params['item_id']);
+	if ($customcss)
+		$stylers .= <<<EOS
 <link rel="stylesheet" type="text/css" href="{$customcss}" />
 EOS;
+}
 
-//porting heredoc-var newlines is a problem for qouted strings! workaround ...
+//porting heredoc-var newlines is a problem for quoted strings! workaround ...
 $stylers = str_replace("\n",'',$stylers);
 $tplvars['jsstyler'] = <<<EOS
 var \$head = $('head'),

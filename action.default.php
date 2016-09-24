@@ -7,63 +7,100 @@
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
 
-/*
-//DEBUG tests
-//$funcs = new Booker\RepeatTester($this);
-$funcs = new Booker\CacheTester($this);
-$funcs->Run();
-*/
-
-//parameter keys used locally, but not to be cached before departure
+//parameter keys filtered out before redirect etc
 $localparams = array(
+	'action',
+	'bkgid',
 	'cart',
 	'clickat',
+	'find',
 	'item',
-	'ranger',
+	'listformat',
+	'message',
+	'module',
+	'newlist',
+	'pick',
+	'rangepick',
+	'request',
 	'slide',
-	'slotid',
 	'toggle',
+//	'view',
 	'zoomin',
 	'zoomout'
 );
 
-$cache = Booker\Cache::GetCache($this);
 $utils = new Booker\Utils();
-$t = (isset($params['toggle'])) ? 'view' : FALSE; //don't want this one to be lost during restore
-$cart = $utils->RetrieveParameters($cache,$params,$t);
+//$cache = Booker\Cache::GetCache($this);
+//params to scrub from the cache, if any, before merging that with current $params
+$scrubs = array('booker_id','fee');
+if (!empty($params['showfrom'])) //keep current value of this
+	$scrubs[] = 'showfrom';
+if (!empty($params['itempick'])) //ditto
+	$scrubs[] = 'itempick';
+if (!empty($params['newlist']))
+	$scrubs[] = 'newlist';
+$utils->UnFilterParameters($params,$scrubs);
 
-if (!empty($params['item'])) {
+if (!empty($params['itempick'])) {
+	$item_id = (int)$params['itempick'];
+} elseif (!empty($params['item'])) {
 	$item_id = $utils->GetItemID($this,$params['item']);
-	$params['item_id'] = $item_id;
-} elseif (!empty($params['item_id']))
+} elseif (!empty($params['item_id'])) {
 	$item_id = (int)$params['item_id'];
-else
+} else {
 	$item_id = FALSE;
-if (isset($params['chooser'])) {
-	if ($params['chooser'] !== $item_id)
-		$item_id = (int)$params['chooser'];
+}
+if (!$item_id) {
+	$tplvars = array(
+		'title_error' => $this->Lang('error'),
+		'message' => $this->Lang('err_parm'),
+		'pagenav' => NULL
+	);
+	echo Booker\Utils::ProcessTemplate($this,'error.tpl',$tplvars);
+	return;
 }
 
-if ($item_id == FALSE) {
-	$tplvars = array(
-		'admin_nav' => '',
-		'title_error' => $this->Lang('error'),
-		'message' => $this->Lang('err_parm')
-	);
-$this->Crash();
-	echo Booker\Utils::ProcessTemplate($this,'error.tpl',$tplvars);
-	exit;
-}
+$params['item_id'] = $item_id;
+
+// get all data for the resource/group
+$idata = $utils->GetItemProperty($this,$item_id,'*');
+// get/setup cart for bookings
+$cache = Booker\Cache::GetCache($this);
+
+$cart = $utils->RetrieveCart($cache,$params,'',$idata['grossfees']); //TODO item-specific context
 $is_group = ($item_id >= Booker::MINGRPID);
+
+if (!isset($params['firstpick'])) {
+	$params['firstpick'] = ($is_group) ? $item_id : FALSE;
+}
+
+$dtw = new DateTime('@0',NULL);
+if (!empty($params['clickat'])) { //table-cell clicked
+	$dtw->modify($params['clickat']);
+} elseif (isset($params['showfrom'])) {
+	if (is_numeric($params['showfrom']))
+		$dtw->setTimestamp($params['showfrom']);
+	elseif (strtotime($params['showfrom']))
+		$dtw->modify($params['showfrom']);
+	else {
+		$st = $utils->GetZoneTime($idata['timezone']);
+		$dtw->setTimestamp($st);
+		$params['message'] = $this->Lang('err_system').' '.$params['showfrom'];
+	}
+	$dtw->setTime(0,0,0);
+} else {
+	$st = $utils->GetZoneTime($idata['timezone']);
+	$dtw->setTimestamp($st);
+}
+$dtw->modify('midnight'); //start of day
+$params['showfrom'] = $dtw->getTimestamp();
+
+$params['resume'] = array('default'); //redirects can [eventually] get back to here
 
 $publicperiods = $utils->RangeNames($this,array(0,1,2,3));
 
-//TODO customise $cart properties
-//$cart->setContext($context);
-//$cart->setPricesWithTax($pricesWithTax);
-
-if (isset($params['ranger'])) //first pref, so we can detect changes
-	$range = $params['ranger'];
+if (isset($params['rangepick'])) //first pref, so we can detect changes
+	$range = $params['rangepick'];
 elseif (isset($params['range']))
 	$range = $params['range'];
 else
@@ -73,9 +110,9 @@ if (is_numeric($range)) {
 	$range = (int)$range;
 	if ($range < 0 || $range >= count($publicperiods))
 		$range = $utils->GetDefaultRange($this,$item_id);
-} elseif ($range == '')
-	$range = 0;
-else { //assume text
+} elseif ($range == '') {
+	$range = Booker::RANGEDAY;
+} else { //assume text
 	$range = strtolower($params['range']); //english-only, no need for mb_convert_case()
 	$t = array_search($range,$publicperiods);
 	if ($t !== FALSE)
@@ -83,33 +120,53 @@ else { //assume text
 	else
 		$range = $utils->GetDefaultRange($this,$item_id);
 }
+$params['range'] = $range;
 
-// get all data for the resource/group
-$idata = $utils->GetItemProperty($this,$item_id,'*');
-
-if (isset($params['startat'])) {
-	$dts = new DateTime('1900-1-1',new DateTimeZone('UTC'));
-	if (is_numeric($params['startat']))
-		$dts->setTimestamp($params['startat']);
-	elseif (strtotime($params['startat']))
-		$dts->modify($params['startat']);
-	else {
-		$dts->setTimestamp(time());
-		$params['message'] = $this->Lang('err_system').' '.$params['startat'];
+if (isset($params['request'])) { //'book' button clicked or cell double-clicked
+	$newparms = $utils->FilterParameters($params,$localparams);
+	if (!empty($params['bkgid'])) { //target is already booked
+		$newparms['bkr_bkgid'] = $params['bkgid']; //normally excluded, but this time we want it
 	}
-	$dts->setTime(0,0,0);
-} else {
-	$dts = new DateTime('midnight',new DateTimeZone('UTC')); //start of today
+	if (!empty($params['clickat'])) {
+		$dtw->modify($params['clickat']);
+		$st = $dtw->getTimestamp();
+		if ($range == Booker::RANGEYR) {
+			//set nowish start-time on the selected day
+			$t = $utils->GetZoneTime($idata['timezone']);
+			$dtw->setTimestamp($t);
+			$t = (int)$dtw->format('G');
+			$slen = $utils->GetInterval($this,$item_id,'slot');
+			$st += (int)($t*3600/$slen)*$slen + 3600;
+		}
+	} else { //no slot was selected
+		//set nowish start-time as fallback
+		$st = $utils->GetZoneTime($idata['timezone']);
+		$slen = $utils->GetInterval($this,$item_id,'slot');
+		$st = (int)($st/$slen) * $slen + $slen + 3600;
+	}
+	$newparms['bkr_bookat'] = $st;
+	$this->Redirect($id,'requestbooking',$returnid,$newparms);
+} elseif (isset($params['find'])) {
+	if (!empty($params['clickat'])) {
+		$dtw->modify($params['clickat']);
+		$params['bookat'] = $dtw->getTimestamp();
+	}
+	$newparms = $utils->FilterParameters($params,$localparams);
+	$this->Redirect($id,'findbooking',$returnid,$newparms);
+} elseif (isset($params['cart'])) {
+	$params['task'] = 'see'; //facilitate buttons-creation
+	$newparms = $utils->FilterParameters($params,$localparams);
+	$this->Redirect($id,'opencart',$returnid,$newparms);
 }
-$params['startat'] = $dts->getTimestamp();
 
+//show bookings-data as table?
 $showtable = (empty($params['view']) || $params['view'] == 'table');
 if (isset($params['toggle']))
 	$showtable = !$showtable;
-
-if (isset($params['altview'])) {
-//	$this->Crash(); //should never happen if js is enabled
+if (isset($params['altview'])) { //should never happen if js is enabled
+//	$this->Crash(); 
 }
+$params['view'] = ($showtable)?'table':'list';
 
 if (!empty($params['slide'])) {
 	$arr = $utils->DisplayIntervals(); //non-translated form
@@ -117,8 +174,8 @@ if (!empty($params['slide'])) {
 	$t = (int)$params['slide'];
 	if (!($t == 1 || $t == -1))
 		$v .= 's';
-	$dts->modify($t.' '.$v);
-	$params['startat'] = $dts->getTimestamp();
+	$dtw->modify($t.' '.$v);
+	$params['showfrom'] = $dtw->getTimestamp();
 } elseif (!empty($params['zoomin'])) {
 	if ($range > 0)
 		$range -= 1;
@@ -127,95 +184,40 @@ if (!empty($params['slide'])) {
 		$range += 1;
 }
 
-if (!empty($params['slotid'])) {
-	$params['item_id'] = $item_id;
-	$params['range'] = $range;
-	$utils->SaveParameters($cache,$params,$localparams,$cart);
-	$this->Redirect($id,'requestbooking',$returnid,array(
-	 'storedparams'=>$params['storedparams']
-	 ));
-}
-
-if (!empty($params['cart'])) {
-	$params['item_id'] = $item_id;
-	$params['range'] = $range;
-	$utils->SaveParameters($cache,$params,$localparams,$cart);
-	$this->Redirect($id,'opencart',$returnid,array(
-	 'storedparams'=>$params['storedparams']
-	 ));
-}
-
-if (!empty($params['clickat'])) {
-	$t = strip_tags(html_entity_decode(trim($params['clickat'])));
-	$dts->modify($t);
-	$st = $dts->getTimestamp();
-	if (isset($params['zoomin'])
-	|| isset($params['zoomout'])
-	|| isset($params['toggle'])
-	|| $params['ranger'] != $params['range']
-	|| isset($params['chooser']) && $params['chooser'] != $params['item_id']) {
-		$params['startat'] = $st;
-	} elseif (isset($params['find'])) {
-		$params['item_id'] = $item_id;
-		$params['range'] = $range;
-		$utils->SaveParameters($cache,$params,$localparams,$cart);
-		$this->Redirect($id,'findbooking',$returnid,array(
-		 'bookat'=>$st,
-		 'storedparams'=>$params['storedparams']
-		 ));
-	} else {
-		//send parameters needed for resumption after submission
-		$params['item_id'] = $item_id;
-		$params['range'] = $range;
-		$utils->SaveParameters($cache,$params,$localparams,$cart);
-		$this->Redirect($id,'requestbooking',$returnid,array(
-		 'bookat'=>$st,
-		 'storedparams'=>$params['storedparams']
-		));
-	}
-} elseif (isset($params['request'])) {
-	//process unspecified booking
-	$params['item_id'] = $item_id;
-	$params['range'] = $range;
-	$utils->SaveParameters($cache,$params,$localparams,$cart);
-	$this->Redirect($id,'requestbooking',$returnid,array(
-	 'bookat'=>$params['startat'],
-	 'storedparams'=>$params['storedparams']
-	));
-} elseif (isset($params['find'])) {
-	$params['item_id'] = $item_id;
-	$params['range'] = $range;
-	$utils->SaveParameters($cache,$params,$localparams,$cart);
-	$this->Redirect($id,'findbooking',$returnid,array(
-	 'storedparams'=>$params['storedparams']
-	));
-}
-
 if (!empty($params['newlist']))
 	$idata['listformat'] = $params['listformat'];
 
-$tplvars = array();
+$jsfuncs = array(); //script accumulator
+$jsloads = array(); //document-ready funcs
+$jsincs = array(); //js includes
+$baseurl = $this->GetModuleURLPath();
+
+$jsloads[] = <<<EOS
+ $('#needjs').css('display','none');
+
+EOS;
+
+$tplvars = array('needjs'=>$this->Lang('needjs'));
 
 if (isset($params['message']))
 	$tplvars['message'] = $params['message'];
 
-$utils->SaveParameters($cache,$params,$localparams,$cart);
-$hidden = array();
-$hidden[] = $this->CreateInputHidden($id,'view',($showtable)?'table':'list');
-$hidden[] = $this->CreateInputHidden($id,'startat',$params['startat']);
-$hidden[] = $this->CreateInputHidden($id,'range',$range);
-$hidden[] = $this->CreateInputHidden($id,'item',$item_id);
-if ($showtable) {
-	$hidden[] = $this->CreateInputHidden($id,'clickat','');
-	$hidden[] = $this->CreateInputHidden($id,'slotid','');
-} else {
-	$hidden[] = $this->CreateInputHidden($id,'newlist','');
-}
-$hidden[] = $this->CreateInputHidden($id,'storedparams',$params['storedparams']);
-$tplvars['hidden'] = $hidden;
-
-$tplvars['startform'] = $this->CreateFormStart($id,'default',$returnid);
+$hidden = $utils->FilterParameters($params,$localparams);
+$tplvars['startform'] = $this->CreateFormStart($id,'default',$returnid,'POST','','','',$hidden);
 $tplvars['endform'] = $this->CreateFormEnd();
+
+$hidden = array();
+$names = array('showfrom');
+if ($showtable) {
+	$names[] = 'clickat';
+	$names[] = 'bkgid';
+} else {
+	$names[] = 'newlist';
+}
+foreach ($names as $one) {
+	$hidden[] = $this->CreateInputHidden($id,$one,'');
+}
+$tplvars['hidden'] = $hidden;
 
 if (!empty($idata['name'])) {
 	if ($is_group)
@@ -224,21 +226,23 @@ if (!empty($idata['name'])) {
 		$t = $this->Lang('title_booksfor',$idata['name'],'');
 } else {
 	$type = ($is_group) ? $this->Lang('group'):$this->Lang('item');
-	$t = $this->Lang('title_noname',$type,$idata['item_id']);
+	$t = $this->Lang('title_noname',$type,$item_id);
 	$t = $this->Lang('title_booksfor',$t,'');
 }
 
-$s = $utils->IntervalFormat($this,$dts,$idata['dateformat']);
 switch ($range) {
  case Booker::RANGEDAY:
-	$t .= ' '.$s;
+ 	$t .= ' '.$utils->IntervalFormat($this,$dtw,$idata['dateformat'],TRUE);
 	break;
  case Booker::RANGEWEEK:
  case Booker::RANGEMTH:
  case Booker::RANGEYR:
-	list($dts,$dte) = $utils->RangeStamps($params['startat'],$range);
+	list($dtw,$dte) = $utils->RangeStamps($params['showfrom'],$range);
+	$s = $dtw->format('Y');
 	$dte->modify('-1 day');
-	$e = $utils->IntervalFormat($this,$dte,$idata['dateformat']);
+	$withyr = ($dte->format('Y') != $s);
+	$s = $utils->IntervalFormat($this,$dtw,$idata['dateformat'],$withyr);
+	$e = $utils->IntervalFormat($this,$dte,$idata['dateformat'],TRUE);
 	$t .= ' '.$this->Lang('showrange',$s,$e);
 	break;
 }
@@ -249,11 +253,6 @@ if (!empty($idata['description']))
 $t = $utils->GetImageURLs($this,$idata['image'],$idata['name']);
 if ($t)
 	$tplvars['pictures'] = $t;
-
-$jsfuncs = array(); //script accumulator
-$jsloads = array(); //document-ready funcs
-$jsincs = array(); //js includes
-$baseurl = $this->GetModuleURLPath();
 
 //buttons
 
@@ -276,10 +275,10 @@ $actions1[] = $this->CreateInputSubmit($id,'zoomin',$this->Lang('zoomin'),
 	'title="'.$this->Lang('tip_zoomin').'"'.$xtra);
 
 $choices = $utils->RangeNames($this,array(0,1,2,3),FALSE,TRUE); //capitalised
-$actions1[] = $this->CreateInputDropdown($id,'ranger',array_flip($choices),-1,$range,'id="'.$id.'ranger"');
+$actions1[] = $this->CreateInputDropdown($id,'rangepick',array_flip($choices),-1,$range,'id="'.$id.'rangepick"');
 
 $jsloads[] = <<<EOS
- $('#{$id}ranger').change(function() {
+ $('#{$id}rangepick').change(function() {
   $(this).closest('form').trigger('submit');
  });
 
@@ -293,20 +292,16 @@ if ($showtable) {
 } else
 	$t = $this->Lang('table');
 
-$choices = $utils->GetItemFamily($this,$db,$item_id);
-if ($choices && count($choices) > 1) {
-	$chooser = TRUE;
-	asort($choices,SORT_NATURAL);
-	$actions1[] = $this->CreateInputDropdown($id,'chooser',array_flip($choices),-1,$item_id,'id="'.$id.'chooser"');
-
+$chooser = $utils->GetItemPicker($this,$id,'itempick',$params['firstpick'],$item_id);
+if ($chooser) {
+	$actions1[] = $chooser;
 	$jsloads[] = <<<EOS
- $('#{$id}chooser').change(function() {
+ $('#{$id}itempick').change(function() {
   $(this).closest('form').trigger('submit');
  });
 
 EOS;
-} else
-	$chooser = FALSE;
+}
 
 $actions1[] = $this->CreateInputSubmit($id,'toggle',$t,
 	'title="'.$this->Lang('tip_otherview').'"');
@@ -369,27 +364,62 @@ $tplvars['actions2'] = $actions2;
 
 $funcs2 = new Booker\Display($this);
 if ($showtable) {
-	//bookings-data table
-	$funcs2->Tabulate($tplvars,$idata,$params['startat'],$range);
-if (1)
+	$funcs2->Tabulate($tplvars,$idata,$params['showfrom'],$range);
+	$tplname = 'defaulttable.tpl';
+} else { //bookings-data text
+	$funcs2->Listify($tplvars,$idata,$params['showfrom'],$range);
+	$tplname = 'defaultlist.tpl';
+}
+
+if ($showtable) {
+//CHECKME PURPOSE booking-table th click() handler
+	$jsfuncs[] = <<<EOS
+function slot_activate() {
+ var idx = $(this).index();
+ if (idx === 0) //labels col
+ 	return;
+ slot_record(this);
+ var bkid = $(this).attr('id');
+ if (typeof bkid != 'undefined')
+  $('#{$id}bgkid').val(bkid);
+ $('#{$id}request').click();
+}
+function slot_record(el) {
+ var idx = $(el).index(),
+  table = $('#scroller')[0],
+  dt = table.rows[0].cells[idx].getAttribute('iso');
+ idx = $(el).parent().index();
+ dt += table.rows[idx+1].cells[0].getAttribute('iso');
+ $('#{$id}clickat').val(dt);
+}
+function slot_focus() {
+ slot_record(this);
+}
+function col_focus() {
+ var idx = $(this).index(),
+  table = $('#scroller')[0],
+  dt = table.rows[0].cells[idx].getAttribute('iso');
+ dt += table.rows[1].cells[0].getAttribute('iso');
+ $('#{$id}clickat').val(dt);
+}
+
+EOS;
 	$jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/include/jquery.stickyscroll.js"></script>
+<script type="text/javascript" src="{$baseurl}/include/tableHeadFixer.min.js"></script>
 EOS;
-//<script type="text/javascript" src="{$baseurl}/include/responsive-tables.js"></script>
-	else //DEBUG
-		$jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/include/jquery-ui.min.js"></script>
-<script type="text/javascript" src="{$baseurl}/include/table-scroll.js"></script>
+ 	$jsloads[] = <<<EOS
+ var \$table = $('#scroller');
+ \$table.find('th.periodname').click(col_focus);
+ \$table.find('td').click(slot_focus).dblclick(slot_activate);
+ \$table.tableHeadFixer({'left':1});
+
 EOS;
-} else {
-	//bookings-data text
-	$funcs2->Listify($tplvars,$idata,$params['startat'],$range);
 }
 
 $jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/include/moment.min.js"></script>
 <script type="text/javascript" src="{$baseurl}/include/pikaday.min.js"></script>
-
+<script type="text/javascript" src="{$baseurl}/include/pikaday.jquery.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/include/php-date-formatter.min.js"></script>
 EOS;
 
 $nextm = $this->Lang('nextm');
@@ -401,15 +431,13 @@ $t = $this->Lang('longdays');
 $dnames = "'".str_replace(",","','",$t)."'";
 $t = $this->Lang('shortdays');
 $sdnames = "'".str_replace(",","','",$t)."'";
-$overday = ($utils->GetInterval($this,$item_id,'slot') >= 84600);
-$momentfmt = ($overday) ? 'YYYY-MM-DD':'YYYY-MM-DD h:mm';
 
 $jsloads[] = <<<EOS
- var ob = document.getElementById('{$id}pick');
- new Pikaday({
-  field: document.getElementById('calendar'),
-  trigger: ob,
-  format: 'YYYY-MM-DD',
+ $('#{$id}pick').click(function(evt) {
+   evt.preventDefault();
+   return false;
+ }).pikaday({
+  field: document.getElementById('{$id}showfrom'),
   i18n: {
    previousMonth: '{$prevm}',
    nextMonth: '{$nextm}',
@@ -418,97 +446,22 @@ $jsloads[] = <<<EOS
    weekdaysShort: [{$sdnames}]
   },
   onClose: function() {
-   var sel = $('#calendar').val();
-   if (sel !== '') { //not cancelled
-    var d = new Date(sel);
-    var f = '{$momentfmt}';
-    var d2 = moment(d).format(f);
-    $('#{$id}startat').val(d2);
+   if('_d' in this && this._d) {
+    var fmt = new DateFormatter();
+    var dt = fmt.formatDate(this._d,'Y-m-d');
+    $('#{$id}showfrom').val(dt);
     $(this._o.trigger).closest('form').trigger('submit');
    }
   }
  });
- $(ob).click(function(evt) {
-   evt.preventDefault();
-   return false;
- });
 
 EOS;
 
-if ($showtable) {
-	$tplname = 'defaulttable.tpl';
-
-	$stylers = <<<EOS
+$stylers = <<<EOS
 <link rel="stylesheet" type="text/css" href="{$baseurl}/css/public.css" />
 <link rel="stylesheet" type="text/css" href="{$baseurl}/css/pikaday.css" />
 EOS;
-//<link rel="stylesheet" type="text/css" href="{$baseurl}/responsive-tables.css" />
-//<link rel="stylesheet" type="text/css" href="{$baseurl}/css/stickytable.css" />
-//CHECKME PURPOSE booking-table th click() handler
-	$jsfuncs[] = <<<EOS
-function slot_record(el) {
- var indx = $(el).index();
- var table = $('table.booker')[0];
- var content = table.rows[0].cells[indx].innerHTML;
- indx = $(el).parent().index();
- content += ' ' + table.rows[indx+1].cells[0].innerHTML;
- $('#{$id}clickat').val(content);
-}
-function col_focus() {
- var indx = $(this).index();
- var table = $('table.booker')[0];
- var content = table.rows[0].cells[indx].innerHTML;
- content += ' ' + table.rows[1].cells[0].innerHTML;
- $('#{$id}clickat').val(content);
-}
 
-EOS;
-	$jsfuncs[] = <<<EOS
-function slot_focus() {
- slot_record(this);
-}
-
-EOS;
-	$jsfuncs[] = <<<EOS
-function slot_activate() {
- var indx = $(this).index();
- if (indx === 0) //labels col
- 	return;
- slot_record(this);
- var slot = $(this).attr('id');
- if (typeof slot != 'undefined')
-  $('#{$id}slotid').val(slot);
- $('#{$id}request').click();
-}
-
-EOS;
- 	$jsloads[] = <<<EOS
- $('table.booker th.periodname').click(col_focus);
- $('table.booker td').click(slot_focus).dblclick(slot_activate);
-
-EOS;
-/* TODO */
-if (1)
-	$jsloads[] = <<<EOS
- $('#scroller').stickyscroll({
-  fixedColumnsLeft: 1
- });
-
-EOS;
-else //DEBUG
-	$jsloads[] = <<<EOS
- $('#scroller').table_scroll({
-  fixedColumnsLeft: 1
- });
-
-EOS;
-} else { //list view
-	$tplname = 'defaultlist.tpl';
-	$stylers = <<<EOS
-<link rel="stylesheet" type="text/css" href="{$baseurl}/css/public.css" />
-<link rel="stylesheet" type="text/css" href="{$baseurl}/css/pikaday.css" />
-EOS;
-}
 $customcss = $utils->GetStylesURL($this,$item_id);
 if ($customcss)
 	$stylers .= <<<EOS

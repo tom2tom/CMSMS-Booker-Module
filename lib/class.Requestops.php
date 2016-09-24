@@ -9,134 +9,24 @@ namespace Booker;
 
 class Requestops
 {
-	const MSGAPPROVE = 1;
-	const MSGREJECT = 2;
-	const MSGCHANGED = 3;
-	const MSGCANCELLED = 4;
-	const MSGINFO = 5;
 	/*
 	GetReqData:
-	Get from HistoryTable the row(s) of data for @history_id
+	Get from HistoryTable and BookerTable the row(s) of data for @history_id
 	@mod: reference to current Booker module
-	@history_id: request identifier, or array of them
+	@history: request identifier, or array of them
 	*/
-	private function GetReqData(&$mod, $history_id)
+	private function GetReqData(&$mod, $history)
 	{
-		if (is_array($history_id)) {
-			$fillers = str_repeat('?,',count($history_id)-1);
-			return $mod->dbHandle->GetAssoc('SELECT * FROM '.$mod->HistoryTable.' WHERE history_id IN ('.$fillers.'?)',$history_id);
+		$sql = <<<EOS
+SELECT H.*,B.name,B.address,B.phone FROM $mod->HistoryTable H
+JOIN $mod->BookerTable B ON H.booker_id=B.booker_id
+WHERE history_id
+EOS;
+		if (is_array($history)) {
+			$fillers = str_repeat('?,',count($history)-1);
+			return $mod->dbHandle->GetAssoc($sql.' IN ('.$fillers.'?)',$history);
 		} else
-			return $mod->dbHandle->GetAssoc('SELECT * FROM '.$mod->HistoryTable.' WHERE history_id=?',array($history_id));
-	}
-
-	/* *
-	SetupMessage:
-	see also - self::MsgParms
-	@mod: reference to current Booker module
-	@utils: reference to Booker\Utils object
-	@params: reference to parameters array
-	@mtype: MSG* enum
-	@custommsg: text entered by user, to replace square-bracketed content of the message 'template'
-	@extra: optional stuff for some types of message, default ''
-	Returns: TODO title & bodies for MessageSender::Send
-	*/
-/*	public function SetupMessage(&$mod, &$utils, &$params, $mtype, $custommsg, $extra='')
-	{
-		//$mtype = $TODO; //what type of message
-		$idata = $TODO;
-		$what = (isset($params['subgrpcount'])) ?
-			sprintf('%d %s',$params['subgrpcount'],$idata['membersname']):
-			$utils->GetItemName($mod,$idata);
-		$dt = $TODO;
-		$dt->setTimestamp($params['slotstart']);
-		$on = $utils->IntervalFormat($mod,$dt,'D j M');
-		if ($overday) {
-			$detail = $mod->Lang('whatovrday',$what,$on);
-		} else {
-			$at = $dt->format('g:i A');
-			$detail = $mod->Lang('whatonday',$what,$on,$at);
-		}
-		switch ($mtype) {
-		 default:
-			$approvecommon = $mod->Lang('email_approve',$detail);
-			$rejectcommon = $mod->Lang('email_reject',$detail);
-			$notifycommon = $mod->Lang('email_changed',$detail); //ETC
-			$askcommon = $mod->Lang('email_ask',$detail);
-		}
-		//TODO other formats
-		//TODO messages =  replace \[.*\] by $params['custom']
-	}
-*/
-
-	/*
-	MsgParms:
-	Construct arguments for 'outward' message using MessageSender::Send()
-	see also Booker\Bookingops::MsgParms()
-	@mod: reference to current Booker module object
-	@utils: reference to Booker\Utils object
-	@bdata: reference to array of booking-request data
-	@idata: reference to array of booked-item data
-	@mtype: MSG* enum
-	@custommsg: text entered by user, to replace square-bracketed content of the message 'template'
-	@extra: optional stuff for some types of message, default ''
-	Returns: array or FALSE
-	*/
-	private function MsgParms(&$mod, &$utils, &$bdata, &$idata, $mtype, $custommsg, $extra='')
-	{
-		switch ($mtype) {
-		 case self::MSGAPPROVE:
-			$ktitle = 'email_approve_title';
-			$kbody1 = 'email_approve';
-			$kbody2 = 'text_approve';
-			break;
-		 case self::MSGREJECT:
-			$ktitle = 'email_reject_title';
-			$kbody1 = 'email_reject';
-			$kbody2 = 'text_reject';
-			break;
-		 case self::MSGCHANGED:
-			$ktitle = 'email_changed_title';
-			$kbody1 = 'email_changed';
-			$kbody2 = 'text_change';
-		 	break;
-		 case self::MSGCANCELLED:
-			$ktitle = 'email_cancelled_title';
-			$kbody1 = 'email_cancel';
-			$kbody2 = 'text_cancel';
-			break;
-		 case self::MSGINFO:
-			$ktitle = 'email_ask_title';
-			$kbody1 = 'email_ask';
-			$kbody2 = 'text_ask';
-			break;
-		 default:
-		 	return FALSE; //error
-		}
-
-		$from = FALSE; //always use default sender
-		$to = ($bdata['address']) ? array($bdata['name']=>$bdata['address']):$bdata['phone'];
-
-		$what = ($bdata['subgrpcount'] > 1) ?
-			sprintf('%d %s',$bdata['subgrpcount'],$idata['membersname']):
-			$utils->GetItemName($mod,$idata);
-		$dts = new \DateTime('@'.$bdata['slotstart'],new \DateTimeZone('UTC'));
-		$on = $utils->IntervalFormat($mod,$dts,'D j M');
-		if ($utils->GetInterval($mod,$idata['item_id'],'slot') >= 84600) {
-			$detail = $mod->Lang('whatovrday',$what,$on);
-		} else {
-			$at = $dts->format('g:i A');
-			$detail = $mod->Lang('whatonday',$what,$on,$at);
-		}
-
-		$msg = $mod->Lang($kbody1,$detail);
-		$msg = preg_replace('/\[.*\]/',$custommsg,$msg);
-		$mailparms = array('subject'=>$mod->Lang($ktitle),'body'=>$msg);
-		$msg = $mod->Lang($kbody2,$detail);
-		$msg = preg_replace('/\[.*\]/',$custommsg,$msg);
-		$textparms = array('prefix'=>$idata['smsprefix'],
-			'pattern'=>$idata['smspattern'],'body'=>$msg);
-		$tweetparms = array('body'=>$msg);
-		return array($from,$to,$textparms,$mailparms,$tweetparms);
+			return $mod->dbHandle->GetAssoc($sql.'=?',array($history));
 	}
 
 	/**
@@ -144,13 +34,15 @@ class Requestops
 	If possible, record request as approved and do consequent stuff like notify the user.
 	Can process intermingled deletion(s) and/or change(s)
 	@mod: reference to current Booker module
-	@history_id: request identifier, or array of them
+	@history: request identifier, or array of them
 	@custommsg: text entered by user, to replace square-bracketed content of the approval-message 'template'
-	Returns: 2-member array, 1st is boolean indicating success, 2nd '' or error message
+	Returns: 2-member array:
+	 [0] boolean indicating success
+	 [1] success- or error-message or ''
 	*/
-	public function ApproveReq(&$mod, $history_id, $custommsg)
+	public function ApproveReq(&$mod, $history, $custommsg)
 	{
-		$rows = self::GetReqData($mod,$history_id);
+		$rows = self::GetReqData($mod,$history);
 		if ($rows) {
 			$db = $mod->dbHandle;
 			$utils = new Utils();
@@ -159,17 +51,17 @@ class Requestops
 			krsort($rows,SORT_NUMERIC); //reverse, so groups-first
 			$m = -900; //unmatchable
 			$collect = array();
-			foreach ($rows as $id=>&$one) {
+			foreach ($rows as $history_id=>&$one) {
 				switch ($one['status']) {
 				 case \Booker::STATDEL:
 				 case \Booker::STATCHG: //TODO setup replacement
 					 $sql = 'DELETE FROM '.$mod->HistoryTable.' WHERE history_id=?';
 			//TODO $utils->SafeExec()
-					 $db->Execute($sql,array($id));
+					 $db->Execute($sql,array($history_id));
 					 break;
 				 case \Booker::STATCANCEL:
-				 case \Booker::STATTELL:
-				 case \Booker::STATASK:
+//				 case \Booker::STATTELL:
+//				 case \Booker::STATASK:
 				 case \Booker::STATBIG:
 				 case \Booker::STATNA:
 				 case \Booker::STATDUP:
@@ -178,89 +70,73 @@ class Requestops
 //				 case \Booker::STATERR: retry this
 					break;
 				 default:
-					if ($id != $m) {
+					if ($one['item_id'] != $m) {
 						if ($collect) {
-							if ($m < \Booker::MINGRPID)
-								$sched->ScheduleResource($mod,$utils,$m,$collect);
-							else
-								$sched->ScheduleGroup($mod,$utils,$m,$collect);
+							if ($m < \Booker::MINGRPID) {
+								$res = $sched->ScheduleResource($mod,$utils,$m,$collect);
+							} else {
+								$res = $sched->ScheduleGroup($mod,$utils,$m,$collect);
+							}
 							$collect = array();
 						}
-						$m = $id;
+						$m = (int)$one['item_id'];
 					}
-					$collect[] = $one;
+					$collect[] = &$one;
 					break;
 				}
 			}
 			unset($one);
 			if ($collect) {
 				if ($m < \Booker::MINGRPID)
-					$sched->ScheduleResource($mod,$utils,$m,$collect);
+					$res = $sched->ScheduleResource($mod,$utils,$m,$collect);
 				else
-					$sched->ScheduleGroup($mod,$utils,$m,$collect);
+					$res = $sched->ScheduleGroup($mod,$utils,$m,$collect);
 			}
-			//record updated status
-			$sql = 'UPDATE '.$mod->HistoryTable.' SET status=? WHERE history_id=?';
-			$db->StartTrans();
-			foreach ($rows as $id=>&$one) {
-			//TODO $utils->SafeExec()
-				$db->Execute($sql,array($one['status'],$id));
+			//record new status etc in HistoryTable
+			$sql = array();
+			$args = array();
+			$sqlbase = 'UPDATE '.$mod->HistoryTable.' SET ';
+			foreach ($rows as $history_id=>$one) {
+				$sql1 = $sqlbase;
+				$args1 = array();
+				if (isset($one['approved'])) {
+					$sql1 .= 'item_id=?,approved=?,';
+					$args1[] = $one['item_id']; //downstream may have changed item_id (for a 1-member group booking)
+					$args1[] = $one['approved'];
+				}
+				$sql1 .= 'status=? WHERE history_id=?';
+				$sql[] = $sql1;
+				$args1[] = $one['status'];
+				$args1[] = $history_id;
+				$args[] = $args1;
 			}
-			$db->CompleteTrans(); //ignore any problem e.g. deleted
-			unset($one);
-
+			$utils->SafeExec($sql,$args);
 			$ob = \cms_utils::get_module('Notifier');
 			if ($ob) {
-				unset($ob);
 				//notify lodger
-				$funcs = new \MessageSender();
-				$fails = array();
-				$props = array();
-
-				foreach ($rows as $id=>&$one) {
-					switch ($one['status']) {
-					 case \Booker::STATNONE:
-
-						$item_id = $one['item_id'];
-						if (!isset($props[$item_id])) {
-							$props[$item_id] = $utils->GetItemProperty($mod,$item_id,
-								array('item_id','name','membersname','smspattern','smsprefix'));
-						}
-						$idata = $props[$item_id];
-						list($from,$to,$textparms,$mailparms,$tweetparms) = self::MsgParms($mod,$utils,$one,$idata,self::MSGAPPROVE,$custommsg);
-						list($res,$msg) = $funcs->Send($from,$to,$textparms,$mailparms,$tweetparms);
-						if (!$res)
-							$fails[] = $msg;
-						break;
-					 default:
-/* TODO relevant advice
-					 case \Booker::STATASK:
-					 case \Booker::STATBIG:
-					 case \Booker::STATCANCEL:
-					 case \Booker::STATCHG:
-					 case \Booker::STATDEFER:
-					 case \Booker::STATDEL:
-					 case \Booker::STATDUP:
-					 case \Booker::STATERR:
-					 case \Booker::STATGONE:
-					 case \Booker::STATNA:
-					 case \Booker::STATNEW:
-					 case \Booker::STATNOTPAID:
-					 case \Booker::STATOK:
-					 case \Booker::STATTELL:
-					 case \Booker::STATTEMP:
-*/
-					 	break;
+				unset($ob);
+				$funcs = new Messager();
+				$sndr = new \MessageSender();
+				$propstore = array();
+				$msgs = array();
+				foreach ($rows as $one) {
+					$item_id = $one['item_id'];
+					if (!isset($propstore[$item_id])) {
+						$propstore[$item_id] = $utils->GetItemProperty($mod,$item_id,
+							array('item_id','name','membersname','smspattern','smsprefix'));
+						$propstore[$item_id]['approvertell'] = FALSE; //no message to sender
 					}
+					$idata = $propstore[$item_id];
+					list($res,$msg1) = $funcs->StatusMessage($mod,$utils,$idata,$one,\Booker::STATOK,$custommsg,$sndr);
+					if (!$res)
+						$msgs[] = $msg1;
 				}
-				unset($one);
-				if ($fails) {
-					$fails = array_unique($fails,SORT_STRING);
-					return array(FALSE,implode('<br />',$fails));
+				if ($msgs) {
+					return array(FALSE,implode('<br />',array_unique($msgs,SORT_STRING)));
 				}
-				return aray(TRUE,'');
+				return array(TRUE,'');
 			} else {
-				//TODO remind user to tell all, manually
+				return array(TRUE,$mod->Lang('tell_booker'));
 			}
 		} else
 			return array(FALSE,$mod->Lang('err_data'));
@@ -269,47 +145,53 @@ class Requestops
 	/**
 	RejectReq:
 	@mod: reference to current Booker module
-	@history_id: request identifier, or array of them
+	@history: request identifier, or array of them
 	@custommsg: text entered by user, to replace square-bracketed content of the rejection-message 'template'
-	Returns: 2-member array, 1st is boolean indicating success, 2nd '' or error message
+	Returns: 2-member array:
+	 [0] boolean indicating success
+	 [1] success- or error-message or ''
 	*/
-	public function RejectReq(&$mod, $history_id, $custommsg)
+	public function RejectReq(&$mod, $history, $custommsg)
 	{
-		$rows = self::GetReqData($mod,$history_id);
+		$rows = self::GetReqData($mod,$history);
 		if ($rows) {
+			$sql = array();
+			$args = array();
+			$sql1 = 'UPDATE '.$mod->HistoryTable.' SET status='.\Booker::STATCANCEL.' WHERE history_id=?';
+			foreach ($rows as $history_id=>$one) {
+				$sql[] = $sql1;
+				$args[] = array($history_id);
+			}
+			$utils = new Utils();
+			$utils->SafeExec($sql,$args);
+
 			$ob = \cms_utils::get_module('Notifier');
 			if ($ob) {
+				//notify lodgers
 				unset($ob);
-				$funcs = new \MessageSender();
-				$utils = new Utils();
-				$fails = array();
-				$props = array();
-			} else
-				$funcs = FALSE;
-			$db = $mod->dbHandle;
-			$sql = 'UPDATE '.$mod->HistoryTable.' SET status='.\Booker::STATCANCEL.' WHERE history_id=?';
-			foreach ($rows as $history_id=>$one) {
-				if ($funcs) {
-					//notify lodger
+				$funcs = new Messager();
+				$sndr = new \MessageSender();
+				$propstore = array();
+				$msgs = array();
+				foreach ($rows as $history_id=>$one) {
 					$item_id = $one['item_id'];
-					if (!isset($props[$item_id])) {
-						$props[$item_id] = $utils->GetItemProperty($mod,$item_id,
+					if (!isset($propstore[$item_id])) {
+						$propstore[$item_id] = $utils->GetItemProperty($mod,$item_id,
 							array('item_id','name','membersname','smspattern','smsprefix'));
+						$propstore[$item_id]['approvertell'] = FALSE; //no message to sender
 					}
-					$idata = $props[$item_id];
-					list($from,$to,$textparms,$mailparms,$tweetparms) = self::MsgParms($mod,$utils,$one,$idata,self::MSGREJECT,$custommsg);
-					list($res,$msg) = $funcs->Send($from,$to,$textparms,$mailparms,$tweetparms);
+					$idata = $propstore[$item_id];
+					list($res,$msg1) = $funcs->StatusMessage($mod,$utils,$idata,$one,\Booker::STATCANCEL,$custommsg,$sndr);
 					if (!$res)
-						$fails[] = $msg;
+						$msgs[] = $msg1;
 				}
-			//TODO $utils->SafeExec()
-				$db->Execute($sql,array($history_id));//update status
+				if ($msgs) {
+					return array(FALSE,implode('<br />',array_unique($msgs,SORT_STRING)));
+				}
+				return array(TRUE,'');
+			} else {
+				return array(TRUE,$mod->Lang('tell_booker'));
 			}
-			if ($fails) {
-				$fails = array_unique($fails,SORT_STRING);
-				return array(FALSE,implode('<br />',$fails));
-			}
-			return array(TRUE,'');
 		} else
 			return array(FALSE,$mod->Lang('err_data'));
 	}
@@ -317,47 +199,53 @@ class Requestops
 	/**
 	NotifyReq:
 	@mod: reference to current Booker module
-	@history_id: request identifier, or array of them
+	@history: request identifier, or array of them
 	@custommsg: text entered by user, to replace square-bracketed content of the notify-message 'template'
-	Returns: 2-member array, 1st is boolean indicating success, 2nd '' or error message
+	Returns: 2-member array:
+	 [0] boolean indicating success
+	 [1] success- or error-message or ''
 	*/
-	public function NotifyReq(&$mod, $history_id, $custommsg)
+	public function NotifyReq(&$mod, $history, $custommsg)
 	{
-		$rows = self::GetReqData($mod,$history_id);
+		$rows = self::GetReqData($mod,$history);
 		if ($rows) {
+			$sql = array();
+			$args = array();
+			$sql1 = 'UPDATE '.$mod->HistoryTable.' SET status='.\Booker::STATASK.' WHERE history_id=?';
+			foreach ($rows as $history_id=>$one) {
+				$sql[] = $sql1;
+				$args[] = array($history_id);
+			}
+			$utils = new Utils();
+			$utils->SafeExec($sql,$args);
+
 			$ob = \cms_utils::get_module('Notifier');
 			if ($ob) {
+				//notify lodgers
 				unset($ob);
-				$funcs = new \MessageSender();
-				$utils = new Utils();
-				$fails = array();
-				$props = array();
-			} else
-				$funcs = FALSE;
-			$db = $mod->dbHandle;
-			$sql = 'UPDATE '.$mod->HistoryTable.' SET status='.\Booker::STATASK.' WHERE history_id=?';
-			foreach ($rows as $history_id=>$one) {
-				if ($funcs) {
-					//notify lodger
+				$funcs = new Messager();
+				$sndr = new \MessageSender();
+				$propstore = array();
+				$msgs = array();
+				foreach ($rows as $history_id=>$one) {
 					$item_id = $one['item_id'];
-					if (!isset($props[$item_id])) {
-						$props[$item_id] = $utils->GetItemProperty($mod,$item_id,
+					if (!isset($propstore[$item_id])) {
+						$propstore[$item_id] = $utils->GetItemProperty($mod,$item_id,
 							array('item_id','name','membersname','smspattern','smsprefix'));
+						$propstore[$item_id]['approvertell'] = FALSE; //no message to sender
 					}
-					$idata = $props[$item_id];
-					list($from,$to,$textparms,$mailparms,$tweetparms) = self::MsgParms($mod,$utils,$one,$idata,self::MSGINFO,$custommsg);
-					list($res,$msg) = $funcs->Send($from,$to,$textparms,$mailparms,$tweetparms);
+					$idata = $propstore[$item_id];
+					list($res,$msg1) = $funcs->StatusMessage($mod,$utils,$idata,$one,\Booker::STATASK,$custommsg,$sndr);
 					if (!$res)
-						$fails[] = $msg;
+						$msgs[] = $msg1;
 				}
-			//TODO $utils->SafeExec()
-				$db->Execute($sql,array($history_id));//update status
+				if ($msgs) {
+					return array(FALSE,implode('<br />',array_unique($msgs,SORT_STRING)));
+				}
+				return array(TRUE,'');
+			} else {
+				return array(TRUE,$mod->Lang('tell_booker'));
 			}
-			if ($fails) {
-				$fails = array_unique($fails,SORT_STRING);
-				return array(FALSE,implode('<br />',$fails));
-			}
-			return array(TRUE,'');
 		} else
 			return array(FALSE,$mod->Lang('err_data'));
 	}
@@ -365,113 +253,231 @@ class Requestops
 	/**
 	DeleteReq:
 	@mod: reference to current Booker module
-	@history_id: request identifier, or array of them
+	@history: request identifier, or array of them
 	@custommsg: text entered by user, to replace square-bracketed content of the delete-message 'template'
-	Returns: 2-member array, 1st is boolean indicating success, 2nd '' or error message
+	Returns: 2-member array:
+	 [0] boolean indicating success
+	 [1] success- or error-message or ''
 	*/
-	public function DeleteReq(&$mod, $history_id, $custommsg)
+	public function DeleteReq(&$mod, $history, $custommsg)
 	{
-		$rows = self::GetReqData($mod,$history_id);
+		$rows = self::GetReqData($mod,$history);
 		if ($rows) {
+			$sql = array();
+			$args = array();
+			$sql1 = 'DELETE FROM '.$mod->HistoryTable.' WHERE history_id=?';
+			$sql2 = 'UPDATE '.$mod->HistoryTable.' SET status='.\Booker::STATGONE.' WHERE history_id=?';
+			foreach ($rows as $history_id=>$one) {
+				if (1) { //TODO $one['status'] == ??
+					$sql[] = $sql1;
+				} else {
+					$sql[] = $sql2;
+				}
+				$args[] = array($history_id);
+			}
+			$utils = new Utils();
+			$utils->SafeExec($sql,$args);
+
 			$ob = \cms_utils::get_module('Notifier');
 			if ($ob) {
 				unset($ob);
-				$funcs = new \MessageSender();
-				$utils = new Utils();
-				$fails = array();
-				$props = array();
-			} else
-				$funcs = FALSE;
-			$db = $mod->dbHandle;
-			$sql = 'DELETE FROM '.$mod->HistoryTable.' WHERE history_id=?';
-			foreach ($rows as $history_id=>$one) {
-				if ($funcs && $one['status'] !== \Booker::STATOK) {
-					//notify lodger
-					$item_id = $one['item_id'];
-					if (!isset($props[$item_id])) {
-						$props[$item_id] = $utils->GetItemProperty($mod,$item_id,
-							array('item_id','name','membersname','smspattern','smsprefix'));
+				$funcs = new Messager();
+				$sndr = new \MessageSender();
+				$propstore = array();
+				$msgs = array();
+				foreach ($rows as $history_id=>$one) {
+					if ($one['status'] !== \Booker::STATOK) { //TODO others too
+						//notify lodger
+						$item_id = $one['item_id'];
+						if (!isset($propstore[$item_id])) {
+							$propstore[$item_id] = $utils->GetItemProperty($mod,$item_id,
+								array('item_id','name','membersname','smspattern','smsprefix'));
+							$propstore[$item_id]['approvertell'] = FALSE; //no message to sender
+						}
+						$idata = $propstore[$item_id];
+						list($res,$msg1) = $funcs->StatusMessage($mod,$utils,$idata,$one,\Booker::STATCANCEL,$custommsg,$sndr);
+						if (!$res)
+							$msgs[] = $msg1;
 					}
-					$idata = $props[$item_id];
-					list($from,$to,$textparms,$mailparms,$tweetparms) = self::MsgParms($mod,$utils,$one,$idata,self::MSGCANCELLED,$custommsg);
-					list($res,$msg) = $funcs->Send($from,$to,$textparms,$mailparms,$tweetparms);
-					if (!$res)
-						$fails[] = $msg;
 				}
-			//TODO $utils->SafeExec()
-				$db->Execute($sql,array($history_id));//remove it
+				if ($msgs) {
+					$msgs = array_unique($msgs,SORT_STRING);
+					return array(FALSE,implode('<br />',$msgs));
+				}
+				return array(TRUE,'');
+			} else {
+				return array(TRUE,$mod->Lang('tell_booker'));
 			}
-			if ($fails) {
-				$fails = array_unique($fails,SORT_STRING);
-				return array(FALSE,implode('<br />',$fails));
-			}
-			return array(TRUE,'');
 		} else
 			return array(FALSE,$mod->Lang('err_data'));
+	}
+
+	/**
+	FinishReq:
+	@mod: reference to current Booker module
+	@utils: reference to Utils-class object
+	@params: reference to parameters array, including data for the request
+	@success: boolean indicating whether prior processing has been successful
+	Returns: 2-member array:
+	 [0] boolean indicating success
+	 [1] success- or error-message or ''
+	*/
+	public function FinishReq(&$mod, &$utils, &$params, $success)
+	{
+		if ($success) { //successful to now
+			$rfuncs = new Requestops();
+			$sfuncs = new Schedule();
+			$ufuncs = new Userops();
+			$ob = \cms_utils::get_module('Notifier');
+			if ($ob) {
+				unset($ob);
+				$mfuncs = new Messager();
+				$sndr = new \MessageSender();
+//				$propstore = array();
+				$msg = array();
+				$err = array();
+			} else {
+				$mfuncs = FALSE;
+			}
+			$key = '';
+			$cache = Cache::GetCache($mod);
+			$cart = $utils->RetrieveCart($cache,$params);
+			$pending = $cart->getItems();
+			foreach ($pending as $item) {
+				$data = $item->getPackage();
+				$reqdata = (array)$data->request; //from self::CartReq()
+				$item_id = $reqdata['item_id'];
+				$bookerid = $reqdata['booker_id'];
+				$is_new = ($reqdata['status'] === \Booker::STATNEW);
+				//TODO update $reqdata : ['payment'] etc
+				if ($ufuncs->HasRight($mod,$bookerid,'record')) { //booker can record directly
+					if ($item_id < \Booker::MINGRPID) {
+						$res = $sfuncs->ScheduleResource($mod,$utils,$item_id,$reqdata); //converts $reqdata to array 
+					} else {
+						$res = $sfuncs->ScheduleGroup($mod,$utils,$item_id,$reqdata);
+					}
+					$reqdata = reset($reqdata); //revert to original
+					if ($res) {
+						if ($rfuncs->SaveReq($mod,$utils,$reqdata,$is_new)) {
+							$recorded = TRUE;
+						} else {
+							$key = 'err_system';
+							break;
+						}
+					} else {
+						$key = 'err_na';
+						break;
+					}
+				} elseif ($rfuncs->SaveReq($mod,$utils,$reqdata,$is_new)) {
+					$recorded = FALSE;
+				} else {
+					$key = 'err_system';
+					break;
+				}
+				if ($mfuncs) {
+/*					if (!isset($propstore[$item_id])) {
+						$propstore[$item_id] = $utils->GetItemProperty($mod,$item_id,
+						array('item_id','name','approver','approvercontact','approvertell','membersname','smspattern','smsprefix'));
+					}
+					$idata = $propstore[$item_id];
+*/
+					$status = ($recorded) ? Messager::MSGRECORD : Messager::MSGSUBMIT;
+					list($res,$msg1) = $mfuncs->StatusMessage($mod,$utils,(array)$data->itemdata,$reqdata,$status,'',$sndr);
+					if ($res) {
+						$msg[] = $msg1;
+					} else {
+						$err[] = $msg1;
+					}
+				}
+				$cart->removeItem($item->id);
+			} //end cartitems loop
+			$utils->SaveCart($cart,$cache,$params);
+		} else { //just continue the 'failed' status
+			$key = 'error';
+		}
+		if (!$key) {
+			if ($err) {//comm error
+				return array(FALSE,implode('<br />',array_unique($err)));
+			}
+			if ($msg) {
+				return array(TRUE,implode('<br />',array_unique($msg,SORT_STRING)));
+			}
+			return array(TRUE,'');
+		}
+		return array(FALSE,$mod->Lang($key));
 	}
 
 	/**
 	SaveReq:
 	Upsert HistoryTable to reflect relevant contents of @params
 	@mod: reference to current Booker module
+	@utils: reference to Utils-class object
 	@params: reference to parameters array, including new data for the request
 	@is_new: boolean whether to insert or update, either could be by user or admin
 	Returns: boolean indicating successful completion
 	*/
-	public function SaveReq(&$mod, &$params, $is_new)
+	public function SaveReq(&$mod, &$utils, &$params, $is_new)
 	{
-		$bookerid = (int)$params['booker_id']; //TODO upstream must supply this
+/* $params
+'booker_id' => int
+'item_id' => int
+'subgrpcount' => int
+'slotstart' => int
+'slotlen' => int
+'comment' => string
+'fee' => int
+'status' => int
+'payment' => int
+OR
+'history_id' => string
+'task' => string
+'custmsg' => string
+'when' => string
+'until' => string
+'name' => string
+'conformuser' => string '1'
+'comment' => string
+'subgrpcount' => int
+'submit' => string
+'action' => string
+'slotstart' => int
+'slotlen' => int
+*/
 		//table fields unused here 'netfee' 'gatetransaction 'gatedata'
  		//date/time $params[] have been verified before calling here
-		if (isset($params['slotstart'])) {
-			//already translated into history-table format
-			$dt = new \DateTime('@0',new \DateTimeZone('UTC'));
-			$t1 = $params['slotstart'];
-			$t2 = $params['slotlen'];
-		} else {
-			$dt = new \DateTime($params['when'],new \DateTimeZone('UTC'));
-			$t1 = $dt->getTimestamp();
-			$dt->modify($params['until']);
-			$t2 = $dt->getTimestamp() - $t1;
-			if ($t2 < 120) $t2 = 120; //2-minutes min
-			$t2 --; //TODO iff at start of new slot
+		if (!empty($params['conformuser'])) {
+			//general update where needed
+			$funcs = new Userops();
+			$funcs->ConformUserData($mod,$params); //general update where needed
 		}
 
 		$db = $mod->dbHandle;
 		if ($is_new) {
 			$hid = $db->GenID($mod->HistoryTable.'_seq');
-			$args = array('history_id'=>$hid,'booker_id'=>$bookerid,'item_id'=>$params['item_id']);
+			$bookerid = $params['booker_id'];
+			$idata = $utils->GetItemProperty($mod,$params['item_id'],'timezone');
+			$now = $utils->GetZoneTime($idata['timezone']);
+			$args = array(
+				'history_id'=>$hid,
+				'booker_id'=>$bookerid,
+				'item_id'=>$params['item_id'],
+				'lodged'=>$now
+			);
 			//$params[] key to table-field translates
 			foreach (array(
 			 'subgrpcount'=>TRUE,
-			 'lodged'=>TRUE,
 			 'slotstart'=>TRUE,
 			 'slotlen'=>TRUE,
-			 'when'=>'slotstart',
-			 'until'=>'slotlen',
 			 'comment'=>TRUE,
 			 'fee'=>TRUE, //TODO upstream - func(resource(s),times,user)
 			 'requesttype'=>'status',
 			) as $k=>$field) {
 				if (!empty($params[$k])) {
 					switch ($k) {
-					 case 'lodged':
-						if ($is_new) {
-							$dt->modify('now');
-							$args[$k] = $dt->getTimestamp();
-						}
-						break;
+					 case 'subgrpcount':
 					 case 'slotstart':
-						$field = $k;
-						//no break here
-					 case 'when':
-						$args[$field] = $t1;
-						break;
 					 case 'slotlen':
-						$field = $k;
-						//no break here
-					 case 'until':
-						$args[$field] = $t2;
+						$args[$k] = (int)$params[$k];
 						break;
 					 case 'requesttype':
 						$args[$field] = (int)$params[$k]; //Booker::STATCHG etc
@@ -480,8 +486,12 @@ class Requestops
 					 	if ($field === TRUE) $field = $k;
 						$args[$field] = $params[$k];
 					}
-				} elseif ($k == 'requesttype') { //??
-					$args[$field] = \Booker::STATNEW;
+				} else {
+					switch ($k) {
+					 case 'requesttype':
+						$args[$field] = \Booker::STATNEW;
+						break;
+					}
 				}
 			}
 
@@ -489,26 +499,18 @@ class Requestops
 			$sql = 'INSERT INTO '.$mod->HistoryTable.' ('.
 				implode(',',array_keys($args)).') VALUES ('.$fillers.'?)';
 		} else { //update
-			$funcs = new Bookingops();
-			$funcs->ConformBookingData($mod,$params); //general update where needed
 			$args = array();
 			$parts = array();
 			foreach (array(
 			 'subgrpcount'=>TRUE,
-			 'when'=>'slotstart',
-			 'until'=>'slotlen',
+			 'slotstart'=>TRUE,
+			 'slotlen'=>TRUE,
 			 'comment'=>TRUE,
 			 'fee'=>TRUE, //TODO upstream - func(resource(s),times,user)
 			 'requesttype'=>'status',
 			) as $k=>$field) {
 				if (!empty($params[$k])) {
 					switch ($k) {
-					 case 'when':
-						$args[$field] = $t1;
-						break;
-					 case 'until':
-						$args[$field] = $t2;
-						break;
 					 case 'requesttype':
 						$args[$field] = (int)$params[$k]; //Booker::STATCHG etc
 					 	break;
@@ -523,9 +525,7 @@ class Requestops
 			$args[] = (int)$params['history_id'];
 			$sql = 'UPDATE '.$mod->HistoryTable.' SET '.$fillers.' WHERE history_id=?';
 		}
-//		$utils = new Utils();
 //		return $utils->SafeExec($sql,$args);
-		//TODO $utils->SafeExec()
 		return ($db->Execute($sql,$args)) != FALSE;
 	}
 
@@ -533,27 +533,22 @@ class Requestops
 	CartReq:
 	Add request-item to booking cart
 	@mod: reference to current Booker module
+	@utils: reference to Utils-class object
 	@params: reference to parameters array, including data for the request
 	@idata: array of data about the resource being booked
 	@cart: cart-object to which the request will be added
-	Returns: 2-member array, 1st is boolean indicating success, 2nd is '' or error message
+	Returns: 2-member array:
+	 [0] boolean indicating success
+	 [1] error-message or ''
 	*/
-	public function CartReq(&$mod, &$params, $idata, $cart)
+	public function CartReq(&$mod, &$utils, &$params, $idata, $cart)
 	{
-		try {
-			$dt = new \DateTime($params['when'],new \DateTimeZone('UTC')); //string e.g. '20 Jul 2016 8:00'
-		} catch (Exception $e) {
-			return array(FALSE,$e->getMessage());
-		}
-
 		$item_id = (int)$params['item_id'];
-		$fee = (isset($params['fee'])) ? (float)$params['fee'] : 0.0;
-		if ($fee < 1.0) //TODO support selectable min. payment
-			$fee = 0.0;
-		$item = new Cart\BookingCartItem('',$item_id,$fee);
-
+		$item = new Cart\BookingCartItem('',$item_id,$params['fee'],$idata['taxrate']); //$item_id will be the item 'type'
 		$data = $item->getPackage();
-		$data->user = ($params['user']) ? $params['user'] : $params['account']; 
+
+		$t = ($params['name']) ? $params['name'] : $params['account'];
+		$name = trim($t);
 		$ob = \cms_utils::get_module('FrontEndUsers');
 		if ($ob) {
 			$data->uid = $ob->LoggedInID();
@@ -561,7 +556,7 @@ class Requestops
 		} else {
 			$data->uid = FALSE;
 		}
-		if ($params['publicid']) {
+		if (isset($params['publicid'])) {
 			if ($params['contactnew']) {
 				$t = $params['contactnew'];
 			} else {
@@ -573,35 +568,53 @@ class Requestops
 					$t = $mod->Lang('err_data');
 				}
 			}
-		} elseif ($params['contact']) {
+		} elseif (isset($params['contact'])) {
 			$t = $params['contact'];
 		} else {
+$this->Crash();
 			$t = $mod->Lang('err_data');
 		}
-		$data->contact = $t;
-		$data->start = $dt->GetTimestamp();
-		$dt->modify($parms['until']); //string e.g. '20 Jul 2016 9:00'
-		$t = $dt->GetTimestamp() - $data->start;
-		if ($t < 120) { //TODO relevant default c.f. $utils->GetInterval($mod,$item_id,'slot');
-			$t = 120;
-		}
-		$data->slen = $t - 1; //TODO -1 iff ends at a slotstart
-		$data->comment = trim($params['comment']);
+		$contact = $t;
+
 		//TODO get real maxlen from table-field size
 		$data->maxlen = 0; //max comment length or 0 for unlimited
+
 		$quantity = (!empty($params['subgrpcount'])) ? (int)$params['subgrpcount'] : 1;
-		$stat = (!empty($params['requesttype'])) ? (int)$params['requesttype'] : \Booker::STATNEW;
-		$pay = ($fee < 1.0) ? \Booker::STATFREE : \Booker::STATPAYABLE;
-		//partial request data for action.requestfinish
+		if (isset($params['when'])) { //parameter verified before coming here, no chance of fail now
+			$dtw = new \DateTime($params['when'],new \DateTimeZone('UTC')); //string e.g. '20 Jul 2016 8:00'
+			$bs = $dtw->getTimestamp();
+			$dtw->modify($params['until']); //string e.g. '20 Jul 2016 9:00'
+			$be = $dtw->getTimestamp();
+		} else { //past booking
+			$bs = $params['bookat'];
+			$be = $TODO;
+		}
+		list($bs,$be) = $utils->TrimRange($idata['slottype'],$idata['slotcount'],$bs,$be);
+		$now = $utils->GetZoneTime($idata['timezone']);
+
+		$fee = (isset($params['fee'])) ? (float)$params['fee'] : 0.0;
+		$minpay = 1.0; //TODO support selectable min. payment - single and total
+		if ($fee < $minpay) {
+			$fee = 0.0;
+			$pay = \Booker::STATFREE;
+		} else {
+			$pay = \Booker::STATPAYABLE; //TODO method to get relevant status
+		}
+		$stat = (!empty($params['requesttype'])) ? (int)$params['requesttype'] : \Booker::STATNEW; //TODO status method
+
+		//populate request data for later processing
 		$data->request = array(
 		 'booker_id'=>(int)$params['booker_id'],
+		 'name'=>$name,
+		 'contact'=>$contact,
 		 'item_id'=>$item_id,
 		 'subgrpcount'=>$quantity,
-		 'slotstart'=>$data->start,
-		 'slotlen'=>$data->slen,
-		 'comment'=>$data->comment,
+		 'slotstart'=>$bs,
+		 'slotlen'=>$be-$bs,
+		 'lodged'=>$now,
+		 'comment'=>trim($params['comment']),
 		 'fee'=>$fee,
-		 'status'=>stat,
+		 'status'=>$stat,
 		 'payment'=>$pay
 		);
 		$data->itemdata = $idata;

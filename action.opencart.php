@@ -6,20 +6,20 @@
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
 
-//parameter keys for local use, not to be cached before departure
+//parameter keys filtered out before redirect etc
 $localparams = array(
 	'action',
 	'cancel',
 	'cartcomment',
 	'cartsel',
 	'delete',
-	'submit',
-	'task'
+	'submit'
+//	'task'
 );
 
 $utils = new Booker\Utils();
+$utils->UnFilterParameters($params);
 $cache = Booker\Cache::GetCache($this);
-$utils->RetrieveParameters($cache,$params);
 $cart = $utils->RetrieveCart($cache,$params);
 
 if (isset($params['cancel'])) {
@@ -36,11 +36,15 @@ if (isset($params['cancel'])) {
 	if ($resume == $params['action']) {
 		$resume = 'default'; //should never happen
 	}
-	$utils->SaveParameters($cache,$params,$localparams);
-	$this->Redirect($id,$resume,$params['returnid'],
-		array('storedparams'=>$params['storedparams']));
-} elseif (isset($params['submit'])) {
+	$newparms = $utils->FilterParameters($params,$localparams); //no cart update
+	$this->Redirect($id,$resume,$params['returnid'],$newparms);
+}
+
+$utils->DecodeParameters($params,'cartcomment');
+
+if (isset($params['submit'])) {
 	$pending = $cart->getItems();
+//	$pay = 0.0;
 	foreach ($pending as $key=>$item) {
 		if ($item->getStatus() < 0) { //flagged as deleted
 			$cart->removeItem($key);
@@ -48,27 +52,51 @@ if (isset($params['cancel'])) {
 		} else {
 			//freshen associated comment
 			$item->data->comment = $params['cartcomment'][$key];
+			//$pay += $item->price * $item->quantity;
 		}
 	}
 	if ($pending) {
-		//no addition to $params['resume']
-		$utils->SaveParameters($cache,$params,$localparams,$cart);
-		$idata = $utils->GetItemProperty($this,$params['item_id'],'*');
-		//divert to payment form, if possible, and from there to action.requestfinish
-		$utils->OpenPaymentForm($this,$id,$returnid,$params,$idata,$cart);
-		//if we're back here, there's a problem
-		$params['message'] = $this->Lang('err_system');
-	} else {
+		$totals = $cart->getTotals(function($item) {
+			return $item->getStatus() >= 0; //not flagged as deleted
+		});
+		$pay = $totals['totals'][0]; //total gross payment
+		$minpay = 1.0; //TODO support selectable min. payment
+		if ($pay > $minpay) {
+			//no addition to $params['resume']
+			$utils->SaveCart($cart,$cache,$params);
+			$newparms = $utils->FilterParameters($params,$localparams);
+			$idata = $utils->GetItemProperty($this,$params['item_id'],'*');
+			//divert to payment form, if possible, and from there, run method.requestfinish
+			$utils->OpenPaymentForm($this,$id,$returnid,$newparms,$idata,$cart);
+			//if we're back here, there's a problem
+			$params['message'] = $this->Lang('err_system');
+		} else {
+			$utils->SaveCart($cart,$cache,$params);
+			$funcs = new Booker\Requestops();
+			list($res,$msg) = $funcs->FinishReq($this, $utils, $params, TRUE);
+			if ($res && !$msg) {
+				$funcs = new Booker\Userops();
+				$key = ($funcs->HasRight($this,$params['booker_id'],'record')) ?
+						'booking_feedback2':'booking_feedback';
+				$msg = $this->Lang($key);
+			}
+			$params['message'] = $msg;
+			$newparms = $utils->FilterParameters($params,$localparams);
+			$this->Redirect($id,'announce',$params['returnid'],$newparms);
+			exit;
+		}
+	} else { //cart effectively empty
+		$cart->clear(); //force actual empty
+		$utils->SaveCart($cart,$cache,$params);
 		do {
 			$resume = array_pop($params['resume']);
 		} while ($resume == $params['action'] && $params['resume']);
 		if ($resume == $params['action']) {
 			$resume = 'default'; //should never happen
 		}
-		$utils->SaveParameters($cache,$params,$localparams);
-		$this->Redirect($id,$resume,$params['returnid'],
-			array('storedparams'=>$params['storedparams'],
-			'message'=>$this->Lang('nocartitems')));
+		$params['message'] = $this->Lang('nocartitems');
+		$newparms = $utils->FilterParameters($params,$localparams);
+		$this->Redirect($id,$resume,$params['returnid'],$newparms);
 	}
 } elseif (isset($params['delete'])) {
 	$pending = $cart->getItems();
@@ -76,18 +104,23 @@ if (isset($params['cancel'])) {
 	foreach ($params['cartsel'] as $key=>$t) {
 		$pending[$key]->setStatus('deleted');
 	}
-	$cache->set($params['cartkey'],$cart,43200);
 }
 
-$utils->SaveParameters($cache,$params,$localparams,$cart);
+$utils->SaveCart($cart,$cache,$params);
 
 $jsloads = array();
 $jsfuncs = array();
 $jsincs = array();
 $baseurl = $this->GetModuleURLPath();
 
-$hidden = array('storedparams'=>$params['storedparams'],'task'=>$params['task']);
+$jsloads[] = <<<EOS
+ $('#needjs').css('display','none');
+
+EOS;
+
+$hidden = $utils->FilterParameters($params,$localparams);
 $tplvars = array(
+	'needjs' => $this->Lang('needjs'),
 	'startform' => $this->CreateFormStart($id,'opencart',$returnid,'POST','','','',$hidden),
 	'endform' => $this->CreateFormEnd(),
 	'title' => $this->Lang('title_cart')
@@ -128,16 +161,16 @@ if (!$cart->seemsEmpty()) {
 	$items = array();
 	foreach ($pending as $key=>$item) {
 		$oneset = new stdClass();
-		$iid = $item->getCartType();
-		$oneset->pic = $lookup[$iid]['image']; //TODO thumbnail
-		$t = $lookup[$iid]['name'];
-		if ($iid >= \Booker::MINGRPID) {
+		$item_id = $item->getCartType();
+		$oneset->pic = $lookup[$item_id]['image']; //TODO thumbnail
+		$t = $lookup[$item_id]['name'];
+		if ($item_id >= \Booker::MINGRPID) {
 			$t = $this->Lang('countof2',$item->quantity,$t); //TODO assumes public property
 		}
 		$oneset->name = $t;
-		$data = $item->data;
-		$t = $data->start;
-		$oneset->when = $utils->RangeDescriptor($this,$t,$t+$data->slen);
+		$reqdata = $item->data->request;
+		$t = $reqdata->slotstart;
+		$oneset->when = $utils->RangeDescriptor($this,$t,$t+$reqdata->slotlen);
 		//calc fee if any TODO tax calc
 		$t = $cart->getItemPrice($item);
 		if ($t) {
@@ -145,8 +178,8 @@ if (!$cart->seemsEmpty()) {
 		} else {
 			$oneset->fee = $nil;
 		}
-		$comment = isset($data->comment) ? $data->comment : '';
-		$len = isset($data->maxlen) ? $data->maxlen : 30;
+		$comment = isset($reqdata->comment) ? $reqdata->comment : '';
+		$len = isset($item->data->maxlen) ? $item->data->maxlen : 30;
 		$oneset->comment = $this->CreateInputText($id,'cartcomment['.$key.']',$comment,20,$len);
 		$oneset->cb = $this->CreateInputCheckbox($id,'cartsel['.$key.']',1,-1);
 		$items[] = $oneset;
@@ -155,7 +188,7 @@ if (!$cart->seemsEmpty()) {
 	//button labels
 	switch ($params['task']) {
 	 case 'add':
-	 	$key1 = 'cancel';
+	 	$key1 = 'close';
 		$key2 = 'submit';
 		break;
 	 case 'finish':

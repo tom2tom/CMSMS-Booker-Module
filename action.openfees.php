@@ -104,9 +104,19 @@ if (!function_exists('getfeedata')) {
 
 if (isset($params['cancel'])) {
 	if (isset($params['sel'])) {
-		$this->Redirect($id,'defaultadmin','',array('active_tab'=>$params['active_tab'])); } else {
-		$this->Redirect($id,'openitem','',array('item_id'=>$params['item_id'],'active_tab'=>$params['active_tab'])); }
+		$this->Redirect($id,'defaultadmin','',array('active_tab'=>$params['active_tab']));
+	} else {
+		$this->Redirect($id,'openitem','',array('item_id'=>$params['item_id'],'active_tab'=>$params['active_tab']));
+	}
 }
+
+$utils = new Booker\Utils();
+$utils->DecodeParameters($params,array(
+	'condition_id',
+	'description',
+	'fee',
+	'slotcount'
+));
 
 if (isset($params['selitm'])) {
 /*came from defaultadmin action 'Fees' button-click, set fees for all
@@ -115,7 +125,7 @@ $params = array
 	0 => string '1'
 'fees' => string 'Fees'
 'active_tab' => string 'items' OR 'groups'
-'action' => string 'process'
+'action' => string 'processitem'
 */
 	$item_id = array_unshift($params['selitm']); //use 1st-selected for editing
 	$sel = $params['selitm']; //maybe empty now
@@ -134,8 +144,6 @@ $params = array of all item/group properties, including 'active_tab'
 	$item_id = $params['item_id'];
 	$sel = FALSE;
 }
-
-$utils = new Booker\Utils();
 
 if (isset($params['submit'])) {
 /*$params = array
@@ -290,8 +298,10 @@ WHERE condition_id=?';
 		}
 	}
 	if (isset($params['sel'])) {
-		$this->Redirect($id,'defaultadmin','',array('active_tab'=>$params['active_tab'])); } else {
-		$this->Redirect($id,'openitem','',array('item_id'=>$item_id,'active_tab'=>$params['active_tab'])); }
+		$this->Redirect($id,'defaultadmin','',array('active_tab'=>$params['active_tab']));
+	} else {
+		$this->Redirect($id,'openitem','',array('item_id'=>$item_id,'active_tab'=>$params['active_tab']));
+	}
 } elseif (isset($params['delete'])) { //delete selected fees(s)
 	if (isset($params['selfees'])) {
 		$ids = array_keys($params['selfees']);
@@ -324,18 +334,15 @@ if ($pmod) {
 	//TODO if $params['sel'] == multi-resources upon submit
 }
 
-$hidden = $this->CreateInputHidden($id,'item_id',$item_id).
- $this->CreateInputHidden($id,'active_tab',$params['active_tab']);
+$hidden = array('item_id'=>$item_id,'active_tab'=>$params['active_tab']);
 if ($sel) {
-	$t = json_encode($sel);
-	$hidden .= $this->CreateInputHidden($id,'sel',$t);
+	$hidden['sel'] = json_encode($sel);
 }
 
 $tplvars = array(
 	'mod' => $pmod,
-	'startform' => $this->CreateFormStart($id,'openfees',$returnid),
-	'endform' => $this->CreateFormEnd(),
-	'hidden' => $hidden
+	'startform' => $this->CreateFormStart($id,'openfees',$returnid,'POST','','','',$hidden),
+	'endform' => $this->CreateFormEnd()
 );
 
 if (isset($params['message']))
@@ -410,15 +417,8 @@ if ($pdata) {
 			}
 			$r++;
 
-			$t = ($one['description']) ? $one['description'] : $one['fee'].
-				(($one['feecondition']) ? '::'.$one['feecondition']:'');
-			if ($t)
-				$t = '\\\''.$t.'\\\''; //surrounding escaped quotes go inside js string inside double-quoted html
-			else
-				$t = $this->Lang('fee_multi');
-			$t = $this->Lang('del_confirm',$t);
 			$oneset->deletelink = $this->_CreateInputLinks($id,'delfee['.$cid.']',
-				$icondel,FALSE,$tip_del,'onclick="return confirm(\''.$t.'\');"');
+				$icondel,FALSE,$tip_del);
 			//NOT selitm or selgrp - those may be supplied from elsewhere
 			$oneset->selected = ($count > 1) ? $this->CreateInputCheckbox($id,'selfees['.$cid.']',1,-1):NULL;
 		} else {
@@ -430,6 +430,36 @@ if ($pdata) {
 			$oneset->active = $one['active'] ? $yes:$no;
 		}
 		$items[] = $oneset;
+	}
+
+	if ($pmod) {
+		$jsincs[] =
+'<script type="text/javascript" src="'.$baseurl.'/include/jquery.modalconfirm.min.js"></script>';
+/*	$t = ($one['description']) ? $one['description'] : $one['fee'].
+		(($one['feecondition']) ? '::'.$one['feecondition']:'');
+	if ($t)
+		$t = '\\\''.$t.'\\\''; //surrounding escaped quotes go inside js string inside double-quoted html
+	else
+		$t = $this->Lang('fee_multi');
+	$t = $this->Lang('del_confirm',$t);
+*/
+		$t = $this->Lang('del_confirm','%s');
+		$jsloads[] = <<<EOS
+ $('#fees .feedel > a').modalconfirm({
+  overlayID: 'confirm',
+  popupID: 'confgeneral',
+  preShow: function(tg,\$d) {
+   var text = '{$t}';
+   var id = "\'"+'someidentifier'+"\'"; //TODO func(tg)
+   var prompt = text.replace('%s',id);
+   var para = \$d.children('p:first')[0];
+   para.innerHTML = prompt;
+  }
+ });
+
+EOS;
+		$tplvars['yes'] = $this->Lang('yes');
+		$tplvars['no'] = $this->Lang('no');
 	}
 
 	$tplvars = $tplvars + array(
@@ -455,12 +485,38 @@ if ($pmod) {
 	$tplvars['addlink'] = $this->_CreateInputLinks($id,'addfee','newobject.gif',TRUE,$t);
 	$tplvars['submit'] = $this->CreateInputSubmit($id,'submit',$this->Lang('submit'));
 	$tplvars['cancel'] = $this->CreateInputSubmit($id,'cancel',$this->Lang('cancel'));
-	$t = $this->Lang('fee_multi');
-	$tplvars['delete'] = $this->CreateInputSubmit($id,'delete',$this->Lang('delete'),
-		'title="'.$this->Lang('tip_delseltype',$t)
-		.'" onclick="return confirm_delete_item();"');
 
 	if ($count > 0) {
+		$t = $this->Lang('tip_delseltype',$this->Lang('fee_multi'));
+		$tplvars['delete'] = $this->CreateInputSubmit($id,'delete',$this->Lang('delete'),
+			'title="'.$t.'" onclick="return confirm_delete_item(this);"');
+		$tplvars['yes'] = $this->Lang('yes');
+		$tplvars['no'] = $this->Lang('no');
+
+		$jsfuncs[] = <<<EOS
+function selitm_count() {
+ var cb = $('input[name^="{$id}selfees"]:checked');
+ return cb.length;
+}
+function confirm_selitm_count() {
+ return (selitm_count() > 0);
+}
+function confirm_delete_item(btn) {
+ if (selitm_count() > 0) { //QQQ $.modalconfirm.show({
+  $.modalconfirm.show({
+   overlayID: 'confirm',
+   popupID: 'confgeneral',
+   showTarget: btn,
+   preShow: function(tg,\$d) {
+    var para = \$d.children('p:first')[0];
+    para.innerHTML = '{$this->Lang('delsel_confirm',$this->Lang('fee_multi'))}';
+   }
+  });
+ }
+ return false;
+}
+
+EOS;
 		if ($count > 1) {
 			$tplvars['selectall'] = $this->CreateInputCheckbox($id,'item',1,-1,
 			'title="'.$this->Lang('selectall').'" onclick="select_all_itm(this)"');
@@ -472,28 +528,11 @@ function select_all_itm(b) {
 }
 
 EOS;
-		$tplvars['dndhelp'] = $this->Lang('help_dnd');
-		}
-
-		$t = $this->Lang('delsel_confirm',$t);
-		$jsfuncs[] = <<<EOS
-function selitm_count() {
- var cb = $('input[name^="{$id}selfees"]:checked');
- return cb.length;
-}
-function confirm_selitm_count() {
- return (selitm_count() > 0);
-}
-function confirm_delete_item() {
- if (selitm_count() > 0)
-  return confirm('{$t}');
- return false;
-}
-
-EOS;
-		$jsincs[] =
+			$tplvars['dndhelp'] = $this->Lang('help_dnd');
+			$jsincs[] =
 '<script type="text/javascript" src="'.$baseurl.'/include/jquery.tablednd.min.js"></script>';
-		$jsloads[] = <<<EOS
+
+			$jsloads[] = <<<EOS
  $('.updown').hide();
  $('.dndhelp').css('display','block');
  var elem = $('p.pageinput:first'),
@@ -528,8 +567,9 @@ EOS;
  });
 
 EOS;
+		}//$count > 1
 	}//$count > 0
-} else {
+} else { //!$pmod
 	$tplvars['submit'] = NULL;
 	$tplvars['cancel'] =  $this->CreateInputSubmit($id,'cancel',$this->Lang('close'));
 }
