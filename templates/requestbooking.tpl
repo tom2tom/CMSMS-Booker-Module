@@ -25,7 +25,8 @@
 </tbody></table>
 </div>
 <br />
-{$submit}{if isset($cart)} {$cart}{/if} {$cancel} {if isset($choose)} {$choose}{/if}
+{$cartmsg}<br />
+{$submit}{if isset($cart)} {$cart}{/if} {$cancel} {if isset($choose)} {$choose}{/if} {$register}
 {$endform}
 {if !empty($jsincs)}{foreach from=$jsincs item=inc}{$inc}
 {/foreach}{/if}
