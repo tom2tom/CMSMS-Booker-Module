@@ -21,6 +21,7 @@ class BookingCartItem implements BookingCartItemInterface
 	public $type; // resource item_id (int)
 	public $price;
 	public $taxrate;
+	public $status = self::NORMAL;
 	public $data; // parameters-container, arbitrary properties
 	//internal use only
 	public $context = NULL;
@@ -33,7 +34,6 @@ class BookingCartItem implements BookingCartItemInterface
 		$this->price = $price;
 		$this->taxrate = $taxrate;
 		$this->data = new \stdClass();
-		$this->data->status = self::NORMAL;
 	}
 
 	/**
@@ -159,11 +159,11 @@ class BookingCartItem implements BookingCartItemInterface
 	public function setStatus($status)
 	{
 		if (is_numeric($status)) {
-			$this->data->status = (int)($status);
-		} elseif ($status == 'deleted' && $this->data->status >= 0) {
-			$this->data->status -= self::STATUSMAX; //now < 0
-		} elseif ($status == 'undeleted' && $this->data->status < 0) {
-			$this->data->status += self::STATUSMAX; //now >= 0
+			$this->status = (int)($status);
+		} elseif ($status == 'deleted' && $this->status >= 0) {
+			$this->status -= self::STATUSMAX; //now < 0
+		} elseif ($status == 'undeleted' && $this->status < 0) {
+			$this->status += self::STATUSMAX; //now >= 0
 		}
 	}
 
@@ -174,7 +174,7 @@ class BookingCartItem implements BookingCartItemInterface
 	*/
 	public function getStatus()
 	{
-		return (int)$this->data->status;
+		return (int)$this->status;
 	}
 	/**
 	Set this item's data-bundle
