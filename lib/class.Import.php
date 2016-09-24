@@ -48,7 +48,7 @@ class Import
 	Import resource(s) and/or group(s) data from uploaded CSV file. Can handle
 	re-ordered columns.
 	@mod: reference to current Booker module object
-	@id: module identifier
+	@id: session identifier
 	Returns: 2-member array, 1st is T/F indicating success, 2nd is count of imports or lang key for message
 	*/
 	public function ImportItems(&$mod, $id)
@@ -135,6 +135,7 @@ class Import
 
 			$utils = new Utils();
 			$periods = array(-3=>'any',-2=>'all',-1=>'fixed') + $utils->TimeIntervals();
+			$deftypes = array('slottype'=>1,'leadtype'=>2,'keeptype'=>5);
 			$icount = 0;
 			$db = $mod->dbHandle;
 			$sqlg = 'INSERT INTO '.$mod->GroupTable.' (child,parent,likeorder,proximity) VALUES (?,?,?,?)';
@@ -176,11 +177,21 @@ class Import
 							 case 'slottype':
 							 case 'leadtype':
 							 case 'keeptype':
-								$t = array_search(trim($one),$periods);
-								if ($t < 0)
+								$v = trim($one);
+								$t = array_search($v,$periods);
+								if ($t === FALSE) {
+									if (array_key_exists($v,$periods)) {
+										if ($v >= 0) {
+											$t = (int)$v;
+										} else {
+											$t = -1;
+										}
+									} else {
+										$t = $deftypes[$k];
+									}
+								} elseif ($t < 0) {
 									$t = -1;
-								elseif ($t === FALSE)
-									$t = 1; //default hour TODO something context-related
+								}
 								$data[$k] = $t;
 								$save = TRUE;
 								break;
@@ -241,7 +252,7 @@ class Import
 							 case 'slottype':
 							 case 'leadtype':
 							 case 'keeptype':
-								$data[$k] = 1; //hour
+								$data[$k] = $deftypes[$k];
 								break;
 							 case 'cleargroup':
 								$data[$k] = 0; //no clear group
@@ -324,7 +335,7 @@ class Import
 	ImportFees:
 	Import fee-rules data from uploaded CSV file. Can handle re-ordered columns.
 	@mod: reference to current Booker module object
-	@id: module identifier
+	@id: session identifier
 	Returns: 2-member array, 1st is T/F indicating success, 2nd is count of imports or lang key for message
 	*/
 	public function ImportFees(&$mod, $id)
@@ -527,7 +538,7 @@ class Import
 	ImportBookers:
 	Import booker(s) data from uploaded CSV file. Can handle re-ordered columns.
 	@mod: reference to current Booker module object
-	@id: module identifier
+	@id: session identifier
 	Returns: 2-member array, 1st is T/F indicating success, 2nd is count of imports or lang key for message
 	*/
 	public function ImportBookers(&$mod, $id)
@@ -766,7 +777,7 @@ class Import
 	ImportBookings:
 	Import booking(s) data from uploaded CSV file. Can handle re-ordered columns.
 	@mod: reference to current Booker module object
-	@id: module identifier
+	@id: session identifier
 	@item_id: optional resource|group id which must be matched
 	Returns: 2-member array, 1st is T/F indicating success, 2nd is count of imports or lang key for message
 	*/
@@ -795,7 +806,7 @@ class Import
 			$translates = array(
 			 '#ID'=>'item_id', //intepreted
 			 '#Start'=>'slotstart', //ditto
-			 'End'=>'slotlen', //ditto
+			 'End'=>'slotend', //ditto
 			 '#User'=>'booker_id', //ditto
 			 'Status'=>'status',
 			 'Paid'=>'paid',
@@ -803,7 +814,7 @@ class Import
 			);
 			/* non-public
 			=>'bkg_id'
-			=>'rept_id'
+			=>'bulk_id'
 			=>'active'
 			*/
 			$t = count($firstline);
@@ -825,7 +836,7 @@ class Import
 			$utils = new Utils();
 			$dts = new \DateTime('@0',NULL);
 			$dte = clone $dts;
-			$item_lens = array();
+			$propstore = array();
 			$bookers = array();
 			$skip = FALSE;
 			$icount = 0;
@@ -851,39 +862,31 @@ class Import
 									continue;
 								$data[$k] = $t;
 								$save = TRUE;
-								if (!array_key_exists($t,$item_lens)) {
-									$item_lens[$t] = $utils->GetInterval($mod,$t,'slot');
-									if (!$item_lens[$t])
+								if (!array_key_exists($t,$propstore)) {
+									$propstore[$t] = $utils->GetItemProperty($mod,$t,array('slottype','slotcount'),TRUE);
+									if (!$propstore[$t])
 										return array(FALSE,'err_system');
 								}
 								break;
 							 case 'slotstart':
-//								if (empty($data['item_id'])) {
-//									return array(FALSE,'err_file');
-//								}
-								try {
-									$dts->modify($one);
-								} catch (Exception $e) {
+								$lvl = error_reporting(0);
+								$t = $dts->modify($one);
+								error_reporting($lvl);
+								if ($t) {
+									$data[$k] = $dts->getTimestamp(); //store UTC timestamp
+								} else {
 									return array(FALSE,'err_badstart');
 								}
-								$data[$k] = $dts->getTimestamp(); //store UTC timestamp
-								if (isset($data['slotlen'])) {
-									$data['slotlen'] -= $data[$k]; //later we will extend to last-second of slot
-								}
 								break;
-							 case 'slotlen': //proxy for #End
-//								if (empty($data['item_id'])) {
-//									return array(FALSE,'err_file');
-//								}
-								try {
-									$dte->modify($one);
-								} catch (Exception $e) {
+							 case 'slotend': //proxy for #End
+								$lvl = error_reporting(0);
+								$t = $dte->modify($one);
+								error_reporting($lvl);
+								if ($t) {
+									$data[$k] = $dte->getTimestamp(); //store UTC timestamp
+								} else {
 									return array(FALSE,'err_badend');
 								}
-								if (isset($data['slotstart']))
-									$data[$k] = $dte->getTimestamp() - $data['slotstart'];
-								else
-									$data[$k] = $dte->getTimestamp(); //interim value cached
 								break;
 							 case 'booker_id':
 								if (array_key_exists($one,$bookers)) {
@@ -918,8 +921,8 @@ class Import
 						} else {
 							switch ($k) {
 //compusory					 case 'slotstart':
-							 case 'slotlen':
-								$data[$k] = 3599;
+							 case 'slotend':
+								$data[$k] = $data['slotstart'] + 3599; //TODO BAD if out-of-order!
 								break;
 							 case 'status':
 							 case 'paid':
@@ -932,16 +935,20 @@ class Import
 						}
 					}
 
-					if ($dts->getTimestamp() > 0) {
-						$slen = $item_lens[$data['item_id']];
-						$utils->TrimRange($dts,$dte,$slen);
-						$data['slotstart'] = $dts->getTimestamp();
-						$data['slotlen'] = $dte->getTimestamp() - $data['slotstart'];
+					if (!(empty($data['slotstart']) || empty($data['slotend']))) {
+						list($bs,$be) = $utils->TrimRange(
+							$propstore[$item_id]['slottype'],$propstore[$item_id]['slotcount'],
+							$data['slotstart'],$data['slotend']);
+						$data['slotstart'] = $bs;
+						unset($data['slotend']);
+						$data['slotlen'] = $be-$bs;
 						$funcs2 = new Schedule();
-						$save = $funcs2->ItemVacantCount($mod,$data['item_id'],$dts,$dte)
+						$dts->setTimestamp($bs);
+						$dte->setTimestamp($be);
+						$save = $funcs2->ItemVacantCount($mod,$data['item_id'],$bs,$be)
 							&& $funcs2->ItemAvailable($mod,$utils,$data['item_id'],$dts,$dte);
 					} else {
-						return array(FALSE,'err_badstart');
+						return array(FALSE,'err_badtime');
 					}
 					if ($save) {
 						$done = FALSE;
@@ -1032,7 +1039,7 @@ class Import
 	ImportHistory:
 	Import history data from uploaded CSV file. Can handle re-ordered columns.
 	@mod: reference to current Booker module object
-	@id: module identifier
+	@id: session identifier
 	Returns: 2-member array, 1st is T/F indicating success, 2nd is count of imports or lang key for message
 	*/
 	public function ImportHistory(&$mod, $id)
@@ -1097,7 +1104,7 @@ class Import
 			//for update checks
 //			$exist = $utils->SafeGet('SELECT booker_id,name,publicid FROM '.$mod->BookerTable.' ORDER BY booker_id',FALSE);
 
-			$dtw = new \DateTime('@0',new \DateTimeZone('UTC'));
+			$dtw = new \DateTime('@0',NULL);
 			$icwount = 0;
 
 			while (!feof($fh)) {
