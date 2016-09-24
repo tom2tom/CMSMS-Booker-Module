@@ -238,6 +238,7 @@ class BookingCart extends Cart implements \Serializable
 									case 'type': $item->setCartType($itmval); break;
 									case 'price':  $item->setUnitPrice($itmval); break;
 									case 'taxrate': $item->setTaxRate($itmval); break;
+									case 'status' : $item->setStatus($itmval); break;
 									case 'data': $item->setPackage($itmval); break;
 									case 'context': $item->setCartContext($itmval); break;
 									case 'quantity': $item->setCartQuantity($itmval); break;
