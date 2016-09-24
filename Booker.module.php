@@ -63,7 +63,9 @@ class Booker extends CMSModule
 	const STATOK = 20;//aka APPROVED done/processed
 	const STATADMINREC = 21;//booking recorded by admin
 	const STATSELFREC = 22;//recorded by approved user (i.e. no request)
-	const STATTEMP = 23;//user-recorded, pending admin confirmation
+
+	const STATMAXOK = 30;//last-recognised request-done-ok value
+	const STATTEMP = 31;//user-recorded, pending admin confirmation
 	const STATDEFERRED = 40;//booking to be re-scheduled, per user request or admin imposition
  	const STATGONE = 90;//deletion pending, while its historical data needed
 	//problems
@@ -88,6 +90,8 @@ class Booker extends CMSModule
 	const CARTKEY = 'bkr_Cart';
 	const PARMKEY = 'bkr_Parm';
 	const SESSIONKEY = 'bkr_Sess';
+	const PATNADDRESS = '/^.+@.+\..+$/';
+	const PATNPHONE = '/^(\+\d{1,4} *)?[\d ]{5,15}$/';
 
 	public $dbHandle; //cached connection to adodb
 //	public $AvailTable; //resource-availabilty cache
@@ -376,12 +380,14 @@ class Booker extends CMSModule
 		$this->SetParameterType('itemkeys',CLEAN_STRING);
 		$this->SetParameterType('listformat',CLEAN_INT); //list-format enum
 		$this->SetParameterType('message',CLEAN_STRING);
+		$this->SetParameterType('name',CLEAN_STRING);
 		$this->SetParameterType('newlist',CLEAN_INT); //list-format change boolean
 		$this->SetParameterType('origreturnid',CLEAN_INT); //something? related to captcha module
 		$this->SetParameterType('pagerows',CLEAN_INT); //table-pager value
 		$this->SetParameterType('passwd',CLEAN_STRING);
 		$this->SetParameterType('range',CLEAN_STRING); //enum or period-name
 		$this->SetParameterType('rangepick',CLEAN_INT); //change view-range enum
+		$this->SetParameterType('register',CLEAN_NONE);
 		$this->SetParameterType('request',CLEAN_NONE);
 		$this->SetParameterType('requesttype',CLEAN_INT);
 		$this->SetParameterType('search',CLEAN_NONE);
@@ -396,7 +402,7 @@ class Booker extends CMSModule
 		$this->SetParameterType('task',CLEAN_STRING);
 		$this->SetParameterType('toggle',CLEAN_NONE);
 		$this->SetParameterType('until',CLEAN_STRING);
-		$this->SetParameterType('user',CLEAN_STRING);
+//		$this->SetParameterType('user',CLEAN_STRING);
 		$this->SetParameterType('view',CLEAN_STRING); //table or list
 		$this->SetParameterType('when',CLEAN_STRING);
 		$this->SetParameterType('zoomin',CLEAN_NONE);
@@ -504,7 +510,7 @@ class Booker extends CMSModule
 				$action = 'processrequest';
 			break;
 */
-		 case 'process': //multiple/selected/?export?/delete etc
+		 case 'processitem': //multiple/selected/?export?/delete etc
 			if (isset($params['setfees']))
 				$action = 'openfees';
 			elseif (isset($params['importitm']) || isset($params['importfee']))
