@@ -301,9 +301,9 @@ EOS;
 			$args = $item_id;
 		$fillers = str_repeat('?,',count($args)-1);
 		$sql = <<<EOS
-SELECT D.slotstart,D.slotlen,B.name AS user,I.name FROM $mod->DataTable D
-JOIN $mod->BookerTable B ON D.booker_id = B.booker_id
-JOIN $mod->ItemTable I ON D.item_id = I.item_id
+SELECT D.item_id,D.slotstart,D.slotlen,B.name,I.name AS what FROM $mod->DataTable D
+JOIN $mod->BookerTable B ON D.booker_id=B.booker_id
+JOIN $mod->ItemTable I ON D.item_id=I.item_id
 WHERE D.item_id IN ({$fillers}?) AND D.slotstart <= ? AND (D.slotstart+D.slotlen) >= ?
 ORDER BY
 EOS;
@@ -312,11 +312,11 @@ EOS;
 			$t = ($is_group) ? 'I.name,':'';
 			$sql .= ' B.name,'.$t.'D.slotstart';
 			break;
-		 case \Booker::LISTRS:
+		 case \Booker::LISTUR:
 			$sql .= ' B.name,D.slotstart';
 			if ($is_group) $sql .= ',I.name';
 			break;
-		 case \Booker::LISTSR: //only for groups
+		 case \Booker::LISTRS: //only for groups
 			$sql .= ' I.name,D.slotstart,B.name';
 			break;
 //	 case \Booker::LISTSU:

@@ -757,10 +757,10 @@ $lang['longmonths'] = 'January,February,March,April,May,June,July,August,Septemb
 //shortform monthnames - must be January first, comma-separated, no whitespace
 $lang['shortmonths'] = 'Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec';
 //list formats
-$lang['start+user'] = 'Group by start';
-$lang['start+resource'] = 'Group by start and resource';
-$lang['resource+start'] = 'Group by resource';
-$lang['user+start'] = 'Group by user';
+$lang['resource+start'] = 'Group by resource,start'; //LISTRS
+$lang['start+user'] = 'Group by start,user'; //LISTSU
+$lang['user+resource'] = 'Group by user,resource'; //LISTUR
+$lang['user+start'] = 'Group by user,start'; //LISTUS
 
 $lang['help'] = <<<EOS
 <h3>What Does It Do?</h3>

@@ -332,13 +332,14 @@ else {
 	if ($is_group) 	{
 		$choices = array(
 		$this->Lang('start+user')=>Booker::LISTSU,
-		$this->Lang('start+resource')=>Booker::LISTSR,
 		$this->Lang('resource+start')=>Booker::LISTRS,
+		$this->Lang('user+resource')=>Booker::LISTUR,
 		$this->Lang('user+start')=>Booker::LISTUS
 		);
 	} else {
 		$choices = array(
 		$this->Lang('start+user')=>Booker::LISTSU,
+		$this->Lang('user+resource')=>Booker::LISTUR,
 		$this->Lang('user+start')=>Booker::LISTUS
 		);
 	}

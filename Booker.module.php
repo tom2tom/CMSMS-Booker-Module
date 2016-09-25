@@ -31,13 +31,13 @@ class Booker extends CMSModule
 	const ALLOCCHOOSE = 4;
 	/*list-display formats
 	LISTSU group by slotstart, show each interval, [resource,] user
-	LISTSR group by slotstart, show each user [,resource,] interval i.e. ~same as LISTSU unless is group
-	[LISTRS group by resource, show each interval, user] i.e. only for groups
+	LISTRS group by resource,slotstart, show each user interval i.e. ~same as LISTSU unless is group
+	[LISTUR group by user,resource, show each interval] i.e. only for groups
 	LISTUS group by user, show each interval [,resource]
 	*/
 	const LISTSU = 1;
-	const LISTSR = 2; //default for imported groups
-	const LISTRS = 3;
+	const LISTRS = 2; //default for imported groups
+	const LISTUR = 3;
 	const LISTUS = 4;
 	//bookings-table-column durations
 	const SEGDAY = 0;

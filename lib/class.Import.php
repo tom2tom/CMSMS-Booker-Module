@@ -247,7 +247,7 @@ class Import
 						} else {
 							switch ($k) {
 							 case 'listformat':
-								$data[$k] = ($is_group) ? \Booker::LISTSR:\Booker::LISTSU;
+								$data[$k] = ($is_group) ? \Booker::LISTRS:\Booker::LISTSU;
 								break;
 							 case 'slottype':
 							 case 'leadtype':

@@ -674,18 +674,18 @@ class Display
 		$funcs = new Bookingops();
 		$lfmt = (int)$idata['listformat'];
 		$booked = $funcs->GetListBooked($this->mod,$is_group,$allresource,
-			$lfmt,$dts->getTimestamp(),$dte->getTimestamp()- 1);
+			$lfmt,$dts->getTimestamp(),$dte->getTimestamp()-1);
 		if ($booked) {
 			$majr_fmt = $idata['dateformat']; //part of report  //c.f. Utils::IntervalFormat($mod,$format,$dts)
 			$minr_fmt = $idata['timeformat']; //other part
 			$rangefmt = $this->mod->Lang('showrange');
 			switch ($lfmt) {
 			 case \Booker::LISTUS:
-			 case \Booker::LISTRS:
-				$tkey = 'user';
-				break;
-			 case \Booker::LISTSR:
+			 case \Booker::LISTUR:
 				$tkey = 'name';
+				break;
+			 case \Booker::LISTRS:
+				$tkey = 'what';
 				break;
 //			 case \Booker::LISTSU:
 			 default:
@@ -727,27 +727,27 @@ class Display
 					$rows = array();
 				}
 				//populate
+				$is_group = ($one['item_id'] >= \Booker::MINGRPID);
 				$dte->setTimestamp($one['slotstart'] + $one['slotlen']);
 				$t = self::TextInterval($dts,$dte,$range,$majr_fmt,$minr_fmt,$rangefmt,($tkey == 'slotstart'));
 				switch ($lfmt) {
 				 case \Booker::LISTUS:
 					$txt = $t;
-					if ($is_group) $txt .= ' :: '.$one['name'];
+					if ($is_group) $txt .= ' :: '.$one['what'];
+					break;
+				 case \Booker::LISTUR:
+					$txt = $one['what'].' :: '.$t;
 					break;
 				 case \Booker::LISTRS:
 					$txt = $t;
-					$txt .= ' :: '.$one['user'];
-					break;
-				 case \Booker::LISTSR:
-					$txt = $one['user'];
-					if ($is_group) $txt .= ' :: '.$one['name'];
-					$txt .= ' :: '.$t;
+					if ($is_group) $txt .= ' :: '.$one['what'];
+					$txt .= ' :: '.	$one['name'];
 					break;
 //				 case \Booker::LISTSU:
 				 default:
 					$txt = $t;
-					if ($is_group) $txt .= ' :: '.$one['name'];
-					$txt .= ' :: '.$one['user'];
+					if ($is_group) $txt .= ' :: '.$one['what'];
+					$txt .= ' :: '.$one['name'];
 					break;
 				}
 				$rows[] = $txt;

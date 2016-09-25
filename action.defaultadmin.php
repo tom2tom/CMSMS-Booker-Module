@@ -1191,8 +1191,8 @@ if ($pset) {
 	$one->title = $this->Lang('listformat');
 	$choices = array(
 		$this->Lang('start+user')=>Booker::LISTSU,
-		$this->Lang('start+resource')=>Booker::LISTSR,
 		$this->Lang('resource+start')=>Booker::LISTRS,
+		$this->Lang('user+resource')=>Booker::LISTUR,
 		$this->Lang('user+start')=>Booker::LISTUS
 	);
 	$one->input = $this->CreateInputDropdown($id,'pref_listformat',$choices,-1,$this->GetPreference('pref_listformat'));

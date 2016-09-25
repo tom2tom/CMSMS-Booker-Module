@@ -57,6 +57,7 @@ table.booker td {
 table.booker td.list {
  border-left:0;
  border-right:0;
+ vertical-align:top;
 }
 
 table.booker td.slotname{
