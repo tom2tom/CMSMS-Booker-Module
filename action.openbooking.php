@@ -6,27 +6,12 @@
 #----------------------------------------------------------------------
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
-/*first-time $params = array
-'item_id'=>$item_id
-'bkg_id'=> -1 (add) OR real id (see/edit)
-'resume' => string 'itembookings' or ?
-'task' => string 'edit' or 'see'
-'repeat' => string '1' or ''
-//'bookedit'=>1 in edit mode, not set for see mode
 
-cancellation $params = array
-'item_id' => string
-'bkg_id' => string
-'repeat' => string '1' or ''
-'resume' => string 'itembookings'
-'task' => string 'edit' or 'see'
-if edit
-'when' => string
-'until' => string
-'name' => string
-'contact' => string
-*/
-if (!$this->_CheckAccess()) exit;
+$pmod = ($params['task'] == 'edit' || $params['task'] == 'add');
+if (!$this->_CheckAccess('admin')) {
+	if ($pmod && !$this->_CheckAccess('book')) exit;
+	if (!$pmod && !$this->_CheckAccess('view')) exit;
+}
 
 $item_id = (int)$params['item_id'];
 if (!isset($params['resume']))
@@ -52,28 +37,21 @@ $utils->DecodeParameters($params,array(
 	'when'
 ));
 
-
 $is_group = ($item_id >= Booker::MINGRPID);
-$type = ($is_group) ? $this->Lang('group'):$this->Lang('item');
 $is_new = ($params['bkg_id'] == -1);
-$viewmode = !($params['task'] == 'edit' || $params['task'] == 'add'); //empty($params['bookedit']);?
-$funcs2 = new Booker\Bookingops();
 
-if (isset($params['submit']) || isset($params['apply'])) {
-	if (!($this->_CheckAccess('admin') || $this->_CheckAccess('book'))) exit;
+if (isset($params['submit'])) {
+	if (!$pmod) exit;
 /* $params = array including
   'item_id' => string '8'
-  'bkg_id' => string '9'
+  'bkg_id' => string '9' OR '-1'
   'repeat' => string '' OR '1'
   'resume' => string 'itembookings'
   'when' => string '17 October 2015 12:00'
   'until' => string '17 October 2015 12:59'
   'name' => string 'Mary'
-  'conformuser' => string '1' MAYBE
   'displayclass' => string '1'
-  'conformstyle' => string '1' MAYBE
   'contact' => string '@myfirm'
-  'conformcontact' => string '1' MAYBE
 */
 	$msg = array();
 	$t = trim($params['name']);
@@ -88,39 +66,47 @@ if (isset($params['submit']) || isset($params['apply'])) {
 		$msg[] = $this->Lang('missing_type',$this->Lang('contact'));
 
 	if (empty($params['repeat'])) { //onetime booking
-		$funcs3 = new Booker\Verify();
-		list($res,$xmsg) = $funcs3->VerifyData($this,$utils,$params,$item_id,$is_new,TRUE);
+		$vfuncs = new Booker\Verify();
+		list($res,$xmsg) = $vfuncs->VerifyData($this,$utils,$params,$item_id,$is_new,TRUE);
 		if ($res) {
-	//TODO this is CRAP!! never save a booking direct to DataTable!
-	//MUST save to HistoryTable then [re]schedule the booking!
-//			if(
-//			$funcs2->SaveBkg($this,$params,$is_new); //TODO extra arg $bulk_id if $is_group
-/*			) {
-				if ($is_new) {
-//TODO	send notice if appropriate
-				} else { //update
-//TODO	send notice if appropriate
-					Userops->ConformUserData($this,$params); //TODO check - downstream expects $params['name'] NOT 'user'
-				}
+			$oldbkg = $params['bkg_id']; //don't lose this
+			$params['status'] = Booker::STATNEW;
+			$funcs = new Booker\Schedule();
+			if ($is_group) {
+	//TODO empty($reqdata['subgrpcount']) >>> whole group
+				$res = $funcs->ScheduleGroup($this,$utils,$item_id,$params);
+			} else {
+				$params['subgrpcount'] = 1; //ensure this
+				$res = $funcs->ScheduleResource($this,$utils,$item_id,$params);
 			}
-*/
-$this->Crash();
-			$res = FALSE;
-			$msg[] = 'NOT SAVED - TODO';
-
+			if ($res) {
+				if ($is_new) {
+					//TODO send notice if appropriate
+				} else {
+					$funcs = new Booker\Bookingops();
+					$custommsg = 'TODO';
+					$funcs->DeleteBkg($this,$oldbkg,$custommsg);
+					//TODO send notice if appropriate
+				}
+				//TODO upsert HisoryTable
+				$funcs = new Booker\Userops();
+				$funcs->ConformUserData($this,$params); //TODO check - downstream expects $params['name'] NOT 'user'
+			} else {
+				//TODO send notice if appropriate
+			}
 		} else {
 			$msg = array_merge($msg,$xmsg);
 		}
 	} else { //repeat booking
 		$t = trim($params['formula']);
 		if ($t) {
-			$funcs3 = new Booker\WhenRuleLexer($this);
-			$t = $funcs3->CheckDescriptor($t);
+			$funcs = new Booker\WhenRuleLexer($this);
+			$t = $funcs->CheckDescriptor($t);
 		}
 		if ($t) {
-			$funcs3 = new Booker\Userops();
+			$funcs = new Booker\Userops();
 			if ($is_new) {
-				list($bookerid,$newbkr) = $funcs3->GetParamsID($this,$params);
+				list($bookerid,$newbkr) = $funcs->GetParamsID($this,$params);
 				$sql2 = 'bkg_id,item_id,formula,booker_id';
 				$fillers = '?,?,?,?';
 				$bkgid = $db->GenID($this->DataTable.'_seq');
@@ -143,7 +129,7 @@ $this->Crash();
 				$params['bkg_id'] == $bkgid;
 				$is_new = FALSE;
 			} else { //update
-				$funcs3->ConformUserData($this,$params);
+				$funcs->ConformUserData($this,$params);
 				$sql2 = 'formula=?';
 				$args = array($t);
 				foreach (array('subgrpcount','paid') as $k) {
@@ -154,7 +140,7 @@ $this->Crash();
 				}
 				$args[] = (int)$params['bkg_id'];
 				$sql = 'UPDATE '.$this->RepeatTable.' SET '.$sql2.' WHERE bkg_id=?';
-		//TODO $utils->SafeExec()
+	//TODO $utils->SafeExec()
 				$db->Execute($sql,$args);
 				$dtw = new DateTime('now',new DateTimeZone('UTC'));
 				$dtw->setTime(0,0,0);
@@ -163,10 +149,10 @@ $this->Crash();
 					if ($membrs) {
 						$dtw->modify('-1 day');
 						$st = $dtw->getTimestamp();
-		//TODO checkedfrom too
+	//TODO checkedfrom too
 						$sql = 'UPDATE '.$this->RepeatTable.' SET checkedto=? WHERE bkg_id IN ('.
 							implode(',',$membrs).') AND checkedto>?';
-		//TODO $utils->SafeExec()
+	//TODO $utils->SafeExec()
 						$db->Execute($sql,array($st,$st));
 						$dtw->modify('+1 day');
 					}
@@ -175,24 +161,31 @@ $this->Crash();
 				$dtw->modify('+1 day');
 				$st = $dtw->getTimestamp();
 				$args = array($params['bkg_id'],$st);
-				$sql = 'DELETE FROM '.$this->DataTable.' WHERE bkg_id=? AND slotstart>?';
+				$sql = 'DELETE FROM '.$this->DataTable.' WHERE bulk_id=? AND slotstart>=?';
 				$utils->SafeExec($sql,$args);
 //TODO	send notice(s) if appropriate
 			}
 		} else {
 			$msg[] = $this->Lang('invalid_type',$this->Lang('booking')); //formula
 		}
+	} //repeat booking
+
+	if (!$msg) { //all ok
+		$newparms = array('item_id'=>$item_id,'task'=>$params['task']);
+		if ($resume == 'bookerbookings') {
+			$newparms['booker_id'] = $params['booker_id'];
+		}	
+		$this->Redirect($id,$resume,'',$newparms);
 	}
-	if ($msg) { //error
-		$t = implode(' ',$msg);
-		if (empty($params['message']))
-			$params['message'] = $t;
-		else
-			$params['message'] .= '<br />'.$t;
-	} elseif (isset($params['submit'])) {
-		$this->Redirect($id,$resume,'',array('item_id'=>$item_id,'task'=>$params['task']));
-	}
+
+	$t = implode(' ',$msg);
+	if (empty($params['message']))
+		$params['message'] = $t;
+	else
+		$params['message'] .= '<br />'.$t;
+
 	$bdata = array(
+//		'bkg_id'=>$params['bkg_id'],
 		'name'=>$params['name'],
 		'address'=>$params['contact'],
 		'phone'=>$params['contact'],
@@ -201,22 +194,21 @@ $this->Crash();
 	if (array_key_exists('subgrpcount',$params)) {
 		$bdata['subgrpcount'] = $params['subgrpcount'];
 	}
-	$bdata['paid'] = !empty($params['paid']);
 	if (empty($params['repeat'])) {
 		$bdata['when'] = $params['when'];
-		if (array_key_exists('until',$params)) {
-			$bdata['until'] = $params['until'];
-		}
+		$bdata['until'] = $params['until'];
 	} else {
 		$bdata['formula'] = $params['formula'];
 	}
-	$params['task'] = 'edit'; //in case we we adding
+	$bdata['paid'] = !empty($params['paid']);
 } elseif (isset($params['find'])) {
 	//TODO
 	$params['message'] = $this->Lang('notyet');
 }
 
-$tplvars = array();
+$tplvars = array(
+	'mod'=>$pmod
+);
 
 $hidden = array('item_id'=>$item_id,'bkg_id'=>$params['bkg_id'],'resume'=>$resume,'task'=>$params['task']);
 if (!empty($params['booker_id']))
@@ -233,28 +225,30 @@ $tplvars['pagenav'] = $this->_BuildNav($id,$returnid,array('defaultadmin',$param
 if (!empty($params['message']))
 	$tplvars['message'] = $params['message'];
 
-$tplvars['mod'] = !$viewmode;
-if ($viewmode)
-	$missing = '&lt;'.$this->Lang('missing').'&gt;';
-else
-	$tplvars['compulsory'] = $this->Lang('help_compulsory');
-
 if (empty($bdata)) {
 	$table = (empty($params['repeat'])) ? $this->DataTable : $this->RepeatTable;
 	$sql = <<<EOS
 SELECT D.*,B.name,B.publicid,B.address,B.phone,B.displayclass FROM {$table} D
-JOIN {$this->BookerTable} B ON D.booker_id=B.booker_id
+JOIN $this->BookerTable B ON D.booker_id=B.booker_id
 WHERE D.bkg_id=?
 EOS;
 	$bdata = $utils->SafeGet($sql,array($params['bkg_id']),'row');
 }
 
-$idata = $utils->GetItemProperty($this,$item_id,"*");
+$idata = $utils->GetItemProperty($this,$item_id,array(
+'name',
+'description',
+'slotlen',
+'bookcount',
+'timezone'
+));
+
 $key = ($is_new) ? 'title_booknewfor':'title_bookfor';
+$typename = ($is_group) ? $this->Lang('group'):$this->Lang('item');
 if (!empty($idata['name'])) {
-	$tplvars['title'] = $this->Lang($key,$type,$idata['name']);
+	$tplvars['title'] = $this->Lang($key,$typename,$idata['name']);
 } else {
-	$t = $this->Lang('title_noname',$type,$idata['item_id']);
+	$t = $this->Lang('title_noname',$typename,$item_id);
 	$tplvars['title'] = $this->Lang($key,$t,'');
 }
 
@@ -263,6 +257,11 @@ if (!empty($idata['description']))
 	$t .= Booker\Utils::ProcessTemplateFromData($this,$idata['description'],$tplvars);
 $tplvars['desc'] = $t;
 //in this context, ignore any image
+
+if ($pmod) //add/edit mode
+	$tplvars['compulsory'] = $this->Lang('help_compulsory');
+else
+	$missing = '&lt;'.$this->Lang('missing').'&gt;';
 
 //script accumulators
 $jsincs = array();
@@ -287,12 +286,13 @@ if (empty($params['repeat'])) { //onetime booking
 	} else {
 		$t = '';
 	}
-	if ($viewmode) {
-		$one->input = ($t) ? $t:$missing;
-	} else {
+	if ($pmod) {
 		$one->must = 1;
 		$one->input = $this->CreateInputText($id,'when',$t,20,30);
 		//for date-picker
+		$stylers = <<<EOS
+<link rel="stylesheet" type="text/css" href="{$baseurl}/css/pikaday.css" />
+EOS;
 		$jsincs[] = <<<EOS
 <script type="text/javascript" src="{$baseurl}/include/pikaday.min.js"></script>
 <script type="text/javascript" src="{$baseurl}/include/pikaday.jquery.min.js"></script>
@@ -338,7 +338,7 @@ EOS;
    shortMonths: [{$smnames}],
    meridiem: [{$meridiem}],
    ordinal: function (number) {
-    var n = number % 10, suffixes = {1: 'st', 2: 'nd', 3: 'rd'};
+    var n = number % 10, suffixes = {1:'st',2:'nd',3:'rd'};
     return Math.floor(number % 100 / 10) === 1 || !suffixes[n] ? 'th' : suffixes[n];
    }
   });
@@ -360,6 +360,8 @@ EOS;
  });
 
 EOS;
+	} else { //!$pmod
+		$one->input = ($t) ? $t:$missing;
 	}
 	$one->help = $this->Lang('help_book_start');
 	$vars[] = $one;
@@ -377,11 +379,11 @@ EOS;
 		} else {
 			$t = '';
 		}
-		if ($viewmode) {
-			$one->input = ($t) ? $t:$missing;
-		} else {
+		if ($pmod) {
 			$one->must = 0;
 			$one->input = $this->CreateInputText($id,'until',$t,20,30);
+		} else {
+			$one->input = ($t) ? $t:$missing;
 		}
 		$one->help = NULL; //$this->Lang('help_book_end');
 		$vars[] = $one;
@@ -390,11 +392,11 @@ EOS;
 	$one = new stdClass();
 	$one->title = $this->Lang('title_description');
 	$t = ($bdata) ? $bdata['formula']:'';
-	if ($viewmode) {
-		$one->input = ($t) ? $t:$missing;
-	} else {
+	if ($pmod) {
 		$one->must = 1;
 		$one->input = $this->CreateInputText($id,'formula',$t,50,256);
+	} else {
+		$one->input = ($t) ? $t:$missing;
 	}
 	$one->help = $this->Lang('help_intervals');
 	$vars[] = $one;
@@ -404,11 +406,11 @@ if ($is_group) {
 	$one = new stdClass();
 	$one->title = $this->Lang('title_subgrpcount');
 	$t = ($bdata) ? (int)$bdata['subgrpcount']:'';
-	if ($viewmode)
-		$one->input = ($t) ? $t:$missing;
-	else {
+	if ($pmod) {
 		$one->must = 1;
 		$one->input = $this->CreateInputText($id,'subgrpcount',$t,3,5);
+	} else {
+		$one->input = ($t) ? $t:$missing;
 	}
 	$one->help = $this->Lang('help_subgrpcount');
 	$vars[] = $one;
@@ -417,13 +419,13 @@ if ($is_group) {
 $one = new stdClass();
 $one->title = $this->Lang('title_user');
 $t = ($bdata) ? $bdata['name']:'';
-if ($viewmode) {
-	$one->input = ($t) ? $t:$missing;
-} else {
+if ($pmod) {
 	$one->must = 1;
 	$one->input = $this->CreateInputText($id,'name',$t,20,64);
 	if (!$is_new)
 		$one->help = $this->Lang('help_conformuser');
+} else {
+	$one->input = ($t) ? $t:$missing;
 }
 $vars[] = $one;
 //==
@@ -434,14 +436,14 @@ if ($bdata) {
 } else {
 	$t = '';
 }
-if ($viewmode) {
-	$one->input = ($t) ? $t:$missing;
-} else {
+if ($pmod) {
 	$one->must = 1;
 	$one->input = $this->CreateInputText($id,'contact',$t,30,128);
+} else {
+	$one->input = ($t) ? $t:$missing;
 }
 $one->help = $this->Lang('help_book_contact');
-if (!($viewmode || $is_new)) {
+if ($pmod && !$is_new) {
 	$one->help .= '<br />'.$this->Lang('help_conformcontact');
 }
 $vars[] = $one;
@@ -450,16 +452,16 @@ $vars[] = $one;
 $one = new stdClass();
 $one->title = $this->Lang('title_displayclass');
 $t = ($bdata) ? (int)$bdata['displayclass']:1;
-if ($viewmode) {
-	$one->input = $t;
-} else {
+if ($pmod) {
 	$one->must = 0;
 	$styles = range(1,Booker::USERSTYLES);
 	$choices = array_combine($styles,$styles);
 	$one->input = $this->CreateInputDropdown($id,'displayclass',$choices,-1,$t);
+} else {
+	$one->input = $t;
 }
 $one->help = $this->Lang('help_displayclass');
-if (!($viewmode || $is_new)) {
+if ($pmod && !$is_new) {
 	$one->help .= '<br />'.$this->Lang('help_conformstyle');
 }
 
@@ -471,11 +473,11 @@ if ($payable) {
 	$one = new stdClass();
 	$one->title = $this->Lang('title_paid');
 	$t = ($bdata) ? (int)$bdata['paid']:0;
-	if ($viewmode) {
-		$one->input = ($t) ? $this->Lang('yes'):$this->Lang('no');
-	} else {
+	if ($pmod) {
 		$one->must = 0;
 		$one->input = $this->CreateInputCheckbox($id,'paid',1,$t);
+	} else {
+		$one->input = ($t) ? $this->Lang('yes'):$this->Lang('no');
 	}
 	$vars[] = $one;
 }
@@ -483,23 +485,20 @@ if ($payable) {
 $tplvars['data'] = $vars;
 
 //buttons
-if ($viewmode) {
-	$tplvars['cancel'] = $this->CreateInputSubmit($id,'cancel',$this->Lang('close'));
-} else { //add/edit mode
+if ($pmod) {
 	$tplvars['submit'] = $this->CreateInputSubmit($id,'submit',$this->Lang('submit'));
-	$tplvars['apply'] = $this->CreateInputSubmit($id,'apply',$this->Lang('apply'));
+	$tplvars['apply'] = NULL; //no 'apply' operation for bookings
 	$tplvars['cancel'] = $this->CreateInputSubmit($id,'cancel',$this->Lang('cancel'));
 	$tplvars['find'] = $this->CreateInputSubmit($id,'find',$this->Lang('find'),
 		'title="'.$this->Lang('tip_finditm').'"');
 	if (empty($params['repeat'])) { //onetime booking
 		$jsincs[] = <<<EOS
 <script type="text/javascript" src="{$baseurl}/include/jquery.modalconfirm.min.js"></script>
-
 EOS;
 		$tplvars['yes'] = $this->Lang('yes');
 		$tplvars['no'] = $this->Lang('no');
-		$funcs3 = new Booker\Verify();
-		$jsfuncs[] = $funcs3->VerifyScript($this,$utils,$id,$item_id,TRUE,FALSE,$idata['timezone'],TRUE);
+		$vfuncs = new Booker\Verify();
+		$jsfuncs[] = $vfuncs->VerifyScript($this,$utils,$id,$item_id,TRUE,FALSE,$idata['timezone'],TRUE);
 		$jsloads[] = <<<EOS
  var obs = [$('#{$id}submit'),$('#{$id}apply')];
  $.each(obs,function(indx,\$ob) {
@@ -508,14 +507,14 @@ EOS;
 
 EOS;
 	}
+} else {
+	$tplvars['cancel'] = $this->CreateInputSubmit($id,'cancel',$this->Lang('close'));
 }
 
-$stylers = <<<EOS
-<link rel="stylesheet" type="text/css" href="{$baseurl}/css/pikaday.css" />
-EOS;
-//porting heredoc-var newlines is a problem for qouted strings! workaround ...
-//$stylers = str_replace("\n",'',$stylers);
-$tplvars['jsstyler'] = <<<EOS
+if (!empty($stylers)) {
+	//porting heredoc-var newlines is a problem for qouted strings! workaround ...
+	//$stylers = str_replace("\n",'',$stylers);
+	$tplvars['jsstyler'] = <<<EOS
 var \$head = $('head'),
  \$linklast = \$head.find("link[rel='stylesheet']:last"),
  linkadd = '{$stylers}';
@@ -525,6 +524,7 @@ if (\$linklast.length) {
  \$head.append(linkadd);
 }
 EOS;
+}
 
 if ($jsloads) {
 	$jsfuncs[] = '$(document).ready(function() {
