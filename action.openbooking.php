@@ -22,7 +22,7 @@ if (isset($params['cancel'])) {
 	$newparms = array('item_id'=>$item_id,'task'=>$params['task']);
 	if ($resume == 'bookerbookings') {
 		$newparms['booker_id'] = $params['booker_id'];
-	}	
+	}
 	$this->Redirect($id,$resume,'',$newparms);
 }
 
@@ -73,10 +73,8 @@ if (isset($params['submit'])) {
 			$params['status'] = Booker::STATNEW;
 			$funcs = new Booker\Schedule();
 			if ($is_group) {
-	//TODO empty($reqdata['subgrpcount']) >>> whole group
 				$res = $funcs->ScheduleGroup($this,$utils,$item_id,$params);
 			} else {
-				$params['subgrpcount'] = 1; //ensure this
 				$res = $funcs->ScheduleResource($this,$utils,$item_id,$params);
 			}
 			if ($res) {
@@ -174,7 +172,7 @@ if (isset($params['submit'])) {
 		$newparms = array('item_id'=>$item_id,'task'=>$params['task']);
 		if ($resume == 'bookerbookings') {
 			$newparms['booker_id'] = $params['booker_id'];
-		}	
+		}
 		$this->Redirect($id,$resume,'',$newparms);
 	}
 
