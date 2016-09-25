@@ -27,6 +27,7 @@ if ($padm) {
 
 $mod = $padm || $pmod;
 $bmod = $padm || $pbkg;
+$tell = $this->havenotifier;
 
 $tplvars = array(
 //	'see' => $psee,
@@ -37,16 +38,9 @@ $tplvars = array(
 	'dev' => $pdev,
 	'mod' => $mod, //not $pmod
 	'per' => $pper,
-	'set' => $pset
+	'set' => $pset,
+	'tell' => $tell
 );
-
-$ob = cms_utils::get_module('Notifier');
-if ($ob) {
-	unset($ob);
-	$tell = TRUE;
-} else
-	$tell = FALSE;
-$tplvars['tell'] = $tell;
 
 $si = $this->Lang('item');
 $sg = $this->Lang('group');

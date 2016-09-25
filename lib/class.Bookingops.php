@@ -56,9 +56,7 @@ EOS;
 	{
 		$rows = self::GetBkgData($mod,$bkgid);
 		if ($rows) {
-			$ob = \cms_utils::get_module('Notifier');
-			if ($ob) {
-				unset($ob);
+			if ($mod->havenotifier) {
 				$funcs = new Messager();
 				$sndr = new \MessageSender();
 				$propstore = array();
@@ -173,7 +171,6 @@ $dtw->setTimestamp($propstore[$item_id]);
 			} else {
 				$stat = ($params['paid']) ? \Booker::STATPAID : \Booker::STATNEW;
 			}
-$this->Crash();
 			$sql = 'INSERT INTO '.$mod->DataTable.
 ' (bkg_id,bulk_id,item_id,slotstart,slotlen,booker_id,status,paid) VALUES (?,?,?,?,?,?,?,?)';
 			$bkgid = $mod->dbHandle->GenID($mod->DataTable.'_seq');

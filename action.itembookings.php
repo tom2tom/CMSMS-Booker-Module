@@ -87,9 +87,7 @@ if (!empty($msg)) {
 	$tplvars['message'] = $this->_PrettyMessage($msg,$prettytype,FALSE);
 }
 
-$ob = cms_utils::get_module('Notifier');
-if ($ob) {
-	unset($ob);
+if ($this->havenotifier) {
 	$tell = $pmod; //messages here are about changing a booking
 } else
 	$tell = FALSE;

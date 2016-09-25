@@ -412,9 +412,7 @@ $tplvars['find'] = $this->CreateInputSubmit($id,'find',$this->Lang('find'),
 	'title="'.$this->Lang('tip_finditm').'"');
 $tplvars['table'] = $this->CreateInputSubmit($id,'tableview',$this->Lang('table'));
 $tplvars['list'] = $this->CreateInputSubmit($id,'listview',$this->Lang('list'));
-$ob = cms_utils::get_module('Notifier');
-if ($ob) {
-	//can-send-messages
+if ($this->havenotifier) { //can send messages
 	$tplvars['pmsg'] = 1;
 	//buttons
 	$tplvars['ask'] = $this->CreateInputSubmit($id,'ask',$this->Lang('ask'));
