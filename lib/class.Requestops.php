@@ -87,56 +87,60 @@ EOS;
 			}
 			unset($one);
 			if ($collect) {
-				if ($m < \Booker::MINGRPID)
+				if ($m < \Booker::MINGRPID) {
 					$res = $sched->ScheduleResource($mod,$utils,$m,$collect);
-				else
+				} else {
 					$res = $sched->ScheduleGroup($mod,$utils,$m,$collect);
-			}
-			//record new status etc in HistoryTable
-			$sql = array();
-			$args = array();
-			$sqlbase = 'UPDATE '.$mod->HistoryTable.' SET ';
-			foreach ($rows as $history_id=>$one) {
-				$sql1 = $sqlbase;
-				$args1 = array();
-				if (isset($one['approved'])) {
-					$sql1 .= 'item_id=?,approved=?,';
-					$args1[] = $one['item_id']; //downstream may have changed item_id (for a 1-member group booking)
-					$args1[] = $one['approved'];
 				}
-				$sql1 .= 'status=? WHERE history_id=?';
-				$sql[] = $sql1;
-				$args1[] = $one['status'];
-				$args1[] = $history_id;
-				$args[] = $args1;
 			}
-			$utils->SafeExec($sql,$args);
-			$ob = \cms_utils::get_module('Notifier');
-			if ($ob) {
-				//notify lodger
-				unset($ob);
-				$funcs = new Messager();
-				$sndr = new \MessageSender();
-				$propstore = array();
-				$msgs = array();
-				foreach ($rows as $one) {
-					$item_id = $one['item_id'];
-					if (!isset($propstore[$item_id])) {
-						$propstore[$item_id] = $utils->GetItemProperty($mod,$item_id,
-							array('item_id','name','membersname','smspattern','smsprefix'));
-						$propstore[$item_id]['approvertell'] = FALSE; //no message to sender
+			if ($res) { //TODO handle collection members
+				//record new status etc in HistoryTable
+				$sql = array();
+				$args = array();
+				$sqlbase = 'UPDATE '.$mod->HistoryTable.' SET ';
+				foreach ($rows as $history_id=>$one) {
+					$sql1 = $sqlbase;
+					$args1 = array();
+					if (isset($one['approved'])) {
+						$sql1 .= 'item_id=?,subgrpcount=?,approved=?,';
+						$args1[] = $one['item_id']; //downstream may have changed item_id (for a 1-member group booking)
+						$args1[] = $one['subgroupcount']; //ditto for missing subgroupcount
+						$args1[] = $one['approved'];
 					}
-					$idata = $propstore[$item_id];
-					list($res,$msg1) = $funcs->StatusMessage($mod,$utils,$idata,$one,\Booker::STATOK,$custommsg,$sndr);
-					if (!$res)
-						$msgs[] = $msg1;
+					$sql1 .= 'status=? WHERE history_id=?';
+					$sql[] = $sql1;
+					$args1[] = $one['status'];
+					$args1[] = $history_id;
+					$args[] = $args1;
 				}
-				if ($msgs) {
-					return array(FALSE,implode('<br />',array_unique($msgs,SORT_STRING)));
+				$utils->SafeExec($sql,$args);
+				if ($mod->havenotifier) {
+					//notify lodger
+					$funcs = new Messager();
+					$sndr = new \MessageSender();
+					$propstore = array();
+					$msgs = array();
+					foreach ($rows as $one) {
+						$item_id = $one['item_id'];
+						if (!isset($propstore[$item_id])) {
+							$propstore[$item_id] = $utils->GetItemProperty($mod,$item_id,
+								array('item_id','name','membersname','smspattern','smsprefix'));
+							$propstore[$item_id]['approvertell'] = FALSE; //no message to sender
+						}
+						$idata = $propstore[$item_id];
+						list($res,$msg1) = $funcs->StatusMessage($mod,$utils,$idata,$one,\Booker::STATOK,$custommsg,$sndr);
+						if (!$res)
+							$msgs[] = $msg1;
+					}
+					if ($msgs) {
+						return array(FALSE,implode('<br />',array_unique($msgs,SORT_STRING)));
+					}
+					return array(TRUE,'');
+				} else {
+					return array(TRUE,$mod->Lang('tell_booker'));
 				}
-				return array(TRUE,'');
 			} else {
-				return array(TRUE,$mod->Lang('tell_booker'));
+				return array(FALSE,$mod->Lang('err_na'));
 			}
 		} else
 			return array(FALSE,$mod->Lang('err_data'));
@@ -165,10 +169,8 @@ EOS;
 			$utils = new Utils();
 			$utils->SafeExec($sql,$args);
 
-			$ob = \cms_utils::get_module('Notifier');
-			if ($ob) {
+			if ($mod->havenotifier) {
 				//notify lodgers
-				unset($ob);
 				$funcs = new Messager();
 				$sndr = new \MessageSender();
 				$propstore = array();
@@ -219,10 +221,8 @@ EOS;
 			$utils = new Utils();
 			$utils->SafeExec($sql,$args);
 
-			$ob = \cms_utils::get_module('Notifier');
-			if ($ob) {
+			if ($mod->havenotifier) {
 				//notify lodgers
-				unset($ob);
 				$funcs = new Messager();
 				$sndr = new \MessageSender();
 				$propstore = array();
@@ -278,9 +278,8 @@ EOS;
 			$utils = new Utils();
 			$utils->SafeExec($sql,$args);
 
-			$ob = \cms_utils::get_module('Notifier');
-			if ($ob) {
-				unset($ob);
+			if ($mod->havenotifier) {
+				//notify lodgers
 				$funcs = new Messager();
 				$sndr = new \MessageSender();
 				$propstore = array();
@@ -328,9 +327,7 @@ EOS;
 			$rfuncs = new Requestops();
 			$sfuncs = new Schedule();
 			$ufuncs = new Userops();
-			$ob = \cms_utils::get_module('Notifier');
-			if ($ob) {
-				unset($ob);
+			if ($mod->havenotifier) {
 				$mfuncs = new Messager();
 				$sndr = new \MessageSender();
 //				$propstore = array();
@@ -352,11 +349,10 @@ EOS;
 				//TODO update $reqdata : ['payment'] etc
 				if ($ufuncs->HasRight($mod,$bookerid,'record')) { //booker can record directly
 					if ($item_id < \Booker::MINGRPID) {
-						$res = $sfuncs->ScheduleResource($mod,$utils,$item_id,$reqdata); //converts $reqdata to array 
+						$res = $sfuncs->ScheduleResource($mod,$utils,$item_id,$reqdata); //converts $reqdata to array
 					} else {
 						$res = $sfuncs->ScheduleGroup($mod,$utils,$item_id,$reqdata);
 					}
-					$reqdata = reset($reqdata); //revert to original
 					if ($res) {
 						if ($rfuncs->SaveReq($mod,$utils,$reqdata,$is_new)) {
 							$recorded = TRUE;
