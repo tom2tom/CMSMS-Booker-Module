@@ -778,9 +778,9 @@ EOS;
 			return array(FALSE,'err_system');
 
 		$sql =<<<EOS
-SELECT H.*,I.name,B.name AS user FROM $mod->HistoryTable H
-JOIN $mod->ItemTable I ON H.item_id=I.item_id
+SELECT H.*,B.name,I.name AS what FROM $mod->HistoryTable H
 JOIN $mod->BookerTable B ON H.booker_id=B.booker_id
+JOIN $mod->ItemTable I ON H.item_id=I.item_id
 EOS;
 		if (is_array($history_id)) {
 			$fillers = str_repeat('?,',count($history_id)-1);
@@ -815,9 +815,9 @@ EOS;
 			$strip = $mod->GetPreference('pref_stripexport');
 			//file-column-name to fieldname translation
 			$translates = array(
-			 '#ID'=>'name',
+			 '#ID'=>'what',
 			 'Count'=>'subgrpcount',
-			 '#User'=>'user',
+			 '#User'=>'name',
 			 'Lodged'=>'lodged',
 			 'Approved'=>'approved',
 			 '#Start'=>'slotstart',
@@ -846,8 +846,8 @@ EOS;
 				foreach ($translates as $one) {
 					$fv = $data[$one];
 					switch ($one) {
+					case 'what':
 					case 'name':
-					case 'user':
 					case 'comment':
 					case 'gatetransaction':
 						$fv = preg_replace('/[\n\t\r]/',$sep2,$fv);

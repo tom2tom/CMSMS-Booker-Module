@@ -87,9 +87,7 @@ if (!empty($msg)) {
 	$tplvars['message'] = $this->_PrettyMessage($msg,$prettytype,FALSE);
 }
 
-$ob = cms_utils::get_module('Notifier');
-if ($ob) {
-	unset($ob);
+if ($this->havenotifier) {
 	$tell = $pmod; //messages here are about cancellation
 } else
 	$tell = FALSE;
@@ -148,7 +146,7 @@ $jsincs = array();
 //========== NON-REPEAT BOOKINGS ===========
 //TODO support limit to date-range, changing such date-range
 $sql = <<<EOS
-SELECT D.item_id,D.booker_id,D.bkg_id,D.slotstart,D.slotlen,D.paid,I.name,B.name AS user FROM {$this->DataTable} D
+SELECT D.item_id,D.booker_id,D.bkg_id,D.slotstart,D.slotlen,D.paid,I.name AS what,B.name FROM {$this->DataTable} D
 JOIN {$this->ItemTable} I ON D.item_id=I.item_id
 JOIN {$this->BookerTable} B ON D.booker_id=B.booker_id
 WHERE D.booker_id=? ORDER BY D.slotstart
@@ -191,7 +189,7 @@ $linkparms = array(
 $rows = array();
 if ($data) {
 	$linkparms['booker_id'] = $data[0]['booker_id'];
-	$tplvars['item_title'] = $this->Lang('title_booksfor',$this->Lang('user'),$data[0]['user']);
+	$tplvars['item_title'] = $this->Lang('title_booksfor',$this->Lang('user'),$data[0]['name']);
 	$titles = array(
 		$this->Lang('title_when'),
 		$this->Lang('title_item'),
@@ -235,7 +233,7 @@ if ($data) {
 			$oneset->time .= ' &Dagger;';
 		}
 */
-		$oneset->name = $one['name'];
+		$oneset->name = $one['what'];
 		if ($payable)
 			$oneset->paid = ($one['paid']) ? $yes:$no;
 		else
@@ -441,9 +439,9 @@ if ($pmod) {
 $tplvars['item_title2'] = $this->Lang('title_repeats');
 
 $sql = <<<EOS
-SELECT R.bkg_id,R.item_id,R.formula,R.subgrpcount,R.paid,I.name,B.name AS user FROM {$this->RepeatTable} R
-JOIN {$this->ItemTable} I ON R.item_id=I.item_id
-JOIN {$this->BookerTable} B ON R.booker_id=B.booker_id
+SELECT R.bkg_id,R.item_id,R.formula,R.subgrpcount,R.paid,I.name AS what,B.name FROM $this->RepeatTable R
+JOIN $this->ItemTable I ON R.item_id=I.item_id
+JOIN $this->BookerTable B ON R.booker_id=B.booker_id
 WHERE R.booker_id=? AND R.active=1
 EOS;
 
@@ -464,7 +462,7 @@ $linkparms['repeat'] = 1; //rest of links are for repeat bookings
 $rows = array();
 if ($data) {
 	if (!isset($tplvars['item_title']))
-		$tplvars['item_title'] = $this->Lang('title_booksfor',$this->Lang('user'),$data[0]['user']);
+		$tplvars['item_title'] = $this->Lang('title_booksfor',$this->Lang('user'),$data[0]['name']);
 	//titles array same order as displayed columns
 	$titles = array(
 	$this->Lang('description'),
@@ -492,7 +490,7 @@ if ($data) {
 			$oneset->desc .= ' &Dagger;';
 		}
 */
-		$oneset->name = $one['name'];
+		$oneset->name = $one['what'];
 		if ($item_id >= Booker::MINGRPID) {
 			$oneset->count = $one['subgrpcount'];
 		}

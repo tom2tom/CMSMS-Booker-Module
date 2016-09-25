@@ -282,8 +282,6 @@ class Userops
 		} else {
 			if (!empty($params['name']))
 				$main = $params['name'];
-//			elseif (!empty($params['user']))
-//				$main = $params['user'];
 			else
 				$main = FALSE;
 			if (!empty($params['address']))
@@ -647,7 +645,7 @@ class Userops
  'custmsg' => string '' (length=0)
  'when' => int 1474210800
  'until' => int 1474214399
- 'user' => string 'Tester' (length=6)
+ 'name' => string 'Tester' (length=6)
  'comment' => string 'None' (length=4)
  'subgrpcount' => string '1' (length=1)
 * /
@@ -656,7 +654,7 @@ class Userops
 		if (!$bookerid)
 			return FALSE; //should never happen
 		$sql = 'UPDATE '.$mod->BookerTable.' SET name=? WHERE booker_id=?';
-		$mod->dbHandle->Execute($sql,array($params['user'],$bookerid));
+		$mod->dbHandle->Execute($sql,array($params['name'],$bookerid));
 		return $bookerid;
 	}
 */

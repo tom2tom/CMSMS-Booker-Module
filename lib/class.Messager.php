@@ -246,7 +246,7 @@ class Messager
 			if ($idata['bookertell']) {
 				if ($data->contact) {
 					if (preg_match('/\w+@\w+\.\w+/',$data->contact)) {
-						$to[] = array($data->user=>$data->contact);
+						$to[] = array($data->name=>$data->contact);
 					} elseif (preg_match('/^(\+\d{1,4} *)?[\d ]{5,15}$/',$data->contact)) {
 						$to[] = $data->contact;
 					}
@@ -339,9 +339,7 @@ class Messager
 	*/
 	public function NotifyBooker(&$mod, $bkgid, $custommsg)
 	{
-		$ob = \cms_utils::get_module('Notifier');
-		if ($ob) {
-			unset($ob);
+		if ($mod->havenotifier) {
 			$funcs = new Bookingops();
 			$rows = $funcs->GetBkgData($mod,$bkgid);
 			if ($rows) {

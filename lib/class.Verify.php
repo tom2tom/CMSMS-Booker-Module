@@ -30,11 +30,11 @@ class Verify
 		$bs = 0;
 		$be = 0;
 /*supplied $params keys
-		'subgrpcount'? 'when' 'until'? 'user' 'conformuser' 'displayclass'
+		'subgrpcount'? 'when' 'until'? 'name' 'conformuser' 'displayclass'
 		'conformstyle' 'contact' 'conformcontact' 'paid'
 TODO support 'past' data without both date/time $params[]
 */
-		//always want these $params[] keys: 'user','contact'
+		//always want these $params[] keys: 'name','contact'
 		//maybe-present keys
 		//'subgrpcount','when','until'(maybe empty),
 		if (isset($params['when'])) {
@@ -352,7 +352,7 @@ EOS;
  if (!ok) {
   showerr('{$mod->Lang('err_badtime')}',tg);
  } else {
-  tg = document.getElementById('{$id}user');
+  tg = document.getElementById('{$id}name');
   str = tg.value;
   if (typeof me.trim === "function") str = str.trim();
   if (str == false) {
@@ -366,7 +366,7 @@ EOS;
  			$js2 = <<<EOS
 function validate(ev) {
  var ok = true,
-   tg = document.getElementById('{$id}user'),
+   tg = document.getElementById('{$id}name'),
    str = tg.value;
  if (typeof me.trim === "function") str = str.trim();
  if (str == false) {
