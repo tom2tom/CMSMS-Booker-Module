@@ -6,10 +6,11 @@
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
 
-if (!$this->_CheckAccess()) exit;
-
-$bookerid = (int)$params['booker_id'];
-$is_new = ($bookerid == -1);
+$pmod = ($params['task'] == 'edit' || $params['task'] == 'add');
+if (!$this->_CheckAccess('admin')) {
+	if ($pmod && !$this->_CheckAccess('book')) exit;
+	if (!$pmod && !$this->_CheckAccess('view')) exit;
+}
 
 if (isset($params['resume'])) {
 	$resume = $params['resume'];
@@ -22,15 +23,18 @@ if (isset($params['resume'])) {
 	$params['active_tab'] = 'people';
 }
 
+$bookerid = (int)$params['booker_id'];
 if (isset($params['cancel'])) {
-	$this->Redirect($id,$resume,'',array('active_tab'=>$params['active_tab']));
+	$this->Redirect($id,$resume,'',array('booker_id'=>$bookerid,'active_tab'=>$params['active_tab']));
 }
+
+$is_new = ($bookerid == -1);
 
 $utils = new Booker\Utils();
 $utils->DecodeParameters($params,array('name','publicid','address','phone'));
 
 if (isset($params['submit']) || isset($params['apply'])) {
-	if (!$this->_CheckAccess('admin')) exit;
+	if (!$pmod) exit;
 /* $params[] available:
 	'active'
 	'address'
@@ -98,10 +102,9 @@ if (isset($params['submit']) || isset($params['apply'])) {
 		);
 		$funcs->SetRights($this,$bookerid,$rights,$type);
 
-		if (isset($params['submit']))
-			$this->Redirect($id,$resume,'',array('booker_id'=>$bookerid,'active_tab'=>'people')); //TODO $param['booker_id'] ???
-		else
-			$params['task'] = 'edit'; //in case we we adding
+		if (isset($params['submit'])) {
+			$this->Redirect($id,$resume,'',array('booker_id'=>$bookerid,'active_tab'=>$params['active_tab']));
+		}
 	} else { //error
 		$t = implode(' ',$msg);
 		if (empty($params['message']))
@@ -109,9 +112,15 @@ if (isset($params['submit']) || isset($params['apply'])) {
 		else
 			$params['message'] .= '<br />'.$t;
 	}
+	$params['booker_id'] = $bookerid;
+	$is_new = FALSE;
+	$params['task'] = 'edit'; //in case we we adding
 }
 
-$tplvars = array();
+$tplvars = array(
+	'mod' => $pmod
+);
+
 $tplvars['pagenav'] = $this->_BuildNav($id,$returnid,$resume,$params);
 
 $hidden = array('booker_id'=>$bookerid,'resume'=>$resume,'task'=>$params['task']);
@@ -123,14 +132,12 @@ $tplvars['endform'] = $this->CreateFormEnd();
 if (!empty($params['message']))
 	$tplvars['message'] = $params['message'];
 
-$viewmode = !($params['task'] == 'edit' || $params['task'] == 'add');
-$tplvars['mod'] = !$viewmode;
-
 $tplvars['title'] = $this->Lang('title_booker_page');
-if ($viewmode)
-	$missing = '&lt;'.$this->Lang('missing').'&gt;';
-else
+if ($pmod) { //add/edit mode
 	$tplvars['compulsory'] = $this->Lang('help_compulsory');
+} else {
+	$missing = '&lt;'.$this->Lang('missing').'&gt;';
+}
 
 //script accumulators
 $jsincs = array();
@@ -167,35 +174,34 @@ if ($is_new) {
 
 $yes = $this->Lang('yes');
 $no = $this->Lang('no');
-//$none = $this->Lang('none');
 
 $vars = array();
 // active
 $oneset = new stdClass();
 $oneset->ttl = $this->Lang('title_active');
 $state = (int)$bdata['active'];
-$oneset->inp = ($viewmode) ?
-	(($state)?$yes:$no):
-	$this->CreateInputCheckbox($id,'active',1,$state);
+$oneset->inp = ($pmod) ?
+	$this->CreateInputCheckbox($id,'active',1,$state):
+	(($state)?$yes:$no);
 $vars[] = $oneset;
 // name C(64)
 $oneset = new stdClass();
 $oneset->ttl = $this->Lang('title_name');
-$oneset->mst = 1;
-$oneset->inp = ($viewmode) ?
-	(($bdata['name'])?$bdata['name']:$missing):
-	$this->CreateInputText($id,'name',$bdata['name'],40,64);
+$oneset->mst = $pmod; //show in edit-mode
+$oneset->inp = ($pmod) ?
+	$this->CreateInputText($id,'name',$bdata['name'],40,64):
+	(($bdata['name'])?$bdata['name']:$missing);
 $vars[] = $oneset;
 // publicid C(32), aka account
 $oneset = new stdClass();
 $oneset->ttl = $this->Lang('title_publicid');
-$oneset->inp = ($viewmode) ?
-	(($bdata['publicid'])?$bdata['publicid']:$missing):
-	$this->CreateInputText($id,'publicid',$bdata['publicid'],20,32);
+$oneset->inp = ($pmod) ?
+	$this->CreateInputText($id,'publicid',$bdata['publicid'],20,32):
+	(($bdata['publicid'])?$bdata['publicid']:$missing);
 $oneset->hlp = $this->Lang('help_publicid');
 $vars[] = $oneset;
 // passhash C(48),
-if (!$viewmode) {
+if ($pmod) {
 	$oneset = new stdClass();
 	$oneset->ttl = $this->Lang('title_passnew');
 	$t = ($is_new) ? 'changethis':'';
@@ -203,7 +209,9 @@ if (!$viewmode) {
 	$oneset->hlp = $this->Lang('help_passnew').'. '.$this->Lang('help_passwd');
 	$vars[] = $oneset;
 
-	$jsincs[] = '<script type="text/javascript" src="'.$baseurl.'/include/jquery-inputCloak.min.js"></script>';
+	$jsincs[] = <<<EOS
+<script type="text/javascript" src="{$baseurl}/include/jquery-inputCloak.min.js"></script>
+EOS;
 	$jsloads[] = <<<EOS
  $('#{$id}passhash').inputCloak({
   type:'see4',
@@ -215,33 +223,33 @@ EOS;
 // address C(96)
 $oneset = new stdClass();
 $oneset->ttl = $this->Lang('title_address');
-$oneset->mst = 1;
-$oneset->inp = ($viewmode) ?
-	(($bdata['address'])?$bdata['address']:$missing):
-	$this->CreateInputText($id,'address',$bdata['address'],40,96);
+$oneset->mst = $pmod; //show in edit-mode
+$oneset->inp = ($pmod) ?
+	$this->CreateInputText($id,'address',$bdata['address'],40,96):
+	(($bdata['address'])?$bdata['address']:$missing);
 $oneset->hlp = $this->Lang('help_address');
 $vars[] = $oneset;
 // phone C(24)
 $oneset = new stdClass();
 $oneset->ttl = $this->Lang('title_phone');
-$oneset->inp = ($viewmode) ?
-	(($bdata['phone'])?$bdata['phone']:$none):
-	$this->CreateInputText($id,'phone',$bdata['phone'],20,24);
+$oneset->inp = ($pmod) ?
+	$this->CreateInputText($id,'phone',$bdata['phone'],20,24):
+	(($bdata['phone'])?$bdata['phone']:$this->Lang('none'));
 $oneset->hlp = $this->Lang('help_phone');
 $vars[] = $oneset;
 // basetype func(type)
 $oneset = new stdClass();
 $oneset->ttl = $this->Lang('title_bookertype');
 $state = $funcs->GetBaseType($this,$bookerid,$bdata['type']);
-if ($viewmode) {
-	$oneset->inp = $state;
-} else {
+if ($pmod) {
 	$choices = array_fill(0,10,0);
 	foreach ($choices as $k=>&$t) {
 		$t = $k;
 	}
 	unset($t);
 	$oneset->inp = $this->CreateInputDropdown($id,'type_type',$choices,-1,$state);
+} else {
+	$oneset->inp = $state;
 }
 $oneset->hlp = $this->Lang('help_bookertype');
 $vars[] = $oneset;
@@ -249,10 +257,10 @@ $vars[] = $oneset;
 $oneset = new stdClass();
 $oneset->ttl = $this->Lang('title_record');
 $state = $funcs->HasRight($this,$bookerid,'record',$bdata['type']);
-if ($viewmode) {
-	$oneset->inp = ($state) ? $yes:$no ;
-} else {
+if ($pmod) {
 	$oneset->inp = $this->CreateInputCheckbox($id,'type_record',1,$state);
+} else {
+	$oneset->inp = ($state) ? $yes:$no ;
 }
 $oneset->hlp = $this->Lang('help_record');
 $vars[] = $oneset;
@@ -260,25 +268,25 @@ $vars[] = $oneset;
 $oneset = new stdClass();
 $oneset->ttl = $this->Lang('title_postpay');
 $state = $funcs->HasRight($this,$bookerid,'postpay',$bdata['type']);
-if ($viewmode) {
-	$oneset->inp = ($state) ? $yes:$no ;
+if ($pmod) {
+	$oneset->inp = $this->CreateInputCheckbox($id,'type_postpay',1,$state);
 } else {
-$oneset->inp = $this->CreateInputCheckbox($id,'type_postpay',1,$state);
-	}
+	$oneset->inp = ($state) ? $yes:$no ;
+}
 $oneset->hlp = $this->Lang('help_postpay');
 $vars[] = $oneset;
 // displayclass I(1) DEFAULT 0,
 $oneset = new stdClass();
 $oneset->ttl = $this->Lang('title_displayclass');
-if ($viewmode) {
-	$oneset->inp = $state;
-} else {
+if ($pmod) {
 	$choices = array_fill(1,Booker::USERSTYLES,0);
 	foreach ($choices as $k=>&$t) {
 		$t = $k;
 	}
 	unset($t);
 	$oneset->inp = $this->CreateInputDropdown($id,'displayclass',$choices,-1,(int)$bdata['displayclass']);
+} else {
+	$oneset->inp = $state;
 }
 $oneset->hlp = $this->Lang('help_displayclass');
 $vars[] = $oneset;
@@ -286,13 +294,15 @@ $vars[] = $oneset;
 $tplvars['settings'] = $vars;
 
 //buttons
-if ($viewmode) {
-	$tplvars['cancel'] = $this->CreateInputSubmit($id,'cancel',$this->Lang('close'));
-} else { //add/edit mode
+if ($pmod) {
 	$tplvars['submit'] = $this->CreateInputSubmit($id,'submit',$this->Lang('submit'));
 	$tplvars['apply'] = $this->CreateInputSubmit($id,'apply',$this->Lang('apply'));
 	$tplvars['cancel'] = $this->CreateInputSubmit($id,'cancel',$this->Lang('cancel'));
+} else {
+	$tplvars['cancel'] = $this->CreateInputSubmit($id,'cancel',$this->Lang('close'));
 }
+
+$tplvars['jsincs'] = $jsincs;
 
 if ($jsloads) {
 	$jsfuncs[] = '$(document).ready(function() {
@@ -302,6 +312,5 @@ if ($jsloads) {
 ';
 }
 $tplvars['jsfuncs'] = $jsfuncs;
-$tplvars['jsincs'] = $jsincs;
 
 echo Booker\Utils::ProcessTemplate($this,'openbooker.tpl',$tplvars);
