@@ -43,14 +43,13 @@
  <p class="pageinput" style="margin:20px;">{$nofees}</p>
 {/if}
 <div class="pageoptions" style="margin:1em 0 0 0;">
-{if $mod}{$addlink}{/if}
+{if $mod}{$addfee}{/if}
+<span style="margin-left:5em;">
 {if $count > 0}
-<div class="pageinput" style="float:right;text-align:right">
-{$cancel}{if $mod} {$submit}{if $count > 1} {$delete}{/if}{/if}
-</div>
-<div class="clearb"></div>
+{if $mod}{$submit} {/if}{$cancel}{if ($mod && $count > 0)} {$delete}{/if}
 {else}
-&nbsp;&nbsp;{$cancel}
+{$cancel}
+</span>
 {/if}
 </div>
 </div>
