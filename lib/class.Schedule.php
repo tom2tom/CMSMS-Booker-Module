@@ -538,6 +538,12 @@ class Schedule
 				$parmstore[$item_id]['slotcount'] = $idata['slotcount'];
 			}
 			$timeparms = $parmstore[$item_id];
+			if (!$row['subgrpcount']) {
+				if ($item_id < \Booker::MINGRPID)
+					$row['subgrpcount'] = 1;
+				else
+					$row['subgrpcount'] = count($utils->GetGroupItems($mod,$item_id));
+			}
 			$res = $reps->AllIntervals($row['formula'],$dts,$dte,$timeparms);
 			if ($res) {
 				list($starts,$ends) = $res;
@@ -577,7 +583,7 @@ class Schedule
 	ScheduleResource:
 	Register as many as possible of bookings in @reqdata, for a single resource @item_id.
 	The status field in each @reqdata member will be updated to indicate what
-	precisely has been done
+	precisely has been done, the subgroupcount field will be added if absent
 	@mod: reference to current Booker module object
 	@utils: reference to Booker\Utils object
 	@item_id: item identifier
@@ -595,12 +601,14 @@ class Schedule
 				$d = $a['lodged'] - $b['lodged'];
 				return ($d != 0) ? $d : ($a['slotstart'] - $b['slotstart']);
 			});
+			$unarray = FALSE;
 		} else {
 			$bs = (int)$reqdata['slotstart'];
 			if (empty($reqdata['slotlen']))
 				$reqdata['slotlen'] = $slen;
 			$be = $bs + $reqdata['slotlen'] - 1;
 			$reqdata = array($reqdata);
+			$unarray = TRUE;
 		}
 		$dts = new \DateTime('@'.$bs,NULL);
 		$dts->setTime(0,0,0);
@@ -610,24 +618,28 @@ class Schedule
 		$dte->modify('+1 day');
 		self::UpdateRepeats($mod,$item_id,$dts,$dte);
 
-		$ret = TRUE;
+		$res = TRUE;
 		$session_id = Cache::GetKey(\Booker::SESSIONKEY); //identifier for cached slotstatus data
 		foreach ($reqdata as &$one) {
+			$one['subgroupcount'] = 1; //force this
 			if (!self::ScheduleOne($mod,$utils,$one,$item_id,0,$session_id,FALSE)) {
-				$ret = FALSE;
+				$res = FALSE;
 			}
 		}
 		unset($one);
 /*	$cache = Cache::GetCache($mod);
 		TODO clear any cached PUBLIC slotstatus data for this session
 */
-		return $ret;
+		if ($unarray)
+			$reqdata = $reqdata[0];
+		return $res;
 	}
 
 	/**
 	ScheduleGroup:
 	Register as many as possible of bookings in @reqdata, for resource-group @item_id.
-	The status field in each @reqdata member will be updated to reflect what was done.
+	The status field in each @reqdata member will be updated to reflect what was done,
+	the subgroupcount field will have been added or updated if empty on arrival.
 	@mod: reference to current Booker module object
 	@utils: reference to Utils-class object
 	@item_id: group identifier
@@ -639,6 +651,15 @@ class Schedule
 		$slen = $utils->GetInterval($mod,$item_id,'slot'); //assumes no need for resource-specific slotlength
 		if (is_array(reset($reqdata))) {
 			list($bs,$be) = self::RequestBounds($reqdata,$slen);
+			$count = -1;
+			foreach ($reqdata as &$one) {
+				if (empty($one['subgrpcount'])) {
+					if ($count == -1)
+						$count = count($utils->GetGroupItems($mod,$item_id));
+					$one['subgrpcount'] = $count;
+				}
+			}
+			unset($one);
 			//sort reqdata on resources-count DESC, lodge-time ASC (favours bigger bookings)
 			usort($reqdata,function($a, $b)
 			{
@@ -648,12 +669,17 @@ class Schedule
 				$d = $a['lodged'] - $b['lodged'];
 				return ($d != 0) ? $d : ($a['slotstart'] - $b['slotstart']);
 			});
+			$unarray = FALSE;
 		} else {
+			if (empty($reqdata['subgrpcount'])) {
+				$reqdata['subgrpcount'] = count($utils->GetGroupItems($mod,$item_id));
+			}
 			$bs = (int)$reqdata['slotstart'];
 			if (empty($reqdata['slotlen']))
 				$reqdata['slotlen'] = $slen;
 			$be = $bs + $reqdata['slotlen'] - 1;
 			$reqdata = array($reqdata);
+			$unarray = TRUE;
 		}
 		$dts = new \DateTime('@0',NULL);
 		$dts->setTimestamp($bs);
@@ -664,7 +690,10 @@ class Schedule
 		$dte->modify('+1 day');
 		self::UpdateRepeats($mod,$item_id,$dts,$dte);
 		$session_id = Cache::GetKey(\Booker::SESSIONKEY); //identifier for cached slotstatus data
-		return self::ScheduleMulti($mod,$utils,$reqdata,$item_id,$item_id,$session_id,FALSE);
+		$res = self::ScheduleMulti($mod,$utils,$reqdata,$item_id,$item_id,$session_id,FALSE);
+		if ($unarray)
+			$reqdata = $reqdata[0];
+		return $res;
 	}
 
 	/**
