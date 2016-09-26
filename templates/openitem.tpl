@@ -8,7 +8,7 @@
 {$start_basic_tab}
 <div class="pageoverflow">
 {foreach from=$basic item=entry}
- <p class="pagetext">{$entry.ttl}:{if isset($entry.mst)} *{/if}{if $entry.hlp}{$showtip}</p>{/if}
+ <p class="pagetext">{$entry.ttl}:{if !empty($entry.mst)} *{/if}{if $entry.hlp}{$showtip}</p>{/if}
  <div class="pageinput">{$entry.inp}</div>
  {if $entry.hlp}<p class="pageinput help">{$entry.hlp}</p>{/if}
 {/foreach}
@@ -17,7 +17,7 @@
 {$start_adv_tab}
 <div class="pageoverflow">
 {foreach from=$advanced item=entry}
- <p class="pagetext">{$entry.ttl}:{if isset($entry.mst)} *{/if}{if $entry.hlp}{$showtip}{/if}</p>
+ <p class="pagetext">{$entry.ttl}:{if !empty($entry.mst)} *{/if}{if $entry.hlp}{$showtip}{/if}</p>
  <div class="pageinput">{$entry.inp}</div>
  {if $entry.hlp}<p class="pageinput help">{$entry.hlp}</p>{/if}
 {/foreach}
@@ -26,7 +26,7 @@
 {$start_fmt_tab}
 <div class="pageoverflow">
 {foreach from=$formats item=entry}
- <p class="pagetext">{$entry.ttl}:{if isset($entry.mst)} *{/if}{if $entry.hlp}{$showtip}{/if}</p>
+ <p class="pagetext">{$entry.ttl}:{if !empty($entry.mst)} *{/if}{if $entry.hlp}{$showtip}{/if}</p>
  <div class="pageinput">{$entry.inp}</div>
  {if $entry.hlp}<p class="pageinput help">{$entry.hlp}</p>{/if}
 {/foreach}
