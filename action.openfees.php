@@ -326,7 +326,7 @@ WHERE condition_id=?';
 }
 
 $is_group = ($item_id >= Booker::MINGRPID);
-$typestr = ($is_group) ? $this->Lang('group') : $this->Lang('item');
+$typename = ($is_group) ? $this->Lang('group') : $this->Lang('item');
 $pmod = $this->_CheckAccess('admin');
 $pdata = getfeedata($params,$item_id,$this);
 
@@ -345,7 +345,8 @@ if ($sel) {
 $tplvars = array(
 	'mod' => $pmod,
 	'startform' => $this->CreateFormStart($id,'openfees',$returnid,'POST','','','',$hidden),
-	'endform' => $this->CreateFormEnd()
+	'endform' => $this->CreateFormEnd(),
+	'hidden'=>NULL
 );
 
 if (isset($params['message']))
@@ -374,7 +375,7 @@ if ($pdata) {
 	$count = count($pdata);
 	$choices = array($this->Lang('anytime')=>-1) + array_flip(explode(',',$this->Lang('periods'))); //'minute,hour,day,week,month,year'
 	if ($pmod) {
-		$tip_del = $this->Lang('tip_delfeetype',$typestr);
+		$tip_del = $this->Lang('tip_delfeetype',$typename);
 		$icondel = 'delete.gif';
 		if ($count > 1) {
 			$tip_up = $this->Lang('tip_up');
@@ -423,7 +424,7 @@ if ($pdata) {
 			$oneset->deletelink = $this->_CreateInputLinks($id,'delfee['.$cid.']',
 				$icondel,FALSE,$tip_del);
 			//NOT selitm or selgrp - those may be supplied from elsewhere
-			$oneset->selected = ($count > 1) ? $this->CreateInputCheckbox($id,'selfees['.$cid.']',1,-1):NULL;
+			$oneset->selected = $this->CreateInputCheckbox($id,'selfees['.$cid.']',1,-1);
 		} else {
 			$oneset->desc = $one['description'];
 			$oneset->count = ($one['slottype'] != -1) ? $one['slotcount']:'';
@@ -485,7 +486,7 @@ $tplvars['count'] = $count;
 
 if ($pmod) {
 	$t = $this->Lang('addfee');
-	$tplvars['addlink'] = $this->_CreateInputLinks($id,'addfee','newobject.gif',TRUE,$t);
+	$tplvars['addfee'] = $this->_CreateInputLinks($id,'addfee','newobject.gif',TRUE,$t);
 	$tplvars['submit'] = $this->CreateInputSubmit($id,'submit',$this->Lang('submit'));
 	$tplvars['cancel'] = $this->CreateInputSubmit($id,'cancel',$this->Lang('cancel'));
 
@@ -496,6 +497,10 @@ if ($pmod) {
 		$tplvars['yes'] = $this->Lang('yes');
 		$tplvars['no'] = $this->Lang('no');
 
+		$jsloads[] = <<<EOS
+ $('.updown').hide();
+ 
+EOS;
 		$jsfuncs[] = <<<EOS
 function selitm_count() {
  var cb = $('input[name^="{$id}selfees"]:checked');
@@ -536,7 +541,6 @@ EOS;
 '<script type="text/javascript" src="'.$baseurl.'/include/jquery.tablednd.min.js"></script>';
 
 			$jsloads[] = <<<EOS
- $('.updown').hide();
  $('.dndhelp').css('display','block');
  var elem = $('p.pageinput:first'),
   color = $(elem).css('color'),
