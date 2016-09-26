@@ -65,6 +65,13 @@ if (isset($params['submit'])) {
 	else
 		$msg[] = $this->Lang('missing_type',$this->Lang('contact'));
 
+	if (empty($params['subgrpcount'])) {
+		if ($is_group)
+			$params['subgrpcount'] = count($utils->GetGroupItems($this,$item_id));
+		else
+			$params['subgrpcount'] = 1;
+	}
+
 	if (empty($params['repeat'])) { //onetime booking
 		$vfuncs = new Booker\Verify();
 		list($res,$xmsg) = $vfuncs->VerifyData($this,$utils,$params,$item_id,$is_new,TRUE);
