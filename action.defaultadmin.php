@@ -151,28 +151,7 @@ if ($data) {
 	$fmt = 'j M Y G:i'; //specific format, not the 'public' (frontend) format, to restrict table width
 	$tz = new DateTimeZone('UTC');
 	$dt = new DateTime('@0',$tz);
-	$statnames = array(
-		Booker::STATNONE => $this->Lang('stat_none'),//unknown/normal/default
-		Booker::STATNEW => $this->Lang('stat_new'),//new, approver consideration pending
-		Booker::STATCHG => $this->Lang('stat_chg'),//change request, approver consideration pending
-		Booker::STATDEL => $this->Lang('stat_del'),//delete request, approver consideration pending
-		Booker::STATTELL => $this->Lang('stat_tell'),//further information submitted
-		Booker::STATASK => $this->Lang('stat_ask'),//booker queried, waiting for response
-		Booker::STATCANCEL => $this->Lang('stat_cancel'),//abandoned by user or admin on user's behalf
-		Booker::STATTEMP => $this->Lang('stat_temp'),//user-recorded, pending admin confirmation
-		Booker::STATDEFERRED => 40,//booking to be re-scheduled, per user request or admin imposition
-		Booker::STATGONE => 90,//deletion pending, while its historical data needed
-		Booker::STATBIG => 80,//too many slots requested
-		Booker::STATDEFER => $this->Lang('stat_defer'),//request not yet processed cuz' too far ahead
-		Booker::STATLATE => 82,//request past or not far-enough ahead
-		Booker::STATNA => 83,//resouce N/A at requested time, cannot accept
-		Booker::STATDUP => 84,//duplicate request, cannot accept
-		Booker::STATERR => 85,//system error while processing
-		Booker::STATRETRY => 86,//some temporary problem, try again later
-		Booker::STATFAILED => 89//generic request-failure
-	);
-	//$statNOPAY = $this->Lang('stat_nopay');
-	//$statOK = $this->Lang('stat_ok');
+	$statnames = $utils->GetStatusChoices($this,1+4);
 
 	foreach ($data as &$row) {
 		$one = new stdClass();
@@ -189,9 +168,8 @@ if ($data) {
 		$dt->setTimestamp($row['slotstart']);
 		$one->start = $dt->format($fmt);
 		$t = (int)$row['status'];
-		if (array_key_exists($t,$statnames)) {
-			$one->status = $statnames[$t];
-		} else {
+		$one->status = array_search($t,$statnames);
+		if ($one->status === FALSE) {
 			$one->status = $t;
 		}
 		switch ($row['payment']) {
@@ -1085,7 +1063,55 @@ if ($mod) {
 $tplvars['startform5'] = $this->CreateFormStart($id,'processreport',$returnid,
 	'POST','','','',array('active_tab'=>'reports'));
 $tplvars['start_reports_tab'] = $this->StartTab('reports');
-//TODO content
+
+$cbbase = $this->CreateInputCheckbox($id,'base',1,-1);
+$types = array('item','bkr','when');
+//TODO LANG
+$cells = array();
+//column 0
+//'title_period'
+$column = array(
+'','By Item','By Booker','By Interval'
+);
+$cells[] = $column;
+//column 1
+$column = array('Overview');
+for ($t=0; $t<3; $t++) {
+	$cb = str_replace(array('class="','base'),array('class="reportcheck ',$types[$t].'view'),$cbbase);
+	$column[] = $cb;
+}
+$cells[] = $column;
+//column 2
+$column = array('Payments');
+for ($t=0; $t<3; $t++) {
+	$cb = str_replace(array('class="','base'),array('class="reportcheck ',$types[$t].'payment'),$cbbase);
+	$column[] = $cb;
+}
+$cells[] = $column;
+//column 3
+$column = array($this->Lang('status'));
+for ($t=0; $t<3; $t++) {
+	$cb = str_replace(array('class="','base'),array('class="reportcheck ',$types[$t].'status'),$cbbase);
+	$column[] = $cb;
+}
+$cells[] = $column;
+
+$tplvars['reportcells'] = $cells;
+$tplvars['reportrows'] = 4;
+$tplvars['displaybtn'] = '[BTNDISPLAY]';
+$tplvars['exportbtn5'] = '[BTNEXPORT]';
+
+$jsloads[] =<<<EOS
+ $('#reportstable').find('input.reportcheck').click(function(ev) {
+  var \$b = $(this),
+   st = \$b.attr('checked');
+  if (st) {
+   $('#reportstable').find('input.reportcheck').attr('checked',false);
+   \$b.attr('checked',true);
+  }
+ });
+
+EOS;
 
 //SETTINGS TAB
 $tplvars['startform6'] = $this->CreateFormStart($id,'setprefs',$returnid,
