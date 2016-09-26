@@ -434,8 +434,8 @@ $t = $this->Lang('shortdays');
 $sdnames = "'".str_replace(",","','",$t)."'";
 
 $jsloads[] = <<<EOS
- $('#{$id}pick').click(function(evt) {
-   evt.preventDefault();
+ $('#{$id}pick').click(function(ev) {
+   ev.preventDefault();
    return false;
  }).pikaday({
   field: document.getElementById('{$id}showfrom'),
