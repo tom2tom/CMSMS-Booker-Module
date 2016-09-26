@@ -626,16 +626,22 @@ if ($sel) {
 	unset($one);
 	$tplvars['entries'] = $fees;
 	$i = Booker\Utils::ProcessTemplate($this,'brieffees.tpl',$tplvars);
-	$t = $this->Lang('edit');
+	if ($pmod) {
+		$t = $this->Lang('edit');
+		$i .= '<br /><br />'.$this->CreateInputSubmit($id,'modfee',$t,'onclick="return confirm_saved(this);"');
+	}
 	$h = $this->Lang('help_fee');
 } else {
-	$i = $this->Lang('nofees').'<br />';
-	$t = $this->Lang('addfee');
+	$i = $this->Lang('nofees');
+	if ($pmod) {
+		$t = $this->Lang('addfee');
+		$i .= '<br /><br />'.$this->CreateInputSubmit($id,'modfee',$t,'onclick="return confirm_saved(this);"');
+	}
 	$h = NULL;
 }
 if ($pmod) {
 	$jsfuncs[] = <<<EOS
-function confirm_saved(btn) { //QQQ $.modalconfirm.show(
+function confirm_saved(btn) {
  $.modalconfirm.show({
   overlayID: 'confirm',
   popupID: 'confgeneral',
@@ -652,7 +658,6 @@ function confirm_saved(btn) { //QQQ $.modalconfirm.show(
 }
 
 EOS;
-	$i .= '<br />'.$this->CreateInputSubmit($id,'modfee',$t,'onclick="return confirm_saved(this);"');
 }
 $basic[] = array('ttl'=>$cascade.$this->Lang('title_feeusage'),
 'inp'=>$i,
@@ -1151,7 +1156,7 @@ $choices = array($none=>'',	$inherit=>'-1') + $choices;
 if ($pmod) {
 	$i = $this->CreateInputDropdown($id,'paymentiface',$choices,-1,$item->paymentiface);
 } elseif ($item->paymentiface) {
-	$i = $allmodules[$item->paymentiface];
+	$i = $item->paymentiface;
 } else
 	$i = $none;
 $advanced[] = array('ttl'=>$cascade.$this->Lang('title_paymentiface'),
