@@ -347,7 +347,7 @@ $lang['help_feeconditions'] = <<<EOS
 Rules for determining application of a fee may include:<br />
 {$lang['help_intervals']}<br />
 and/or<br />
-One or more (in which case, comma-separated) user-classes, like TODO.<br />
+One or more (in which case, comma-separated) user-classes, like TODO.<br /><br />
 {$lang['help_use_smarty']}<br />
 If multiple conditions are specified, it will be sufficient for any of them to be satisfied.
 If blank, fees apply always.
@@ -463,17 +463,30 @@ $lang['showhelp'] = 'click to toggle display of information about this parameter
 $lang['showrange'] = '%s to %s';
 $lang['sort'] = 'Sort';
 $lang['start'] = 'Start';
-$lang['stat_none'] = '';
-$lang['stat_temp'] = 'recorded';
-$lang['stat_new'] = 'new';
-$lang['stat_chg'] = 'change';
-$lang['stat_del'] = 'cancel';
-$lang['stat_tell'] = 'info';
-$lang['stat_ask'] = 'wait';
-$lang['stat_nopay'] = 'unpaid';
-$lang['stat_ok'] = 'done';
+
+$lang['stat_approved'] = 'approved';
+$lang['stat_ask'] = 'wait for info';
+$lang['stat_big'] = 'too big';
 $lang['stat_cancel'] = 'cancelled';
+$lang['stat_chg'] = 'change';
+$lang['stat_defer'] = 'on hold';
 $lang['stat_defer'] = 'too far ahead';
+$lang['stat_del'] = 'abandon';
+$lang['stat_dup'] = 'slot taken';
+$lang['stat_err'] = 'system error';
+$lang['stat_fail'] = 'generic failure';
+$lang['stat_gone'] = 'tagged for delete';
+$lang['stat_late'] = 'too soon';
+$lang['stat_na'] = 'not available';
+$lang['stat_new'] = 'new';
+$lang['stat_none'] = 'unknown';
+$lang['stat_nopay'] = 'unpaid';
+$lang['stat_ok'] = 'all done';
+$lang['stat_rec'] = 'recorded';
+$lang['stat_retry'] = 'retry later';
+$lang['stat_selfrec'] = 'user-recorded';
+$lang['stat_tell'] = 'sent info';
+$lang['stat_temp'] = 'recorded';
 $lang['status'] = 'Status';
 $lang['submit'] = 'Submit';
 $lang['sunrise'] = 'sunrise';
@@ -659,7 +672,6 @@ $lang['title_request1'] = 'If the booking is yours, you can'; //start of sentenc
 $lang['title_request2'] = 'make a booking for %s'; //one option for rest of sentence
 //$lang['title_requeststatus'] = 'Request status';
 $lang['title_sender'] = 'Your name';
-$lang['title_sender2'] = 'Lodged by';
 $lang['title_short_desc'] = 'Brief description';
 $lang['title_slotlength'] = 'Interval between successive bookings';
 $lang['title_smspattern']='Validator for phone numbers suitable for receiving SMS';
