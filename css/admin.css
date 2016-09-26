@@ -22,6 +22,9 @@ label.radiolabel {
 
 /* empty = just kill .pagetable settings */
 table.pagetable th {}
+table.pagetable td.check {
+ text-align:center;
+}
 
 table.leftwards {
  margin-left:0;
