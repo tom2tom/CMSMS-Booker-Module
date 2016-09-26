@@ -60,32 +60,34 @@ class Booker extends CMSModule
  	const STATCANCEL = 6;//abandoned by user or admin on user's behalf
 	const STATMAXREQ = 9;//last-recognised request-status value
 	//later status
-	const STATOK = 20;//aka APPROVED done/processed
-	const STATADMINREC = 21;//booking recorded by admin
-	const STATSELFREC = 22;//recorded by approved user (i.e. no request)
-
-	const STATMAXOK = 30;//last-recognised request-done-ok value
-	const STATTEMP = 31;//user-recorded, pending admin confirmation
-	const STATDEFERRED = 40;//booking to be re-scheduled, per user request or admin imposition
- 	const STATGONE = 90;//deletion pending, while its historical data needed
+	const STATOK = 10;//aka APPROVED done/processed
+	const STATADMINREC = 11;//booking recorded by admin
+	const STATSELFREC = 12;//recorded by approved user (i.e. no request)
+	const STATTEMP = 18;//user-recorded, pending admin confirmation
+	const STATDEFERRED = 19;//booking to be re-scheduled, per user request or admin imposition
+ 	const STATGONE = 20;//deletion pending, while its historical data needed
+	const STATMAXOK = 20;//last-recognised request-done-ok value
 	//problems
-	const STATBIG = 80;//too many slots requested
-	const STATDEFER = 81;//request not yet processed cuz' too far ahead
-	const STATLATE = 82;//request past or not far-enough ahead
-	const STATNA = 83;//resouce N/A at requested time, cannot accept
-	const STATDUP = 84;//duplicate request, cannot accept
- 	const STATERR = 85;//system error while processing
- 	const STATRETRY = 86;//some temporary problem, try again later
-	const STATFAILED = 89;//generic request-failure
+	const STATBIG = 21;//too many slots requested
+	const STATDEFER = 22;//request not yet processed cuz' too far ahead
+	const STATLATE = 23;//request past or not far-enough ahead
+	const STATNA = 24;//resouce N/A at requested time, cannot accept
+	const STATDUP = 25;//duplicate request, cannot accept
+ 	const STATERR = 26;//system error while processing
+ 	const STATRETRY = 27;//some temporary problem, try again later
+	const STATFAILED = 28;//generic request-failure
+	const STATMAXBAD = 35;//last-recognised request-bad value
 	//HistoryTable payment codes
-	const STATFREE = 0;//no fee for use
-	const STATPAYABLE = 1;//fee applies, not yet paid
-	const STATPAID = 2;//fee pre- or post-paid
-	const STATCREDITED = 3;//fee to be paid upon request
- 	const STATNOTPAID = 9;//payable but unpaid for some non-credit-related reason
-	const STATCREDITUSED = 10;//past credit offset against other use
-	const STATCREDITEXPIRED = 11;//past credit timed out
-	const STATCREDITADDED = 12;//prepayment amount
+	const STATFREE = 40;//no fee for use
+	const STATPAYABLE = 41;//fee applies, not yet paid
+	const STATPAID = 42;//fee pre- or post-paid
+	const STATCREDITED = 43;//fee to be paid upon request
+ 	const STATNOTPAID = 44;//payable but unpaid for some non-credit-related reason
+	const STATOVRDUE = 45;//payment overdue
+	const STATCREDITUSED = 50;//past credit offset against other use
+	const STATCREDITEXPIRED = 51;//past credit timed out
+	const STATCREDITADDED = 52;//prepayment amount
+	const STATMAXPAY = 55;//last-recognised payment value
 	//cache-key seed/prefixes
 	const CARTKEY = 'bkr_Cart';
 	const PARMKEY = 'bkr_Parm';
