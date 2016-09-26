@@ -225,7 +225,7 @@ if ($choosend) {
 }
 //==
 $one = new stdClass();
-$one->title = $this->Lang('title_sender2');
+$one->title = $this->Lang('title_lodger');
 $t = $rdata['name'] ? $rdata['name'] : $rdata['publicid'];
 if ($viewmode) {
 	$one->input = ($t) ? $t:'&lt;'.$this->Lang('missing').'&gt;';
