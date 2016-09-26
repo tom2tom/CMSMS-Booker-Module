@@ -474,8 +474,10 @@ class Booker extends CMSModule
 				$action = 'openfees';
 			elseif (isset($params['sortlike']))
 				$action = 'sortlike';
-			else
+			else {
+				$params['task'] = $action;
 				$action = 'openitem';
+			}
 			break;
 		 case 'toggle': //[de]activate
 			$this->_ActivateItem($id, $params, $returnid); //trivial func, don't bother with separate action file

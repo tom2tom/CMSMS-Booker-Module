@@ -13,27 +13,36 @@ $params['*item_id'] are id's of parent or child of that id, and for which a rele
 //TODO support swapping not-yet-grouped items i.e. one or both not in GroupTable
 if (!isset($params['item_id']) || !isset($params['ref_id']))
 	$this->Redirect($id,'defaultadmin','',array('message'=>$this->Lang('err_parm')));
+
 $item_id = $params['ref_id'];
 $otherargs = array($item_id);
+$newparms = array('item_id'=>$item_id,'task'=>'edit','active_tab'=>'advanced');
+
 if (isset($params['next_item_id']))
 	$otherargs[] = $params['next_item_id'];
 elseif (isset($params['prev_item_id']))
 	$otherargs[] = $params['prev_item_id'];
-else
-	$this->Redirect($id,'openitem','',array('item_id'=>$item_id,'message'=>$this->Lang('err_parm')));
+else {
+	$newparms['message'] = $this->Lang('err_parm');
+	$this->Redirect($id,'openitem','',$newparms);
+}
 
 if ($params['change'] == 'parent')
 	$sql = 'SELECT gid,proximity FROM '.$this->GroupTable.' WHERE child=? AND parent=?';
 else //'child'
 	$sql = 'SELECT gid,likeorder FROM '.$this->GroupTable.' WHERE parent=? AND child=?';
 $otherrow = $db->GetRow($sql,$otherargs);
-if ($otherrow === FALSE)
-	$this->Redirect($id,'openitem','',array('item_id'=>$item_id,'message'=>$this->Lang('err_parm')));
+if ($otherrow === FALSE) {
+	$newparms['message'] = $this->Lang('err_parm');
+	$this->Redirect($id,'openitem','',$newparms);
+}
 
 $thisargs = array($item_id,$params['item_id']);
 $thisrow = $db->GetRow($sql,$thisargs);
-if ($thisrow === FALSE)
-	$this->Redirect($id,'openitem','',array('item_id'=>$item_id,'message'=>$this->Lang('err_parm')));
+if ($thisrow === FALSE) {
+	$newparms['message'] = $this->Lang('err_parm');
+	$this->Redirect($id,'openitem','',$newparms);
+}
 
 $thisargs = array(end($otherrow),$thisrow['gid']);
 $otherargs = array(end($thisrow),$otherrow['gid']);
@@ -48,4 +57,4 @@ if ($thisargs[0] && $otherargs[0]) {
 	$db->Execute($sql,$otherargs);
 }
 
-$this->Redirect($id,'openitem','',array('item_id'=>$item_id)); //TODO 'active_tab'=>$params['active_tab'] N/A here
+$this->Redirect($id,'openitem','',$newparms);
