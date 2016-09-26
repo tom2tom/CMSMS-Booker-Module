@@ -30,8 +30,10 @@ $utils = new Booker\Utils();
 $utils->DecodeParameters($params,array(
 	'bkg_id',
 	'contact',
+//	'displayclass',
 	'formula',
 	'name',
+//	'status',
 	'subgrpcount',
 	'until',
 	'when'
@@ -43,15 +45,16 @@ $is_new = ($params['bkg_id'] == -1);
 if (isset($params['submit'])) {
 	if (!$pmod) exit;
 /* $params = array including
-  'item_id' => string '8'
-  'bkg_id' => string '9' OR '-1'
-  'repeat' => string '' OR '1'
-  'resume' => string 'itembookings'
-  'when' => string '17 October 2015 12:00'
-  'until' => string '17 October 2015 12:59'
-  'name' => string 'Mary'
-  'displayclass' => string '1'
-  'contact' => string '@myfirm'
+ 'item_id' => string '8'
+ 'bkg_id' => string '9' OR '-1'
+ 'repeat' => string '' OR '1'
+ 'resume' => string 'itembookings'
+ 'when' => string '17 October 2015 12:00'
+ 'until' => string '17 October 2015 12:59'
+ 'name' => string 'Mary'
+ 'displayclass' => string '1'
+ 'status' => string '3'
+ 'contact' => string '@myfirm'
 */
 	$msg = array();
 	$t = trim($params['name']);
@@ -76,6 +79,7 @@ if (isset($params['submit'])) {
 		$vfuncs = new Booker\Verify();
 		list($res,$xmsg) = $vfuncs->VerifyData($this,$utils,$params,$item_id,$is_new,TRUE);
 		if ($res) {
+	//TODO process according to func($params['status'])
 			$oldbkg = $params['bkg_id']; //don't lose this
 			$params['status'] = Booker::STATNEW;
 			$funcs = new Booker\Schedule();
@@ -109,6 +113,7 @@ if (isset($params['submit'])) {
 			$t = $funcs->CheckDescriptor($t);
 		}
 		if ($t) {
+	//TODO process according to func($params['status'])
 			$funcs = new Booker\Userops();
 			if ($is_new) {
 				list($bookerid,$newbkr) = $funcs->GetParamsID($this,$params);
@@ -129,7 +134,7 @@ if (isset($params['submit'])) {
 					}
 				}
 				$sql = 'INSERT INTO '.$this->RepeatTable.' ('.$sql2.') VALUES ('.$fillers.')';
-		//TODO $utils->SafeExec()
+	//TODO $utils->SafeExec()
 				$db->Execute($sql,$args);
 				$params['bkg_id'] == $bkgid;
 				$is_new = FALSE;
@@ -486,6 +491,18 @@ if ($payable) {
 	}
 	$vars[] = $one;
 }
+//==
+$one = new stdClass();
+$one->title = $this->Lang('status');
+$t = ($bdata) ? (int)$bdata['status']:Booker::STATNONE;
+if ($pmod) {
+	$choices = $utils->GetStatusChoices($this,1+2+4);
+	ksort($choices); //TODO mb_sort
+	$one->input = $this->CreateInputDropdown($id,'status',$choices,-1,$t);
+} else {
+	$one->input = $utils->GetStatusName($this,$t);
+}
+$vars[] = $one;
 
 $tplvars['data'] = $vars;
 
