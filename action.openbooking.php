@@ -505,10 +505,7 @@ EOS;
 		$vfuncs = new Booker\Verify();
 		$jsfuncs[] = $vfuncs->VerifyScript($this,$utils,$id,$item_id,TRUE,FALSE,$idata['timezone'],TRUE);
 		$jsloads[] = <<<EOS
- var obs = [$('#{$id}submit'),$('#{$id}apply')];
- $.each(obs,function(indx,\$ob) {
-  \$ob.bind('click',validate);
- });
+$('#{$id}submit').bind('click',validate);
 
 EOS;
 	}
