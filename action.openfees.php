@@ -106,7 +106,8 @@ if (isset($params['cancel'])) {
 	if (isset($params['sel'])) {
 		$this->Redirect($id,'defaultadmin','',array('active_tab'=>$params['active_tab']));
 	} else {
-		$this->Redirect($id,'openitem','',array('item_id'=>$params['item_id'],'active_tab'=>$params['active_tab']));
+		$this->Redirect($id,'openitem','',array(
+		'item_id'=>$params['item_id'],'task'=>'edit','active_tab'=>'basic'));
 	}
 }
 
@@ -300,7 +301,9 @@ WHERE condition_id=?';
 	if (isset($params['sel'])) {
 		$this->Redirect($id,'defaultadmin','',array('active_tab'=>$params['active_tab']));
 	} else {
-		$this->Redirect($id,'openitem','',array('item_id'=>$item_id,'active_tab'=>$params['active_tab']));
+//TODO 'task'=>whatever
+		$this->Redirect($id,'openitem','',array(
+		'item_id'=>$item_id,'task'=>'edit','active_tab'=>$params['active_tab']));
 	}
 } elseif (isset($params['delete'])) { //delete selected fees(s)
 	if (isset($params['selfees'])) {
