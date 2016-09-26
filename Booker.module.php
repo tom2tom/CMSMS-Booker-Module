@@ -623,49 +623,6 @@ class Booker extends CMSModule
 		return $ok;
 	}
 
-	/**
-	_BuildNav:
-	Generate XHTML page-change links
-	@id: session identifier
-	@returnid:
-	@resume: name of action, or ordered array of them
-	$params: reference to array of request-parameters including link-related data
-	Returns: string, maybe ''
-	*/
-	public function _BuildNav($id, $returnid, $resume, &$params)
-	{
-		if (!is_array($resume)) {
-			$resume = array($resume);
-			$ic = 1;
-		} else {
-			$ic = count($resume);
-		}
-		$navstr = '';
-		for ($i=0; $i<$ic; $i++) {
-			$name = $resume[$i];
-			$xtra = array();
-			switch($name) {
-			 case 'itembookings':
-				$key = 'title_bookings';
-				$xtra = array('item_id'=>$params['item_id'],'task'=>$params['task']);
-				break;
-			 case 'bookerbookings':
-				$key = 'title_bookings';
-				$xtra = array('booker_id'=>$params['booker_id'],'task'=>$params['task']);
-				break;
-			 default:
-				$name = 'defaultadmin';
-				$key = 'back_module';
-				if (isset($params['active_tab'])) {
-					$xtra = array('active_tab'=>$params['active_tab']);
-				}
-				break;
-			}
-			$navstr .= $this->CreateLink($id,$name,$returnid,'&#171; '.$this->Lang($key),$xtra);
-		}
-		return $navstr;
-	}
-
 	/* *
 	_GetActiveTab(&$params)
 	Get name of active tab (in a multi-tab page)
