@@ -269,7 +269,21 @@
 {$start_reports_tab}
 {$startform5}
 <div style="overflow:auto;">
-NOT YET IMPLEMENTED
+ <table id="reportstable" class="leftwards pagetable">
+  <thead>
+   <tr>{section name=c loop=$reportcells}<th>{$reportcells[c][0]}</th>{/section}</tr>
+  </thead>
+  <tbody>
+{section name=rows start=1 loop=$reportrows}{*smarty3 for $r=1 to $reportrows*}
+{assign var='r' value=$smarty.section.rows.index}
+   <tr>{section name=c loop=$reportcells}{assign var='col' value=$smarty.section.c.index}
+       <td {if $col==0}style="font-weight:bold;"{else}class="check"{/if}>{$reportcells[$col][$r]}</td>{/section}</tr>
+{/section}{*smarty3 /for*}
+  </tbody>
+ </table>
+</div>
+<div id="reportacts" class="pageoptions" style="margin-top:1em;">
+{$displaybtn} {$exportbtn5}
 </div>
 {$endform}
 {$end_tab}
