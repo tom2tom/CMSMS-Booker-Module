@@ -177,24 +177,24 @@ if (!function_exists('groupsupdate')) {
 
 $item_id = (int)$params['item_id'];
 $is_group = ($item_id >= Booker::MINGRPID || $item_id == -Booker::MINGRPID);
-$act = $params['action'];
-$seetab = (!empty($params['active_tab'])) ? $params['active_tab'] : 'basic'; //default shown tab
-unset($params['active_tab']); //if any
 
+if (isset($params['cancel'])) {
+	$t = ($is_group) ? 'groups':'items';
+	$this->Redirect($id,'defaultadmin','',array('active_tab'=>$t));
+}
+
+$task = $params['task'];
 //feedback-message-accumulator
 $msg = (isset($params['message'])) ? $params['message'] : '';
 
-if (isset($params['apply']) || isset($params['submit'])) {
-	//===== FIELD CLEANUPS TO SUIT PRE-SAVE CONVERSION =====
+if (isset($params['submit']) || isset($params['apply'])) {
+	//remove parameters not to be in sql for the save
+	$submit = isset($params['submit']);
+	unset($params['submit']);
+	unset($params['apply']);
 	unset($params['action']);
-	if (isset($params['apply'])) {
-		unset($params['apply']);
-		$act = 'edit';
-	} else {
-		unset($params['submit']);
-		$act = 'submit';
-	}
-	//============ DATA CLEANUPS =============
+	unset($params['task']);
+
 	if ($params['name'] == FALSE)
 		$params['name'] = '<'.$this->Lang('noname').$item_id.'>';
 	elseif ($params['alias'] == FALSE)
@@ -367,10 +367,13 @@ if (isset($params['apply']) || isset($params['submit'])) {
 	unset($val);
 	//TODO $utils->SafeExec()
 	$db->Execute($sql,$data);
-}
-if (isset($params['cancel']) || $act == 'submit') {
-	$t = ($is_group) ? 'groups':'items';
-	$this->Redirect($id,'defaultadmin','',array('active_tab'=>$t));
+
+	if ($submit) {
+		$t = ($is_group) ? 'groups':'items';
+		$this->Redirect($id,'defaultadmin','',array('active_tab'=>$t));
+	}
+
+	$task = 'edit'; //in case was 'add'
 }
 
 // get data for the item with the passed-in id, or an empty one if that id not found
@@ -384,7 +387,7 @@ if ($row) {
 	$item->item_id = (int)$item_id;
 	if ($item->stylesfile && !$utils->GetStylesURL($this,$item->item_id,FALSE)) //styles file must be there
 		$item->stylesfile = '';
-	if ($act == 'copy') {
+	if ($task == 'copy') {
 		$item_id = ($is_group) ? -Booker::MINGRPID : -1;
 		$item->item_id = $item_id;
 		$item->name = $this->Lang('copy_type',$item->name);
@@ -423,10 +426,12 @@ $cleartypes = array('p'); //for StripTags()
 
 $pdev = $this->CheckPermission('Modify Any Page');
 $padm = $this->_CheckAccess('admin');
-$pmod = ($act == 'see') ? FALSE :
-		$padm
-|| ($act == 'edit' && $this->_CheckAccess('modify'))
-|| (($act == 'add' || $act == 'copy') && $this->_CheckAccess('add'));
+if ($task == 'see') {
+	$pmod = FALSE;
+} else {
+	$pmod = (($task == 'edit' || $task == 'update') && $this->_CheckAccess('modify'))
+		|| (($task == 'add' || $task == 'copy') && $this->_CheckAccess('add'));
+}
 
 $none = $this->Lang('none');
 if (!$pmod)
@@ -435,11 +440,11 @@ if (!$pmod)
 // setup variables for the view-template
 $tplvars = array('mod' => $pmod);
 
+$seetab = (!empty($params['active_tab'])) ? $params['active_tab'] : 'basic'; //default shown tab
 //multipart form needed for file uploads
 $tplvars['startform'] = $this->CreateFormStart($id,'update',$returnid,'POST','multipart/form-data','','',
-	array('item_id'=>$item_id,'active_tab'=>''));
+	array('item_id'=>$item_id,'task'=>$task,'active_tab'=>''));
 $tplvars['endform'] = $this->CreateFormEnd();
-$params['active_tab'] = ($is_group) ? 'groups':'items';
 $tplvars['pagenav'] = $this->_BuildNav($id,$returnid,'defaultadmin',$params);
 $tplvars['tab_headers'] =  $this->StartTabHeaders().
 	$this->SetTabHeader('basic',$this->Lang('basic'),($seetab=='basic')).
@@ -484,7 +489,6 @@ elseif ($item->active)
 else
 	$i = $no;
 $basic[] = array('ttl'=>$this->Lang('title_active'),
-'mst'=>1,
 'inp'=>$i,
 'hlp'=>NULL
 );
@@ -502,7 +506,7 @@ $h = ($pmod) ?
 	$this->Lang('help_use_smarty')/*.', '.$this->Lang('label_usage')*/:
 	NULL;
 $basic[] = array('ttl'=>$t,
-'mst'=>1,
+'mst'=>$pmod,
 'inp'=>$i,
 'hlp'=>$h
 );
@@ -570,7 +574,7 @@ if ($pmod) {
 	$i = $item->slotcount.' '.$alltypes[$item->slottype];
 }
 $basic[] = array('ttl'=>$cascade.$this->Lang('title_slotlength'),
-'mst'=>1,
+'mst'=>$pmod,
 'inp'=>$i,
 'hlp'=>NULL //$this->Lang('help_slotlength')
 );
