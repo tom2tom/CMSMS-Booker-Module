@@ -28,13 +28,29 @@ if ($this->_CheckAccess('admin') || $this->_CheckAccess('see')) {
 	$funcs = new Booker\Bookingops();
 	list($res,$msg) = $funcs->ExportBkg($this,$bkgid);
 	if (!$res) {
-		if (isset($params['bkg_id'])) {
-			$resume = 'itembookings';
-			$newparms = array('item_id'=>$params['item_id'],'message'=>$msg);
+		if (isset($params['resume'])) {
+			$params['resume'] = json_decode(html_entity_decode($params['resume'],ENT_QUOTES|ENT_HTML401));
+			while (end($params['resume']) == $params['action']) {
+				array_pop($params['resume']);
+			}
+			$resume = array_pop($params['resume']);
 		} else {
 			$resume = 'defaultadmin';
-			$tab = ($params['item_id'] >= Booker::MINGRPID) ? 'groups':'items';
-			$newparms = array('active_tab'=>$tab,'message'=>$msg);
+		}
+		switch ($resume) {
+		 case 'itembookings':
+			$newparms = array('item_id'=>$params['item_id'],'task'=>$params['task'],'message'=>$msg);
+			break;
+		 case 'bookerbookings':
+			$newparms = array('item_id'=>$params['item_id'],'booker_id'=>$params['booker_id'],
+			'task'=>$params['task'],'message'=>$msg);
+			break;
+		 case 'defaultadmin':
+			$t = ($params['item_id'] >= Booker::MINGRPID) ? 'groups':'items';
+			$newparms = array('active_tab'=>$t,'message'=>$msg);
+			break;
+		 default:
+$this->Crash();
 		}
 		$this->Redirect($id,$resume,'',$newparms);
 	}

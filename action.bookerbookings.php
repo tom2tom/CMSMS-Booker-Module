@@ -95,18 +95,28 @@ $tplvars['tell'] = $tell;
 
 $bookerid = (int)$params['booker_id'];
 
+if (isset($params['resume'])) {
+	$params['resume'] = json_decode(html_entity_decode($params['resume'],ENT_QUOTES|ENT_HTML401));
+	while (end($params['resume']) == $params['action']) {
+		array_pop($params['resume']);
+	}
+} else {
+	$params['resume'] = array('defaultadmin'); //got here via link
+}
+
+$utils = new Booker\Utils();
 $params['active_tab'] = 'people';
-$tplvars['pagenav'] = $this->_BuildNav($id,$returnid,'defaultadmin',$params);
+$tplvars['pagenav'] = $utils->BuildNav($this,$id,$returnid,$params['action'],$params);
+$resume = json_encode($params['resume']);
+
 $tplvars['startform'] = $this->CreateFormStart($id,'bookerbookings',$returnid,'POST','','','',
-	array('booker_id'=>$bookerid,'resume'=>$params['action'],'task'=>$params['task'],'custmsg'=>''));
+	array('booker_id'=>$bookerid,'resume'=>$resume,'task'=>$params['task'],'custmsg'=>''));
 $tplvars['startform2'] = $this->CreateFormStart($id,'bookerbookings',$returnid,'POST','','','',
-	array('booker_id'=>$bookerid,'resume'=>$params['action'],'task'=>$params['task'],'repeat'=>1));
+	array('booker_id'=>$bookerid,'resume'=>$resume,'task'=>$params['task'],'repeat'=>1));
 $tplvars['endform'] = $this->CreateFormEnd();
 
 if (!empty($params['message']))
 	$tplvars['message'] = $params['message'];
-
-$utils = new Booker\Utils();
 
 $payable = FALSE; //TODO per item  $utils->GetItemPayable($this,$item_id); //any payment condition
 $yes = $this->Lang('yes');
@@ -179,7 +189,7 @@ $linkparms = array(
 	'item_id'=>0,
 	'booker_id'=>0,
 	'bkg_id'=>0,
-	'resume'=>$params['action'],
+	'resume'=>$resume,
 	'task'=>$params['task']
 );
 //if ($pmod) {

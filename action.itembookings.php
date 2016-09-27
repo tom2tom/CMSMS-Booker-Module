@@ -96,18 +96,29 @@ $tplvars['tell'] = $tell;
 $item_id = (int)$params['item_id'];
 $is_group = ($item_id >= Booker::MINGRPID);
 
+if (isset($params['resume'])) {
+	$params['resume'] = json_decode(html_entity_decode($params['resume'],ENT_QUOTES|ENT_HTML401));
+	while (end($params['resume']) == $params['action']) {
+		array_pop($params['resume']);
+	}
+} else {
+	$params['resume'] = array('defaultadmin'); //got here via link
+} 
+
+$utils = new Booker\Utils();
 $params['active_tab'] = ($is_group) ? 'groups':'items';
-$tplvars['pagenav'] = $this->_BuildNav($id,$returnid,'defaultadmin',$params);
+$tplvars['pagenav'] = $utils->BuildNav($this,$id,$returnid,$params['action'],$params);
+$resume = json_encode($params['resume']);
+
 $tplvars['startform'] = $this->CreateFormStart($id,'itembookings',$returnid,'POST','','','',
-	array('item_id'=>$item_id,'resume'=>$params['action'],'task'=>$params['task'],'custmsg'=>''));
+	array('item_id'=>$item_id,'resume'=>$resume,'task'=>$params['task'],'custmsg'=>''));
 $tplvars['startform2'] = $this->CreateFormStart($id,'itembookings',$returnid,'POST','','','',
-	array('item_id'=>$item_id,'resume'=>$params['action'],'task'=>$params['task'],'repeat'=>1));
+	array('item_id'=>$item_id,'resume'=>$resume,'task'=>$params['task'],'repeat'=>1));
 $tplvars['endform'] = $this->CreateFormEnd();
 
 if (!empty($params['message']))
 	$tplvars['message'] = $params['message'];
 
-$utils = new Booker\Utils();
 $idata = $utils->GetItemProperty($this,$item_id,'*',FALSE);
 
 $type = ($is_group) ? $this->Lang('group'):$this->Lang('item');
@@ -238,7 +249,7 @@ EOS;
 $linkparms = array(
 	'item_id'=>$item_id,
 	'bkg_id'=>0,
-	'resume'=>$params['action'],
+	'resume'=>$resume,
 	'task'=>$params['task']
 );
 //if ($pmod) {

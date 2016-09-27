@@ -175,12 +175,27 @@ if (!function_exists('groupsupdate')) {
 */
 }
 
+if (isset($params['resume'])) {
+	$params['resume'] = json_decode(html_entity_decode($params['resume'],ENT_QUOTES|ENT_HTML401));
+	while (end($params['resume']) == $params['action']) {
+		array_pop($params['resume']);
+	}
+}
+
 $item_id = (int)$params['item_id'];
 $is_group = ($item_id >= Booker::MINGRPID || $item_id == -Booker::MINGRPID);
 
 if (isset($params['cancel'])) {
-	$t = ($is_group) ? 'groups':'items';
-	$this->Redirect($id,'defaultadmin','',array('active_tab'=>$t));
+	$resume = array_pop($params['resume']);
+	switch ($resume) {
+ 	 case 'defaultadmin':
+		$t = ($is_group) ? 'groups':'items';
+		$newparms = array('active_tab'=>$t);
+		break;
+	 default:
+$this->Crash();
+	}
+	$this->Redirect($id,$resume,'',$newparms);
 }
 
 $task = $params['task'];
@@ -441,11 +456,15 @@ if (!$pmod)
 $tplvars = array('mod' => $pmod);
 
 $seetab = (!empty($params['active_tab'])) ? $params['active_tab'] : 'basic'; //default shown tab
+
+$params['active_tab'] = ($is_group) ? 'groups':'items';
+$tplvars['pagenav'] = $utils->BuildNav($this,$id,$returnid,$params['action'],$params);
+$resume = json_encode($params['resume']);
+
 //multipart form needed for file uploads
 $tplvars['startform'] = $this->CreateFormStart($id,'update',$returnid,'POST','multipart/form-data','','',
-	array('item_id'=>$item_id,'task'=>$task,'active_tab'=>''));
+	array('item_id'=>$item_id,'task'=>$task,'resume'=>$resume,active_tab=>''));
 $tplvars['endform'] = $this->CreateFormEnd();
-$tplvars['pagenav'] = $this->_BuildNav($id,$returnid,'defaultadmin',$params);
 $tplvars['tab_headers'] =  $this->StartTabHeaders().
 	$this->SetTabHeader('basic',$this->Lang('basic'),($seetab=='basic')).
 	$this->SetTabHeader('advanced',$this->Lang('advanced'),($seetab=='advanced')).

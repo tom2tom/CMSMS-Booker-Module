@@ -107,6 +107,7 @@ $tplvars['end_tab'] = $this->EndTab();
 $tplvars['endform'] = $this->CreateFormEnd();
 
 $utils = new Booker\Utils();
+$resume = json_encode(array($params['action'])); //head of resumption Q
 $jsfuncs = array(); //script accumulators
 $jsloads = array();
 $jsincs = array();
@@ -124,7 +125,7 @@ $tablerows = array();
 
 //BOOKINGS TAB (& FORM)
 $tplvars['startform1'] = $this->CreateFormStart($id,'processrequest',$returnid,
-	'POST','','','',array('active_tab'=>'data','custmsg'=>''));
+	'POST','','','',array('active_tab'=>'data','resume'=>$resume,'custmsg'=>''));
 $tplvars['start_data_tab'] = $this->StartTab('data');
 
 $tablerows[1] = 0;
@@ -151,7 +152,8 @@ if ($data) {
 	$fmt = 'j M Y G:i'; //specific format, not the 'public' (frontend) format, to restrict table width
 	$tz = new DateTimeZone('UTC');
 	$dt = new DateTime('@0',$tz);
-	$statnames = $utils->GetStatusChoices($this,1+4);
+	$funcs = new Booker\Status();
+	$statnames = $funcs->GetStatusChoices($this,5); //1|4
 
 	foreach ($data as &$row) {
 		$one = new stdClass();
@@ -473,7 +475,7 @@ $tplvars['title_future'] = $this->Lang('future');
 
 //BOOKERS TAB (& FORM)
 $tplvars['startform2'] = $this->CreateFormStart($id,'adminbooker',$returnid,
-	'POST','','','',array('active_tab'=>'people','custmsg'=>''));
+	'POST','','','',array('active_tab'=>'people','resume'=>$resume,'custmsg'=>''));
 $tplvars['start_people_tab'] = $this->StartTab('people');
 $tablerows[2] = 0;
 
@@ -886,7 +888,7 @@ if ($icount > 0 || $gcount > 0) {
 
 //RESOURCES TAB
 $tplvars['startform3'] = $this->CreateFormStart($id,'processitem',$returnid,
-	'POST','','','',array('active_tab'=>'items'));
+	'POST','','','',array('active_tab'=>'items','resume'=>$resume));
 $tplvars['start_items_tab'] = $this->StartTab('items');
 
 $tablerows[3] = $icount;
@@ -975,7 +977,7 @@ if ($padd) {
 //GROUPS TAB
 $tplvars['start_grps_tab'] = $this->StartTab('groups');
 $tplvars['startform4'] = $this->CreateFormStart($id,'processitem',$returnid,
-	'POST','','','',array('active_tab'=>'groups'));
+	'POST','','','',array('active_tab'=>'groups','resume'=>$resume));
 
 $tablerows[4] = $gcount;
 $tplvars['gcount'] = $gcount;
@@ -1061,7 +1063,7 @@ if ($mod) {
 
 //REPORTS TAB (&FORM)
 $tplvars['startform5'] = $this->CreateFormStart($id,'processreport',$returnid,
-	'POST','','','',array('active_tab'=>'reports'));
+	'POST','','','',array('active_tab'=>'reports','resume'=>$resume));
 $tplvars['start_reports_tab'] = $this->StartTab('reports');
 
 $cbbase = $this->CreateInputCheckbox($id,'base',1,-1);
@@ -1115,7 +1117,7 @@ EOS;
 
 //SETTINGS TAB
 $tplvars['startform6'] = $this->CreateFormStart($id,'setprefs',$returnid,
-	'POST','','','',array('active_tab'=>'settings'));
+	'POST','','','',array('active_tab'=>'settings','resume'=>$resume));
 $tplvars['start_settings_tab'] = $this->StartTab('settings');
 if ($pset) {
 	$settings = array();

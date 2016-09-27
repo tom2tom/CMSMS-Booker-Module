@@ -32,13 +32,28 @@ else {
 $funcs = new Booker\Messager();
 list($res,$msg) = $funcs->NotifyBooker($this,$bkgid,$params[custmsg]);
 
-if (isset($params['bkg_id'])) {
-	$resume = 'itembookings';
-	$newparms = array('item_id'=>$params['item_id']);
+if (isset($params['resume'])) {
+	$params['resume'] = json_decode(html_entity_decode($params['resume'],ENT_QUOTES|ENT_HTML401));
+	while (end($params['resume']) == $params['action']) {
+		array_pop($params['resume']);
+	}
+	$resume = array_pop($params['resume']);
 } else {
 	$resume = 'defaultadmin';
-	$tab = ($params['item_id'] >= Booker::MINGRPID) ? 'groups':'items';
-	$newparms = array('active_tab'=>$tab);
+}
+switch ($resume) {
+ case 'bookerbookings':
+	$newparms = array('item_id'=>$params['item_id'],'booker_id'=>$params['booker_id'],'task'=>$params['task']);
+	break;
+ case 'itembookings':
+	$newparms = array('item_id'=>$params['item_id'],'task'=>$params['task']);
+	break;
+ case 'defaultadmin':
+	$t = ($params['item_id'] >= Booker::MINGRPID) ? 'groups':'items';
+	$newparms = array('active_tab'=>$t);
+	break;
+ default:
+$this->Crash();
 }
 if ($msg)
 	$newparms['message'] = $msg;

@@ -102,15 +102,6 @@ if (!function_exists('getfeedata')) {
  }
 }
 
-if (isset($params['cancel'])) {
-	if (isset($params['sel'])) {
-		$this->Redirect($id,'defaultadmin','',array('active_tab'=>$params['active_tab']));
-	} else {
-		$this->Redirect($id,'openitem','',array(
-		'item_id'=>$params['item_id'],'task'=>'edit','active_tab'=>'basic'));
-	}
-}
-
 $utils = new Booker\Utils();
 $utils->DecodeParameters($params,array(
 	'condition_id',
@@ -118,6 +109,32 @@ $utils->DecodeParameters($params,array(
 	'fee',
 	'slotcount'
 ));
+
+if (isset($params['resume'])) {
+	$params['resume'] = json_decode(html_entity_decode($params['resume'],ENT_QUOTES|ENT_HTML401));
+	while (end($params['resume']) == $params['action']) {
+		array_pop($params['resume']);
+	}
+}
+
+if (isset($params['cancel'])) {
+	$item_id = $params['item_id'];
+	$resume = array_pop($params['resume']);
+	switch ($resume) {
+	 case 'defaultadmin':
+		$t = ($item_id < Booker::MINGRPID) ? 'items':'groups';
+		$newparms = array('active_tab'=>$t);
+		break;
+	 case 'openitem':
+//TODO rest of resume into $newparms
+		$newparms = array(item_id=>$params['item_id'],'task'=>'edit','active_tab'=>'basic');
+		break;
+	 default:
+		$newparms = array();
+$this->Crash();
+	}
+	$this->Redirect($id,$resume,'',$newparms);
+}
 
 if (isset($params['selitm'])) {
 /*came from defaultadmin action 'Fees' button-click, set fees for all
@@ -137,7 +154,7 @@ $params = array
 	//TODO came back
 $this->Crash();
 	$item_id = $params['item_id'];
-	$sel = json_decode($params['sel']);
+	$sel = json_decode($params['sel']); //CHECK html_entity_decode($params['sel'],ENT_QUOTES|ENT_HTML401));
 } else {
 /*came from openitem add/edit fees button-click
 $params = array of all item/group properties, including 'active_tab'
@@ -264,7 +281,7 @@ WHERE condition_id=?';
 		if (!empty($params['sel'])) {
 			//no basis for incremental update of other resources, so we start them afresh
 			//TODO scan for matching signature-field values, update those, otherwise add/delete rows
-			$sel = json_decode($params['sel']); //array
+			$sel = json_decode($params['sel']); //array CHECK html_entity_decode($params['sel'],ENT_QUOTES|ENT_HTML401));
 			$fillers = str_repeat('?,',count($sel)-1);
 			$allsql[] = $sql0.$fillers.'?)';
 			$allargs[] = $sel;
@@ -289,7 +306,7 @@ WHERE condition_id=?';
 		$utils->SafeExec($allsql,$allargs);
 	} else { //no fee-data now, clear from table
 		if (isset($params['sel'])) {
-			$sel = json_decode($params['sel']); //array
+			$sel = json_decode($params['sel']); //array CHECK html_entity_decode($params['sel'],ENT_QUOTES|ENT_HTML401));
 			$fillers = str_repeat('?,',count($sel)-1);
 			$sql = $sql0.$fillers.'?)';
 			$utils->SafeExec($sql,$sel);
@@ -337,7 +354,10 @@ if ($pmod) {
 	//TODO if $params['sel'] == multi-resources upon submit
 }
 
-$hidden = array('item_id'=>$item_id,'active_tab'=>$params['active_tab']);
+$tplvars['pagenav'] = $utils->BuildNav($this,$id,$returnid,$params['action'],$params);
+$resume = json_encode($params['resume']);
+
+$hidden = array('item_id'=>$item_id,'resume'=>$resume);
 if ($sel) {
 	$hidden['sel'] = json_encode($sel);
 }
@@ -499,7 +519,7 @@ if ($pmod) {
 
 		$jsloads[] = <<<EOS
  $('.updown').hide();
- 
+
 EOS;
 		$jsfuncs[] = <<<EOS
 function selitm_count() {
@@ -510,7 +530,7 @@ function confirm_selitm_count() {
  return (selitm_count() > 0);
 }
 function confirm_delete_item(btn) {
- if (selitm_count() > 0) { //QQQ $.modalconfirm.show({
+ if (selitm_count() > 0) {
   $.modalconfirm.show({
    overlayID: 'confirm',
    popupID: 'confgeneral',

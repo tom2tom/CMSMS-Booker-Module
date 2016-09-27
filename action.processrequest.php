@@ -27,15 +27,19 @@ if (isset($params['cancel'])) {
 	} elseif (!($p || $this->_CheckAccess('view'))) exit;
 
 	$params['active_tab'] = 'data';
+	$params['resume'] = json_encode(array('defaultadmin'));
 	switch ($params['task']) {
 	 case 'see':
-		$this->Redirect($id,'openrequest','',array('history_id'=>$params['history_id'],'task'=>'see'));
+		$this->Redirect($id,'openrequest','',array('history_id'=>$params['history_id'],
+			'resume'=>$params['resume'],'task'=>'see'));
 		break;
 	 case 'edit':
-		$this->Redirect($id,'openrequest','',array('history_id'=>$params['history_id'],'task'=>'edit'));
+		$this->Redirect($id,'openrequest','',array('history_id'=>$params['history_id'],
+			'resume'=>$params['resume'],'task'=>'edit'));
 		break;
 /*	 case 'add':
-		$this->Redirect($id,'openrequest','',array('history_id'=>$params['history_id'],'task'=>'add'));
+		$this->Redirect($id,'openrequest','',array('history_id'=>$params['history_id'],
+		'resume'=>$params['resume'],'task'=>'add'));
 		break;
 */
 	 case 'approve':

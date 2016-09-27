@@ -14,17 +14,6 @@ if (!$this->_CheckAccess('admin')) {
 }
 
 $item_id = (int)$params['item_id'];
-if (!isset($params['resume']))
-	$params['resume'] = 'itembookings';
-$resume = $params['resume'];
-
-if (isset($params['cancel'])) {
-	$newparms = array('item_id'=>$item_id,'task'=>$params['task']);
-	if ($resume == 'bookerbookings') {
-		$newparms['booker_id'] = $params['booker_id'];
-	}
-	$this->Redirect($id,$resume,'',$newparms);
-}
 
 $utils = new Booker\Utils();
 $utils->DecodeParameters($params,array(
@@ -38,6 +27,32 @@ $utils->DecodeParameters($params,array(
 	'until',
 	'when'
 ));
+
+if (isset($params['resume'])) {
+	$params['resume'] = json_decode(html_entity_decode($params['resume'],ENT_QUOTES|ENT_HTML401));
+	while (end($params['resume']) == $params['action']) {
+		array_pop($params['resume']);
+	}
+}
+
+if (isset($params['cancel'])) {
+	$resume = array_pop($params['resume']);
+	switch ($resume) {
+	 case 'defaultadmin':
+		$newparms = array('active_tab'=>'people');
+		break;
+	 case 'bookerbookings':
+		$newparms = array('item_id'=>$item_id,'booker_id'=>$params['booker_id'],'task'=>$params['task']);
+		break;
+	 case 'itembookings':
+		$newparms = array('item_id'=>$item_id,'task'=>$params['task']);
+	 	break;
+	 default:
+		$newparms = array();
+$this->Crash();
+	}
+	$this->Redirect($id,$resume,'',$newparms);
+}
 
 $is_group = ($item_id >= Booker::MINGRPID);
 $is_new = ($params['bkg_id'] == -1);
@@ -220,6 +235,9 @@ $tplvars = array(
 	'mod'=>$pmod
 );
 
+$tplvars['pagenav'] = $utils->BuildNav($this,$id,$returnid,$params['action'],$params);
+$resume = json_encode($params['resume']);
+
 $hidden = array('item_id'=>$item_id,'bkg_id'=>$params['bkg_id'],'resume'=>$resume,'task'=>$params['task']);
 if (!empty($params['booker_id']))
 	$hidden['booker_id'] = $params['booker_id'];
@@ -230,8 +248,6 @@ if (!empty($params['repeat']))
 $tplvars['startform'] = $this->CreateFormStart($id,'openbooking',$returnid,'POST','','','',$hidden);
 $tplvars['endform'] = $this->CreateFormEnd();
 
-$params['active_tab'] = 'people'; //for admin link
-$tplvars['pagenav'] = $this->_BuildNav($id,$returnid,array('defaultadmin',$params['resume']),$params);
 if (!empty($params['message']))
 	$tplvars['message'] = $params['message'];
 
@@ -248,7 +264,6 @@ EOS;
 $idata = $utils->GetItemProperty($this,$item_id,array(
 'name',
 'description',
-'slotlen',
 'bookcount',
 'timezone'
 ));
@@ -324,7 +339,8 @@ EOS;
 		$overday = ($utils->GetInterval($this,$item_id,'slot') >= 84600);
 		$datetimefmt = $utils->DateTimeFormat(FALSE,TRUE,TRUE,!$overday);
 		if ($choosend) {
-			$sl = ($bdata && !empty($bdata['slotlen'])) ? $bdata['slotlen']:/*$idata['slotlen']*/3600; //TODO
+			$sl = ($bdata && !empty($bdata['slotlen'])) ? $bdata['slotlen']:
+			$utils->GetInterval($this,$item_id,'slot');
 			$t2 = <<<EOS
 ,
   onClose: function() {
@@ -494,13 +510,14 @@ if ($payable) {
 //==
 $one = new stdClass();
 $one->title = $this->Lang('status');
+$funcs = new Booker\Status();
 $t = ($bdata) ? (int)$bdata['status']:Booker::STATNONE;
 if ($pmod) {
-	$choices = $utils->GetStatusChoices($this,1+2+4);
-	ksort($choices); //TODO mb_sort
+	$choices = $funcs->GetStatusChoices($this,6); //2|4
+	$utils->mb_ksort($choices);
 	$one->input = $this->CreateInputDropdown($id,'status',$choices,-1,$t);
 } else {
-	$one->input = $utils->GetStatusName($this,$t);
+	$one->input = $funcs->GetStatusName($this,$t);
 }
 $vars[] = $one;
 

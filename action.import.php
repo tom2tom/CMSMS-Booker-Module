@@ -23,9 +23,19 @@ if (!function_exists('GetRedirParms')) {
 
 if (!($this->_CheckAccess('admin') || $this->_CheckAccess('book'))) exit;
 
+if (isset($params['resume'])) {
+	$params['resume'] = json_decode(html_entity_decode($params['resume'],ENT_QUOTES|ENT_HTML401));
+	while (end($params['resume']) == $params['action']) {
+		array_pop($params['resume']);
+	}
+} else {
+	$params['resume'] = array('defaultadmin');
+}
+
 if (isset($params['cancel'])) {
+	$resume = array_pop($params['resume']);
 	$newparms = GetRedirParms($params);
-	$this->Redirect($id,$params['resume'],'',$newparms);
+	$this->Redirect($id,$resume,'',$newparms);
 }
 
 if (!empty($params['importitm']))
@@ -73,28 +83,34 @@ if (isset($_FILES) && isset($_FILES[$id.'csvfile'])) {
 	} else
 		$msg = $this->_PrettyMessage($prop,FALSE);
 	$newparms = GetRedirParms($params,$msg);
-	$this->Redirect($id,$params['resume'],'',$newparms);
+	$resume = array_pop($params['resume']);
+	$this->Redirect($id,$resume,'',$newparms);
 }
 
 $tplvars = array();
-$tplvars['pagenav'] = $this->_BuildNav($id,$returnid,'defaultadmin',$params);
 
-$hidden = array();
-switch ($params['action']) {
+$from = end($params['resume']);
+
+$utils = new Booker\Utils();
+$tplvars['pagenav'] = $utils->BuildNav($this,$id,$returnid,$params['action'],$params);
+$resume = json_encode($params['resume']);
+
+$hidden = array('resume'=>$resume);
+switch ($from) {
  case 'processrequest': //requests
  case 'adminbooking': //bookings
  case 'adminbooker': //bookers
  case 'processitem': //items
-	$hidden['resume'] = 'defaultadmin';
 	$hidden['active_tab'] = $params['active_tab'];
 	break;
+ case 'bookerbookings':
+	$hidden['booker_id'] = $params['booker_id'];
  case 'itembookings':
-	$hidden['resume'] = 'itembookings';
-	$hidden['task'] = $params['task'];
 	$hidden['item_id'] = $params['item_id'];
+	$hidden['task'] = $params['task'];
 	break;
  default:
-	$this->Crash();
+$this->Crash();
 }
 
 switch ($itype) {

@@ -13,19 +13,32 @@ if (!$this->_CheckAccess('admin')) {
 }
 
 if (isset($params['resume'])) {
-	$resume = $params['resume'];
-	if (!isset($params['active_tab'])) {
-		$params['active_tab'] = '';
+	$params['resume'] = json_decode(html_entity_decode($params['resume'],ENT_QUOTES|ENT_HTML401));
+	while (end($params['resume']) == $params['action']) {
+		array_pop($params['resume']);
 	}
 } else {
-	$resume = 'defaultadmin';
-	$params['resume'] = $resume;
-	$params['active_tab'] = 'people';
+	$params['resume'] = array('defaultadmin');
 }
 
 $bookerid = (int)$params['booker_id'];
 if (isset($params['cancel'])) {
-	$this->Redirect($id,$resume,'',array('booker_id'=>$bookerid,'active_tab'=>$params['active_tab']));
+	$resume = array_pop($params['resume']);
+	switch ($resume) {
+	 case 'defaultadmin':
+ 		$newparms = array('active_tab'=>'people');
+		break;
+	 default:
+/*	$newparms = array(
+	'item_id'=>$item_id,
+	'booker_id'=>$bookerid,
+	'task'=>$params['task']
+	'active_tab'=>$params['active_tab']
+	);
+*/
+	$this->Crash();
+	}
+	$this->Redirect($id,$resume,'',$newparms);
 }
 
 $is_new = ($bookerid == -1);
@@ -121,11 +134,9 @@ $tplvars = array(
 	'mod' => $pmod
 );
 
-$tplvars['pagenav'] = $this->_BuildNav($id,$returnid,$resume,$params);
-
+$tplvars['pagenav'] = $utils->BuildNav($this,$id,$returnid,$params['action'],$params);
+$resume = json_encode($params['resume']);
 $hidden = array('booker_id'=>$bookerid,'resume'=>$resume,'task'=>$params['task']);
-if (isset($params['active_tab']))
-	$hidden['active_tab'] = $params['active_tab'];
 
 $tplvars['startform'] = $this->CreateFormStart($id,'openbooker',$returnid,'POST','','','',$hidden);
 $tplvars['endform'] = $this->CreateFormEnd();
