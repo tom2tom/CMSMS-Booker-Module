@@ -386,6 +386,7 @@ if (isset($tplvars['membermsg'])) {
 	$items[] = $oneset;
 }
 
+$len = strlen($example);
 $oneset = new stdClass();
 $oneset->class = NULL;
 $t = ($past) ? 'title_started':'title_starting';
@@ -395,7 +396,7 @@ if ($past) {
     $hidden[] = $this->CreateInputHidden($id,'when',$when); //these always needed
 	$oneset->inp = $when;
 } else {
-	$ob = $this->CreateInputText($id,'when',$when,18,20,'title="'.$this->Lang('tip_enter',$example).'"');
+	$ob = $this->CreateInputText($id,'when',$when,$len+2,$len+2,'title="'.$this->Lang('tip_enter',$example).'"');
 	$oneset->inp = str_replace('class="cms_textfield"','class="dateinput cms_textfield"',$ob);
 }
 $items[] = $oneset;
@@ -410,7 +411,7 @@ if ($choosend) {
 		$hidden[] = $this->CreateInputHidden($id,'until',$until);
 		$oneset->inp = $until;
 	} else {
-		$ob = $this->CreateInputText($id,'until',$until,18,20,'title="'.$this->Lang('tip_enter',$example).'"');
+		$ob = $this->CreateInputText($id,'until',$until,$len+2,$len+2,'title="'.$this->Lang('tip_enter',$example).'"');
 		$oneset->inp = str_replace('class="cms_textfield"','class="dateinput cms_textfield"',$ob);
 	}
 	$items[] = $oneset;
@@ -568,7 +569,7 @@ $jsloads[] = <<<EOS
    return Math.floor(number % 100 / 10) === 1 || !suffixes[n] ? 'th' : suffixes[n];
   }
  });
- $('.dateinput').watermark().pikaday({
+ $('.dateinput').pikaday({
   format: '{$datetimefmt}',
   reformat: function(target,f) {
    return fmt.formatDate(target,f);
@@ -594,6 +595,9 @@ $jsloads[] = <<<EOS
    }
   };
  }
+ setTimeout(function() {
+  $('.dateinput').watermark();
+ },10);
 
 EOS;
 

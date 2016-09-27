@@ -163,12 +163,13 @@ $selects[] = $oneset;
 $oneset = new stdClass();
 $oneset->title = $this->Lang('start');
 
+$len = strlen($example);
 $t1 = isset($params['findfirst']) ? $params['findfirst'] : '';
-$t1 = $this->CreateInputText($id,'findfirst',$t1,18,20,'title="'.$this->Lang('tip_enter',$example).'"');
+$t1 = $this->CreateInputText($id,'findfirst',$t1,$len+2,$len+2,'title="'.$this->Lang('tip_enter',$example).'"');
 $t1 = str_replace('class="cms_textfield"','class="dateinput cms_textfield"',$t1);
 
 $t2 = isset($params['findlast']) ? $params['findlast'] : '';
-$t2 = $this->CreateInputText($id,'findlast',$t2,18,20,'title="'.$this->Lang('tip_enter',$example).'"');
+$t2 = $this->CreateInputText($id,'findlast',$t2,$len+2,$len+2,'title="'.$this->Lang('tip_enter',$example).'"');
 $t2 = str_replace('class="cms_textfield"','class="dateinput cms_textfield"',$t2);
 
 $oneset->input = $this->Lang('showrange',$t1,$t2);
@@ -494,7 +495,7 @@ $jsloads[] = <<<EOS
    return Math.floor(number % 100 / 10) === 1 || !suffixes[n] ? 'th' : suffixes[n];
   }
  });
- $('.dateinput').watermark().pikaday({
+ $('.dateinput').pikaday({
   format: '{$datetimefmt}',
   reformat: function(target,f) {
    return fmt.formatDate(target,f);
@@ -510,6 +511,9 @@ $jsloads[] = <<<EOS
    weekdaysShort: [{$sdnames}]
   }
  });
+ setTimeout(function() {
+  $('.dateinput').watermark();
+ },10);
 
 EOS;
 
