@@ -1896,7 +1896,7 @@ $this->Crash();
 						$params[$kn] = $v;
 					}
 				} else {
-					$t = json_decode(html_entity_decode($v));
+					$t = json_decode(html_entity_decode($v)); //CHECK flags e.g. ENT_QUOTES|ENT_HTML401
 					if (json_last_error() == JSON_ERROR_NONE) {
 						if ($kn != $k)
 							unset($params[$k]);
