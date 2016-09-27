@@ -911,6 +911,8 @@ class Utils
 		$this->BuildResume($resume,$params);
 		$navstr = '';
 		foreach ($params['resume'] as $action) {
+			if ($action == $resume)
+				continue;
 			switch($action) {
 			 case 'itembookings':
 				$key = 'title_bookings';
@@ -920,8 +922,7 @@ class Utils
 				$key = 'title_bookings';
 				$xtra = array('booker_id'=>$params['booker_id'],'task'=>$params['task']);
 				break;
-			 default:
-				$action = 'defaultadmin';
+			 case 'defaultadmin':
 				$key = 'back_module';
 				if (empty($params['active_tab'])) {
 					$xtra = array();
@@ -929,6 +930,8 @@ class Utils
 					$xtra = array('active_tab'=>$params['active_tab']);
 				}
 				break;
+			 default:
+$this->Crash();
 			}
 			$navstr .= $mod->CreateLink($id,$action,$returnid,'&#171; '.$mod->Lang($key),$xtra);
 		}
