@@ -10,21 +10,13 @@
 'task'=>'see' OR 'edit'
 */
 
-if (!$this->_CheckAccess()) exit;
-
-if (isset($params['cancel'])) {
-	$this->Redirect($id,'defaultadmin');
+$pmod = ($params['task'] == 'edit');
+if (!$this->_CheckAccess('admin')) {
+	if ($pmod && !$this->_CheckAccess('book')) exit;
+	if (!$pmod && !$this->_CheckAccess('view')) exit;
 }
 
-$sql = 'SELECT H.*,B.name,B.publicid,B.address,B.phone FROM '.$this->HistoryTable.
-	' H LEFT JOIN '.$this->BookerTable.' B ON H.booker_id=B.booker_id WHERE history_id=?';
-$rdata = $db->GetRow($sql,array($params['history_id']));
-$is_group = ($rdata['item_id'] >= Booker::MINGRPID);
-$type = ($is_group) ? $this->Lang('group'):$this->Lang('item');
-$is_new = ($rdata['status'] == Booker::STATNEW); //TODO ETC?
-$viewmode = ($params['task'] == 'see');
 $utils = new Booker\Utils();
-
 $utils->DecodeParameters($params,array(
 	'contact',
 	'customentry',
@@ -34,8 +26,35 @@ $utils->DecodeParameters($params,array(
 	'when'
 ));
 
+if (isset($params['resume'])) {
+	$params['resume'] = json_decode(html_entity_decode($params['resume'],ENT_QUOTES|ENT_HTML401));
+	while (end($params['resume']) == $params['action']) {
+		array_pop($params['resume']);
+	}
+}
+
+if (isset($params['cancel'])) {
+	$resume = array_pop($params['resume']);
+	if ($resume == 'defaultadmin') {
+		$newparms = array('active_tab'=>'data');
+	} else {
+		$newparms = array(); //TODO resume etc
+	}
+	$this->Redirect($id,$resume,'',$newparms);
+}
+
+$sql = <<<EOS
+SELECT H.*,B.name,B.publicid,B.address,B.phone FROM $this->HistoryTable H
+JOIN $this->BookerTable B ON H.booker_id=B.booker_id
+WHERE history_id=?
+EOS;
+$rdata = $db->GetRow($sql,array($params['history_id']));
+
+$is_group = ($rdata['item_id'] >= Booker::MINGRPID);
+$is_new = ($rdata['status'] == Booker::STATNEW); //TODO ETC?
+
 if (isset($params['submit']) || isset($params['apply'])) {
-	if (!($this->_CheckAccess('admin') || $this->_CheckAccess('book'))) exit;
+	if (!$pmod) exit;
 	//validate
 	$funcs = new Booker\Verify();
 	list($res,$msg) = $funcs->VerifyData($this,$utils,$params,$rdata['item_id'],$is_new,TRUE);
@@ -69,20 +88,30 @@ if (isset($params['submit']) || isset($params['apply'])) {
 	//['custom'] etc
 	//send
 	//
-}
-if (isset($params['reject'])) {
+} elseif (isset($params['reject'])) {
+
 } elseif (isset($params['ask'])) {
+
 } elseif (isset($params['notify'])) {
-}
-if (isset($params['find'])) {
+
+} elseif (isset($params['find'])) {
+
 } elseif (isset($params['table'])) {
+
 } elseif (isset($params['list'])) {
+
 }
 
-$tplvars = array();
+$tplvars = array(
+	'mod' => $pmod
+);
+
+$params['active_tab'] = 'data';
+$tplvars['pagenav'] = $utils->BuildNav($this,$id,$returnid,$params['action'],$params);
+$resume = json_encode($params['resume']);
 
 $tplvars['startform'] = $this->CreateFormStart($id,'openrequest',$returnid,'POST','','','',
-	array('history_id'=>$params['history_id'],'task'=>$params['task'],'custmsg'=>''));
+	array('history_id'=>$params['history_id'],'task'=>$params['task'],'resume'=>$resume,'custmsg'=>''));
 $tplvars['endform'] = $this->CreateFormEnd();
 /*
 first-call $params = array
@@ -90,22 +119,29 @@ first-call $params = array
 'task' => string 'edit'
 'action' => string 'openrequest'
 */
-$resume = 'defaultadmin';
-$params['active_tab'] = 'data';
-$tplvars['pagenav'] = $this->_BuildNav($id,$returnid,$resume,$params);
+
 if (!empty($params['message']))
 	$tplvars['message'] = $params['message'];
 
-if (!$viewmode)
+if ($pmod)
 	$tplvars['compulsory'] = $this->Lang('help_compulsory');
+else
+	$missing = '&lt;'.$this->Lang('missing').'&gt;';
 
-$idata = $utils->GetItemProperty($this,$rdata['item_id'],"*");
+$idata = $utils->GetItemProperty($this,$rdata['item_id'],array(
+'name',
+'description',
+'bookcount',
+'membersname',
+'timezone'
+));
 
 $key = ($is_new) ? 'title_booknewfor':'title_bookfor';
+$typename = ($is_group) ? $this->Lang('group'):$this->Lang('item');
 if (!empty($idata['name'])) {
-	$tplvars['title'] = $this->Lang($key,$type,$idata['name']);
+	$tplvars['title'] = $this->Lang($key,$typename,$idata['name']);
 } else {
-	$t = $this->Lang('title_noname',$type,$idata['item_id']);
+	$t = $this->Lang('title_noname',$typename,$rdata['item_id']);
 	$tplvars['title'] = $this->Lang($key,$t,'');
 }
 
@@ -137,9 +173,7 @@ else {
 
 $one = new stdClass();
 $one->title = $this->Lang('title_starting');
-if ($viewmode) {
-	$one->input = ($t) ? $t:'&lt;'.$this->Lang('missing').'&gt;';
-} else {
+if ($pmod) { //edit mode
 	$one->must = 1;
 	$one->input = $this->CreateInputText($id,'when',$t,20,30);
 
@@ -204,6 +238,8 @@ EOS;
  });
 
 EOS;
+} else {
+	$one->input = ($t) ? $t:$missing;
 }
 $one->help = NULL; //$this->Lang('help_book_start');
 $vars[] = $one;
@@ -214,11 +250,11 @@ if ($choosend) {
 
 	$one = new stdClass();
 	$one->title = $this->Lang('title_ending');
-	if ($viewmode) {
-		$one->input = ($t) ? $t:'&lt;'.$this->Lang('missing').'&gt;';
-	} else {
+	if ($pmod) {
 		$one->must = 1;
 		$one->input = $this->CreateInputText($id,'until',$t,20,30);
+	} else {
+		$one->input = ($t) ? $t:$missing;
 	}
 	$one->help = NULL; //$this->Lang('help_book_end');
 	$vars[] = $one;
@@ -227,16 +263,16 @@ if ($choosend) {
 $one = new stdClass();
 $one->title = $this->Lang('title_lodger');
 $t = $rdata['name'] ? $rdata['name'] : $rdata['publicid'];
-if ($viewmode) {
-	$one->input = ($t) ? $t:'&lt;'.$this->Lang('missing').'&gt;';
-} else {
+if ($pmod) {
 	$one->must = 1;
 	$one->input = $this->CreateInputText($id,'name',$t,20,64);
+} else {
+	$one->input = ($t) ? $t:$missing;
 }
 $one->help = $this->Lang('help_lodger');
 $vars[] = $one;
 //==
-if (!$viewmode) {
+if ($pmod) {
 	$one = new stdClass();
 	$one->title = $this->Lang('title_conformuser');
 	$one->input = $this->CreateInputCheckbox($id,'conformuser',1,-1);
@@ -245,7 +281,7 @@ if (!$viewmode) {
 }
 /*
 //==
-if (!$viewmode) {
+if ($pmod) {
 	$one = new stdClass();
 	$one->title = $this->Lang('title_displayclass');
 	$one->must = 0;
@@ -268,16 +304,16 @@ if (!$viewmode) {
 $one = new stdClass();
 $one->title = $this->Lang('title_contact');
 $t = $rdata['contact'];
-if ($viewmode) {
-	$one->input = ($t) ? $t:'&lt;'.$this->Lang('missing').'&gt;';
-} else {
+if ($pmod) {
 	$one->must = 1;
 	$one->input = $this->CreateInputText($id,'contact',$t,30,128);
+} else {
+	$one->input = ($t) ? $t:$missing;
 }
 $one->help = $this->Lang('help_book_contact');
 $vars[] = $one;
 //==
-if (!$viewmode) {
+if ($pmod) {
 	$one = new stdClass();
 	$one->title = $this->Lang('title_conformcontact');
 	$one->input = $this->CreateInputCheckbox($id,'conformcontact',1,-1);
@@ -288,13 +324,12 @@ if (!$viewmode) {
 //==
 $one = new stdClass();
 $one->title = $this->Lang('title_comment');
-$one->must = 0;
 $t = $rdata['comment'];
-if ($viewmode) {
-	$one->input = $t;
-} else {
+if ($pmod) {
 	$one->must = 0;
 	$one->input = $this->CreateTextArea(FALSE,$id,$t,'comment','','','','',50,5,'','','style="height:5em;"');
+} else {
+	$one->input = $t;
 }
 $vars[] = $one;
 //==
@@ -304,11 +339,11 @@ if ($is_group) {
 		$one = new stdClass();
 		$one->title = $this->Lang('title_howmany',$idata['membersname']);
 		$t = $rdata['subgrpcount'];
-		if ($viewmode) {
-			$one->input = $t;
-		} else {
-			$one->must = 1;
+		if ($pmod) {
+			$one->must = 0;
 			$one->input = $this->CreateInputText($id,'subgrpcount',$t,3,5);
+		} else {
+			$one->input = $t;
 		}
 		$one->help = $this->Lang('help_memcount',count($n),$idata['membersname']);
 		$vars[] = $one;
@@ -321,52 +356,25 @@ if ($payable) {
 	$one = new stdClass();
 	$one->title = $this->Lang('title_paid');
 	$t = (int)$rdata['paid'];
-	if ($viewmode) {
-		$one->input = ($t) ? $this->Lang('yes'):$this->Lang('no');
-	} else {
+	if ($pmod) {
 		$one->must = 0;
 		$one->input = $this->CreateInputCheckbox($id,'paid',1,$t);
+	} else {
+		$one->input = ($t) ? $this->Lang('yes'):$this->Lang('no');
 	}
 	$vars[] = $one;
 }
 //==
-switch ($rdata['status']) {
- case Booker::STATNONE:
-	$t = $this->Lang('stat_none');
-	break;
- case Booker::STATTEMP:
-	$t = $this->Lang('stat_temp');
-	break;
- case Booker::STATNEW:
-	$t = $this->Lang('stat_new');
-	break;
- case Booker::STATCHG:
-	$t = $this->Lang('stat_chg');
-	break;
- case Booker::STATDEL:
-	$t = $this->Lang('stat_del');
-	break;
- case Booker::STATTELL:
-	$t = $this->Lang('stat_tell');
-	break;
- case Booker::STATASK:
-	$t = $this->Lang('stat_ask');
-	break;
- case Booker::STATNOTPAID:
-	$t = $this->Lang('stat_nopay');
-	break;
- case Booker::STATOK:
-	$t = $this->Lang('stat_ok');
-	break;
- case Booker::STATCANCEL:
-	$t = $this->Lang('stat_cancel');
-	break;
- default:
-	$t = $row['status'];
-}
+$funcs = new Booker\Status();
 $one = new stdClass();
 $one->title = $this->Lang('status');
-$one->input = $t;
+if ($pmod) {
+	$choices = $funcs->GetStatusChoices($this,5); //1|4
+	$utils->mb_ksort($choices);
+	$one->input = $this->CreateInputDropdown($id,'status',$choices,-1,$rdata['status']);
+} else {
+	$one->input = $funcs->GetStatusName($this,$rdata['status']);
+}
 $vars[] = $one;
 //==
 $dt->setTimestamp($rdata['lodged']);
@@ -386,9 +394,7 @@ if ($rdata['approved'] > 0) {
 $tplvars['data'] = $vars;
 
 //buttons
-if ($viewmode) {
-	$tplvars['cancel'] = $this->CreateInputSubmit($id,'cancel',$this->Lang('close'));
-} else { //edit mode
+if ($pmod) {
 	$tplvars['submit'] = $this->CreateInputSubmit($id,'submit',$this->Lang('submit'));
 	$tplvars['apply'] = $this->CreateInputSubmit($id,'apply',$this->Lang('apply'));
 	$tplvars['cancel'] = $this->CreateInputSubmit($id,'cancel',$this->Lang('cancel'));
@@ -407,6 +413,8 @@ if ($viewmode) {
  });
 
 EOS;
+} else {
+	$tplvars['cancel'] = $this->CreateInputSubmit($id,'cancel',$this->Lang('close'));
 }
 $tplvars['find'] = $this->CreateInputSubmit($id,'find',$this->Lang('find'),
 	'title="'.$this->Lang('tip_finditm').'"');
@@ -499,9 +507,7 @@ $tplvars['no'] = $this->Lang('no');
 $tplvars['proceed'] = $this->Lang('proceed');
 $tplvars['abort'] = $this->Lang('cancel');
 
-$tplvars['mod'] = !$viewmode;
-
-if (!$viewmode) {
+if ($pmod) {
 	//for picker & mail-validation & confirmation
 	$jsincs[] = <<<EOS
 <script type="text/javascript" src="{$baseurl}/include/pikaday.min.js"></script>
