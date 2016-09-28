@@ -386,8 +386,9 @@ if (isset($tplvars['membermsg'])) {
 	$items[] = $oneset;
 }
 
+$xl1 = strlen($example)+1;
 $example = $this->Lang('tip_enter',$example);
-$xl = strlen($example);
+$xl2 = strlen($example);
 $oneset = new stdClass();
 $oneset->class = NULL;
 $t = ($past) ? 'title_started':'title_starting';
@@ -397,7 +398,7 @@ if ($past) {
     $hidden[] = $this->CreateInputHidden($id,'when',$when); //these always needed
 	$oneset->inp = $when;
 } else {
-	$t = $this->CreateInputText($id,'when',$when,$xl,$xl,'title="'.$example.'"');
+	$t = $this->CreateInputText($id,'when',$when,$xl2,$xl1,'title="'.$example.'"');
 	$oneset->inp = str_replace('class="','class="dateinput ',$t);
 }
 $items[] = $oneset;
@@ -412,7 +413,7 @@ if ($choosend) {
 		$hidden[] = $this->CreateInputHidden($id,'until',$until);
 		$oneset->inp = $until;
 	} else {
-		$t = $this->CreateInputText($id,'until',$until,$xl,$xl,'title="'.$example.'"');
+		$t = $this->CreateInputText($id,'until',$until,$xl2,$xl1,'title="'.$example.'"');
 		$oneset->inp = str_replace('class="','class="dateinput ',$t);
 	}
 	$items[] = $oneset;

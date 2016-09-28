@@ -163,14 +163,16 @@ $selects[] = $oneset;
 $oneset = new stdClass();
 $oneset->title = $this->Lang('start');
 
-$example = $this->Lang('tip_enter',$example);
+$xl1 = strlen($example)+1;
+$t = $this->Lang('tip_enter',$example);
+$xl2 = strlen($t);
 $xl = strlen($example);
 $t1 = isset($params['findfirst']) ? $params['findfirst'] : '';
-$t1 = $this->CreateInputText($id,'findfirst',$t1,$xl,$xl,'title="'.$example.'"');
+$t1 = $this->CreateInputText($id,'findfirst',$t1,$xl2,$xl1,'title="'.$t.'"');
 $t1 = str_replace('class="','class="dateinput ',$t1);
 
 $t2 = isset($params['findlast']) ? $params['findlast'] : '';
-$t2 = $this->CreateInputText($id,'findlast',$t2,$xl,$xl,'title="'.$example.'"');
+$t2 = $this->CreateInputText($id,'findlast',$t2,$xl2,$xl1,'title="'.$t.'"');
 $t2 = str_replace('class="','class="dateinput ',$t2);
 
 $oneset->input = $this->Lang('showrange',$t1,$t2);
