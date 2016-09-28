@@ -73,9 +73,10 @@ class Booker extends CMSModule
 	const STATLATE = 23;//request past or not far-enough ahead
 	const STATNA = 24;//resouce N/A at requested time, cannot accept
 	const STATDUP = 25;//duplicate request, cannot accept
- 	const STATERR = 26;//system error while processing
- 	const STATRETRY = 27;//some temporary problem, try again later
-	const STATFAILED = 28;//generic request-failure
+	const STATPERM = 26;//user not permitted
+ 	const STATERR = 27;//system error while processing
+ 	const STATRETRY = 28;//some temporary problem, try again later
+	const STATFAILED = 29;//generic request-failure
 	const STATMAXBAD = 35;//last-recognised request-bad value
 	//HistoryTable payment codes
 	const STATFREE = 40;//no fee for use

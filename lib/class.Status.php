@@ -31,6 +31,7 @@ class Status
 		 \Booker::STATGONE => 'stat_gone',//deletion pending, while its historical data needed
 		 \Booker::STATLATE => 'stat_late',//request past or not far-enough ahead
 		 \Booker::STATNA => 'stat_na',//resouce N/A at requested time, cannot accept
+		 \Booker::STATPERM=> 'stat_perm',//user not permitted
 		 \Booker::STATOK => 'stat_approved',//aka APPROVED done/processed
 		 \Booker::STATRETRY => 'stat_retry',//some temporary problem, try again later
 		 \Booker::STATSELFREC => 'stat_selfrec'//recorded by approved user (i.e. no request)
