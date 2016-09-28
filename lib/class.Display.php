@@ -153,7 +153,7 @@ class Display
 			$slen = $esl; //limit 'effective-slot' to report-segment-length
 		$ss = $dtw->getTimestamp();
 		$se = $ss + $offnd;
-		$ss  += $offst;
+		$ss += $offst;
 		$cells = array();
 
 		while ($ss < $se) {
@@ -701,6 +701,41 @@ class Display
 					break;
 				}
 			}
+			//merge adjacent slots
+			$utils = new Utils();
+			$propstore = array();
+			$ic = count($booked);
+			for($i=0; $i<$ic; $i++) {
+				$one = $booked[$i];
+				$idi = $one['item_id'];
+				$ssi = $one['slotstart'];
+				$sei = $ssi + $one['slotlen'];
+				$bki = $one['booker_id'];
+				for ($j=$i+1; $j<$ic; $j++) {
+					$other = $booked[$j];
+					if ($idi != $other['item_id'] || $bki != $other['booker_id']) {
+						break;
+					}
+					if (!isset($propstore[$idi])) {
+						$propstore[$idi] = ($utils->GetInterval($this->mod,$item_id,'slot') >= 84600);
+					}
+					if ($propstore[$idi]) {
+						$sei = $other['slotstart'] + $other['slotlen'];
+						unset($booked[$j]);
+					} else {
+						$ssj = $other['slotstart'];
+						if ($ssj < $sei + 200) { //slots sufficiently contiguous
+							$sei = $ssj + $other['slotlen'];
+							unset($booked[$j]);
+						} else {
+							break;
+						}
+					}
+				}
+				$i = $j-1;
+				$one['slotlen'] = $sei - $ssi;
+			}
+			
 			$sections = array();
 			$title = chr(2).chr(3); //anything unused, not empty
 			$oneset = FALSE;
