@@ -1,4 +1,4 @@
-{if $jsstyler}<script type="text/javascript">
+{if !empty($jsstyler)}<script type="text/javascript">
 //<![CDATA[
 {$jsstyler}
 //]]>
