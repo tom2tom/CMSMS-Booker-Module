@@ -163,14 +163,15 @@ $selects[] = $oneset;
 $oneset = new stdClass();
 $oneset->title = $this->Lang('start');
 
-$len = strlen($example);
+$example = $this->Lang('tip_enter',$example);
+$xl = strlen($example);
 $t1 = isset($params['findfirst']) ? $params['findfirst'] : '';
-$t1 = $this->CreateInputText($id,'findfirst',$t1,$len+2,$len+2,'title="'.$this->Lang('tip_enter',$example).'"');
-$t1 = str_replace('class="cms_textfield"','class="dateinput cms_textfield"',$t1);
+$t1 = $this->CreateInputText($id,'findfirst',$t1,$xl,$xl,'title="'.$example.'"');
+$t1 = str_replace('class="','class="dateinput ',$t1);
 
 $t2 = isset($params['findlast']) ? $params['findlast'] : '';
-$t2 = $this->CreateInputText($id,'findlast',$t2,$len+2,$len+2,'title="'.$this->Lang('tip_enter',$example).'"');
-$t2 = str_replace('class="cms_textfield"','class="dateinput cms_textfield"',$t2);
+$t2 = $this->CreateInputText($id,'findlast',$t2,$xl,$xl,'title="'.$example.'"');
+$t2 = str_replace('class="','class="dateinput ',$t2);
 
 $oneset->input = $this->Lang('showrange',$t1,$t2);
 $selects[] = $oneset;

@@ -386,7 +386,8 @@ if (isset($tplvars['membermsg'])) {
 	$items[] = $oneset;
 }
 
-$len = strlen($example);
+$example = $this->Lang('tip_enter',$example);
+$xl = strlen($example);
 $oneset = new stdClass();
 $oneset->class = NULL;
 $t = ($past) ? 'title_started':'title_starting';
@@ -396,8 +397,8 @@ if ($past) {
     $hidden[] = $this->CreateInputHidden($id,'when',$when); //these always needed
 	$oneset->inp = $when;
 } else {
-	$ob = $this->CreateInputText($id,'when',$when,$len+2,$len+2,'title="'.$this->Lang('tip_enter',$example).'"');
-	$oneset->inp = str_replace('class="cms_textfield"','class="dateinput cms_textfield"',$ob);
+	$t = $this->CreateInputText($id,'when',$when,$xl,$xl,'title="'.$example.'"');
+	$oneset->inp = str_replace('class="','class="dateinput ',$t);
 }
 $items[] = $oneset;
 
@@ -411,8 +412,8 @@ if ($choosend) {
 		$hidden[] = $this->CreateInputHidden($id,'until',$until);
 		$oneset->inp = $until;
 	} else {
-		$ob = $this->CreateInputText($id,'until',$until,$len+2,$len+2,'title="'.$this->Lang('tip_enter',$example).'"');
-		$oneset->inp = str_replace('class="cms_textfield"','class="dateinput cms_textfield"',$ob);
+		$t = $this->CreateInputText($id,'until',$until,$xl,$xl,'title="'.$example.'"');
+		$oneset->inp = str_replace('class="','class="dateinput ',$t);
 	}
 	$items[] = $oneset;
 } else {
