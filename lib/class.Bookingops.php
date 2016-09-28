@@ -298,7 +298,7 @@ EOS;
 			$args = $item_id;
 		$fillers = str_repeat('?,',count($args)-1);
 		$sql = <<<EOS
-SELECT D.item_id,D.slotstart,D.slotlen,B.name,I.name AS what FROM $mod->DataTable D
+SELECT D.item_id,D.slotstart,D.slotlen,D.booker_id,B.name,I.name AS what FROM $mod->DataTable D
 JOIN $mod->BookerTable B ON D.booker_id=B.booker_id
 JOIN $mod->ItemTable I ON D.item_id=I.item_id
 WHERE D.item_id IN ({$fillers}?) AND D.slotstart <= ? AND (D.slotstart+D.slotlen) >= ?
