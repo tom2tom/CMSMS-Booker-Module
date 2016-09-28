@@ -210,7 +210,7 @@ if ($data) {
 			}
 		}
 		if ($tell)
-			$one->notice = $this->CreateLink($id,'processrequest',$returnid,$icontell,array('history_id'=>$hid,'task'=>'notify'));
+			$one->notice = $this->CreateLink($id,'processrequest',$returnid,$icontell,array('history_id'=>$hid,'task'=>'ask'));
 		if ($pdel)
 			$one->delete = $this->CreateLink($id,'processrequest',$returnid,$iconrdel,array('history_id'=>$hid,'task'=>'delete'));
 		$one->sel = $this->CreateInputCheckbox($id,'selreq[]',$hid,-1,'title="'.$rtip.'"');
@@ -254,7 +254,7 @@ EOS;
 		$detail = $this->Lang('whatovrday',$what,$on);
 		$approve = $this->Lang('email_approve',$detail);
 		$reject = $this->Lang('email_reject',$detail);
-		$notify = $this->Lang('email_ask',$detail);
+		$ask = $this->Lang('email_ask',$detail);
 
 		$jsfuncs[] =<<<EOS
 function modalsetup(tg,\$d) {
@@ -276,8 +276,8 @@ function modalsetup(tg,\$d) {
   case 'reject':
    msg = "$reject";
    break;
-  case 'notify':
-   msg = "$notify";
+  case 'ask':
+   msg = "$ask";
    break;
   default:
    msg = '?';
@@ -409,8 +409,8 @@ EOS;
 	} //endif Notifier module N/A
 
 	if ($tell) {
-		$tplvars['notifybtn'] = $this->CreateInputSubmit($id,'notify',
-			$this->Lang('notify'),'title="'.$this->Lang('tip_notify_selected_requests').'"');
+		$tplvars['askbtn'] = $this->CreateInputSubmit($id,'ask',
+			$this->Lang('ask'),'title="'.$this->Lang('tip_ask_selected_requests').'"');
 	}
 	if ($bmod) {
 		$tplvars['approvbtn'] = $this->CreateInputSubmit($id,'approve',

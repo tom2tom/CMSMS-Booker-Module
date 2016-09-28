@@ -56,7 +56,7 @@
 <div id="dataacts" class="pageoptions" style="margin-top:1em;">
 {$findbtn}
 {if $dcount > 0}
-{if $bmod} {$approvbtn} {$rejectbtn}{/if}{if $tell} {$notifybtn}{/if}{if $del} {$deletebtn1}{/if}
+{if $bmod} {$approvbtn} {$rejectbtn}{/if}{if $tell} {$askbtn}{/if}{if $del} {$deletebtn1}{/if}
 {/if}
 {if $bmod} {$importbtn1} {/if} {$bexportbtn1}
 </div>
