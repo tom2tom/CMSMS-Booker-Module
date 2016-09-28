@@ -48,8 +48,8 @@ if (isset($params['cancel'])) {
 	 case 'reject':
 		list($res,$msg) = $funcs->RejectReq($this,$params['history_id'],$params['custmsg']);
 		break;
-	 case 'notify':
-		list($res,$msg) = $funcs->NotifyReq($this,$params['history_id'],$params['custmsg']);
+	 case 'ask':
+		list($res,$msg) = $funcs->AskReq($this,$params['history_id'],$params['custmsg']);
 		break;
 	 case 'delete':
 		list($res,$msg) = $funcs->DeleteReq($this,$params['history_id'],$params['custmsg']);
@@ -80,8 +80,8 @@ if ($sel) {
 		list($res,$msg) = $funcs->ApproveReq($this,$sel,$params['custmsg']);
 	} elseif (isset($params['reject'])) {
 		list($res,$msg) = $funcs->RejectReq($this,$sel,$params['custmsg']);
-	} elseif (isset($params['notify'])) {
-		list($res,$msg) = $funcs->NotifyReq($this,$sel,$params['custmsg']);
+	} elseif (isset($params['ask'])) {
+		list($res,$msg) = $funcs->AskReq($this,$sel,$params['custmsg']);
 	} elseif (isset($params['delete'])) {
 		list($res,$msg) = $funcs->DeleteReq($this,$sel,$params['custmsg']);
 	} else if (isset($params['export'])) {
