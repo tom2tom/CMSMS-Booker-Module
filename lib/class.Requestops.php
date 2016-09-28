@@ -199,15 +199,15 @@ EOS;
 	}
 
 	/**
-	NotifyReq:
+	AskReq:
 	@mod: reference to current Booker module
 	@history: request identifier, or array of them
-	@custommsg: text entered by user, to replace square-bracketed content of the notify-message 'template'
+	@custommsg: text entered by user, to replace square-bracketed content of the ask-message 'template'
 	Returns: 2-member array:
 	 [0] boolean indicating success
 	 [1] success- or error-message or ''
 	*/
-	public function NotifyReq(&$mod, $history, $custommsg)
+	public function AskReq(&$mod, $history, $custommsg)
 	{
 		$rows = self::GetReqData($mod,$history);
 		if ($rows) {
