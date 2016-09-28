@@ -468,24 +468,6 @@ class Booker extends CMSModule
 	public function DoAction($action, $id, $params, $returnid=-1)
 	{
 		switch ($action) {
-		 case 'add':
-		 case 'copy':
-		 case 'edit':
-		 case 'see':
-		 case 'update': //apply/submit item/group changes
- 			if (isset($params['modfee'])) //in-page edit-fees button clicked
-				$action = 'openfees';
-			elseif (isset($params['sortlike']))
-				$action = 'sortlike';
-			else {
-				$params['task'] = $action;
-				$action = 'openitem';
-			}
-			break;
-		 case 'toggle': //[de]activate
-			$this->_ActivateItem($id, $params, $returnid); //trivial func, don't bother with separate action file
-			$action = 'defaultadmin';
-			break;
 		 case 'announce':
 		 case 'default':
 		 case 'defaultadmin':
@@ -495,7 +477,6 @@ class Booker extends CMSModule
 		 case 'import':
 		 case 'notifybooker':
 		 case 'openbooker':
-		 case 'openitem':
 		 case 'openbooking':
 		 case 'openrequest':
 		 case 'requestbooking':
@@ -545,10 +526,20 @@ class Booker extends CMSModule
 			$action = 'processrequest';
 			break;
 */
+		 case 'openitem':
+ 			if (isset($params['modfee'])) //in-page edit-fees button clicked
+				$action = 'openfees';
+			elseif (isset($params['sortlike']))
+				$action = 'sortlike';
+			break;
 		 case 'addfee':
 		 case 'delfee':
 		 case 'modfee':
 			$action = 'openfees';
+			break;
+		 case 'toggle': //[de]activate
+			$this->_ActivateItem($id, $params, $returnid); //trivial func, don't bother with separate action file
+			$action = 'defaultadmin';
 			break;
 		 default:
 			if (isset($params['active_tab'])) //TODO if backend
