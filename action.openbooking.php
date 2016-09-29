@@ -37,18 +37,19 @@ if (isset($params['resume'])) {
 
 if (isset($params['cancel'])) {
 	$resume = array_pop($params['resume']);
+	$newparms = array('resume'=>json_encode($params['resume']));
 	switch ($resume) {
 	 case 'defaultadmin':
-		$newparms = array('active_tab'=>'people');
+		$newparms = $newparms + array('active_tab'=>'people');
 		break;
 	 case 'bookerbookings':
-		$newparms = array('item_id'=>$item_id,'booker_id'=>$params['booker_id'],'task'=>$params['task']);
+		$newparms = $newparms + array('item_id'=>$item_id,'booker_id'=>$params['booker_id'],'task'=>$params['task']);
 		break;
 	 case 'itembookings':
-		$newparms = array('item_id'=>$item_id,'task'=>$params['task']);
+		$newparms = $newparms + array('item_id'=>$item_id,'task'=>$params['task']);
 	 	break;
 	 default:
-		$newparms = array();
+//		$newparms = array();
 $this->Crash();
 	}
 	$this->Redirect($id,$resume,'',$newparms);
@@ -89,7 +90,7 @@ if (isset($params['submit'])) {
 		else
 			$params['subgrpcount'] = 1;
 	}
-
+	//TODO parameter-specific handling change of status etc
 	if (empty($params['repeat'])) { //onetime booking
 		$vfuncs = new Booker\Verify();
 		list($res,$xmsg) = $vfuncs->VerifyData($this,$utils,$params,$item_id,$is_new,TRUE);
@@ -106,6 +107,7 @@ if (isset($params['submit'])) {
 			if ($res) {
 				if ($is_new) {
 					//TODO send notice if appropriate
+					$is_new = FALSE;
 				} else {
 					$funcs = new Booker\Bookingops();
 					$custommsg = 'TODO';
@@ -196,7 +198,9 @@ if (isset($params['submit'])) {
 	} //repeat booking
 
 	if (!$msg) { //all ok
-		$newparms = array('item_id'=>$item_id,'task'=>$params['task']);
+		$resume = array_pop($params['resume']);
+		$newparms = array('resume'=>json_encode($params['resume']), //TODO etc
+			'item_id'=>$item_id,'task'=>$params['task']);
 		if ($resume == 'bookerbookings') {
 			$newparms['booker_id'] = $params['booker_id'];
 		}
@@ -208,13 +212,11 @@ if (isset($params['submit'])) {
 		$params['message'] = $t;
 	else
 		$params['message'] .= '<br />'.$t;
-
 	$bdata = array(
-//		'bkg_id'=>$params['bkg_id'],
 		'name'=>$params['name'],
-		'address'=>$params['contact'],
-		'phone'=>$params['contact'],
+		'contact'=>$params['contact'],
 		'displayclass'=>$params['displayclass'],
+		'status' => $params['status']
 	);
 	if (array_key_exists('subgrpcount',$params)) {
 		$bdata['subgrpcount'] = $params['subgrpcount'];
@@ -251,7 +253,19 @@ $tplvars['endform'] = $this->CreateFormEnd();
 if (!empty($params['message']))
 	$tplvars['message'] = $params['message'];
 
-if (empty($bdata)) {
+if ($is_new) {
+	$bdata = array(
+	'name'=>'',
+	'contact'=>'',
+	'when'=>'',
+	'until'=>'',
+	'formula'=>'',
+	'subgrpcount'=>1,
+	'displayclass'=>1,
+	'paid'=>0,
+	'status'=>Booker::STATNONE
+	);
+} else {
 	$table = (empty($params['repeat'])) ? $this->DataTable : $this->RepeatTable;
 	$sql = <<<EOS
 SELECT D.*,B.name,B.publicid,B.address,B.phone,B.displayclass FROM {$table} D
@@ -259,6 +273,13 @@ JOIN $this->BookerTable B ON D.booker_id=B.booker_id
 WHERE D.bkg_id=?
 EOS;
 	$bdata = $utils->SafeGet($sql,array($params['bkg_id']),'row');
+	$bdata['contact'] = ($bdata['address']) ? $bdata['address'] : $bdata['phone'];
+	if (isset($bdata['slotstart'])) {
+		$dtw = new DateTime('@'.$bdata['slotstart'],NULL);
+		$bdata['when'] = $dtw->format('Y-n-j G:i'); //TODO ovrday support
+		$dtw->modify('+'.$bdata['slotlen'].' seconds');
+		$bdata['until'] = $dtw->format('Y-n-j G:i');
+	}
 }
 
 $idata = $utils->GetItemProperty($this,$item_id,array(
@@ -301,19 +322,11 @@ if (empty($params['repeat'])) { //onetime booking
 
 	$one = new stdClass();
 	$one->title = $this->Lang('title_starting');
-	if ($bdata) {
-		if (array_key_exists('when',$bdata)) {
-			$t = $bdata['when'];
-		} else {
-			$dtw = new DateTime('@'.$bdata['slotstart'],new DateTimeZone('UTC'));
-			$t = $dtw->format('Y-n-j G:i'); //TODO ovrday support
-		}
-	} else {
-		$t = '';
-	}
+	$t = $bdata['when'];
 	if ($pmod) {
 		$one->must = 1;
-		$one->input = $this->CreateInputText($id,'when',$t,20,30);
+		$t = $this->CreateInputText($id,'when',$t,20,30);
+		$one->input = str_replace('class="','class="dateinput ',$t);
 		//for date-picker
 		$stylers = <<<EOS
 <link rel="stylesheet" type="text/css" href="{$baseurl}/css/pikaday.css" />
@@ -340,35 +353,37 @@ EOS;
 		$datetimefmt = $utils->DateTimeFormat(FALSE,TRUE,TRUE,!$overday);
 		if ($choosend) {
 			$sl = ($bdata && !empty($bdata['slotlen'])) ? $bdata['slotlen']:
-			$utils->GetInterval($this,$item_id,'slot');
+				$utils->GetInterval($this,$item_id,'slot');
 			$t2 = <<<EOS
-,
-  onClose: function() {
-   if('_d' in this && this._d) {
+
+ var pk = $('#{$id}when').data('pikaday');
+ if (pk) {
+  pk._o.onClose = function() {
+   if ('_d' in this && this._d) {
     var ob = new Date(this._d.getTime() + {$sl}*1000);
     var dt = fmt.formatDate(ob,'{$datetimefmt}');
     $('#{$id}until').val(dt);
    }
-  }
-
+  };
+ }
 EOS;
-		} else {
+		} else { //!$pmod
 			$t2 = '';
 		}
 
 		$jsloads[] = <<<EOS
-  var fmt = new DateFormatter({
-   longDays: [{$dnames}],
-   shortDays: [{$sdnames}],
-   longMonths: [{$mnames}],
-   shortMonths: [{$smnames}],
-   meridiem: [{$meridiem}],
-   ordinal: function (number) {
-    var n = number % 10, suffixes = {1:'st',2:'nd',3:'rd'};
-    return Math.floor(number % 100 / 10) === 1 || !suffixes[n] ? 'th' : suffixes[n];
-   }
-  });
-  $('#{$id}when').pikaday({
+ var fmt = new DateFormatter({
+  longDays: [{$dnames}],
+  shortDays: [{$sdnames}],
+  longMonths: [{$mnames}],
+  shortMonths: [{$smnames}],
+  meridiem: [{$meridiem}],
+  ordinal: function (number) {
+   var n = number % 10, suffixes = {1:'st',2:'nd',3:'rd'};
+   return Math.floor(number % 100 / 10) === 1 || !suffixes[n] ? 'th' : suffixes[n];
+  }
+ });
+ $('.dateinput').pikaday({
   format: '{$datetimefmt}',
   reformat: function(target,f) {
    return fmt.formatDate(target,f);
@@ -382,8 +397,8 @@ EOS;
    months: [{$mnames}],
    weekdays: [{$dnames}],
    weekdaysShort: [{$sdnames}]
-  }{$t2}
- });
+  }
+ });{$t2}
 
 EOS;
 	} else { //!$pmod
@@ -395,19 +410,11 @@ EOS;
 	if ($choosend) {
 		$one = new stdClass();
 		$one->title = $this->Lang('title_ending');
-		if ($bdata) {
-			if (array_key_exists('until',$bdata)) {
-				$t = $bdata['until'];
-			} else {
-				$dtw->setTimestamp($bdata['slotstart'] + $bdata['slotlen']);
-				$t = $dtw->format('Y-n-j G:i');
-			}
-		} else {
-			$t = '';
-		}
+		$t = $bdata['until'];
 		if ($pmod) {
 			$one->must = 0;
-			$one->input = $this->CreateInputText($id,'until',$t,20,30);
+			$t = $this->CreateInputText($id,'until',$t,20,30);
+			$one->input = str_replace('class="','class="dateinput ',$t);
 		} else {
 			$one->input = ($t) ? $t:$missing;
 		}
@@ -417,7 +424,7 @@ EOS;
 } else { //repeat booking
 	$one = new stdClass();
 	$one->title = $this->Lang('title_description');
-	$t = ($bdata) ? $bdata['formula']:'';
+	$t = $bdata['formula'];
 	if ($pmod) {
 		$one->must = 1;
 		$one->input = $this->CreateInputText($id,'formula',$t,50,256);
@@ -431,7 +438,7 @@ EOS;
 if ($is_group) {
 	$one = new stdClass();
 	$one->title = $this->Lang('title_subgrpcount');
-	$t = ($bdata) ? (int)$bdata['subgrpcount']:'';
+	$t = (int)$bdata['subgrpcount'];
 	if ($pmod) {
 		$one->must = 1;
 		$one->input = $this->CreateInputText($id,'subgrpcount',$t,3,5);
@@ -444,7 +451,7 @@ if ($is_group) {
 //==
 $one = new stdClass();
 $one->title = $this->Lang('title_user');
-$t = ($bdata) ? $bdata['name']:'';
+$t = $bdata['name'];
 if ($pmod) {
 	$one->must = 1;
 	$one->input = $this->CreateInputText($id,'name',$t,20,64);
@@ -457,11 +464,7 @@ $vars[] = $one;
 //==
 $one = new stdClass();
 $one->title = $this->Lang('title_contact');
-if ($bdata) {
-	$t = ($bdata['address']) ? $bdata['address'] : $bdata['phone'];
-} else {
-	$t = '';
-}
+$t = $bdata['contact'];
 if ($pmod) {
 	$one->must = 1;
 	$one->input = $this->CreateInputText($id,'contact',$t,30,128);
@@ -477,7 +480,7 @@ $vars[] = $one;
 //==
 $one = new stdClass();
 $one->title = $this->Lang('title_displayclass');
-$t = ($bdata) ? (int)$bdata['displayclass']:1;
+$t = (int)$bdata['displayclass'];
 if ($pmod) {
 	$one->must = 0;
 	$styles = range(1,Booker::USERSTYLES);
@@ -493,12 +496,20 @@ if ($pmod && !$is_new) {
 
 $vars[] = $one;
 //==
-$condition = NULL; //TODO payable-condition time,requestor etc
-$payable = $utils->GetItemPayable($this,$item_id,FALSE,$condition);
+$funcs = new Booker\Payment();
+$feefactors = array(
+ //TODO
+);
+if ($is_new) {
+	$feefactors['booker'] = '*';
+} else {
+	$feefactors['booker'] = $bdata['booker_id'];
+}
+$payable = $funcs->GetItemPayable($this,$item_id,$feefactors);
 if ($payable) {
 	$one = new stdClass();
 	$one->title = $this->Lang('title_paid');
-	$t = ($bdata) ? (int)$bdata['paid']:0;
+	$t = (int)$bdata['paid'];
 	if ($pmod) {
 		$one->must = 0;
 		$one->input = $this->CreateInputCheckbox($id,'paid',1,$t);
@@ -508,18 +519,20 @@ if ($payable) {
 	$vars[] = $one;
 }
 //==
-$one = new stdClass();
-$one->title = $this->Lang('status');
-$funcs = new Booker\Status();
-$t = ($bdata) ? (int)$bdata['status']:Booker::STATNONE;
-if ($pmod) {
-	$choices = $funcs->GetStatusChoices($this,6); //2|4
-	$utils->mb_ksort($choices);
-	$one->input = $this->CreateInputDropdown($id,'status',$choices,-1,$t);
-} else {
-	$one->input = $funcs->GetStatusName($this,$t);
+if (empty($params['repeat'])) { //onetime booking
+	$one = new stdClass();
+	$one->title = $this->Lang('status');
+	$funcs = new Booker\Status();
+	$t = (int)$bdata['status'];
+	if ($pmod) {
+		$choices = $funcs->GetStatusChoices($this,6); //2|4
+		$utils->mb_ksort($choices);
+		$one->input = $this->CreateInputDropdown($id,'status',$choices,-1,$t);
+	} else {
+		$one->input = $funcs->GetStatusName($this,$t);
+	}
+	$vars[] = $one;
 }
-$vars[] = $one;
 
 $tplvars['data'] = $vars;
 
