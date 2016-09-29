@@ -481,14 +481,15 @@ class Display
 		switch ($range) {
 		 case \Booker::RANGEDAY:
 		 case \Booker::RANGEWEEK:
+		 case \Booker::RANGEMTH:
 			$seglen = \Booker::SEGDAY; //table-column period one day
 			//$celloff: cell-coverage '' = slot, otherwise DateTime modifier like '+1 X'
 			$celloff = ($slotlen < 84600) ? '':'+1 day'; //each cell spans min(slotlen,report period)
 			break;
-		 case \Booker::RANGEMTH:
-			$seglen = \Booker::SEGDAY; //report divided into days
-			$celloff = ($slotlen < 84600) ? '+1 hour':'+1 day'; //each cell :: min(hour,report period)
-			break;
+//		 case \Booker::RANGEMTH:
+//			$seglen = \Booker::SEGDAY; //report divided into days
+//			$celloff = ($slotlen < 84600) ? '+1 hour':'+1 day'; //each cell :: min(hour,report period)
+//			break;
 		 case \Booker::RANGEYR:
 			$seglen = \Booker::SEGMTH; //report divided into months
 			$celloff = ($slotlen < 84600) ? '+1 day':''; //each cell :: min(day,slotlen)
