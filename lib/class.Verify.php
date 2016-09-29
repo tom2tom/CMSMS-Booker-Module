@@ -54,8 +54,8 @@ TODO support 'past' data without both date/time $params[]
 $this->Crash();
 		}
 
-		//TODO NOT ok to assume the slot-pair come from same item?? e.g. 0-days current with 1-hour ancestor
-		$idata = $utils->GetItemProperty($mod,$item_id,array('slottype','slotcount','timezone'));
+		$idata = $utils->GetItemProperty($mod,$item_id,array('slottype','slotcount'),TRUE);
+		$idata = $idata + $utils->GetItemProperty($mod,$item_id,'timezone');
 		if (isset($params['until'])) {
 			$fv = $params['until'];
 			if ($fv) {

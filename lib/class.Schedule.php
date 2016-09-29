@@ -101,7 +101,9 @@ class Schedule
 	*/
 	private function ScheduleOne(&$mod, &$utils, &$reqdata, $item_id, $bulk_id, $session_id, $is_repeat)
 	{
-		$idata = $utils->GetItemProperty($mod,$item_id,array('leadtype','leadcount','slottype','slotcount','bookcount','timezone'));
+		$idata = $utils->GetItemProperty($mod,$item_id,array('leadtype','leadcount'),TRUE);
+		$idata = $idata + $utils->GetItemProperty($mod,$item_id,array('slottype','slotcount'),TRUE);
+		$idata = $idata + $utils->GetItemProperty($mod,$item_id,array('bookcount','timezone'));
 		$bs = $reqdata['slotstart'];
 		$slen = $utils->GetInterval($mod,$item_id,'slot');
 		if (empty($reqdata['slotlen']))
@@ -363,8 +365,9 @@ class Schedule
 		if (!$likes)
 			return FALSE;
 
-		//TODO don't assume the slot-pair come from same item e.g. 0-days current with 1-hour ancestor
-		$idata = $utils->GetItemProperty($mod,$item_id,array('leadtype','leadcount','slottype','slotcount','bookcount','timezone','subgrpalloc','subgrpdata'));
+		$idata = $utils->GetItemProperty($mod,$item_id,array('leadtype','leadcount'),TRUE);
+		$idata = $idata + $utils->GetItemProperty($mod,$item_id,array('slottype','slotcount'),TRUE);
+		$idata = $idata + $utils->GetItemProperty($mod,$item_id,array('bookcount','timezone','subgrpalloc','subgrpdata'));
 		$slen = $utils->GetInterval($mod,$item_id,'slot');
 		$maxlen = $idata['bookcount'] * $slen;
 		if (!$is_repeat) {
@@ -531,8 +534,8 @@ class Schedule
 			$item_id = (int)$row['item_id'];
 			if (!isset($parmstore[$item_id])) {
 				//get enough data for TimeParms()
-				$idata = $utils->GetItemProperty($mod,$item_id,
-					array('slottype','slotcount','timezone','latitude','longitude'));
+				$idata = $utils->GetItemProperty($mod,$item_id,array('slottype','slotcount'),TRUE);
+				$idata = $idata + $utils->GetItemProperty($mod,$item_id,array('timezone','latitude','longitude'));
 				$parmstore[$item_id] = $reps->TimeParms($idata);
 				$parmstore[$item_id]['slottype'] = $idata['slottype'];
 				$parmstore[$item_id]['slotcount'] = $idata['slotcount'];
@@ -812,8 +815,8 @@ $this->Crash();//TODO overwrite/replace/supplement existing bookings
 */
 		}
 
-		$idata = $utils->GetItemProperty($mod,$item_id,
-			array('available','slottype','slotcount','timezone','latitude','longitude'));
+		$idata = $utils->GetItemProperty($mod,$item_id,array('slottype','slotcount'),TRUE);
+		$idata = $idata + $utils->GetItemProperty($mod,$item_id,array('available','timezone','latitude','longitude'));
 		if ($idata['available']) {
 			$funcs = new WhenRules($mod);
 			$timeparms = $funcs->TimeParms($idata);
