@@ -531,8 +531,8 @@ class Blocks
 		//TODO this must also support 'except' rules - subtract from blocks previously accepted
 		while ($i < $ic) {
 			if ($rules[$i]) { //something to interpret
-				$st = reset($chkstarts);
-				$nd = end($chkends);
+				$bst = reset($chkstarts);
+				$bnd = end($chkends);
 				list($rulestarts,$ruleends) = $this->BlocksforCalendarRule($mod,$bst,$bnd,$rules[$i]['feecondition'],$idata); //NOT default to entire current blocks
 				if ($rulestarts) {
 					list($rulestarts,$ruleends) = $this->IntersectBlocks($chkstarts,$chkends,$rulestarts,$ruleends);
