@@ -391,6 +391,7 @@ class Import
 				}
 			}
 
+			$funcs = new Payment();
 			$utils = new Utils();
 			$periods = array(-3=>'any',-2=>'all',-1=>'fixed') + $utils->TimeIntervals();
 			$icount = 0;
@@ -514,7 +515,7 @@ class Import
 							$sql = 'INSERT INTO '.$mod->FeeTable.' (condition_id,signature,'.$namers.',condorder,active) VALUES (?,?,'.$fillers.'?,?,1)';
 							$args = array_values($data);
 							$cid = $mod->dbHandle->GenID($mod->FeeTable.'_seq');
-							$sig = $utils->GetFeeSignature($data);
+							$sig = $funcs->GetFeeSignature($data);
 							array_unshift($args,$cid,$sig);
 							$args[] = -1; //TODO useful order
 							if ($utils->SafeExec($sql,$args)) {

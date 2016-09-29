@@ -767,114 +767,6 @@ class Utils
 	}
 
 	/**
-	GetFeeSignature:
-	Get identifier usable for cross-resource fee-comparisons
-	@row: array of fee-data including members: slottype,slotcount,fee,feecondition
-	Returns: 32-bit integer
-	*/
-	public function GetFeeSignature($row)
-	{
-		$sig = '';
-		foreach (array('slottype','slotcount','fee','feecondition') as $k) {
-			$sig .= (isset($row[$k]) && $row[$k] !== NULL) ? $row[$k] : 'NULL';
-		}
-		return crc32($sig);
-	}
-
-	/**
-	GetItemFee:
-	@mod: reference to current Booker module object
-	@item_id: identifier of item (resource or group) for which fee(s) is/are sought
-	@search: optional boolean, whether to check for missing fee in ancestor groups (if any), default FALSE
-	@conditional: optional string, condition to check payability e.g. time or user-class,
-	 may be '' to match explicit non-condition, may be 'ID<:>NUM' to match the
-	 stored condition for @item_id and condition_id==NUM, default FALSE means
-	 unconditional/no check needed
-	Returns: the first-found non-NULL fee if @conditional === FALSE, or
-	 the first-found non-NULL fee whose condition matches @conditional !== FALSE, or
-	 boolean FALSE if there are no relevant fee-data (conditional or otherwise)
-	*/
-	public function GetItemFee(&$mod, $item_id, $search=FALSE, $conditional=FALSE)
-	{
-		$db = $mod->dbHandle;
-		if ($search) {
-			$args = self::GetItemGroups($mod,$item_id);
-			array_unshift($args, $item_id); //priority-ordered for checking
-			$fillers = str_repeat('?,',count($args)-1);
-			$sql = 'SELECT item_id,fee,feecondition,condorder FROM '.$mod->FeeTable.
-			' WHERE item_id IN ('.$fillers.'?) AND active=1 ORDER BY item_id,condorder'; //a bit of downstream sorting might help ...
-			$fees = $db->GetArray($sql,$args); //NB ordered by item_id prob not what we want: $args has it
-			if ($fees) {
-				usort($fees,function($a, $b) use ($args)
-				{
-					$ta = $a['item_id'];
-					$tb = $b['item_id'];
-					if ($ta != $tb) {
-						$ka = array_search($ta,$args);
-						$kb = array_search($tb,$args);
-						if ($ka != $kb) {
-							return ($ka-$kb); //should always happen!
-						}
-					}
-					return ($a['condorder'] - $b['condorder']);
-				});
-			}
-		} else {
-			$sql = 'SELECT fee,feecondition FROM '.$mod->FeeTable.
-			' WHERE item_id=? AND active=1 ORDER BY condorder';
-			$fees = $db->GetArray($sql,array($item_id));
-		}
-
-		if ($fees) {
-			if (strpos($conditional,'ID<:>') === 0) {
-				$cid = substr($conditional,5);
-				$conditional = $db->GetOne('SELECT feecondition FROM '.
-					$mod->FeeTable.' WHERE item_id=? AND condition_id=?',array($item_id,$cid));
-				if ($conditional === FALSE)
-					return FALSE; //error
-				elseif (!$conditional)
-					$conditional = '';
-			}
-
-			foreach ($fees as $one) {
-				if ($one['fee'] != NULL) {
-					if ($conditional === FALSE) {
-						return $one['fee']; //CHECKME
-					} elseif ($one['feecondition']) {
-	//TODO $this->FeeTable stuff
-						if (0) {//TODO check for conforming condition
-							return $one['fee'];
-						}
-					} elseif ($conditional === '') {
-						return $one['fee'];
-					}
-				}
-			}
-		}
-		return FALSE;
-	}
-
-	/**
-	GetItemPayable:
-	@mod: reference to current Booker module object
-	@item_id: identifier of item (resource or group) for which property is/are sought
-	@search: optional boolean, whether to check for missing fee in ancestor groups (if any), default FALSE
-	@conditional: optional string, condition to check payability e.g. time or user-class,
-	 may be '' to match explicit non-condition, may be 'ID<:>NUM' to match the
-	 stored condition for @item_id and condition_id==NUM, default FALSE means
-	 unconditional/no check needed
-	Returns: boolean, FALSE if there are no relevant fee-data, or
-	 TRUE if @conditional === FALSE there's any fee > 0, or
-	 TRUE if @conditional !== FALSE and there's a fee > 0 for a condition that matches it
-	 or FALSE
-	*/
-	public function GetItemPayable(&$mod, $item_id, $search=FALSE, $conditional=FALSE)
-	{
-		$fee = self::GetItemFee($mod,$item_id,$search,$conditional);
-		return ($fee !== FALSE && $fee > 0);
-	}
-
-	/**
 	BuildResume:
 	Create (as array) or update @params['resume']
 	@resume: name of action
@@ -892,7 +784,7 @@ class Utils
 				$params['resume'] = array($resume);
 			}
 		} elseif (reset($params['resume']) != $resume) {
-				$params['resume'][] = $resume; 	
+				$params['resume'][] = $resume;
 		}
 	}
 
@@ -912,16 +804,8 @@ class Utils
 		$navstr = '';
 		foreach ($params['resume'] as $action) {
 			if ($action == $resume)
-				continue;
+				continue; //no link to self
 			switch($action) {
-			 case 'itembookings':
-				$key = 'title_bookings';
-				$xtra = array('item_id'=>$params['item_id'],'task'=>$params['task']);
-				break;
-			 case 'bookerbookings':
-				$key = 'title_bookings';
-				$xtra = array('booker_id'=>$params['booker_id'],'task'=>$params['task']);
-				break;
 			 case 'defaultadmin':
 				$key = 'back_module';
 				if (empty($params['active_tab'])) {
@@ -930,8 +814,16 @@ class Utils
 					$xtra = array('active_tab'=>$params['active_tab']);
 				}
 				break;
+			 case 'itembookings':
+				$key = 'title_bookings';
+				$xtra = array('item_id'=>$params['item_id'],'task'=>$params['task']);
+				break;
+			 case 'bookerbookings':
+				$key = 'title_bookings';
+				$xtra = array('booker_id'=>$params['booker_id'],'task'=>$params['task']);
+				break;
 			 default:
-$this->Crash();
+				break 2;
 			}
 			$navstr .= $mod->CreateLink($id,$action,$returnid,'&#171; '.$mod->Lang($key),$xtra);
 		}
