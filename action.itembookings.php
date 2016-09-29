@@ -119,23 +119,22 @@ $tplvars['endform'] = $this->CreateFormEnd();
 if (!empty($params['message']))
 	$tplvars['message'] = $params['message'];
 
-$idata = $utils->GetItemProperty($this,$item_id,'*',FALSE);
+$idata = $utils->GetItemProperty($this,$item_id,array('name','description'),FALSE);
 
-$type = ($is_group) ? $this->Lang('group'):$this->Lang('item');
+$typename = ($is_group) ? $this->Lang('group'):$this->Lang('item');
 if (!empty($idata['name'])) {
 	if ($is_group)
-		$tplvars['item_title'] = $this->Lang('title_booksfor',$type,$idata['name']);
+		$tplvars['item_title'] = $this->Lang('title_booksfor',$typename,$idata['name']);
 	else
 		$tplvars['item_title'] = $this->Lang('title_booksfor',$idata['name'],'');
 } else {
-	$t = $this->Lang('title_noname',$type,$idata['item_id']);
+	$t = $this->Lang('title_noname',$typename,$item_id);
 	$tplvars['item_title'] = $this->Lang('title_booksfor',$t,'');
 }
 if (!empty($idata['description']))
 	$tplvars['desc'] = Booker\Utils::ProcessTemplateFromData($this,$idata['description'],$tplvars);
 //in this context, ignore $idata['image']
 
-$payable = $utils->GetItemPayable($this,$item_id); //any payment condition
 $yes = $this->Lang('yes');
 $no = $this->Lang('no');
 $from_group = FALSE;
@@ -173,8 +172,8 @@ $jsincs = array();
 //========== NON-REPEAT BOOKINGS ===========
 //TODO support limit to date-range, changing such date-range
 $sql = <<<EOS
-SELECT D.item_id,D.bkg_id,D.slotstart,D.slotlen,D.paid,B.name FROM {$this->DataTable} D
-JOIN {$this->BookerTable} B ON D.booker_id=B.booker_id
+SELECT D.bkg_id,D.item_id,D.booker_id,D.slotstart,D.slotlen,D.paid,B.name FROM $this->DataTable D
+JOIN $this->BookerTable B ON D.booker_id=B.booker_id
 WHERE D.item_id=? ORDER BY D.slotstart
 EOS;
 $data = $utils->SafeGet($sql,array($item_id));
@@ -183,8 +182,8 @@ $groups = $utils->GetItemGroups($this,$item_id);
 if ($groups) {
 	$fillers = str_repeat('?,',count($groups)-1).'?';
 	$sql = <<<EOS
-SELECT D.bkg_id,D.item_id,D.slotstart,D.slotlen,D.paid,B.name FROM {$this->DataTable} D
-JOIN {$this->BookerTable} B ON D.booker_id=B.booker_id
+SELECT D.bkg_id,D.item_id,D.booker_id,D.slotstart,D.slotlen,D.paid,B.name FROM $this->DataTable D
+JOIN $this->BookerTable B ON D.booker_id=B.booker_id
 WHERE D.item_id IN({$fillers})
 ORDER BY D.slotstart
 EOS;
@@ -299,6 +298,11 @@ if ($data) {
 			$oneset->time .= ' &Dagger;';
 		}
 		$oneset->name = $one['name'];
+		$feefactors = array(
+			'booker'=>$one['booker_id']
+			//TODO;
+		);
+		$payable = $utils->GetItemPayable($this,$item_id,$feefactors);
 		if ($payable)
 			$oneset->paid = ($one['paid']) ? $yes:$no;
 		else
@@ -496,23 +500,23 @@ if ($pmod) {
 
 //========== REPEAT BOOKINGS ===========
 /*if (!empty($idata['name'])) {
-	$tplvars['item_title2'] = $this->Lang('title_repeatsfor',$type,$idata['name']);
+	$tplvars['item_title2'] = $this->Lang('title_repeatsfor',$typename,$idata['name']);
 } else {
-	$t = $this->Lang('title_noname',$type,$idata['item_id']);
+	$t = $this->Lang('title_noname',$typename,$idata['item_id']);
 	$tplvars['item_title2'] = $this->Lang('title_repeatsfor',$t,'');
 }
 */
 $tplvars['item_title2'] = $this->Lang('title_repeats');
 
 $sql = <<<EOS
-SELECT R.bkg_id,R.item_id,R.formula,R.subgrpcount,R.paid,B.name FROM {$this->RepeatTable} R
+SELECT R.bkg_id,R.item_id,R.booker_id,R.formula,R.subgrpcount,R.paid,B.name FROM {$this->RepeatTable} R
 JOIN {$this->BookerTable} B ON R.booker_id=B.booker_id
 WHERE R.item_id=? AND R.active=1
 EOS;
 $data = $db->GetArray($sql,array($item_id));
 if ($groups) {
 	$sql = <<<EOS
-SELECT R.bkg_id,R.item_id,R.formula,R.subgrpcount,R.paid,B.name FROM {$this->RepeatTable} R
+SELECT R.bkg_id,R.item_id,R.booker_id,R.formula,R.subgrpcount,R.paid,B.name FROM {$this->RepeatTable} R
 JOIN {$this->BookerTable} B ON R.booker_id=B.booker_id
 WHERE R.item_id IN({$fillers}) AND R.active=1
 EOS;
@@ -551,6 +555,11 @@ if ($data) {
 		if ($is_group) {
 			$oneset->count = $one['subgrpcount'];
 		}
+		$feefactors = array(
+			'booker'=>$one['booker_id']
+			//TODO for repeats??
+		);
+		$payable = $utils->GetItemPayable($this,$item_id,$feefactors);
 		if ($payable)
 			$oneset->paid = ($one['paid']) ? $yes:$no;
 		else
