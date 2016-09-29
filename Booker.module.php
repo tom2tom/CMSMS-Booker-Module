@@ -268,7 +268,7 @@ class Booker extends CMSModule
 	*/
 	public function LazyLoadAdmin()
 	{
-		return FALSE;
+		return TRUE; //NB changing this after the module is installed seems to have no effect
 	}
 
 	public function GetAdminSection()
@@ -318,7 +318,7 @@ class Booker extends CMSModule
 	*/
 	public function LazyLoadFrontend()
 	{
-		return TRUE;
+		return FALSE; //enable routes NB changing this after the module is installed seems to have no effect
 	}
 
 	public function MinimumCMSVersion()
@@ -420,15 +420,27 @@ class Booker extends CMSModule
 		$this->SetParameterType('zoomout',CLEAN_NONE);
 		$this->SetParameterType(CLEAN_REGEXP.'/bkr_.*/',CLEAN_STRING);
 		/* register 'routes' to use for pretty url parsing
-		these regexes translate url-parameter(s) to $param[](s) be supplied
-		to the specified actions (default calls ->DisplayModuleOutput())
-		so the routes need to conform to parameter-usage in handler-func(s).
+		these regexes are for site-root-url-relative 'paths', they translate
+		url-element(s) to $param[](s) be supplied to the specified actions
+		(default calls ->DisplayModuleOutput()) so the routes need to conform
+		to parameter-usage in handler-func(s).
 		(?P<name>regex) captures the text matched by "regex" into the group "name",
 		which can contain letters and numbers but must start with a letter.
 		See also: Booker\Utils->GetLink() which needs to conform to this.
 		*/
-		// display bookings for a specific group/item TODO make this work
-		$this->RegisterRoute('/[Bb]ook(ings)?\/(group|item)?(?P<item>.+)$/',array('action' => 'default'));
+		// display bookings for a specific group/item
+		//NB the correct page id is needed in the URL to display generated content
+		//on the correct page! TODO find a dynamic way around this
+		$alias = $this->GetPreference('pref_sitepage','');
+		if ($alias) {
+			$manager = cmsms()->GetHierarchyManager();
+			$node = $manager->GetNodeByAlias($alias);
+			if ($node) {
+				$onpage = $node->getID();
+				$this->RegisterRoute('/[Bb]ook(ings?|er)?\/(?P<item>.+)$/',array('action'=>'default','returnid'=>$onpage));
+			}
+		}
+		$this->RegisterRoute('/[Bb]ook(ings?|er)?\/(?P<item>.+)\/(?P<returnid>[0-9]+)$/',array('action'=>'default'));
 	}
 
 	/*
