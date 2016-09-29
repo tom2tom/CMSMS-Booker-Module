@@ -25,7 +25,7 @@ if(isset($params['cancel']) || empty($params['message'])) {
 $hidden = $utils->FilterParameters($params,$localparams);
 $tplvars = array(
 //	'title' => $this->Lang('title_requeststatus'),
-	'message'=> $params['message'],
+	'message'=> html_entity_decode($params['message'],ENT_QUOTES|ENT_HTML401),
 	'startform' => $this->CreateFormStart($id,'findbooking',$returnid,'POST','','','',$hidden),
 	'endform' => $this->CreateFormEnd(),
 	'cancel' => $this->CreateInputSubmit($id,'cancel',$this->Lang('close'))
