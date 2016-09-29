@@ -673,6 +673,7 @@ else {
 }
 $this->SetPreference('pref_timezone',$zone);	//default zone for time calcs
 
+//place for file uploads, not an inheritable item-property
 $ud = $this->GetName();
 if ($ud) {
 	$fp = $config['uploads_path'];
@@ -684,7 +685,9 @@ if ($ud) {
 		}
 	}
 }
-$this->SetPreference('pref_uploadsdir',$ud); //place for file uploads, preference-only, not an items-table field
+$this->SetPreference('pref_uploadsdir',$ud);
+//site-page alias for use in RegisterRoute, not an inheritable item-property
+$this->SetPreference('pref_sitepage','');
 
 // enable FormBuilder-module custom processing
 $ob = cms_utils::get_module('FormBuilder');
