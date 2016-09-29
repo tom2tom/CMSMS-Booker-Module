@@ -687,7 +687,7 @@ if ($ud) {
 }
 $this->SetPreference('pref_uploadsdir',$ud);
 //site-page alias for use in RegisterRoute, not an inheritable item-property
-$this->SetPreference('pref_sitepage','');
+$this->SetPreference('pref_sitepage','booker');
 
 // enable FormBuilder-module custom processing
 $ob = cms_utils::get_module('FormBuilder');
