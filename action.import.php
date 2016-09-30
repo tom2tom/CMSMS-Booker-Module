@@ -7,14 +7,20 @@
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
 
-if (!function_exists('GetRedirParms')) {
- function GetRedirParms(&$params, $msg = FALSE)
+if (!function_exists('ImportRedirParms')) {
+ function ImportRedirParms($resume, &$params, $msg = FALSE)
  {
-	$pnew = array();
-	if (isset($params['item_id']))
-		$pnew['item_id'] = $params['item_id'];
-	if (isset($params['active_tab']))
-		$pnew['active_tab'] = $params['active_tab'];
+	$pnew = array_intersect_key($params,array(
+	'item_id'=>1,
+	'booker_id'=>1,
+	'task'=>1,
+	'active_tab'=>1));
+	if (!empty($params['resume']))
+		$pnew['resume'] = json_encode($params['resume']);
+/*	switch ($resume) {
+		default:
+	}
+*/
 	if ($msg)
 		$pnew['message'] = $msg;
 	return $pnew;
@@ -34,7 +40,7 @@ if (isset($params['resume'])) {
 
 if (isset($params['cancel'])) {
 	$resume = array_pop($params['resume']);
-	$newparms = GetRedirParms($params);
+	$newparms = ImportRedirParms($resume,$params);
 	$this->Redirect($id,$resume,'',$newparms);
 }
 
@@ -80,10 +86,11 @@ if (isset($_FILES) && isset($_FILES[$id.'csvfile'])) {
 	if ($res) {
 		$t = $this->Lang('import_result',$prop,$this->Lang($k));
 		$msg = $this->_PrettyMessage($t,TRUE,FALSE);
-	} else
+	} else {
 		$msg = $this->_PrettyMessage($prop,FALSE);
-	$newparms = GetRedirParms($params,$msg);
+	}
 	$resume = array_pop($params['resume']);
+	$newparms = ImportRedirParms($resume,$params,$msg);
 	$this->Redirect($id,$resume,'',$newparms);
 }
 
