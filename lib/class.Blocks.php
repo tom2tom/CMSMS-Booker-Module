@@ -147,7 +147,7 @@ class Blocks
 		return array(FALSE,FALSE);
 	}
 
-	/**
+	/* *
 	IntersectBlocksRuled:
 	@starts1: array of first-block start-stamps, sorted ascending
 	@ends1: array of corresponding end-stamps
@@ -164,7 +164,7 @@ class Blocks
 	 [1] = FALSE
 	 [2] = FALSE
 	*/
-	public function IntersectBlocksRuled($starts1, $ends1, $starts2, $ends2, $rules2)
+/*	public function IntersectBlocksRuled($starts1, $ends1, $starts2, $ends2, $rules2)
 	{
 		$starts = array();
 		$ends = array();
@@ -252,8 +252,8 @@ class Blocks
 		}
 		return array(FALSE,FALSE,FALSE);
 	}
-
-	/**
+*/
+	/* *
 	IntersectBlocks2Ruled:
 	@starts1: array of first-block start-stamps, sorted ascending
 	@ends1: array of corresponding end-stamps
@@ -273,7 +273,7 @@ class Blocks
 	 [2] = FALSE
 	 [3] = FALSE
 	*/
-	public function IntersectBlocks2Ruled($starts1, $ends1, $rules1, $starts2, $ends2, $rules2)
+/*	public function IntersectBlocks2Ruled($starts1, $ends1, $rules1, $starts2, $ends2, $rules2)
 	{
 		$starts = array();
 		$ends = array();
@@ -389,9 +389,9 @@ class Blocks
 		}
 		return array(FALSE,FALSE,FALSE,FALSE);
 	}
-
-	//Interpret $dtrule into stamp-block(s) covering $st..$nd-1
-	private function BlocksforCalendarRule(&$mod, $st, $nd, $descriptor, $idata)
+*/
+	//Interpret $descriptor into stamp-block(s) covering $st..$nd-1
+	private function BlocksforRule(&$mod, $st, $nd, $descriptor, $idata)
 	{
 		$funcs = new WhenRules($mod);
 		if ($funcs->ParseDescriptor($descriptor)) {
@@ -441,7 +441,7 @@ class Blocks
 			if ($rules[$i]) { //something to interpret
 				$st = reset($chkstarts);
 				$nd = end($chkends);
-				list($rulestarts,$ruleends) = $this->BlocksforCalendarRule($mod,$st,$nd,$rules[$i],$idata); //NOT default to entire current blocks
+				list($rulestarts,$ruleends) = $this->BlocksforRule($mod,$st,$nd,$rules[$i],$idata); //NOT default to entire current blocks
 				if ($rulestarts) {
 					list($rulestarts,$ruleends) = $this->IntersectBlocks($chkstarts,$chkends,$rulestarts,$ruleends);
 					if ($rulestarts) {
@@ -499,7 +499,7 @@ class Blocks
 	This replicates WhenBlocks() except @rules is array(s), and rules-members
 	are returned.
 	@mod: reference to Booker module object
-	@idata: array of parameters for the resource being processed
+	@idata: array of parameters for the resource being processed, sufficient for Timeparms()
 	@blockstart: UTC timestamp for start of range
 	@blocklen: length of range (seconds), extends to 1-past last-usable second
 	@rules: single rule, or array of rules sorted in order of decreasing priority,
@@ -508,7 +508,7 @@ class Blocks
 	Returns: 3-member array,
 	 [0] = sorted array of block-start timestamps in @blockstart..@blockstart+@blocklen+1
 	 [1] = array of respective block-end timestamps in @blockstart..@blockstart+@blocklen+1
-	 [2] = array of respective members of @rules TODO multiple if relative-rules found before absolute
+	 [2] = array of respective indices of @rules members TODO multiple if relative-rules found before absolute
 	OR if nothing is relevant
 	 [0] = FALSE
 	 [1] = FALSE
@@ -533,7 +533,7 @@ class Blocks
 			if ($rules[$i]) { //something to interpret
 				$bst = reset($chkstarts);
 				$bnd = end($chkends);
-				list($rulestarts,$ruleends) = $this->BlocksforCalendarRule($mod,$bst,$bnd,$rules[$i]['feecondition'],$idata); //NOT default to entire current blocks
+				list($rulestarts,$ruleends) = $this->BlocksforRule($mod,$bst,$bnd,$rules[$i]['feecondition'],$idata); //NOT default to entire current blocks
 				if ($rulestarts) {
 					list($rulestarts,$ruleends) = $this->IntersectBlocks($chkstarts,$chkends,$rulestarts,$ruleends);
 					if ($rulestarts) {
@@ -543,7 +543,7 @@ class Blocks
 							$nd = $ruleends[$j];
 							$ends[] = $nd;
 							$chkstarts[] = $nd;
-							$userules[] = $rules[$i];
+							$userules[] = $i;
 						}
 						//TODO if (rule is absolute) {
 						//eliminate blocks already dealt with from further checks
@@ -592,7 +592,7 @@ class Blocks
 		return array(FALSE,FALSE,FALSE);
 	}
 
-	/**
+	/* *
 	UserRuledBlocks:
 	@blockstart: UTC timestamp for start of range
 	@blocklen: length of range (seconds), extends to 1-past last-usable second
@@ -608,7 +608,7 @@ class Blocks
 	 [1] = FALSE
 	 [2] = FALSE
 	*/
-	public function UserRuledBlocks($blockstart, $blocklen, $rules)
+/*	public function UserRuledBlocks($blockstart, $blocklen, $rules)
 	{
 		$nd = $blockstart + $blocklen + 1;
 		if (is_array($rules)) {
@@ -627,7 +627,7 @@ class Blocks
 		}
 		return array(FALSE,FALSE,FALSE);
 	}
-
+*/
 	/**
 	Coalesce:
 	Merge overlapping slots in @slots c.f. self::MergeBlocks($starts,$ends)
