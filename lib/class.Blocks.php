@@ -408,9 +408,9 @@ class Blocks
 	}
 
 	/* *
-	RepeatBlocks:
-	This replicates RepeatRuledBlocks() except @rules is string(s), and
-	rules-members are not returned.
+	WhenBlocks:
+	This replicates WhenRuledBlocks() except @rules is string(s), and rules-data
+	are not returned.
 	@mod: reference to Booker module object
 	@idata: array of parameters for the resource being processed
 	@blockstart: UTC timestamp for start of range
@@ -424,7 +424,7 @@ class Blocks
 	 [0] = FALSE
 	 [1] = FALSE
 	*/
-/*	public function RepeatBlocks(&$mod, $idata, $blockstart, $blocklen, $rules)
+/*	public function WhenBlocks(&$mod, $idata, $blockstart, $blocklen, $rules)
 	{
 		if (!is_array($rules)) {
 			$rules = array($rules);
@@ -495,8 +495,8 @@ class Blocks
 	}
 */
 	/**
-	RepeatRuledBlocks:
-	This replicates RepeatBlocks() except @rules is array(s), and rules-members
+	WhenRuledBlocks:
+	This replicates WhenBlocks() except @rules is array(s), and rules-members
 	are returned.
 	@mod: reference to Booker module object
 	@idata: array of parameters for the resource being processed
@@ -508,13 +508,13 @@ class Blocks
 	Returns: 3-member array,
 	 [0] = sorted array of block-start timestamps in @blockstart..@blockstart+@blocklen+1
 	 [1] = array of respective block-end timestamps in @blockstart..@blockstart+@blocklen+1
-	 [2] = array of respective members of @rules
+	 [2] = array of respective members of @rules TODO multiple if relative-rules found before absolute
 	OR if nothing is relevant
 	 [0] = FALSE
 	 [1] = FALSE
 	 [2] = FALSE
 	*/
-	public function RepeatRuledBlocks(&$mod, $idata, $blockstart, $blocklen, $rules)
+	public function WhenRuledBlocks(&$mod, $idata, $blockstart, $blocklen, $rules)
 	{
 		if (!is_array($rules)) {
 			$rules = array($rules);
@@ -528,7 +528,7 @@ class Blocks
 		$ends = array();
 		$userules = array();
 
-		//TODO this must also support 'except' rules - subtract from blocks previously accepted
+		//TODO this must also support 'except' rules - subtract from blocks previously accepted and relative-rules
 		while ($i < $ic) {
 			if ($rules[$i]) { //something to interpret
 				$bst = reset($chkstarts);
@@ -545,6 +545,7 @@ class Blocks
 							$chkstarts[] = $nd;
 							$userules[] = $rules[$i];
 						}
+						//TODO if (rule is absolute) {
 						//eliminate blocks already dealt with from further checks
 						sort($chkstarts,SORT_NUMERIC);
 						sort($chkends,SORT_NUMERIC);
