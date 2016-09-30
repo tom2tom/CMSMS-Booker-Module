@@ -19,6 +19,7 @@ class Verify
 		a not-yet-recorded request OR
 		a recorded request now being edited OR
 		a recorded booking now being edited
+	@item_id: resource or group identifier
 	@is_new: boolean whether validating data for a new request
 	@admin: boolean whether the caller is backend/admin
 	Returns: 2-member array, 1st is boolean indicating success, 2nd '' or array of error messages
@@ -101,7 +102,8 @@ $this->Crash();
 					} else {
 						$dts = new \DateTime('@'.$bs,NULL);
 						$dte = new \DateTime('@'.$be,NULL);
-						if (!$funcs->ItemAvailable($mod,$utils,$item_id,$dts,$dte)) {
+						//any booker
+						if (!$funcs->ItemAvailable($mod,$utils,$item_id,0,$dts,$dte)) {
 							$msg[] = $mod->Lang('err_na');
 						}
 					}
