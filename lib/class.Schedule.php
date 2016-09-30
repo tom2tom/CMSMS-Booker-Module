@@ -36,7 +36,8 @@ class Schedule
 			$slotstatus = $X;
 		} else {
 			$slotstatus = 0;
-			if (!self::ItemAvailable($mod,$utils,$item_id,$dts,$dte)) {
+			$bookerid = 0; //TODO booker identifier
+			if (!self::ItemAvailable($mod,$utils,$item_id,$bookerid,$dts,$dte)) {
 				$slotstatus += 2;
 			}
 			$bs = $dts->getTimestamp();
@@ -750,7 +751,7 @@ class Schedule
 
 			$reps = new WhenRules($mod);
 			$blocks = new Blocks();
-//TODO proper handling of inherited repeat-descriptors c.f. Blocks::RepeatRuledBlocks()
+//TODO proper handling of inherited repeat-descriptors c.f. Blocks::WhenRuledBlocks()
 			foreach ($all as $bkg_id=>$one) { //TODO unnecessary repetition?
 				$st = $one['checkedfrom'];
 				$nd = $one['checkedto'];
@@ -799,11 +800,12 @@ $this->Crash();//TODO overwrite/replace/supplement existing bookings
 	@mod reference to current module-object
 	@utils: reference to Utils object
 	@item_id: resource or group identifier
+	@bookerid: booker identifier, or 0 for any booker
 	@dts: UTC DateTime object representing start of range
 	@dte: ditto for end (i.e. NOT 1-past-end)
 	Returns: boolean for resource or entire group, ?? for part-available group
 	*/
-	public function ItemAvailable(&$mod, &$utils, $item_id, $dts, $dte)
+	public function ItemAvailable(&$mod, &$utils, $item_id, $bookerid, $dts, $dte)
 	{
 		$is_group = ($item_id >= \Booker::MINGRPID);
 		if ($is_group) {
@@ -814,7 +816,6 @@ $this->Crash();//TODO overwrite/replace/supplement existing bookings
 			$args = $all;
 */
 		}
-
 		$idata = $utils->GetItemProperty($mod,$item_id,array('slottype','slotcount'),TRUE);
 		$idata = $idata + $utils->GetItemProperty($mod,$item_id,array('available','timezone','latitude','longitude'));
 		if ($idata['available']) {
@@ -833,6 +834,10 @@ $this->Crash();//TODO overwrite/replace/supplement existing bookings
 		}
 		if ($starts) {
 			if (0) //TODO anything left over
+				return FALSE;
+		}
+		if ($bookerid > 0) {
+			if (0) //TODO $bookerid is permitted to use the item
 				return FALSE;
 		}
 		return TRUE;
