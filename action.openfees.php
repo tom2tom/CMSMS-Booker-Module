@@ -55,7 +55,7 @@ if (!function_exists('getfeedata')) {
 		 'slotcount' => '',
 		 'fee' => '',
 		 'feecondition' => '',
-//		 'condtype I(1) DEFAULT 0,
+		 'usercondition' => '',
 //		 'condorder I(1) DEFAULT -1,
 		 'active' => 1
 		);
@@ -100,6 +100,30 @@ if (!function_exists('getfeedata')) {
 		}
 	}
  }
+
+ function FeeRedirParms($resume, &$params, $msg = FALSE)
+ {
+	$pnew = array_intersect_key($params,array(
+	'item_id'=>1,
+	'booker_id'=>1,
+	'task'=>1,
+	'active_tab'=>1));
+	if (!empty($params['resume']))
+		$pnew['resume'] = json_encode($params['resume']);
+	switch ($resume) {
+	 case 'defaultadmin':
+		$t = ($params['item_id'] < Booker::MINGRPID) ? 'items':'groups';
+		$pnew['active_tab'] = $t;
+		break;
+	 case 'openitem':
+		$pnew['active_tab'] = 'basic';
+		break;
+	 default:
+	}
+	if ($msg)
+		$pnew['message'] = $msg;
+	return $pnew;
+ }
 }
 
 $utils = new Booker\Utils();
@@ -118,21 +142,8 @@ if (isset($params['resume'])) {
 }
 
 if (isset($params['cancel'])) {
-	$item_id = $params['item_id'];
 	$resume = array_pop($params['resume']);
-	switch ($resume) {
-	 case 'defaultadmin':
-		$t = ($item_id < Booker::MINGRPID) ? 'items':'groups';
-		$newparms = array('active_tab'=>$t);
-		break;
-	 case 'openitem':
-//TODO rest of resume into $newparms
-		$newparms = array(item_id=>$params['item_id'],'task'=>'edit','active_tab'=>'basic');
-		break;
-	 default:
-		$newparms = array();
-$this->Crash();
-	}
+	$newparms = FeeRedirParms($resume,$params);
 	$this->Redirect($id,$resume,'',$newparms);
 }
 
@@ -163,6 +174,8 @@ $params = array of all item/group properties, including 'active_tab'
 	$sel = FALSE;
 }
 
+$funcs = new Booker\Payment();
+
 if (isset($params['submit'])) {
 /*$params = array
  'item_id' => string '2'
@@ -173,6 +186,7 @@ if (isset($params['submit'])) {
  'slottype' => array (string '-1' ... ) ditto
  'fee' => array (string '28.00' ... ) ditto
  'feecondition' => array(string 'sunrise..sunset' ... ) ditto
+ 'usercondition' => array (string '1,2,3...');
  'active' => array(string '1' ....) ditto BUT
    missing member(s) whose condition is inactive AND missing whole $param if
    none is active
@@ -190,9 +204,10 @@ slottype,
 slotcount,
 fee,
 feecondition,
+usercondition,
 condorder,
 active
-) VALUES (?,?,?,?,?,?,?,?,?,?)';
+) VALUES (?,?,?,?,?,?,?,?,?,?,?)';
 		$sql2 = 'UPDATE '.$mod->FeeTable.' SET
 signature=?
 description=?,
@@ -200,6 +215,7 @@ slottype=?,
 slotcount=?,
 fee=?,
 feecondition=?,
+usercondition=?,
 condorder=?,
 active=?
 WHERE condition_id=?';
@@ -222,19 +238,29 @@ WHERE condition_id=?';
 		$allsql[] = $t;
 		$allargs[] = $args;
 		//next, cleanup and accumulate new+retained data
+		$params['feesnow'] = json_decode(html_entity_decode($params['feesnow'],ENT_QUOTES|ENT_HTML401));
 		foreach ($pdata as &$one) {
 			if ($one['slottype'] == -1)
 				$one['slotcount'] = NULL; //no count for fixed fee
 			$relfee = preg_match('/^ *[+-]/', $one['fee']);
 			if ($relfee)
 				$lp = $this->Lang('percent');
+			if ($one['usercondition']) {
+				$parts = preg_split('/[^\d]/',$one['usercondition'],-1,PREG_SPLIT_NO_EMPTY);
+				foreach($parts as $i=>$t) {
+					if ($t < 0 || $t > 9)
+						unset($parts[$i]);
+				}
+				unset($one);
+				$one['usercondition'] = implode(',',$parts);
+			}
 			$one['active'] = (bool)$one['active'];
 			if ($one['condition_id'] < 0) { //new fee-item
 				$allsql[] = $sql1;
 				$cid = $db->GenID($this->FeeTable.'_seq');
 				if ($relfee)
 					$one['fee'] = NULL; //no basis for relative fee in new conditions
-				$sig = $utils->GetFeeSignature($one);
+				$sig = $funcs->GetFeeSignature($one);
 				$allargs[] = array(
 				 $cid,
 				 $item_id,
@@ -244,14 +270,16 @@ WHERE condition_id=?';
 				 $one['slotcount'],
 				 $one['fee'],
 				 $one['feecondition'],
+				 $one['usercondition'],
 				 $one['condorder'],
 				 $one['active'],
 				);
 			} else { //existing fee-item
 				$allsql[] = $sql2;
+				$cid = $one['condition_id'];
 				if ($relfee) {
-					$now = $utils->GetItemFee($this,$item_id,TRUE,'ID<:>'.$one['condition_id']);//re-get current fee, inherited if needed
-					if ($now !== FALSE) {
+					$now = $params['feesnow'][$cid];
+					if ($now && is_numeric($now)) {
 						$t = trim($one['fee']);
 						$r = preg_replace('/(%|'.$lp.')$/','',$t);
 						if ($t != $r) {
@@ -260,9 +288,9 @@ WHERE condition_id=?';
 							$one['fee'] = $now + (float)$t; //ditto
 						}
 					} else
-						$one['fee'] = NULL;
+						$one['fee'] = $now;
 				}
-				$sig = $utils->GetFeeSignature($one);
+				$sig = $funcs->GetFeeSignature($one);
 				$allargs[] = array(
 				 $sig,
 				 $one['description'],
@@ -270,9 +298,10 @@ WHERE condition_id=?';
 				 $one['slotcount'],
 				 $one['fee'],
 				 $one['feecondition'],
+				 $one['usercondition'],
 				 $one['condorder'],
 				 $one['active'],
-				 $one['condition_id']
+				 $cid
 				);
 			}
 		}
@@ -315,13 +344,10 @@ WHERE condition_id=?';
 			$utils->SafeExec($sql,array($item_id));
 		}
 	}
-	if (isset($params['sel'])) {
-		$this->Redirect($id,'defaultadmin','',array('active_tab'=>$params['active_tab']));
-	} else {
-//TODO 'task'=>whatever
-		$this->Redirect($id,'openitem','',array(
-		'item_id'=>$item_id,'task'=>'edit','active_tab'=>$params['active_tab']));
-	}
+
+	$resume = array_pop($params['resume']);
+	$newparms = FeeRedirParms($resume,$params);
+	$this->Redirect($id,$resume,'',$newparms);
 } elseif (isset($params['delete'])) { //delete selected fees(s)
 	if (isset($params['selfees'])) {
 		$ids = array_keys($params['selfees']);
@@ -354,7 +380,6 @@ if ($pmod) {
 	//TODO if $params['sel'] == multi-resources upon submit
 }
 
-$tplvars['pagenav'] = $utils->BuildNav($this,$id,$returnid,$params['action'],$params);
 $resume = json_encode($params['resume']);
 
 $hidden = array('item_id'=>$item_id,'resume'=>$resume);
@@ -366,8 +391,9 @@ $tplvars = array(
 	'mod' => $pmod,
 	'startform' => $this->CreateFormStart($id,'openfees',$returnid,'POST','','','',$hidden),
 	'endform' => $this->CreateFormEnd(),
-	'hidden'=>NULL
 );
+
+$tplvars['pagenav'] = $utils->BuildNav($this,$id,$returnid,$params['action'],$params);
 
 if (isset($params['message']))
 	$tplvars['message'] = $params['message'];
@@ -410,11 +436,13 @@ if ($pdata) {
 	$r = 0;
 	$rc = $count - 1;
 
+	$feesnow = array();
 	$items = array();
 	foreach ($pdata as $one) {
 		$oneset = new stdClass();
 		if ($pmod) {
 			$cid = $one['condition_id'];
+			$feesnow[$cid] = $one['fee'];
 			$oneset->hidden = $this->CreateInputHidden($id,'condition_id[]',$cid);
 			$oneset->desc = $this->CreateInputText($id,'description['.$cid.']',$one['description'],20,64);
 			$oneset->count = $this->CreateInputText($id,'slotcount['.$cid.']',$one['slotcount'],3,3);
@@ -422,6 +450,7 @@ if ($pdata) {
 			$oneset->fee = $this->CreateInputText($id,'fee['.$cid.']',$one['fee'],6,8);
 			$oneset->cond = $this->CreateTextArea(FALSE,$id,$one['feecondition'],
 				'feecondition['.$cid.']','','','','',20,2,'','','style="height:2em;width:20em;"');
+			$oneset->user = $this->CreateInputText($id,'usercondition['.$cid.']',$one['usercondition'],20,32);
 			$oneset->active = $this->CreateInputCheckbox($id,'active['.$cid.']',1,$one['active']);
 			$cid = (int)$cid;
 			if ($r == 0) {
@@ -451,10 +480,13 @@ if ($pdata) {
 			$oneset->type = $choices[$one['slottype']];
 			$oneset->fee = $one['fee'];
 			$oneset->cond = $one['feecondition'];
+			$oneset->user = $one['usercondition'];
 			$oneset->active = $one['active'] ? $yes:$no;
 		}
 		$items[] = $oneset;
 	}
+
+	$tplvars['hidden'] = $this->CreateInputHidden($id,'feesnow',json_encode($feesnow));
 
 	if ($pmod) {
 		$jsincs[] =
@@ -494,11 +526,13 @@ EOS;
 	'periodtext' => $this->Lang('interval'),
 	'feetext' => $this->Lang('title_feeinterval'),
 	'condtext' => $this->Lang('title_feecondition'),
+	'usertext' => $this->Lang('title_usercondition'),
 	'activetext' => $this->Lang('title_active'),
 	'movetext' => $this->Lang('move')
 	);
 } else {
 	$count = 0;
+	$tplvars['hidden'] = NULL;
 	$tplvars['nofees'] = $this->Lang('nofees');
 }
 
