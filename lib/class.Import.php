@@ -367,7 +367,7 @@ class Import
 			 'Count'=>'slotcount',
 			 '#Fee'=>'fee',
 			 'Condition'=>'feecondition',
-			 'Type'=>'condtype',
+			 'Type'=>'usercondition',
 			 'Update'=>'update' //not a real field
 			);
 			/* non-public
@@ -416,6 +416,7 @@ class Import
 								break;
 							 case 'description':
 							 case 'feecondition': //no validation here!
+							 case 'usercondition': //ditto
 								$data[$k] = trim($one);
 								$save = TRUE;
 								break;
@@ -443,10 +444,6 @@ class Import
 								}
 								$save = TRUE;
 								break;
-							 case 'condtype':
-								$data[$k] = (int)$one;
-								$save = TRUE;
-								break;
 							 case 'update':
 							 	if (is_numeric($one)) {
 									$update = (int)$one;
@@ -468,9 +465,6 @@ class Import
 								} else {
 									$data[$k] = 1;
 								}
-								break;
-							 case 'condtype':
- 								$data[$k] = 0;
 								break;
 							 case 'update': //ignore this
 								break;
@@ -946,8 +940,9 @@ class Import
 						$funcs2 = new Schedule();
 						$dts->setTimestamp($bs);
 						$dte->setTimestamp($be);
+						//any booker
 						$save = $funcs2->ItemVacantCount($mod,$data['item_id'],$bs,$be)
-							&& $funcs2->ItemAvailable($mod,$utils,$data['item_id'],$dts,$dte);
+							&& $funcs2->ItemAvailable($mod,$utils,$data['item_id'],0,$dts,$dte);
 					} else {
 						return array(FALSE,'err_badtime');
 					}

@@ -370,7 +370,7 @@ EOS;
 			 'Count'=>'slotcount',
 			 '#Fee'=>'fee',
 			 'Condition'=>'feecondition',
-			 'Type'=>'condtype',
+			 'Type'=>'usercondition',
 			 'Update'=>'condition_id' //not real
 			);
 			/* non-public fields
@@ -395,6 +395,7 @@ EOS;
 						$fv = preg_replace('/[\n\t\r]/',$sep2,$fv);
 						//no break here
 					 case 'feecondition':
+					 case 'usercondition':
 						$fv = str_replace($sep,$r,$fv);
 						break;
 					 case 'fee':
@@ -402,7 +403,6 @@ EOS;
 						break;
 					 case 'condition_id':
 					 case 'slotcount':
-					 case 'condtype':
 						$fv = int($fv);
 						break;
 					 case 'slottype':
