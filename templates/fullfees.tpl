@@ -8,13 +8,14 @@
 {$hidden}
 <div style="margin-left:2em">
 {if $count > 0}
-<div style="overflow:auto;display:inline-block;">
+<div style="overflow:auto;">
  <table id="fees" class="pagetable{if $mod} table_drag{/if}" style="overflow:auto;border-collapse:collapse;">
   <thead><tr>
    <th>{$desctext}</th>
    <th colspan="2" style="text-align:center;">{$periodtext}</th>
    <th>{$feetext}</th>
    <th>{$condtext}</th>
+   <th>{$usertext}</th>
    <th>{$activetext}</th>
 {if $mod}   <th class="updown">{$movetext}</th>
    <th class="pageicon">&nbsp;</th>
@@ -29,6 +30,7 @@
    <td>{$entry->type}</td>
    <td>{$entry->fee}</td>
    <td>{$entry->cond}</td>
+   <td>{$entry->user}</td>
    <td>{$entry->active}</td>
 {if $mod}   <td class="updown">{$entry->dnlink}{$entry->uplink}</td>
    <td class="feedel">{$entry->deletelink}</td>
