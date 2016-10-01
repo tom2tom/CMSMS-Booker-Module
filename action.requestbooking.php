@@ -57,7 +57,6 @@ $localparams = array(
 );
 
 $utils = new Booker\Utils();
-$cache = Booker\Cache::GetCache($this);
 $utils->UnFilterParameters($params);
 
 if (isset($params['cancel'])) {
@@ -94,6 +93,48 @@ if (isset($params['item_id'])) {
 	echo Booker\Utils::ProcessTemplate($this,'error.tpl',$tplvars);
 	return;
 }
+
+//get item parameters for here or carting and/or scheduling and/or requesting
+$idata = $utils->GetItemProperty($this,$item_id,array(
+'name',
+'description',
+'image',
+'membersname',
+'available',
+'rationcount',
+'bookcount',
+'grossfees',
+'taxrate',
+'latitude',
+'longitude',
+'timezone',
+'dateformat',
+'timeformat',
+'approver',
+'approvercontact',
+'approvertell',
+'bookertell',
+'smsprefix',
+'smspattern',
+'paymentiface',
+'feugroup',
+'subgrpalloc',
+'subgrpdata'
+));
+if ($idata) {
+	$idata['item_id'] = $item_id;
+	$idata = $idata + $utils->GetItemProperty($this,$item_id,array('slottype','slotcount'),TRUE);
+	$idata = $idata + $utils->GetItemProperty($this,$item_id,array('leadtype','leadcount'),TRUE);
+} else {
+	$tplvars = array(
+		'title_error' => $this->Lang('error'),
+		'message' => $this->Lang('err_data'),
+		'pagenav' => NULL
+	);
+	echo Booker\Utils::ProcessTemplate($this,'error.tpl',$tplvars);
+	return;
+}
+
 $is_group = ($item_id >= Booker::MINGRPID);
 
 if (!empty($params['bkgid'])) { //activated slot with current booking(s)
@@ -105,122 +146,145 @@ JOIN {$this->BookerTable} B ON D.booker_id=B.booker_id
 WHERE D.bkg_id=?
 EOS;
 	$bdata = $utils->SafeGet($sql,array($bkgid),'row');
-} else {
+} else { //TODO if first-pass
 	$bdata = array();
-	if (isset($params['bookat']))
+	if (isset($params['bookat'])) {
 		$bdata['slotstart'] = $params['bookat'];
-	else
-		$bdata['slotstart'] = $params['showfrom'];
+	} elseif (isset($params['showfrom'])) {
+		$bdata['slotstart'] = $params['showfrom'] + 10*3600; //TODO
+	} else {
+		$bdata['slotstart'] = time(); //TODO
+	}
 	$bdata['slotlen'] = $utils->GetInterval($this,$item_id,'slot');
 }
 
 $utils->DecodeParameters($params,
 	array('account','comment','contact','contactnew','name','passwd'));
 
-$cart = $utils->RetrieveCart($cache,$params);
-$idata = $utils->GetItemProperty($this,$item_id,'*');
-if (!$idata) {
-	$tplvars = array(
-		'title_error' => $this->Lang('error'),
-		'message' => $this->Lang('err_data'),
-		'pagenav' => NULL
-	);
-	echo Booker\Utils::ProcessTemplate($this,'error.tpl',$tplvars);
-	return;
-}
-$overday = ($utils->GetInterval($this,$item_id,'slot') >= 84600);
-$nd = $bdata['slotstart'] + $bdata['slotlen'];
 $now = $utils->GetZoneTime($idata['timezone']);
-$past = ($nd <= $now);
-$is_new = !$past && (!isset($params['bkgid']) || ($is_group && 1)); //TODO && count vacant members > 0
 
 if (isset($params['cart'])) {
 	$funcs = new Booker\Verify();
+	//$is_new = !$past && $params['task'] == 'add' && (!$is_group || 1); //TODO || count vacant members > 0
+	//$is_new = ($params['task'] == 'add'); //TODO refine ASAP per start-time, available slots etc
+	$is_new = TRUE;
 	list($res,$errmsg) = $funcs->VerifyData($this,$utils,$params,$item_id,$is_new,FALSE);
 	if ($res) {
-		$funcs = new Booker\Userops();
-		list($bookerid,$newbooker) = $funcs->GetParamsID($this,$params);
-		if ($bookerid !== FALSE) {
-			$params['booker_id'] = $bookerid;
-			$funcs = new Booker\Payment();
-			$amounts = $funcs->Amounts($this,$item_id,$bookerid,$bdata['slotstart'],$bdata['slotlen']); //determine how much to be paid (ignoring tax)
-			$params['fee'] = $amounts[0]; //ignore $amounts[1] i.e. total credit now, cuz' maybe we're doing multiple items
-			$funcs = new Booker\Requestops();
-			list($res,$errmsg) = $funcs->CartReq($this,$utils,$params,$idata,$cart);
-			if ($res) {
-				$params['resume'][] = $params['action']; //cancellation comes back here
-				$params['task'] = 'add'; //button-labels will be 'cancel','submit'
-				$utils->SaveCart($cart,$cache,$params);
-				$newparms = $utils->FilterParameters($params,$localparams);
-				$this->Redirect($id,'opencart',$params['returnid'],$newparms);
-				exit;
-			} else {
-				$tplvars['message'] = $this->Lang('err_system');
+		$bs = $params['slotstart'];
+		$be = $bs + $params['slotlen'] + 1; //1-past-end
+		if (!$is_new || $be > $now) { //$bs > $now - 300 //some slop
+			$funcs = new Booker\Userops();
+			list($bookerid,$newbooker) = $funcs->GetParamsID($this,$params);
+			if ($bookerid !== FALSE) {
+				$params['booker_id'] = $bookerid;
+				$funcs = new Booker\Payment();
+				//determine how much to be paid (ignoring tax)
+				$amounts = $funcs->Amounts($this,$utils,$item_id,$bookerid,$bs,$be);
+				//ignore $amounts[1] i.e. total credit now, cuz' maybe we're doing multiple items
+				$params['fee'] = $amounts[0];
+
+				$cache = Booker\Cache::GetCache($this);
+				$cart = $utils->RetrieveCart($cache,$params);
+				$funcs = new Booker\Requestops();
+				list($res,$errmsg) = $funcs->CartReq($this,$utils,$params,$idata,$cart);
+				if ($res) {
+					$params['resume'][] = $params['action']; //cancellation comes back here
+					$params['task'] = 'add'; //button-labels will be 'cancel','submit'
+					$utils->SaveCart($cart,$cache,$params);
+					$newparms = $utils->FilterParameters($params,$localparams);
+					$this->Redirect($id,'opencart',$params['returnid'],$newparms);
+					exit;
+				} else {
+					$tplvars['message'] = $this->Lang('err_system');
+				}
+			} else { //invalid password for account
+				sleep(2); //impede brute-forcers
+				$tplvars['message'] = $this->Lang('invalid_type',$this->Lang('password'));
 			}
-		} else { //invalid password for account
-			sleep(2); //impede brute-forcers
-			$tplvars['message'] = $this->Lang('invalid_type',$this->Lang('password'));
+		} else {
+			$tplvars['message'] = $this->Lang('err_badtime'); //TODO too late
 		}
+		$bdata['slotstart'] = $params['slotstart'];
+		$bdata['slotlen'] = $params['slotlen'];
 	} else { //problem(s) with the request data
 		$tplvars['message'] = implode('<br >',$errmsg);
+//TODO		$bdata['slotstart'] = ;
+//		$bdata['slotlen'] = ;
 	}
 	//fall into repeat presentation
 } elseif (isset($params['submit'])) {
 	$funcs = new Booker\Verify();
+	//$is_new = !$past && $params['task'] == 'add' && (!$is_group || 1); //TODO || count vacant members > 0
+	//$is_new = ($params['task'] == 'add'); //TODO refine ASAP per start-time, available slots etc
+	$is_new = TRUE;
 	list($res,$errmsg) = $funcs->VerifyData($this,$utils,$params,$item_id,$is_new,FALSE);
 	if ($res) {
-		$funcs = new Booker\Userops();
-		list($bookerid,$newbooker) = $funcs->GetParamsID($this,$params);
-		if ($bookerid !== FALSE) {
-			$cartwasempty = $cart->seemsEmpty();
-			$params['booker_id'] = $bookerid;
-			$rights = $funcs->GetRights($this,$bookerid); //before we change $funcs
-			$funcs = new Booker\Payment();
-			$amounts = $funcs->Amounts($this,$item_id,$bookerid,$bdata['slotstart'],$bdata['slotlen']); //determine how much to be paid (ignoring tax)
-			$payable = $amounts[0]; //ignore $amounts[1] i.e. total credit now, cuz' maybe we're doing multiple items
-			$params['fee'] = $payable;
-			//add item to cart
-			$funcs = new Booker\Requestops();
-			list($res,$errmsg) = $funcs->CartReq($this,$utils,$params,$idata,$cart);
-			if ($res) {
-				$utils->SaveCart($cart,$cache,$params);
-				$minpay = 1.0; //TODO support selectable min. payment
-				if (!$cartwasempty) { //cart now has >1 item
-					$params['resume'][] = $params['action']; //cancel-back-to-here
-					$params['task'] = 'finish'; //button-labels will be 'cancel','continue'
-					$newparms = $utils->FilterParameters($params,$localparams);
-					//divert to cart display then probably to payment form
-					$this->Redirect($id,'opencart',$params['returnid'],$newparms);
-					exit;
-				} else //cart now has 1 item
-					if ($payable >= $minpay
-						&& $rights && !empty($rights['postpay'])) { //booker must pre-pay
-					$params['resume'][] = $params['action'];
-					$newparms = $utils->FilterParameters($params,$localparams);
-					//divert to payment form if possible, and from there, FinishReq()
-					$utils->OpenPaymentForm($this,$id,$returnid,$newparms,$idata,$cart);
-					//if we're back here, there's a problem
-					$tplvars['message'] = $this->Lang('err_system');
-				} else { //the cart item is non-[pre-]payable
-					list($res,$msg) = $funcs->FinishReq($this,$utils,$params,TRUE);
-					if ($res && !$msg) {
-						$key = ($rights && !empty($rights['record'])) ? 'booking_feedback2':'booking_feedback';
-						$msg = $this->Lang($key);
+		$bs = $params['slotstart'];
+		$be = $bs + $params['slotlen'] + 1; //1-past-end
+		if (!$is_new || $be > $now) { // $bs > $now - 300 some slop
+			$funcs = new Booker\Userops();
+			list($bookerid,$newbooker) = $funcs->GetParamsID($this,$params);
+			if ($bookerid !== FALSE) {
+				$params['booker_id'] = $bookerid;
+				$rights = $funcs->GetRights($this,$bookerid); //before we change $funcs
+				$funcs = new Booker\Payment();
+				//determine how much to be paid (ignoring tax)
+				$amounts = $funcs->Amounts($this,$utils,$item_id,$bookerid,$bs,$be);
+				$payable = $amounts[0]; //ignore $amounts[1] i.e. total credit now, cuz' maybe we're doing multiple items
+				$params['fee'] = $payable;
+
+				$cache = Booker\Cache::GetCache($this);
+				$cart = $utils->RetrieveCart($cache,$params);
+				$cartwasempty = $cart->seemsEmpty();
+				//add item to cart
+				$funcs = new Booker\Requestops();
+				list($res,$errmsg) = $funcs->CartReq($this,$utils,$params,$idata,$cart);
+				if ($res) {
+					$utils->SaveCart($cart,$cache,$params);
+					$minpay = 1.0; //TODO support selectable min. payment
+					if (!$cartwasempty) { //cart now has >1 item
+						$params['resume'][] = $params['action']; //cancel-back-to-here
+						$params['task'] = 'finish'; //button-labels will be 'cancel','continue'
+						$newparms = $utils->FilterParameters($params,$localparams);
+						//divert to cart display then probably to payment form
+						$this->Redirect($id,'opencart',$params['returnid'],$newparms);
+						exit;
+					} else //cart now has 1 item
+						if ($payable >= $minpay
+							&& $rights && !empty($rights['postpay'])) { //booker must pre-pay
+						$params['resume'][] = $params['action'];
+						$newparms = $utils->FilterParameters($params,$localparams);
+						//divert to payment form if possible, and from there, FinishReq()
+						$utils->OpenPaymentForm($this,$id,$returnid,$newparms,$idata,$cart);
+						//if we're back here, there's a problem
+						$tplvars['message'] = $this->Lang('err_system');
+					} else { //the cart item is non-[pre-]payable
+						list($res,$msg) = $funcs->FinishReq($this,$utils,$params,TRUE);
+						if ($res && !$msg) {
+							$key = ($rights && !empty($rights['record'])) ? 'booking_feedback2':'booking_feedback';
+							$msg = $this->Lang($key);
+						}
+						$params['message'] = $msg;
+						$newparms = $utils->FilterParameters($params,$localparams);
+						$this->Redirect($id,'announce',$params['returnid'],$newparms);
+						exit;
 					}
-					$params['message'] = $msg;
-					$newparms = $utils->FilterParameters($params,$localparams);
-					$this->Redirect($id,'announce',$params['returnid'],$newparms);
-					exit;
+				} else { //problem adding cart item
+					$tplvars['message'] = $errmsg;
 				}
-			} else { //problem adding cart item
-				$tplvars['message'] = $errmsg;
+			} else { //invalid password for account
+				sleep(2); //impede brute-forcers
+				$tplvars['message'] = $this->Lang('invalid_type',$this->Lang('password'));
 			}
-		} else { //invalid password for account
-			sleep(2); //impede brute-forcers
-			$tplvars['message'] = $this->Lang('invalid_type',$this->Lang('password'));
+		} else {
+			$tplvars['message'] = $this->Lang('err_badtime'); //TODO too late
 		}
+		$bdata['slotstart'] = $params['slotstart'];
+		$bdata['slotlen'] = $params['slotlen'];
 	} else { //problem(s) with the request data
 		$tplvars['message'] = implode('<br >',$errmsg);
+//TODO		$bdata['slotstart'] = ;
+//		$bdata['slotlen'] = ;
 	}
 }
 /* no UI for this
@@ -230,6 +294,11 @@ elseif (isset($params['find'])) { //empty $params['submit']
 	$this->Redirect($id,'findbooking',$params['returnid'],$newparms);
 }
 */
+
+$be = $bdata['slotstart'] + $bdata['slotlen'];
+$past = ($be <= $now);
+//$is_new = !$past && $params['task'] == 'add' && (!$is_group || 1); //TODO || count vacant members > 0
+$is_new = !$past && (!isset($params['bkgid']) || ($is_group && 1)); //TODO && count vacant members > 0
 
 //setup for display here
 $hidden = $utils->FilterParameters($params,$localparams);
@@ -296,6 +365,7 @@ $hidden = array();
 
 $dtw = new DateTime('@'.$now,NULL);
 $example = $utils->IntervalFormat($this,$dtw,$idata['dateformat'],TRUE);
+$overday = ($utils->GetInterval($this,$item_id,'slot') >= 84600);
 if (!$overday)
 	$example .= ' '.$dtw->format($idata['timeformat']);
 
@@ -317,12 +387,12 @@ if (isset($params['until'])) {
 	$res = $dte->modify($params['until']);
 	error_reporting($lvl);
 	if (!$res) {
-		$dte->setTimestamp($nd);
+		$dte->setTimestamp($be);
 	}
 } elseif (isset($params['when'])) {
 	$dte->setTimestamp($dtw->getTimestamp() + $bdata['slotlen']);
 } else {
-	$dte->setTimestamp($nd);
+	$dte->setTimestamp($be);
 }
 $until = $utils->IntervalFormat($this,$dte,$idata['dateformat'],TRUE).' '.$dte->format($idata['timeformat']);
 
