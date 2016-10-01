@@ -39,6 +39,114 @@ class Payment
 		return $total;
 	}
 */
+
+	//Interpret $descriptor into stamp-block(s) covering $bs..$be-1, $idata for TimeParms()
+/*	private function BlocksforRule(&$mod, $descriptor, $bs, $be, $idata)
+	{
+		$funcs = new WhenRules($mod);
+		if ($funcs->ParseDescriptor($descriptor)) {
+			$timeparms = $funcs->TimeParms($idata);
+			list($starts,$ends) = $funcs->GetBlocks($bs,$be,$timeparms); //$defaultall FALSE
+			if ($starts) {
+				return array($starts,$ends);
+			}
+		}
+		return array(FALSE,FALSE);
+	}
+*/
+	/* *
+	WhenRuledBlocks:
+	This replicates WhenBlocks() except @rules is array(s), and rules-members
+	are returned.
+	@mod: reference to Booker module object
+	@utils: reference to Utils-class object
+	@bs: UTC timestamp for start of block
+	@be: corresponding end of block, 1-past last-usable second
+	@dorules: arrray of indices in @rules to be processed
+	@rules: reference to array of data sorted in order of decreasing priority,
+	 each member being an array including a member 'feecondition' which is a
+	 descriptor recognisable by WhenRuleLexer (or FALSE)
+	Returns: 3-member array,
+	 [0] = sorted array of block-start timestamps in @bs..@be-1
+	 [1] = array of respective block-end timestamps in @bs..@be-1
+	 [2] = array of respective indices of @rules members TODO multiple if relative-rules found before absolute
+	OR if nothing is relevant
+	 [0] = FALSE
+	 [1] = FALSE
+	 [2] = FALSE
+	*/
+	private function WhenRuledBlocks(&$mod, &$utils, $bs, $be, $dorules, &$rules)
+	{
+		$funcs = new Blocks();
+		$funcs2 = new WhenRules($mod);
+		$propstore = array();
+		$chk0starts = array($bs);
+		$chk1ends = array($be);
+		$ret0starts = array();
+		$ret1ends = array();
+		$userules = array();
+		//TODO also support 'except' rules - subtract from blocks previously accepted and relative-rules
+		foreach ($dorules as $i) {
+			$one = $rules[$i];
+			if ($one['feecondition']) { //something to interpret
+				if ($funcs2->ParseDescriptor($one['feecondition'])) {
+					$item_id = $one['item_id'];
+					if (!isset($propstore[$item_id])) {
+						//get enough data for TimeParms()
+						$idata = $utils->GetItemProperty($mod,$item_id,array('slottype','slotcount'),TRUE);
+						$idata = $idata + $utils->GetItemProperty($mod,$item_id,array('timezone','latitude','longitude'));
+						$propstore[$item_id] = $idata;
+					} else {
+						$idata = $propstore[$item_id];
+					}
+					$timeparms = $funcs2->TimeParms($idata);
+					$bst = reset($chk0starts);
+					$bnd = end($chk1ends);
+					list($rule0starts,$rule1ends) = $funcs2->GetBlocks($bst,$bnd,$timeparms); //$defaultall FALSE
+					if ($rule0starts) {
+						list($rule0starts,$rule1ends) = $funcs->IntersectBlocks($chk0starts,$chk1ends,$rule0starts,$rule1ends);
+						if ($rule0starts) {
+							foreach ($rule0starts as $j=>$st) {
+								$ret0starts[] = $st;
+								$ret1ends[] = $rule1ends[$j];
+								$userules[] = $i;
+							}
+							//if ($one['relative']) { TODO keep looking for absolute rule
+							//eliminate blocks already dealt with from further checks
+							array_multisort($ret0starts,SORT_ASC,SORT_NUMERIC,$ret1ends,$userules);
+							list($chk0starts,$chk1ends) = $funcs->DiffBlocks(array($bs),array($be),$ret0starts,$ret1ends);
+						}
+					}
+				}
+			} else {
+			//TODO make it always apply if no condition
+			}
+		}
+
+		$ic = count($ret0starts);
+		if ($ic > 0) {
+			if ($ic > 1) {
+				$ic--;
+				for ($i=0; $i<$ic; $i++) {
+					$j = $i+1;
+					if ($ret1ends[$i] >= $ret0starts[$j]-1) {
+						if ($userules[$i] == $userules[$j]) { //non-strict array comparison
+							$ret0starts[$j] = $ret0starts[$i];
+							unset($ret0starts[$i]);
+							unset($ret1ends[$i]);
+							unset($userules[$i]);
+						}
+					}
+				}
+				$ret0starts = array_values($ret0starts);
+				$ret1ends = array_values($ret1ends);
+				$userules = array_values($userules);
+			}
+			return array($ret0starts,$ret1ends,$userules);
+		}
+		return array(FALSE,FALSE,FALSE);
+	}
+
 	//Interpret $rule's slottype,slotcount parameters
 	//into (approximate) corresponding seconds
 	private function ParseFeeInterval(&$rule)
@@ -70,7 +178,7 @@ class Payment
 			return 0;
 		}
 		if ($t >= 0) {
-			$c = $one['slotcount'] ? $one['slotcount'] : 1;
+			$c = $rule['slotcount'] ? $rule['slotcount'] : 1;
 			return $t * $c;
 		}
 	}
@@ -144,8 +252,7 @@ class Payment
 			unset($one);
 
 			if ($dorules) {
-				$funcs = new Blocks();
-				list($starts,$ends,$indices) = $funcs->WhenRuledBlocks($mod,$utils,$bs,$be,$dorules,$rules);
+				list($starts,$ends,$indices) = $this->WhenRuledBlocks($mod,$utils,$bs,$be,$dorules,$rules);
 				if ($starts) {
 					//TODO support relative-fee-rules
 					foreach ($indices as $i=>$p) {
@@ -191,7 +298,7 @@ class Payment
 	{
 		$groups = $utils->GetItemGroups($mod,$item_id);
 		if ($groups) {
-			$sql2 = 'IN (?,'.implode(',',$groups).')';
+			$sql2 = ' IN (?,'.implode(',',$groups).')';
 		} else {
 			$sql2 = '=?';
 		}
