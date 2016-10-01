@@ -540,7 +540,7 @@ OR
 	public function CartReq(&$mod, &$utils, &$params, $idata, $cart)
 	{
 		$item_id = (int)$params['item_id'];
-		$item = new Cart\BookingCartItem('',$item_id,$params['fee'],$idata['taxrate']); //$item_id will be the item 'type'
+		$item = new Cart\BookingCartItem($idata['name'],$item_id,$params['fee'],$idata['taxrate']); //$item_id will be the item 'type'
 		$data = $item->getPackage();
 
 		$t = ($params['name']) ? $params['name'] : $params['account'];
@@ -576,14 +576,17 @@ $this->Crash();
 		$data->maxlen = 0; //max comment length or 0 for unlimited
 
 		$quantity = (!empty($params['subgrpcount'])) ? (int)$params['subgrpcount'] : 1;
-		if (isset($params['when'])) { //parameter verified before coming here, no chance of fail now
+		if (isset($params['slotstart'])) {
+			$bs = $params['slotstart'];
+			$be = $bs + $params['slotlen'];
+		} elseif (isset($params['when'])) { //parameter verified before coming here, no chance of fail now
 			$dtw = new \DateTime($params['when'],new \DateTimeZone('UTC')); //string e.g. '20 Jul 2016 8:00'
 			$bs = $dtw->getTimestamp();
 			$dtw->modify($params['until']); //string e.g. '20 Jul 2016 9:00'
 			$be = $dtw->getTimestamp();
 		} else { //past booking
 			$bs = $params['bookat'];
-			$be = $TODO;
+			$be = $bs + 1800; //TODO;
 		}
 		list($bs,$be) = $utils->TrimRange($idata['slottype'],$idata['slotcount'],$bs,$be);
 		$now = $utils->GetZoneTime($idata['timezone']);
