@@ -88,6 +88,8 @@ class Import
 			 'Rationcount'=>'rationcount',
 			 'Keeptype'=>'keeptype',
 			 'Keepcount'=>'keepcount',
+			 'Grossfees'=>'grossfees',
+			 'Taxrate'=>'taxrate',
 			 'PayInterface'=>'paymentiface',
 			 'Latitude'=>'latitude',
 			 'Longitude'=>'longitude',
@@ -214,6 +216,7 @@ class Import
 								$data[$k] = (int)$one;
 								$save = TRUE;
 								break;
+							 case 'taxrate':
 							 case 'latitude':
 							 case 'longitude':
 								$data[$k] = (float)$one;
@@ -227,6 +230,7 @@ class Import
 								$data[$k] = 0;
 								$save = TRUE;
 								break;
+							 case 'grossfees':
 							 case 'cleargroup':
 								$data[$k] = ($one == 'no' || $one == 'NO') ? 0:1;
 								$save = TRUE;
@@ -254,8 +258,15 @@ class Import
 							 case 'keeptype':
 								$data[$k] = $deftypes[$k];
 								break;
+							 case 'taxrate':
+								$data[$k] = 0.0;
+								break;
+							 case 'grossfees':
+								$data[$k] = 1;
+								break;
 							 case 'cleargroup':
 								$data[$k] = 0; //no clear group
+								break;
 							 case 'isgroup': //ignore fake fields
 							 case 'ingroups':
 							 case 'update':
@@ -931,18 +942,16 @@ class Import
 					}
 
 					if (!(empty($data['slotstart']) || empty($data['slotend']))) {
-						list($bs,$be) = $utils->TrimRange(
+						list($bs,$be) = $utils->TuneBlock(
 							$propstore[$item_id]['slottype'],$propstore[$item_id]['slotcount'],
 							$data['slotstart'],$data['slotend']);
 						$data['slotstart'] = $bs;
 						unset($data['slotend']);
 						$data['slotlen'] = $be-$bs;
 						$funcs2 = new Schedule();
-						$dts->setTimestamp($bs);
-						$dte->setTimestamp($be);
 						//any booker
 						$save = $funcs2->ItemVacantCount($mod,$data['item_id'],$bs,$be)
-							&& $funcs2->ItemAvailable($mod,$utils,$data['item_id'],0,$dts,$dte);
+							&& $funcs2->ItemAvailable($mod,$utils,$data['item_id'],0,$bs,$be);
 					} else {
 						return array(FALSE,'err_badtime');
 					}
