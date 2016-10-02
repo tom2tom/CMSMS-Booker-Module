@@ -1186,19 +1186,50 @@ $this->Crash();
 	}
 
 	/**
-	TrimRange:
-	Rationalise slot start and end times @bs, @be
+	GetRangeLimits:
+	@st: UTC timestamp for start of range
+	@range: enum 0..3 indicating span of range
+	Returns: pair of UTC DateTime objects, first represents start of
+	  day including @st, second is for start of day one-past end of range
+	*/
+	public function GetRangeLimits($st, $range)
+	{
+		//start of day including $st
+		$dts = new \DateTime('@'.$st,NULL);
+		$dts->setTime(0,0,0);
+		//start of day after end
+		$dte = clone $dts;
+		switch ($range) {
+		 case \Booker::RANGEDAY:
+			$dte->modify('+1 day');
+			break;
+		 case \Booker::RANGEWEEK:
+			$dte->modify('+7 days');
+			break;
+		 case \Booker::RANGEMTH:
+			$dte->modify('+1 month');
+			break;
+		 case \Booker::RANGEYR:
+			$dte->modify('+1 year');
+			break;
+		}
+		return array($dts,$dte);
+	}
+
+	/**
+	TuneBlock:
+	Rationalise block start and end times @bs, @be relative to slot(s)
 	@bs if 'near' either extreme of a slot will be rounded to that extreme.
 	@be if 'near' the end of a slot will be rounded up. The minimum difference
 	between the pair will be the slotlen derived from @slottype and @slotcount.
 	@slottype: enum 0..5 per Utils::TimeIntervals() i.e. for minute,hour,day,week,month,year
 	@slotcount: no. of @slottype's comprising a slot
-	@bs: timestamp for start of range
-	@be: timestamp for end of range ditto, may be <= @start
+	@bs: timestamp for start of block
+	@be: timestamp for end of block, may be <= @start
 	@part: optional boolean, whether to accept intra-slot times for @slen >= 3600, default FALSE
 	Returns: 2-member array, replacements for @bs, @be
 	*/
-	public function TrimRange($slottype, $slotcount, $bs, $be, $part=FALSE)
+	public function TuneBlock($slottype, $slotcount, $bs, $be, $part=FALSE)
 	{
 		$slen = $this->GetCurrentSlotlen($bs, $slottype, $slotcount);
 		if ($slen >= 3600 && $part) {
@@ -1246,34 +1277,27 @@ $this->Crash();
 	}
 
 	/**
-	RangeStamps:
-	@st: UTC timestamp for start of range
-	@range: enum 0..3 indicating span of range
-	Returns: pair of UTC DateTime objects, first represents start of
-	  day including @start, second is for start of day one-past end of range
+	BlockDays:
+	Adjust @bs, @be to start of first day including @bs or @be and start of day-1-past
+	@bs: timestamp for start of block
+	@be: timestamp for end of block, may be <= @start
+	Returns: 2-member array, replacements for @bs, @be
 	*/
-	public function RangeStamps($st, $range)
+	public function BlockDays($bs, $be)
 	{
-		//start of day including $st
-		$dts = new \DateTime('@'.$st,NULL);
-		$dts->setTime(0,0,0);
-		//start of day after end
-		$dte = clone $dts;
-		switch ($range) {
-		 case \Booker::RANGEDAY:
-			$dte->modify('+1 day');
-			break;
-		 case \Booker::RANGEWEEK:
-			$dte->modify('+7 days');
-			break;
-		 case \Booker::RANGEMTH:
-			$dte->modify('+1 month');
-			break;
-		 case \Booker::RANGEYR:
-			$dte->modify('+1 year');
-			break;
+		if ($bs > $be) {
+			$t = $be;
+			$be = $bs;
+			$bs = $t;
 		}
-		return array($dts,$dte);
+		$dtw = new \DateTime('@'.$bs,NULL);
+		$dtw->setTime(0,0,0);
+		$bs = $dtw->getTimestamp();
+		$dtw->setTimestamp($be);
+		$dtw->setTime(0,0,0);
+		$dtw->modify('+1 day');
+		$be = $dtw->getTimestamp();
+		return array($bs,$be);
 	}
 
 /*	public function GetBookingItemName(&$mod, $bkgid)
