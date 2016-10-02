@@ -588,7 +588,7 @@ $this->Crash();
 			$bs = $params['bookat'];
 			$be = $bs + 1800; //TODO;
 		}
-		list($bs,$be) = $utils->TrimRange($idata['slottype'],$idata['slotcount'],$bs,$be);
+		list($bs,$be) = $utils->TuneBlock($idata['slottype'],$idata['slotcount'],$bs,$be);
 		$now = $utils->GetZoneTime($idata['timezone']);
 
 		$fee = (isset($params['fee'])) ? (float)$params['fee'] : 0.0;
