@@ -87,8 +87,9 @@ $lang['err_data'] = 'No data';
 $lang['err_dup'] = 'Nominated time already booked';
 $lang['err_file'] = 'Inappropriate file specified';
 $lang['err_na'] = 'Resource not available at specified time';
+$lang['err_late'] = 'Backdating not allowed';
 $lang['err_nocaptcha'] = 'You must provide the captcha text';
-$lang['err_nocontact'] = 'You must provide a phone or email contact';
+$lang['err_nocontact'] = 'Without a valid phone or email contact, the booking cannot be confirmed';
 $lang['err_nosender'] = 'You must provide a name';
 $lang['err_perm'] = 'No permission';
 $lang['err_parm'] = 'Parameter error';
@@ -142,6 +143,7 @@ $lang['help_conformstyle'] = 'If the category is changed here, the change will b
 $lang['help_conformuser'] = 'If the user is changed here, the change will be replicated across all bookings';
 $lang['help_date'] = 'A string including format characters recognised by PHP\'s date() function. For reference, please check the <a href="http://www.php.net/manual/function.date.php">php manual</a>.<br />Remember to escape any characters you don\'t want interpreted as format codes!';
 $lang['help_exportfile']='Progressively create each .csv file in the general or specific <em>uploads</em> directory, instead of processing the export in memory. This may be wise if there is a lot of data to export. The downside is that someone needs to get that file and (usually) then delete it.';
+$lang['help_feerecorded'] = 'Fee for the booking as recorded: <b>%s</b>';
 $lang['help_keywords'] = 'Comma-separated words or word-groups, used (along with titles) to determine similarity when looking for comparable %s.';
 $lang['help_stripexport']='Remove all HTML tags from records when exported to .csv';
 $lang['help_subgrpalloc'] = 'When booking less than a whole group, the specific resources will be determined according to this, when possible';
@@ -260,7 +262,7 @@ Each line in the file (except the header line, discussed below) represents one r
 <p>The first line of the file names the fields in the file, as follows.
 The supplied names may be in any order. Those prefixed by a '#' represent compulsory values.<br />
 <code>#Isgroup,#Name,Alias,Description,Keywords,Image,Available,Slottype,Slotcount,BookingSlots,<br />
-Leadtype,Leadcount,Rationcount,Keeptype,Keepcount,Fee1,Fee1condition,Fee2,Fee2condition,PayInterface,<br />
+Leadtype,Leadcount,Rationcount,Keeptype,Keepcount,Grossfees,Taxrate,PayInterface,<br />
 SMSprefix,SMSpattern,Latitude,Longitude,Timezone,Dateformat,Timeformat,Listformat,Stylesfile,<br />
 Approver,Approvercontact,FormInterface,Feugroup,Owner,Cleargroup,Allocategroup,Membersnamed,Ingroups,Update</code></p>
 <h4>Other lines</h4>
@@ -295,6 +297,7 @@ $lang['help_ration'] = 'If 0 or empty, no limit applies.';
 $lang['help_record'] = 'Save data about bookings directly, without intervention by approver';
 $lang['help_showfrom'] = 'Display bookings starting from this date (as YYYY-[M]M-[M]M, default current day)';
 //$lang['help_slotlength'] = 'Together with the available-hours setting, these determine when bookings may start. The number may be integer or decimal.';
+$lang['help_sitepage'] = 'Page alias or numeric id, essential for URL routing';
 $lang['help_smspattern']='Regular-expression - see <a href="http://www.regexlib.net/Search.aspx?k=phone">this documentation</a>, for example';
 $lang['help_smsprefix']='One or more numbers e.g. 1 for USA. <a href="http://countrycode.org">Search</a>';
 $lang['help_taxrate'] = 'A value less than 1 will be treated as a proportion, >= 1 as a percentage';
@@ -674,6 +677,7 @@ $lang['title_request2'] = 'make a booking for %s'; //one option for rest of sent
 //$lang['title_requeststatus'] = 'Request status';
 $lang['title_sender'] = 'Your name';
 $lang['title_short_desc'] = 'Brief description';
+$lang['title_sitepage'] = 'Website bookings-page identifier';
 $lang['title_slotlength'] = 'Interval between successive bookings';
 $lang['title_smspattern']='Validator for phone numbers suitable for receiving SMS';
 $lang['title_smsprefix']='Country-code to be prepended to phone numbers';
