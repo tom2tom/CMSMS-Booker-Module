@@ -6,6 +6,29 @@
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
 
+if (!function_exists('BookerRedirParms')) {
+ function BookerRedirParms($resume, &$params, $msg = FALSE)
+ {
+	$pnew = array_intersect_key($params,array(
+	'item_id'=>1,
+	'booker_id'=>1,
+	'task'=>1,
+	'active_tab'=>1));
+	if (!empty($params['resume']))
+		$pnew['resume'] = json_encode($params['resume']);
+	switch ($resume) {
+	 case 'defaultadmin':
+ 		$pnew['active_tab'] = 'people';
+		break;
+	 default:
+//	$this->Crash();
+	}
+	if ($msg)
+		$pnew['message'] = $msg;
+	return $pnew;
+ }
+}
+
 $pmod = ($params['task'] == 'edit' || $params['task'] == 'add');
 if (!$this->_CheckAccess('admin')) {
 	if ($pmod && !$this->_CheckAccess('book')) exit;
@@ -24,20 +47,7 @@ if (isset($params['resume'])) {
 $bookerid = (int)$params['booker_id'];
 if (isset($params['cancel'])) {
 	$resume = array_pop($params['resume']);
-	switch ($resume) {
-	 case 'defaultadmin':
- 		$newparms = array('active_tab'=>'people');
-		break;
-	 default:
-/*	$newparms = array(
-	'item_id'=>$item_id,
-	'booker_id'=>$bookerid,
-	'task'=>$params['task']
-	'active_tab'=>$params['active_tab']
-	);
-*/
-	$this->Crash();
-	}
+	$newparms = BookerRedirParms($resume,$params);
 	$this->Redirect($id,$resume,'',$newparms);
 }
 
@@ -116,7 +126,9 @@ if (isset($params['submit']) || isset($params['apply'])) {
 		$funcs->SetRights($this,$bookerid,$rights,$type);
 
 		if (isset($params['submit'])) {
-			$this->Redirect($id,$resume,'',array('booker_id'=>$bookerid,'active_tab'=>$params['active_tab']));
+			$resume = array_pop($params['resume']);
+			$newparms = BookerRedirParms($resume,$params);
+			$this->Redirect($id,$resume,'',$newparms);
 		}
 	} else { //error
 		$t = implode(' ',$msg);
