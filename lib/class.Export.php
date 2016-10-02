@@ -190,7 +190,7 @@ class Export
 				break;
 			}
 
-			// TODO $mod->FeeTable data for items
+			$periods = $utils->TimeIntervals();
 
 			$sql =<<<EOS
 SELECT DISTINCT I.name FROM $mod->ItemTable I
@@ -215,6 +215,8 @@ EOS;
 			 'Rationcount'=>'rationcount',
 			 'Keeptype'=>'keeptype',
 			 'Keepcount'=>'keepcount',
+			 'Grossfees'=>'grossfees',
+			 'Taxrate'=>'taxrate',
 			 'PayInterface'=>'paymentiface',
 			 'Latitude'=>'latitude',
 			 'Longitude'=>'longitude',
@@ -268,15 +270,21 @@ EOS;
 								$fv = str_replace($sep,$r,$fv);
 								break;
 							 case 'slottype':
-							 case 'slotcount':
-							 case 'bookcount':
-							 case 'leadtype':
-							 case 'leadcount':
-							 case 'rationcount':
 							 case 'keeptype':
-							 case 'keepcount':
+							 case 'leadtype':
+							 	$fv = $periods[$fv];
+							 	break;
 							 case 'item_id':
+							 case 'slotcount':
+							 case 'keepcount':
+							 case 'leadcount':
+							 case 'bookcount':
+							 case 'rationcount':
+							 case 'grossfees':
 								$fv = (int)$fv;
+								break;
+							 case 'taxrate':
+								$fv = (float)$fv;
 								break;
 							}
 						} else {
