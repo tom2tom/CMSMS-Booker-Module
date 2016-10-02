@@ -493,7 +493,7 @@ if (is_object($ob)) {
 //TODO handle error - NO FRONTEND BOOKINGS
 			}
 		} else {
-			echo "File path error";
+			echo 'File path error';
 //TODO handle error - NO FRONTEND BOOKINGS
 		}
 	}
