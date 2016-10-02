@@ -532,13 +532,14 @@ if ($data) {
 				$v = reset($belongs);
 				$dt->setTimestamp($v['S']);
 				$first = $dt->format('Y-m-d');
-				$future = 0;
-				foreach ($belongs as $i=>$v) {
-					if ($v['S'] >= $st) {
-						$future = $count-$i;
+				$i = 0;
+				foreach ($belongs as $v) {
+					if ($v['S'] <= $st)
+						$i++;
+					else
 						break;
-					}
 				}
+				$future = $count - $i;
 				$v = end($belongs);
 				$dt->setTimestamp($v['S']);
 				$last = $dt->format('Y-m-d');
@@ -1121,6 +1122,14 @@ $tplvars['startform6'] = $this->CreateFormStart($id,'setprefs',$returnid,
 $tplvars['start_settings_tab'] = $this->StartTab('settings');
 if ($pset) {
 	$settings = array();
+
+	$one = new stdClass();
+	$one->title = $this->Lang('title_sitepage');
+	$one->input = $this->CreateInputText($id,'pref_sitepage',
+		$this->GetPreference('pref_sitepage',''),25,25);
+	$one->must = 1;
+	$one->help = $this->Lang('help_sitepage');
+	$settings[] = $one;
 
 	$one = new stdClass();
 	$one->title = $this->Lang('title_cleargroup');
