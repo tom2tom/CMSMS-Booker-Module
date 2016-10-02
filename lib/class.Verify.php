@@ -78,7 +78,7 @@ $this->Crash();
 		if ($bs > 0 && $be > 0) {
 			if ($be > $bs) {
 				//rationalise specified times relative to slot length
-				list($bs,$be) = $utils->TrimRange($idata['slottype'],$idata['slotcount'],$bs,$be);
+				list($bs,$be) = $utils->TuneBlock($idata['slottype'],$idata['slotcount'],$bs,$be);
 				$params['slotstart'] = $bs;
 				$params['slotlen'] = $be - $bs;
 				$timely = ($be > $bs);
@@ -103,7 +103,7 @@ $this->Crash();
 						$dts = new \DateTime('@'.$bs,NULL);
 						$dte = new \DateTime('@'.$be,NULL);
 						//any booker
-						if (!$funcs->ItemAvailable($mod,$utils,$item_id,0,$dts,$dte)) {
+						if (!$funcs->ItemAvailable($mod,$utils,$item_id,0,$bs,$be)) {
 							$msg[] = $mod->Lang('err_na');
 						}
 					}
@@ -115,11 +115,27 @@ $this->Crash();
 			}
 		}
 
-		if (!$params['name'])
-			$msg[] = $mod->Lang('err_nosender');
+		$fv = trim($params['name'];
+		if(!$fv) {
+			$msg[] = ($admin) ?
+				$mod->Lang('missing_type',$mod->Lang('name')):
+				$mod->Lang('err_nosender');
+		}
 
-		if (isset($params['contact']) && !$params['contact'])
-			$msg[] = $mod->Lang('err_nocontact');
+		if (isset($params['contact'])) {
+			$fv = trim($params['contact'];
+			if($fv) {
+				if (!(preg_match(\Booker::PATNADDRESS,$fv)
+				   || preg_match(\Booker::PATNPHONE,$fv)))
+				$msg[] = ($admin) ?
+					$mod->Lang('invalid_type',$mod->Lang('contact')):
+					$mod->Lang('err_nocontact');
+			} else {
+				$msg[] = ($admin) ?
+					$mod->Lang('missing_type',$mod->Lang('contact')):
+					$mod->Lang('err_nocontact');
+			}
+		}
 
 		if (isset($params['subgrpcount'])) {
 			$fv = $params['subgrpcount'];
