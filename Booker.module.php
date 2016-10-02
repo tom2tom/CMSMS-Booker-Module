@@ -429,18 +429,18 @@ class Booker extends CMSModule
 		See also: Booker\Utils->GetLink() which needs to conform to this.
 		*/
 		// display bookings for a specific group/item
-		//NB the correct page id is needed in the URL to display generated content
-		//on the correct page! TODO find a dynamic way around this
-		$alias = $this->GetPreference('pref_sitepage','');
-		if ($alias) {
+		//NB the correct page-id is needed (in the URL or otherwise) to display
+		//generated content on the correct page! TODO find a dynamic way around this
+		$pageid = $this->GetPreference('pref_sitepage','');
+		if ($pageid) {
 			$manager = cmsms()->GetHierarchyManager();
-			$node = $manager->GetNodeByAlias($alias);
+			$node = $manager->sureGetNodeByAlias($pageid);
 			if ($node) {
 				$onpage = $node->getID();
 				$this->RegisterRoute('/[Bb]ook(ings?|er)?\/(?P<item>.+)$/',array('action'=>'default','returnid'=>$onpage));
 			}
 		}
-		$this->RegisterRoute('/[Bb]ook(ings?|er)?\/(?P<item>.+)\/(?P<returnid>[0-9]+)$/',array('action'=>'default'));
+		$this->RegisterRoute('/[Bb]ook(ings?|er)?\/(?P<returnid>[0-9]+)\/(?P<item>.+)$/',array('action'=>'default'));
 	}
 
 	/*
