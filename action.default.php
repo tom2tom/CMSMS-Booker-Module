@@ -237,7 +237,7 @@ switch ($range) {
  case Booker::RANGEWEEK:
  case Booker::RANGEMTH:
  case Booker::RANGEYR:
-	list($dtw,$dte) = $utils->RangeStamps($params['showfrom'],$range);
+	list($dtw,$dte) = $utils->GetRangeLimits($params['showfrom'],$range);
 	$s = $dtw->format('Y');
 	$dte->modify('-1 day');
 	$withyr = ($dte->format('Y') != $s);
