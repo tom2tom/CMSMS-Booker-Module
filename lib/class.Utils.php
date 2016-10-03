@@ -1755,6 +1755,7 @@ $this->Crash();
 		}
 	}
 
+	//only for array of strings or numbers
 	public function mb_ksort(&$array)
 	{
 		$swap = array_flip($array);
