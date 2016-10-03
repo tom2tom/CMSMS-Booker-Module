@@ -217,7 +217,7 @@ class Booker extends CMSModule
 
 	public function GetFriendlyName()
 	{
-		return $this->Lang('friendlyname');
+		return $this->Lang('title_bookings'); //OR 'friendlyname' post-installation change no effect?!
 	}
 
 	public function GetHelp()
