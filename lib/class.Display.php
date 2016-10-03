@@ -21,8 +21,9 @@ class Display
 
 	/*
 	GetLimits:
-	@dts: datetime object representing start of 1st day of total report period
-	@dte: datetime object representing start of 1st day AFTER total report period
+	@dtw: DateTime worker-object for local manipulations
+	@bs: timestamp for start of 1st day of report period
+	@be: stamp for 1-past-end of last day of report period
 	@$seglen: enum 0..3 representing report-segment length (i.e. per table column)
 	@$slen: booking slot length (seconds)
 	@starts: ascending-sorted array of start-available-block timestamps, maybe empty
@@ -32,11 +33,13 @@ class Display
 	 [1] = max seg-offset i.e. from any seg start to end of last available block in that segment
 	 [2] = max period-offset i.e. from @dts to end of last available block in the period
 	*/
-	private function GetLimits($dts, $dte, $seglen, $slen, $starts, $ends)
+	private function GetLimits($dtw, $bs, $be, $seglen, $slen, $starts, $ends)
 	{
+		$dtw->setTimestamp($bs);
+		$dte = clone $dtw;
+		$dte->setTimestamp($be);
 		$rels = array('+1 day','+7 days','+1 month','+1 year');
 		$offs = $rels[$seglen];
-		$dtw = clone $dts;
 
 		if ($starts) {
 			$segs = array();
@@ -102,9 +105,8 @@ class Display
 			$oa = end($nots) - $segs[0];
 		} else { //whole period is available
 			$ob = 0;
-			$st = $dts->getTimestamp();
 			$dtw->modify($offs);
-			$oe = $dtw->getTimestamp() - $st - 1;
+			$oe = $dtw->getTimestamp() - $bs - 1;
 			$oa = $dte->getTimestamp() - 1;
 		}
 		return array($ob,$oe,$oa);
@@ -113,7 +115,8 @@ class Display
 	/*
 	GetSlotNames:
 	@idata: reference to data array for item being processed
-	@dts: datetime object representing start of 1st day of total report period
+	@dtw: DateTime worker-object for local manipulations
+	@bs: timestamp for start of 1st day of total report period
 	@$seglen: enum 0..2 representing report-segment length (e.g. per table column)
 	@offst: seconds-offset from segment start to start of 1st row (from GetLimits())
 	@offnd: seconds-offset from segment start to one-past end of last row (OR maybe == end)
@@ -121,10 +124,10 @@ class Display
 	@celloff: string representing cell coverage: '' for @slen, otherwise DateTime modifier '+1 X'
 	Returns: array with a member for each relevant booking slot for the report segment
 	*/
-	private function GetSlotNames(&$idata, $dts, $offst, $offnd, $seglen, $slen, $celloff)
+	private function GetSlotNames(&$idata, $dtw, $bs, $offst, $offnd, $seglen, $slen, $celloff)
 	{
-		$dtw = clone $dts;
-		$dt2 = clone $dts;
+		$dtw->setTimestamp($bs);
+		$dt2 = clone $dtw;
 
 		switch ($seglen) {
 		 case \Booker::SEGDAY: //day-per-column
@@ -132,7 +135,7 @@ class Display
 			$fmt = $idata['timeformat'] ? $idata['timeformat'] : 'G:i';
 			break;
 		 case \Booker::SEGWEEK: //week-per-column
-			$t = $dts->format('w');
+			$t = $dtw->format('w');
 			if ($t > 0) //Sunday start
 				$dtw->modify('-'.$t.' days'); //segment start
 			$base = $dtw->format('Y-m-d');
@@ -142,13 +145,13 @@ class Display
 			$daynames = $this->utils->DayNames($this->mod,range(0,6),$shortday);
 			break;
 		 case \Booker::SEGMTH: //month-per-column
-			$t = $dts->format('Y-m');
+			$t = $dtw->format('Y-m');
 			$dtw->modify($t.'-1 0:0:0');
 			$dt2->modify($t.'-1 0:0:0 +31 days'); //in this context, assume each reported month has max. # days
 			break;
 		}
 
-		$esl = $dt2->getTimestamp() - $dts->getTimestamp(); //effective slot = whole-period
+		$esl = $dt2->getTimestamp() - $bs; //effective slot = whole-period
 		if ($slen > $esl)
 			$slen = $esl; //limit 'effective-slot' to report-segment-length
 		$ss = $dtw->getTimestamp();
@@ -191,16 +194,20 @@ class Display
 	GetTitles:
 	Populate array of column-titles
 	@idata: reference to array of data for item as per table-record, with inherited data where available
-	@dts: datetime object representing start of 1st day of period for which titles are wanted
-	@dte: datetime object representing 1-past last day
+	@dtw: DateTime worker-object for local manipulations
+	@bs: UTC timestamp for start of 1st day of period for which titles are wanted
+	@be: corresponding timestamp for 1-past last day
 	@range: enum 0..3 representing the total span of the report period
 	@seglen: enum 0..2 representing the duration of each report-segment (e.g. column)
 	Returns: 2-member array,
 	 [0] = array of column-title strings for public display
 	 [1] = array of corresponding date-strings as YYYY-MM-DD, for lookup upon column-click
 	*/
-	private function GetTitles(&$idata, $dts, $dte, $range, $seglen)
+	private function GetTitles(&$idata, $dtw, $bs, $be, $range, $seglen)
 	{
+		$dtw->setTimestamp($bs);
+		$dte = clone $dtw;
+		$dte->setTimestamp($be);
 		$titles = array();
 		$fmt = $idata['dateformat'] ? $idata['dateformat'] : 'j M';
 		$shortday = (strpos($fmt,'D') !== FALSE);
@@ -208,14 +215,14 @@ class Display
 		$isos = array();
 		switch ($range) {
 		 case \Booker::RANGEDAY: //single-day-view
-			$t = $dts->format('w'); //0 (for Sunday) .. 6 (for Saturday)
+			$t = $dtw->format('w'); //0 (for Sunday) .. 6 (for Saturday)
 			$d = $this->utils->DayNames($this->mod,$t,$shortday);
 			if ($shortday)
 				$fmt = preg_replace('/(?<!\\\)D,?\w*/','',$fmt);
 			if ($longday)
 				$fmt = preg_replace('/(?<!\\\)l,?\w*/','',$fmt);
-			$titles[] = $d.'<br />'.$dts->format($fmt);
-			$isos[] = $dts->format('Y-m-d'); //rows must append ' G:i'
+			$titles[] = $d.'<br />'.$dtw->format($fmt);
+			$isos[] = $dtw->format('Y-m-d'); //rows must append ' G:i'
 			break;
 		 case \Booker::RANGEWEEK: //week-view
 			$names = $this->utils->DayNames($this->mod,range(0,6),$shortday);
@@ -223,7 +230,6 @@ class Display
 				$fmt = preg_replace('/(?<!\\\)D,?\w*/','',$fmt);
 			if ($longday)
 				$fmt = preg_replace('/(?<!\\\)l,?\w*/','',$fmt);
-			$dtw = clone $dts; //preserve $dts
 			$t = $dtw->format('w'); //0 (for Sunday) .. 6 (for Saturday)
 			$t1 = $t;
 			$inc = new \DateInterval('P1D');
@@ -238,7 +244,6 @@ class Display
 			} while ($t != $t1);
 			break;
 		 case \Booker::RANGEMTH: //month-view
-			$dtw = clone $dts; //preserve $dts
 			if ($seglen == \Booker::SEGDAY) { //day-per-column
 				//show individual days
 				$names = $this->utils->DayNames($this->mod,range(0,6),TRUE); //for 30-ish cols, force short name
@@ -284,7 +289,6 @@ class Display
 			}
 			break;
 		 case \Booker::RANGEYR: //year-view
-			$dtw = clone $dts;
 			if ($seglen == \Booker::SEGWEEK) { //week-per-column
 				$w = $dtw->format('w');
 				switch ($w) {
@@ -541,10 +545,12 @@ class Display
 			$starts = array();
 			$ends = array();
 		}
+		$dtw = clone $dts;
+
 		//get offsets of each column's top- and bottom-row
-		list($segoffst,$segoffnd,$rangeoffnd) = self::GetLimits($dts,$dte,$seglen,$slotlen,$starts,$ends);
+		list($segoffst,$segoffnd,$rangeoffnd) = self::GetLimits($dtw,$bs,$be,$seglen,$slotlen,$starts,$ends);
 		//populate column of row-titles
-		$cells = self::GetSlotNames($idata,$dts,$segoffst,$segoffnd,$seglen,$slotlen,$celloff);
+		$cells = self::GetSlotNames($idata,$dtw,$bs,$segoffst,$segoffnd,$seglen,$slotlen,$celloff);
 
 		//prepend top-left cell
 		$one = new \stdClass();
@@ -557,7 +563,7 @@ class Display
 		$columns = array();
 		$columns[] = $cells;
 		//populate titles array
-		list($titles,$isos) = self::GetTitles($idata,$dts,$dte,$range,$seglen);
+		list($titles,$isos) = self::GetTitles($idata,$dtw,$bs,$be,$range,$seglen);
 		$cc = count($titles);
 
 		$funcs = new Bookingops();
@@ -576,7 +582,6 @@ class Display
 		$rels = array('+1 day','+7 days','+1 month','+1 year');
 		$offs = $rels[$seglen]; //column-adjuster
 
-		$dtw = clone $dts;
 		//other column(s)
 		for ($c = 0; $c < $cc; $c++) {
 			$cells = array();
@@ -631,25 +636,25 @@ class Display
 	*/
 	private function TextInterval($dts, $dte, $range, $majr_fmt, $minr_fmt, $rangefmt, $timegroup)
 	{
-			$st = $dts->format($majr_fmt);
-			$nd = $dte->format($majr_fmt);
-			$st2 = $dts->format($minr_fmt);
-			$nd2 = $dte->format($minr_fmt);
-			if ($st == $nd) {
-				switch ($range) {
-				 case \Booker::RANGEYR:
+		$st = $dts->format($majr_fmt);
+		$nd = $dte->format($majr_fmt);
+		$st2 = $dts->format($minr_fmt);
+		$nd2 = $dte->format($minr_fmt);
+		if ($st == $nd) {
+			switch ($range) {
+			 case \Booker::RANGEYR:
+				return sprintf($rangefmt,$st.' '.$st2,$nd2);
+			 case \Booker::RANGEMTH:
+			 case \Booker::RANGEWEEK:
+				if (!$timegroup)
 					return sprintf($rangefmt,$st.' '.$st2,$nd2);
-				 case \Booker::RANGEMTH:
-				 case \Booker::RANGEWEEK:
-					if (!$timegroup)
-						return sprintf($rangefmt,$st.' '.$st2,$nd2);
-					else
-						return sprintf($rangefmt,$st2,$nd2);
-				 case \Booker::RANGEDAY:
+				else
 					return sprintf($rangefmt,$st2,$nd2);
-				}
+			 case \Booker::RANGEDAY:
+				return sprintf($rangefmt,$st2,$nd2);
 			}
-			return sprintf($rangefmt,$st.' '.$st2,$nd.' '.$nd2);
+		}
+		return sprintf($rangefmt,$st.' '.$st2,$nd.' '.$nd2);
 	}
 
 	/*
