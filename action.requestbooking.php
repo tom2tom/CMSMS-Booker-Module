@@ -202,7 +202,7 @@ if (isset($params['cart'])) {
 				$tplvars['message'] = $this->Lang('invalid_type',$this->Lang('password'));
 			}
 		} else {
-			$tplvars['message'] = $this->Lang('err_badtime'); //TODO too late
+			$tplvars['message'] = $this->Lang('err_late');
 		}
 		$bdata['slotstart'] = $params['slotstart'];
 		$bdata['slotlen'] = $params['slotlen'];
@@ -277,7 +277,7 @@ if (isset($params['cart'])) {
 				$tplvars['message'] = $this->Lang('invalid_type',$this->Lang('password'));
 			}
 		} else {
-			$tplvars['message'] = $this->Lang('err_badtime'); //TODO too late
+			$tplvars['message'] = $this->Lang('err_late');
 		}
 		$bdata['slotstart'] = $params['slotstart'];
 		$bdata['slotlen'] = $params['slotlen'];
