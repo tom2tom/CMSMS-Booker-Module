@@ -1259,11 +1259,11 @@ match-array(s) have
 						if ($rest[0] == '@') {
 							$t .= '@';
 							if ($e+1 < $segl) { //after @ might have '..' sequence or time
-								$t .= self::CleanTime($rest,$report);
+								$t .= self::CleanTime($rest,TRUE);
 							}
 							$one = $t;
 						} else {
-							$one = $t.self::CleanPeriod($rest,$report); //$rest might contain '..' sequence only?
+							$one = $t.self::CleanPeriod($rest,TRUE); //$rest might contain '..' sequence only?
 						}
 					} else {
 						//we're done with the current part
@@ -1271,10 +1271,11 @@ match-array(s) have
 						if ($s[0] == '@') {
 							$t .= '@';
 							if ($e+1 < $segl) {
-								$t .= self::CleanTime($s,$report); } //after @ might have '..' sequence or time
+								$t .= self::CleanTime($s,TRUE);
+							} //after @ might have '..' sequence or time
 							$one = $t;
 						} else
-							$one = $t.self::CleanPeriod($s,$report); //TODO or CleanTime() ?
+							$one = $t.self::CleanPeriod($s,TRUE); //TODO or CleanTime() ?
 						$clean .= implode('(',array_slice($segs,$storeseg,$i-$storeseg+1));
 						$c = substr_count($clean,'(');
 						if (substr_count($clean,')') != $c) {
@@ -1283,7 +1284,7 @@ match-array(s) have
 						$storeseg = $i+1; //next merge begins after this segment
 						$t = substr($rest,$p+1);
 						if (strpos($t,',') !== FALSE || strpos($t,'..') !== FALSE)
-							$t = self::CleanPeriod($t,$report);
+							$t = self::CleanPeriod($t,TRUE);
 						//if more seg(s), next implode() won't know about this bit
 						if ($i < $cs-1) {
 							$t .= '('; }
