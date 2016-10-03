@@ -115,7 +115,7 @@ $this->Crash();
 			}
 		}
 
-		$fv = trim($params['name'];
+		$fv = trim($params['name']);
 		if(!$fv) {
 			$msg[] = ($admin) ?
 				$mod->Lang('missing_type',$mod->Lang('name')):
@@ -123,7 +123,7 @@ $this->Crash();
 		}
 
 		if (isset($params['contact'])) {
-			$fv = trim($params['contact'];
+			$fv = trim($params['contact']);
 			if($fv) {
 				if (!(preg_match(\Booker::PATNADDRESS,$fv)
 				   || preg_match(\Booker::PATNPHONE,$fv)))
