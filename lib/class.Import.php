@@ -217,6 +217,19 @@ class Import
 								$save = TRUE;
 								break;
 							 case 'taxrate':
+							 	if (is_numeric($one)) {
+									$data[$k] = (float)$one;
+								} elseif (strpos($one,'%') !== FALSE) {
+									$t = str_replace('%','',$one);
+								 	if (is_numeric($t)) {
+										$data[$k] = $t/100;
+									} else {
+										$data[$k] = 0.0;
+									}
+								} else {
+									$data[$k] = 0.0;
+								}
+							 	break;
 							 case 'latitude':
 							 case 'longitude':
 								$data[$k] = (float)$one;
