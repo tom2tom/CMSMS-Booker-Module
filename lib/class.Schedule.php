@@ -17,8 +17,8 @@ class Schedule
 	@utils: reference to Booker\Utils object
 	@session_id: identifier for cache-interrogation
 	@item_id: resource (not group) identifier
-	@dts: DateTime object populated for booking start
-	@dte: ditto for end (i.e. NOT 1-past-end)
+	@bs: UTC timestamp for slot start
+	@be: ditto for end (i.e. NOT 1-past-end)
 	flags:
 	 b0: set if slot is 'busy' i.e. being considered for booking by another thread
 	 b1: set if slot is NOT available
@@ -26,7 +26,7 @@ class Schedule
 	 b3: set if slot is requested (unused here)
 	Returns: integer with flags set as appropriate
 	*/
-	private function GetSlotStatus(&$mod, &$utils, $session_id, $item_id, $dts, $dte)
+	private function GetSlotStatus(&$mod, &$utils, $session_id, $item_id, $bs, $be)
 	{
 /*		$cache = Booker\Cache::GetCache($mod);
 		if ($cache && )	//$cache->
@@ -37,11 +37,9 @@ class Schedule
 		} else {
 			$slotstatus = 0;
 			$bookerid = 0; //TODO booker identifier
-			if (!self::ItemAvailable($mod,$utils,$item_id,$bookerid,$dts,$dte)) {
+			if (!self::ItemAvailable($mod,$utils,$item_id,$bookerid,$bs,$be)) {
 				$slotstatus += 2;
 			}
-			$bs = $dts->getTimestamp();
-			$be = $dte->getTimestamp();
 			if (self::ItemVacantCount($mod,$item_id,$bs,$be) == 0) {
 				//TODO support forced-update i.e. ignore current booking
 				$slotstatus += 4;
@@ -109,7 +107,7 @@ class Schedule
 		$slen = $utils->GetInterval($mod,$item_id,'slot');
 		if (empty($reqdata['slotlen']))
 			$reqdata['slotlen'] = $slen;
-		list($bs,$be) = $utils->TrimRange($idata['slottype'],$idata['slotcount'],$bs,$bs + $reqdata['slotlen']);
+		list($bs,$be) = $utils->TuneBlock($idata['slottype'],$idata['slotcount'],$bs,$bs + $reqdata['slotlen']);
 		if (!$is_repeat) {
 			//limit for advance-bookings?
 			$limit = $utils->GetInterval($mod,$item_id,'lead',0);
@@ -129,9 +127,7 @@ class Schedule
 
 		$bookerid = (int)$reqdata['booker_id'];
 		//TODO use cache that's public
-		$dts = new \DateTime('@'.$bs,NULL);
-		$dte = new \DateTime('@'.$be,NULL);
-		$slotstatus = self::GetSlotStatus($mod,$utils,$session_id,$item_id,$dts,$dte);
+		$slotstatus = self::GetSlotStatus($mod,$utils,$session_id,$item_id,$bs,$be);
 		$cando = (($slotstatus & 7) == 0); //slot not busy, and available, and not booked
 		if ($cando) {
 //TODO signature(s) for actual slot(s), not booking interval, in case we're doing a group member
@@ -222,22 +218,21 @@ class Schedule
 	If possible, select @num adjacent bookable items from @likes (which has @lcount
 	members), scanning from index @first, with rollaround to start if optional @roll = TRUE
 	*/
-	private function FindCluster(&$mod, &$utils, $likes, $lcount, $num, $first,
-		$dts, $dte, $session_id, $roll=FALSE)
+	private function FindCluster(&$mod, &$utils, $session_id, $likes, $lcount, $num, $first, $bs, $be, $roll=FALSE)
 	{
 //		$cache = Booker\Cache::GetCache($mod);
 		$c = $num;
 		$i = $first;
 		$ret = array();
 		while (1) {
-			$id = $likes[$i];
-			$status = self::GetSlotStatus($mod,$utils,$session_id,$id,$dts,$dte);
+			$item_id = $likes[$i];
+			$status = self::GetSlotStatus($mod,$utils,$session_id,$item_id,$bs,$be);
 //TODO support forced update of repeats
 			if (($status & 7) == 0) { //slot not busy, and available, and not booked
 /*				$cache->
 				TODO set cache-flag busy and/or booked?
 */
-				$ret[] = $id;
+				$ret[] = $item_id;
 				if (--$c == 0)
 					return $ret;
 			} elseif (isset($ret[0])) { //>0 array-members
@@ -264,19 +259,19 @@ class Schedule
 	@session_id: identifier for cache-interrogation
 	@likes: likeness-sorted array of resource identifiers, from which specific
 		resources are to be selected
-	@dts: DateTime object populated for booking start
-	@dte: ditto for booking end (NOT 1-past)
+	@bs: UTC timestamp for booking start
+	@be: ditto for booking end (NOT 1-past)
 	@rescount: no. of individual resources to be booked
 	@alloctype: one of the ALLOC* constants, determines preferred initial allocation of subgroup
 	@allocdata: reference to supporting data for some values of @alloctype
 	Returns: array of resource id's, or FALSE
 	*/
-	private function ClusterPick(&$mod, &$utils, $session_id, $likes, $dts, $dte,
+	private function ClusterPick(&$mod, &$utils, $session_id, $likes, $bs, $be,
 		$rescount, $alloctype, &$allocdata)
 	{
 		$lcount = count($likes);
 		if ($lcount == 1) {
-			if ($rescount == 1 && (self::GetSlotStatus($mod,$utils,$session_id,$likes[0],$dts,$dte) & 7) == 0)
+			if ($rescount == 1 && (self::GetSlotStatus($mod,$utils,$session_id,$likes[0],$bs,$be) & 7) == 0)
 				return $likes;
 			return FALSE;
 		}
@@ -321,7 +316,7 @@ class Schedule
 		$first = $F;
 
 		while (1) {
-			$ret = self::FindCluster($mod,$utils,$likes,$lcount,$rescount,$first,$dts,$dte,$session_id,TRUE);
+			$ret = self::FindCluster($mod,$utils,$session_id,$likes,$lcount,$rescount,$first,$bs,$be,TRUE);
 			if ($ret) {
 				if ($alloctype == \Booker::ALLOCROTE)
 					$allocdata += $rescount; //CHECKME or ++?
@@ -380,8 +375,6 @@ class Schedule
 		} else {
 			$limit = 0;
 		}
-		$dts = new \DateTime('@0',NULL);
-		$dte = clone $dts;
 		$full = FALSE;
 		$allocdata = $idata['subgrpdata']; //cache
 		$ret = TRUE;
@@ -394,7 +387,7 @@ class Schedule
 					if (empty($one['slotlen'])) {
 						$one['slotlen'] = $slen;
 					}
-					list($bs,$be) = $utils->TrimRange($idata['slottype'],$idata['slotcount'],$bs,$bs+$one['slotlen']);
+					list($bs,$be) = $utils->TuneBlock($idata['slottype'],$idata['slotcount'],$bs,$bs+$one['slotlen']);
 					if ($limit > 0) {
 						if ($bs > $limit) { //too far ahead
 							$one['status'] = \Booker::STATDEFER;
@@ -408,10 +401,7 @@ class Schedule
 							continue;
 						}
 					}
-					$dts->setTimestamp($bs);
-					$dte->setTimestamp($be);
-					$items = self::ClusterPick($mod,$utils,$session_id,$likes,$dts,$dte,
-						1,$idata['subgrpalloc'],$allocdata);
+					$items = self::ClusterPick($mod,$utils,$session_id,$likes,$bs,$be,1,$idata['subgrpalloc'],$allocdata);
 					if ($items) {
 						if (!self::ScheduleOne($mod,$utils,$one,$items[0],$bulk_id,$session_id,$is_repeat)) {
 							$ret = FALSE;
@@ -438,7 +428,7 @@ class Schedule
 				if (empty($one['slotlen'])) {
 					$one['slotlen'] = $slen;
 				}
-				list($bs,$be) = $utils->TrimRange($idata['slottype'],$idata['slotcount'],$bs,$bs+$one['slotlen']);
+				list($bs,$be) = $utils->TuneBlock($idata['slottype'],$idata['slotcount'],$bs,$bs+$one['slotlen']);
 				if (!$is_repeat) {
 					if ($limit > 0 && $bs > $limit) { //too far ahead
 						$one['status'] = \Booker::STATDEFER;
@@ -452,9 +442,7 @@ class Schedule
 						continue;
 					}
 				}
-				$dts->setTimestamp($bs);
-				$dte->setTimestamp($be);
-				$items = self::ClusterPick($mod,$utils,$session_id,$likes,$dts,$dte,
+				$items = self::ClusterPick($mod,$utils,$session_id,$likes,$bs,$be,
 					$one['subgrpcount'],$idata['subgrpalloc'],$allocdata);
 				if ($items) {
 					//record booking
@@ -522,11 +510,11 @@ class Schedule
 	@reps: reference to WhenRules-class object
 	@blocks: reference to Blocks-class object
 	@rows: priority-ordered associative array of RepeatTable data, for an item and all its ancestors
-	@dts: resource-local datetime object for beginning of 1st day of period to be processed
-	@dte: resource-local datetime object for beginning of DAY AFTER last day of period
+	@bs: UTC timestamp for beginning of 1st day of period to be processed
+	@be: stamp for 1-past-end of last day of period (i.e. start of next day)
 	Returns: boolean indicating complete success, TRUE if nothing found
 	*/
-	private function RecordRepeats(&$mod, &$utils, &$reps, &$blocks, $rows, $dts, $dte)
+	private function RecordRepeats(&$mod, &$utils, &$reps, &$blocks, $rows, $bs, $be)
 	{
 		$ret = TRUE;
 		$parmstore = array();
@@ -548,23 +536,23 @@ class Schedule
 				else
 					$row['subgrpcount'] = count($utils->GetGroupItems($mod,$item_id));
 			}
-			$res = $reps->AllIntervals($row['formula'],$dts,$dte,$timeparms);
+			$res = $reps->AllIntervals($row['formula'],$bs,$be,$timeparms);
 			if ($res) {
 				list($starts,$ends) = $res;
 				//TODO diff against slots already processed
 				$blocks->MergeBlocks($starts,$ends);
 				$session_id = Cache::GetKey(\Booker::SESSIONKEY);//identifier for cached slotstatus data
-				foreach ($starts as $i=>$bs) {
+				foreach ($starts as $i=>$st) {
 					//data to mimic a request, some HistoryTable fields
 					//recreate whole data array cuz downstream messes with it
 					//CHECKME ok to bundle all requests at different times?
-					list($bs,$be) = $utils->TrimRange($parmstore[$item_id]['slottype'],$parmstore[$item_id]['slotcount'],$bs,$ends[$i]);
+					list($st,$nd) = $utils->TuneBlock($parmstore[$item_id]['slottype'],$parmstore[$item_id]['slotcount'],$st,$ends[$i]);
 					$ps = ($row['paid']) ? \Booker::STATPAID : \Booker::STATNOTPAID; //TODO if free-to-use
 					$reqdata = array(
 					 'subgrpcount'=>(int)$row['subgrpcount'],
 					 'booker_id'=>(int)$row['booker_id'],
-					 'slotstart'=>$bs,
-					 'slotlen'=>$be-$bs,
+					 'slotstart'=>$st,
+					 'slotlen'=>$nd-$st,
 					 'payment'=>$ps
 					);
 					if ($reqdata['subgrpcount'] < 2) {
@@ -614,13 +602,7 @@ class Schedule
 			$reqdata = array($reqdata);
 			$unarray = TRUE;
 		}
-		$dts = new \DateTime('@'.$bs,NULL);
-		$dts->setTime(0,0,0);
-		$dte = clone $dts;
-		$dte->setTimestamp($be);
-		$dte->setTime(0,0,0);
-		$dte->modify('+1 day');
-		self::UpdateRepeats($mod,$item_id,$dts,$dte);
+		self::UpdateRepeats($mod,$utils,$item_id,$bs,$be);
 
 		$res = TRUE;
 		$session_id = Cache::GetKey(\Booker::SESSIONKEY); //identifier for cached slotstatus data
@@ -685,14 +667,9 @@ class Schedule
 			$reqdata = array($reqdata);
 			$unarray = TRUE;
 		}
-		$dts = new \DateTime('@0',NULL);
-		$dts->setTimestamp($bs);
-		$dts->setTime(0,0,0);
-		$dte = clone $dts;
-		$dte->setTimestamp($be);
-		$dte->setTime(0,0,0);
-		$dte->modify('+1 day');
-		self::UpdateRepeats($mod,$item_id,$dts,$dte);
+
+		self::UpdateRepeats($mod,$utils,$item_id,$bs,$be);
+
 		$session_id = Cache::GetKey(\Booker::SESSIONKEY); //identifier for cached slotstatus data
 		$res = self::ScheduleMulti($mod,$utils,$reqdata,$item_id,$item_id,$session_id,FALSE);
 		if ($unarray)
@@ -705,15 +682,14 @@ class Schedule
 	Interpret any relevant repeat-booking for the specified resource(s) into
 	 specific bookings in bookings table, and do consequential stuff
 	@mod: reference to current Booker module
+	@utils: reference to Utils-class object
 	@item_id: resource or group identifier
-	@dts: datetime object populated for beginning of 1st day of update-period
-	@dte: datetime object populated for beginning of DAY AFTER last day of
-		update-period
+	@bs: UTC timestamp for block start, not necesssarily a day-start
+	@be: ditto for block end
 	Returns: nothing
 	*/
-	public function UpdateRepeats(&$mod, $item_id, $dts, $dte)
+	public function UpdateRepeats(&$mod, &$utils, $item_id, $bs, $be)
 	{
-		$utils = new Utils();
 		$args = $utils->GetItemGroups($mod,$item_id);
 		array_unshift($args, $item_id); //proximity-ordered for checking
 		$fillers = str_repeat('?,',count($args)-1);
@@ -743,15 +719,12 @@ class Schedule
 				return ($b['paid'] - $a['paid']); //paid-first
 			});
 
-			$bs = $dts->getTimestamp();
-			$be = $dte->getTimestamp();
-			$dtw = clone $dts; //preserve upstream
-			$dt2 = clone $dte;
 			$sql = 'UPDATE '.$mod->RepeatsTable.' SET checkedfrom=?,checkedto=? WHERE bkg_id=?';
 
+			list($bs,$be) = $utils->BlockDays($bs,$be);
 			$reps = new WhenRules($mod);
 			$blocks = new Blocks();
-//TODO proper handling of inherited repeat-descriptors c.f. Blocks::WhenRuledBlocks()
+//TODO proper handling of inherited repeat-descriptors c.f. Payment::WhenRuledBlocks()
 			foreach ($all as $bkg_id=>$one) { //TODO unnecessary repetition?
 				$st = $one['checkedfrom'];
 				$nd = $one['checkedto'];
@@ -777,9 +750,7 @@ class Schedule
 $this->Crash();//TODO overwrite/replace/supplement existing bookings
 				}
 
-				$dtw->setTimestamp($st);
-				$dt2->setTimestamp($nd);
-				if (self::RecordRepeats($mod,$utils,$reps,$blocks,$all,$dtw,$dt2)) {
+				if (self::RecordRepeats($mod,$utils,$reps,$blocks,$all,$st,$nd)) {
 					//log earliest- and last-interpreted dates
 					$st = min($st,$one['checkedfrom']);
 					$nd = max($nd,$one['checkedto']);
@@ -794,18 +765,18 @@ $this->Crash();//TODO overwrite/replace/supplement existing bookings
 
 	/**
 	ItemAvailable:
-	Determine whether the item represented by @item_id is available for	use
-	over the whole time-interval @dts to @dte inclusive. If there's no relevant
-	availability-condition, the item is regarded as available.
+	Determine whether the item represented by @item_id is available for	use	over
+	all of @bs..@be inclusive. If there's no relevant availability-condition,
+	the item is regarded as available.
 	@mod reference to current module-object
 	@utils: reference to Utils object
 	@item_id: resource or group identifier
 	@bookerid: booker identifier, or 0 for any booker
-	@dts: UTC DateTime object representing start of range
-	@dte: ditto for end (i.e. NOT 1-past-end)
+	@bs: UTC timestamp for start of interval
+	@be: ditto for end (NOT 1-past-end)
 	Returns: boolean for resource or entire group, ?? for part-available group
 	*/
-	public function ItemAvailable(&$mod, &$utils, $item_id, $bookerid, $dts, $dte)
+	public function ItemAvailable(&$mod, &$utils, $item_id, $bookerid, $bs, $be)
 	{
 		$is_group = ($item_id >= \Booker::MINGRPID);
 		if ($is_group) {
@@ -816,18 +787,17 @@ $this->Crash();//TODO overwrite/replace/supplement existing bookings
 			$args = $all;
 */
 		}
-		$idata = $utils->GetItemProperty($mod,$item_id,array('slottype','slotcount'),TRUE);
-		$idata = $idata + $utils->GetItemProperty($mod,$item_id,array('available','timezone','latitude','longitude'));
+		$idata = $utils->GetItemProperty($mod,$item_id,array('available','timezone','latitude','longitude'));
 		if ($idata['available']) {
+			//rest of data for TimeParms()
+			$idata = $idata + $utils->GetItemProperty($mod,$item_id,array('slottype','slotcount'),TRUE);
 			$funcs = new WhenRules($mod);
 			$timeparms = $funcs->TimeParms($idata);
-			$dte->modify('+1 second');
-			list($starts,$ends) = $funcs->AllIntervals($idata['available'],$dts,$dte,$timeparms); //proximal-rule-only, no ancestor-merging
+			list($starts,$ends) = $funcs->AllIntervals($idata['available'],$bs,$be+1,$timeparms); //proximal-rule-only, no ancestor-merging
 			//TODO deal with e.g. multi-day blocks when slotlen is <day  - ignore periods around midnight
-			$dte->modify('-1 second');
 		} else {
-			$starts = array($dts->getTimestamp());
-			$ends = array($dte->getTimestamp()-1);
+			$starts = array($bs);
+			$ends = array($be);
 		}
 		if ($is_group) {
 			//TODO decide how to report on results
@@ -845,12 +815,12 @@ $this->Crash();//TODO overwrite/replace/supplement existing bookings
 
 	/**
 	ItemVacantCount:
-	Determine whether or how many members of the item represented by @item_id is/are already
-	booked during part or all of the period @dts to @dte inclusive
+	Determine whether, or how many members of, the item represented by @item_id is/are
+	already booked during part or all of @bs..@be inclusive
 	@mod reference to current module-object
 	@item_id: resource or group identifier
-	@bs: UTC timestamp for start of range
-	@be: ditto for end
+	@bs: UTC timestamp for start of interval
+	@be: ditto for end (NOT 1-past-end)
 	@bkgid: optional booking id to be ignored during the check, default FALSE
 	(a valid id when updating an existing booking, FALSE when inserting a new one)
 	Returns: count of UNused item(s) i.e. 0=[fully] booked, 1=non-booked resource,
