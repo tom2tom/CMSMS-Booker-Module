@@ -477,7 +477,7 @@ class Display
 	private function FillTable(&$idata, $start, $range)
 	{
 		$slotlen = $this->utils->GetInterval($this->mod,$idata['item_id'],'slot');
-		list($dts,$dte) = $this->utils->RangeStamps($start,$range); //$dte represents 1-past end of wanted range
+		list($dts,$dte) = $this->utils->GetRangeLimits($start,$range); //$dte represents 1-past end of wanted range
 		switch ($range) {
 		 case \Booker::RANGEDAY:
 		 case \Booker::RANGEWEEK:
@@ -514,7 +514,6 @@ class Display
 			}
 			break;
 		}
-		$dtw = clone $dts;
 
 		$item_id = (int)$idata['item_id'];
 		$is_group = ($item_id >= \Booker::MINGRPID);
@@ -526,8 +525,10 @@ class Display
 
 		//update respective last-processed-repeats dates, if relevant
 		$funcs = new Schedule();
+		$bs = $dts->getTimestamp();
+		$be = $dte->getTimestamp();
 		foreach ($allresource as $one) {
-			$funcs->UpdateRepeats($this->mod,$one,$dts,$dte);
+			$funcs->UpdateRepeats($this->mod,$this->utils,$one,$bs,$be);
 		}
 		//get availability-blocks
 		$rules = $this->utils->GetOneHeritableProperty($this->mod,$item_id,'available');
@@ -535,7 +536,7 @@ class Display
 		if ($rules) {
 			$funcs = new WhenRules($this->mod);
 			$timeparms = $funcs->TimeParms($idata);
-			list($starts,$ends) = $funcs->AllIntervals(reset($rules),$dts,$dte,$timeparms); //proximal-rule-only, no ancestor-merging
+			list($starts,$ends) = $funcs->AllIntervals(reset($rules),$bs,$be,$timeparms); //proximal-rule-only, no ancestor-merging
 		} else { //all available
 			$starts = array();
 			$ends = array();
@@ -560,7 +561,7 @@ class Display
 		$cc = count($titles);
 
 		$funcs = new Bookingops();
-		$booked = $funcs->GetTableBooked($this->mod,$allresource,$dts->getTimestamp(),$dte->getTimestamp()-1);
+		$booked = $funcs->GetTableBooked($this->mod,$allresource,$bs,$be-1);
 		if ($booked) {
 			$iter = new \ArrayIterator($booked);
 			$position = 0; //init array-iterator-position
@@ -575,6 +576,7 @@ class Display
 		$rels = array('+1 day','+7 days','+1 month','+1 year');
 		$offs = $rels[$seglen]; //column-adjuster
 
+		$dtw = clone $dts;
 		//other column(s)
 		for ($c = 0; $c < $cc; $c++) {
 			$cells = array();
@@ -585,15 +587,15 @@ class Display
 			$one->style = 'class="periodname"';
 			$cells[] = $one;
 
-			$ss = $dts->getTimestamp(); //start-stamp for current segment
-			$ss += $segoffst; //start-stamp for 1st displayed slot in segment
+			$bs = $dts->getTimestamp(); //start-stamp for current segment
+			$bs += $segoffst; //start-stamp for 1st displayed slot in segment
 			//iterate slots for this segment
 			for ($r = 1; $r < $rc; $r++) {
-				$se = $ss + $slotlen - 1; //end-stamp of current slot, maybe < end-of-cell
-				$dtw->setTimestamp($ss);
+				$be = $bs + $slotlen - 1; //end-stamp of current slot, maybe < end-of-cell
+				$dtw->setTimestamp($bs);
 				if ($iter && $iter->valid()) {
 					list($one,$position) = self::DocumentCell(
-						$idata,$dtw,$ss,$se,$celloff,$countall,$position,$iter,$funcs,$blocks);
+						$idata,$dtw,$bs,$be,$celloff,$countall,$position,$iter,$funcs,$blocks);
 				} else {
 					$one = new \stdClass();
 					$one->data = NULL;
@@ -603,9 +605,9 @@ class Display
 				//skip to next cell start
 				if ($celloff) {
 					$dtw->modify($celloff);
-					$ss = $dtw->getTimestamp();
+					$bs = $dtw->getTimestamp();
 				} else {
-					$ss += $slotlen;
+					$bs += $slotlen;
 				}
 			}
 			$columns[] = $cells;
@@ -659,8 +661,7 @@ class Display
 	*/
 	private function FillList(&$idata, $start, $range)
 	{
-		list($dts,$dte) = $this->utils->RangeStamps($start,$range);
-		$dtw = clone $dts;
+		list($dts,$dte) = $this->utils->GetRangeLimits($start,$range);
 		$item_id = (int)$idata['item_id'];
 		$is_group = ($item_id >= \Booker::MINGRPID);
 		if ($is_group)
@@ -669,13 +670,14 @@ class Display
 			$allresource = array($item_id);
 		//update respective last-processed-repeats dates, if relevant
 		$funcs = new Schedule();
+		$bs = $dts->getTimestamp();
+		$be = $dte->getTimestamp();
 		foreach ($allresource as $one) {
-			$funcs->UpdateRepeats($this->mod,$one,$dts,$dte);
+			$funcs->UpdateRepeats($this->mod,$this->utils,$one,$bs,$be);
 		}
 		$funcs = new Bookingops();
 		$lfmt = (int)$idata['listformat'];
-		$booked = $funcs->GetListBooked($this->mod,$is_group,$allresource,
-			$lfmt,$dts->getTimestamp(),$dte->getTimestamp()-1);
+		$booked = $funcs->GetListBooked($this->mod,$is_group,$allresource,$lfmt,$bs,$be-1);
 		if ($booked) {
 			$majr_fmt = $idata['dateformat']; //part of report  //c.f. Utils::IntervalFormat($mod,$format,$dts)
 			$minr_fmt = $idata['timeformat']; //other part
@@ -736,7 +738,7 @@ class Display
 				$i = $j-1;
 				$one['slotlen'] = $sei - $ssi;
 			}
-			
+
 			$sections = array();
 			$title = chr(2).chr(3); //anything unused, not empty
 			$oneset = FALSE;
