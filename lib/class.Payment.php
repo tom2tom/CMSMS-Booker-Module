@@ -92,14 +92,11 @@ class Payment
 				if ($funcs2->ParseDescriptor($one['feecondition'])) {
 					$item_id = $one['item_id'];
 					if (!isset($propstore[$item_id])) {
-						//get enough data for TimeParms()
 						$idata = $utils->GetItemProperty($mod,$item_id,array('slottype','slotcount'),TRUE);
 						$idata = $idata + $utils->GetItemProperty($mod,$item_id,array('timezone','latitude','longitude'));
-						$propstore[$item_id] = $idata;
-					} else {
-						$idata = $propstore[$item_id];
+						$propstore[$item_id] = $funcs2->TimeParms($idata);
 					}
-					$timeparms = $funcs2->TimeParms($idata);
+					$timeparms = $propstore[$item_id];
 					$bst = reset($chk0starts);
 					$bnd = end($chk1ends);
 					list($rule0starts,$rule1ends) = $funcs2->GetBlocks($bst,$bnd,$timeparms); //$defaultall FALSE
@@ -111,15 +108,20 @@ class Payment
 								$ret1ends[] = $rule1ends[$j];
 								$userules[] = $i;
 							}
+							array_multisort($ret0starts,SORT_ASC,SORT_NUMERIC,$ret1ends,$userules);
 							//if ($one['relative']) { TODO keep looking for absolute rule
 							//eliminate blocks already dealt with from further checks
-							array_multisort($ret0starts,SORT_ASC,SORT_NUMERIC,$ret1ends,$userules);
 							list($chk0starts,$chk1ends) = $funcs->DiffBlocks(array($bs),array($be),$ret0starts,$ret1ends);
 						}
 					}
 				}
-			} else {
-			//TODO make it always apply if no condition
+			} else { //no condition, always applies
+				foreach ($chk0starts as $j=>$st) {
+					$ret0starts[] = $st;
+					$ret1ends[] = $chk1ends[$j];
+					$userules[] = $i;
+				}
+				array_multisort($ret0starts,SORT_ASC,SORT_NUMERIC,$ret1ends,$userules);
 			}
 		}
 
@@ -149,8 +151,9 @@ class Payment
 
 	//Interpret $rule's slottype,slotcount parameters
 	//into (approximate) corresponding seconds
-	private function ParseFeeInterval(&$rule)
+/*	private function ParseFeeInterval(&$rule)
 	{
+		//c.f. Utils::GetCurrentSlotlen($bs,$slottype,$slotcount)
 		//slotype = 0..5 per Utils::TimeIntervals() i.e. for minute,hour,day,week,month,year
 		//or -1 for fixed amount
 		switch ($rule['slottype']) {
@@ -182,7 +185,7 @@ class Payment
 			return $t * $c;
 		}
 	}
-
+*/
 	/**
 	Amounts:
 	Get gross fee for use of resource, and current credit against which the fee
@@ -257,14 +260,13 @@ class Payment
 					//TODO support relative-fee-rules
 					foreach ($indices as $i=>$p) {
 						$one = $rules[$p];
-						if (!isset($one['feelen'])) {
-							$one['feelen'] = $this->ParseFeeInterval($one);
-						}
-						$fl = $one['feelen'];
-						if ($fl > 0) {
-							$bl = $ends[$i] - $starts[$i] - 1;
-							$amt = $one['fee']*$bl/$fl;
-							//round in accord with the rule
+						if ($one['slottype'] >= 0) {
+							if (!isset($one['feelen'])) {
+								$one['feelen'] = $utils->GetCurrentSlotlen($bs,$one['slottype'],$one['slotcount']);
+							}
+							$bl = $ends[$i] - $starts[$i];
+							$amt = $bl*$one['fee']/$one['feelen'];
+							//round in accord with the rule TODO also in accord with whole slot(s)
 							$t = strrpos($one['fee'],'.');
 							if ($t !== FALSE) {
 								$p = strlen($one['fee'])-$t-1;
@@ -272,7 +274,7 @@ class Payment
 								$p = 0;
 							}
 							$grossfee += round($amt,$p);
-						} elseif ($fl < 0) { //fixed
+						} else { //fixed payment
 							$grossfee = $one['fee'] + 0;
 							break;
 						}
