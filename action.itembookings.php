@@ -165,6 +165,8 @@ $icon_export = $theme->DisplayImage('icons/system/export.gif',$this->Lang('expor
 $t = $this->Lang('tip_notifyuser');
 $icon_tell = '<img src="'.$baseurl.'/images/notice.png" alt="'.$t.'" title="'.$t.'" border="0" />';
 
+$funcs = new Booker\Payment();
+
 $jsfuncs = array(); //script accumulators
 $jsloads = array();
 $jsincs = array();
@@ -298,12 +300,7 @@ if ($data) {
 			$oneset->time .= ' &Dagger;';
 		}
 		$oneset->name = $one['name'];
-		$feefactors = array(
-			'booker'=>$one['booker_id']
-			//TODO;
-		);
-		$payable = $utils->GetItemPayable($this,$item_id,$feefactors);
-		if ($payable)
+		if ($funcs->MaybePayable($this,$utils,$item_id))
 			$oneset->paid = ($one['paid']) ? $yes:$no;
 		else
 			$oneset->paid = '';
@@ -555,12 +552,7 @@ if ($data) {
 		if ($is_group) {
 			$oneset->count = $one['subgrpcount'];
 		}
-		$feefactors = array(
-			'booker'=>$one['booker_id']
-			//TODO for repeats??
-		);
-		$payable = $utils->GetItemPayable($this,$item_id,$feefactors);
-		if ($payable)
+		if ($funcs->MaybePayable($this,$utils,$item_id))
 			$oneset->paid = ($one['paid']) ? $yes:$no;
 		else
 			$oneset->paid = '';

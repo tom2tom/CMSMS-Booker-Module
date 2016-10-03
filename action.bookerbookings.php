@@ -100,8 +100,8 @@ if (isset($params['resume'])) {
 	while (end($params['resume']) == $params['action']) {
 		array_pop($params['resume']);
 	}
-} else {
-	$params['resume'] = array('defaultadmin'); //got here via link
+//} else {
+//	$params['resume'] = array('defaultadmin'); //got here via link
 }
 
 $utils = new Booker\Utils();
@@ -118,7 +118,6 @@ $tplvars['endform'] = $this->CreateFormEnd();
 if (!empty($params['message']))
 	$tplvars['message'] = $params['message'];
 
-$payable = FALSE; //TODO per item  $utils->GetItemPayable($this,$item_id); //any payment condition
 $yes = $this->Lang('yes');
 $no = $this->Lang('no');
 $from_group = FALSE;
@@ -152,6 +151,8 @@ $icon_tell = '<img src="'.$baseurl.'/images/notice.png" alt="'.$t.'" title="'.$t
 $jsfuncs = array(); //script accumulators
 $jsloads = array();
 $jsincs = array();
+
+$funcs = new Booker\Payment();
 
 //========== NON-REPEAT BOOKINGS ===========
 //TODO support limit to date-range, changing such date-range
@@ -244,7 +245,7 @@ if ($data) {
 		}
 */
 		$oneset->name = $one['what'];
-		if ($payable)
+		if ($funcs->MaybePayable($this,$utils,$item_id))
 			$oneset->paid = ($one['paid']) ? $yes:$no;
 		else
 			$oneset->paid = '';
@@ -504,7 +505,7 @@ if ($data) {
 		if ($item_id >= Booker::MINGRPID) {
 			$oneset->count = $one['subgrpcount'];
 		}
-		if ($payable)
+		if ($funcs->MaybePayable($this,$utils,$item_id))
 			$oneset->paid = ($one['paid']) ? $yes:$no;
 		else
 			$oneset->paid = '';
