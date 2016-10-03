@@ -14,10 +14,9 @@ if (isset($params['cancel'])) {
 } elseif (isset($params['task'])) { //clicked link
 	switch ($params['task']) {
 	 case 'see':
-		$this->Redirect($id,'openbooker','',$params+array('see'=>1));
-		break;
 	 case 'add':
 	 case 'edit':
+	 	$params['resume'] = json_encode(array('defaultadmin'));
 		$this->Redirect($id,'openbooker','',$params);
 		break;
 	 case 'delete':

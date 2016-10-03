@@ -17,6 +17,7 @@ if (isset($params['task'])) { //clicked link
 	 case 'edit':
 	 case 'copy':
 	 case 'see':
+	 	$params['resume'] = json_encode(array('defaultadmin'));
 		$this->Redirect($id,'openitem','',$params);
 		break;
 	 case 'delete':
