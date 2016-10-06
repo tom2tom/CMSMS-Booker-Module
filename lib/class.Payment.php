@@ -40,7 +40,7 @@ class Payment
 	}
 */
 
-	//Interpret $descriptor into stamp-block(s) covering $bs..$be-1, $idata for TimeParms()
+	//Interpret $descriptor into stamp-block(s) covering $bs..$be, $idata for TimeParms()
 /*	private function BlocksforRule(&$mod, $descriptor, $bs, $be, $idata)
 	{
 		$funcs = new WhenRules($mod);
@@ -61,14 +61,14 @@ class Payment
 	@mod: reference to Booker module object
 	@utils: reference to Utils-class object
 	@bs: UTC timestamp for start of block
-	@be: corresponding end of block, 1-past last-usable second
+	@be: corresponding end-of-block, NOT 1-past
 	@dorules: arrray of indices in @rules to be processed
 	@rules: reference to array of data sorted in order of decreasing priority,
 	 each member being an array including a member 'feecondition' which is a
 	 descriptor recognisable by WhenRuleLexer (or FALSE)
 	Returns: 3-member array,
-	 [0] = sorted array of block-start timestamps in @bs..@be-1
-	 [1] = array of respective block-end timestamps in @bs..@be-1
+	 [0] = sorted array of block-start timestamps in @bs..@be
+	 [1] = array of respective block-end timestamps in @bs..@be
 	 [2] = array of respective indices of @rules members TODO multiple if relative-rules found before absolute
 	OR if nothing is relevant
 	 [0] = FALSE
