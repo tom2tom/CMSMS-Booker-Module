@@ -200,19 +200,57 @@ class Utils
 	@mod: reference to current Booker module object
 	@id: session identifier
 	@name: created-object name
-	@alwayspick: item_id of choice to always include
+	@alwayspick: item_id of choice to always include, or FALSE
 	@currentpick: item_id of 'current' choice
 	Returns: string, XHTML dropdown or empty
-	 */
+	*/
 	public function GetItemPicker(&$mod, $id, $name, $alwayspick, $currentpick)
 	{
-		$choices = $this->GetItemGroups($mod,$currentpick);
-		if ($choices && $choices[0] != $alwayspick) {
-			$choices = array_merge($choices,$this->GetGroupItems($mod,$choices[0],TRUE));
+		$groups = array();
+		$sql =<<<EOS
+SELECT DISTINCT G.parent,I.item_id,I.pickmembers FROM $mod->GroupTable G
+JOIN $mod->ItemTable I ON G.parent=I.item_id
+WHERE G.child=? AND I.pickthis>0 ORDER BY G.proximity,G.likeorder
+EOS;
+		$rows = $mod->dbHandle->GetArray($sql,array($currentpick));
+
+		if ($rows) {
+			$sql =<<<EOS
+SELECT DISTINCT G.parent,I.item_id,I.pickname FROM $mod->GroupTable G
+JOIN $mod->ItemTable I ON G.parent=I.item_id
+WHERE G.child IN(%s) AND I.pickthis>0 ORDER BY G.proximity,G.likeorder
+EOS;
+			do {
+				$groups = array_merge($groups,$rows);
+				$fillers = implode(',',array_column($rows,'parent'));
+				$sql1 = sprintf($sql,$fillers);
+				$rows = $mod->dbHandle->GetArray($sql1);
+				if ($rows)
+					$rows = array_diff($rows,$groups);
+			} while ($rows);
+		}
+
+		if ($currentpick >= \Booker::MINGRPID) {
+			$sql =<<<EOS
+SELECT 0 AS parent,{$currentpick} AS item_id,pickmembers FROM $mod->ItemTable
+WHERE item_id=?
+EOS;
+			$groups += $mod->dbHandle->GetArray($sql,array($currentpick));
+		}
+
+		$choices = array_column($groups,'item_id');
+		if ($currentpick < \Booker::MINGRPID) {
+			$choices[] = $currentpick;
+		}
+		foreach($groups as $one) {
+			$choices += $this->GetGroupItems($mod,$one['item_id'],$one['pickmembers'],TRUE);
+		}
+/*		if ($choices && $choices[0] != $alwayspick) {
+			$choices = array_merge($choices,$this->GetGroupItems($mod,$choices[0],TRUE,TRUE));
 		} elseif ($currentpick >= \Booker::MINGRPID) {
-			$choices = $this->GetGroupItems($mod,$currentpick,TRUE);
+			$choices = $this->GetGroupItems($mod,$currentpick,TRUE,TRUE);
 		} elseif ($alwayspick >= \Booker::MINGRPID) {
-			$choices = $this->GetGroupItems($mod,$alwayspick,TRUE);
+			$choices = $this->GetGroupItems($mod,$alwayspick,TRUE,TRUE);
 			array_unshift($choices,$currentpick);
 		} else {
 			$choices = array($currentpick);
@@ -220,10 +258,32 @@ class Utils
 		if ($alwayspick) {
 			array_unshift($choices,$alwayspick);
 		}
+*/
 		$choices = array_unique($choices,SORT_NUMERIC);
-		$picknames = $this->GetNamedItems($mod,$choices);
-
-		if (count($choices) > 1) {
+		$fillers = implode(',',$choices);
+		$sql =<<<EOS
+SELECT item_id,name,pickname FROM $mod->ItemTable WHERE item_id IN({$fillers})
+EOS;
+		$rows = $mod->dbHandle->GetAssoc($sql);
+		$picknames = array();
+		if ($rows) {
+			$iname = FALSE;
+			foreach ($rows as $iid=>$one) {
+				if ($one['pickname']) {
+					$picknames[$iid] = $one['pickname'];
+				} elseif ($one['name']) {
+					$picknames[$iid] = $one['name'];
+				} else {
+					if (!$iname) {
+						$iname = $mod->Lang('item');
+						$gname = $mod->Lang('group');
+					}
+					$type = ($iid >= \Booker::MINGRPID) ? $gname:$iname;
+					$picknames[$iid] = $mod->Lang('title_noname',$type,$iid);
+				}
+			}
+		}
+		if (count($picknames) > 1) {
 			if (class_exists('Collator')) {
 				try {
 					$col = new \Collator(self::GetLocale());
@@ -339,10 +399,11 @@ class Utils
 	Get reverse-proximity-ordered array of 'descendants' of @gid
 	@mod: reference to current module-object
 	@gid: identifier of group to be interrogated (non-groups are ignored)
+	@withres: optional boolean, whether to include resources in the result, default TRUE
 	@withgrps: optional boolean, whether to include groups in the result, default FALSE
 	Returns: array of item-ids from depth-first scan
 	*/
-	public function GetGroupItems(&$mod, $gid, $withgrps=FALSE, $down=0)
+	public function GetGroupItems(&$mod, $gid, $withres=TRUE, $withgrps=FALSE, $down=0)
 	{
 		$ids = array();
 		if ($gid >= \Booker::MINGRPID) {
@@ -352,18 +413,18 @@ class Utils
 			if ($members) {
 				foreach ($members as $mid) {
 					if ($mid >= \Booker::MINGRPID) {
-						$downers = self::GetGroupItems($mod,$mid,TRUE,$down+1); //recurse
+						$downers = self::GetGroupItems($mod,$mid,$withres,TRUE,$down+1); //recurse
 						if ($downers)
 							$ids = array_merge($ids,$downers);
 						if (!in_array($mid,$ids))
 							array_unshift($ids,(int)$mid);
-					} else
+					} elseif ($withres)
 						$ids[] = (int)$mid;
 				}
 			}
 			if (!in_array($mid,$ids))
 				array_unshift($ids,(int)$gid);
-		} else
+		} elseif ($withres)
 			$ids[] = (int)$gid;
 
 		if ($down == 0) {
@@ -1190,7 +1251,7 @@ $this->Crash();
 	@st: UTC timestamp for start of range
 	@range: enum 0..3 indicating span of range
 	Returns: pair of UTC DateTime objects, first represents start of
-	  day including @st, second is for start of day one-past end of range
+	  day including @st, second is for start of day 1-past end of range
 	*/
 	public function GetRangeLimits($st, $range)
 	{
@@ -1277,13 +1338,13 @@ $this->Crash();
 	}
 
 	/**
-	BlockDays:
-	Adjust @bs, @be to start of first day including @bs or @be and start of day-1-past
+	BlockWholeDays:
+	Adjust @bs, @be to start of first day including earlier of @bs or @be and start of day-1-past latter
 	@bs: timestamp for start of block
 	@be: timestamp for end of block, may be <= @start
 	Returns: 2-member array, replacements for @bs, @be
 	*/
-	public function BlockDays($bs, $be)
+	public function BlockWholeDays($bs, $be)
 	{
 		if ($bs > $be) {
 			$t = $be;
