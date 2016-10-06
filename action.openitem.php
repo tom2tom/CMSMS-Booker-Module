@@ -502,6 +502,15 @@ $no = $this->Lang('no');
 $jsfuncs = array();
 $jsloads = array();
 $jsincs = array();
+
+$jsloads[] = <<<EOS
+ $('p.help').hide();
+ $('img.tipper').css({'display':'inline','padding-left':'10px'}).click(function() {
+   $(this).parent().next().next().slideToggle();
+ });
+
+EOS;
+
 //construct arrays of UI-items, in display-order
 $basic = array();
 $advanced = array();
@@ -589,6 +598,17 @@ if ($is_group) {
 	'hlp'=>$this->Lang('help_membersname')
 	);
 }
+//------- pickname
+if ($pmod)
+	$i = $this->CreateInputText($id,'pickname',$idata->pickname,25,32);
+elseif ($idata->pickname)
+	$i = $idata->pickname;
+else
+	$i = $none;
+$basic[] = array('ttl'=>$cascade.$this->Lang('title_pickname'),
+'inp'=>$i,
+'hlp'=>$this->Lang('help_pickname')
+);
 //------- slotcount, slottype (c.f. TimeIntervals())
 $alltypes = explode(',',$this->Lang('periods')); //'minute,hour,day,week,month,year'
 if ($pmod) {
@@ -742,6 +762,25 @@ $advanced[] = array('ttl'=>$cascade.$this->Lang('title_keywords'),
 'inp'=>$i,
 'hlp'=>$h
 );
+//------- pickthis
+if ($pmod) {
+	$choices = array($inherit=>-1,$no=>0,$yes=>1);
+	$sel = is_null($idata->pickthis) ? -1:(int)$idata->pickthis;
+	$i = $this->CreateInputRadioGroup($id,'pickthis',$choices,$sel,'','&nbsp;&nbsp;');
+	//override crappy default label-layout
+	$i = preg_replace('~label class="(.*)"~U','label class="\\1 radiolabel"',$i);
+} else {
+	if ($idata->pickthis)
+		$i = $yes;
+	elseif (is_null($idata->pickthis))
+		$i = $inherit;
+	else
+		$i = $no;
+}
+$advanced[] = array('ttl'=>$this->Lang('title_pickthis'),
+'inp'=>$i,
+'hlp'=>NULL
+);
 //------- members
 if ($is_group) {
 	//TODO get this into a scrollable div
@@ -764,7 +803,7 @@ if ($is_group) {
 			}
 		}
 		unset($one);
-	
+
 		if (class_exists('Collator'))
 			$col = new Collator($utils->GetLocale());
 		else
@@ -801,6 +840,7 @@ if ($is_group) {
 		$allitems = array_column($allitems,'name','item_id');
 	}
 
+	$rc = 0;
 	if ($item_id > 0) { //i.e. not new
 		$sql = 'SELECT child FROM '.$this->GroupTable.' WHERE parent=? ORDER BY likeorder';
 		$relations = $db->GetCol($sql,array($item_id));
@@ -819,7 +859,7 @@ if ($is_group) {
 				$i = groupstable($this,$tplvars,$id,'members',$returnid,$icondn,$iconup,
 					$item_id,$allitems,$relations,TRUE,TRUE,'members');
 				if ($rc > 1) //TODO send 'active_tab' as a $param to action.swapgroups
-					$i .= '  '.$this->CreateInputSubmit($id,'sortlike',$this->Lang('sort'),
+					$i .= '<br /><br />'.$this->CreateInputSubmit($id,'sortlike1',$this->Lang('sort'),
 						'title="'.$this->Lang('tip_sortchilds').'" style="display:none;"'); //button shown by runtime js
 			} elseif ($sel)
 				$i = implode(', ',$sel);
@@ -849,42 +889,58 @@ if ($is_group) {
 	'hlp'=>$h
 	);
 
-	$t = $this->Lang('err_server');
-	$jsfuncs[] = <<<EOS
-function sortresponse(data,status)
-{
- if (status=='success') {
-  if (data != '') {
-   $('#members > tbody').html(data);
-   $('#members .updown').hide();
-  }
- } else {
-  $('#page_tabs').prepend('<p style="font-weight:bold;color:red;">{$t}!</p><br />');
- }
-}
-
-EOS;
-	$u = $this->create_url($id,'sortlike','',array('item_id'=>$item_id,'first_id'=>''));
-	$offs = strpos($u,'?mact=');
-	$u = str_replace('&amp;','&',substr($u,$offs+1));
-
-	$jsloads[] = <<<EOS
- $('#{$id}sortlike').css('display','block').click(function(ev) {
+	if ($rc > 1) {
+		$t = $this->Lang('err_server');
+		$u = $this->create_url($id,'sortlike','',array('item_id'=>$item_id,'first_id'=>''));
+		$offs = strpos($u,'?mact=');
+		$u = str_replace('&amp;','&',substr($u,$offs+1));
+		$jsloads[] = <<<EOS
+ $('#{$id}sortlike1').css('display','block').click(function(ev) {
   var first = $('#members').find('input:checkbox').eq(1).val();
-  $.ajax({
-   type: 'POST',
-   url: 'moduleinterface.php',
-   data: '{$u}'+first,
-   success: sortresponse,
-   dataType: 'html'
-  });
+  if (first) {
+   $.ajax({
+    type: 'POST',
+    url: 'moduleinterface.php',
+    data: '{$u}'+first,
+    dataType: 'html',
+    success: function (data,status) {
+     if (status=='success') {
+      if (data != '') {
+       $('#members > tbody').html(data);
+       $('#members .updown').hide();
+      }
+     } else {
+      $('#page_tabs').prepend('<p style="font-weight:bold;color:red;">{$t}!</p><br />');
+     }
+    }
+   });
+  }
   ev.stopImmediatePropagation();
   ev.preventDefault();
 	return false;
  });
 
 EOS;
-//}
+	} //$rc>1
+//------- pickmembers
+	if ($pmod) {
+		$choices = array($inherit=>-1,$no=>0,$yes=>1);
+		$sel = is_null($idata->pickmembers) ? -1:(int)$idata->pickmembers;
+		$i = $this->CreateInputRadioGroup($id,'pickmembers',$choices,$sel,'','&nbsp;&nbsp;');
+		//override crappy default label-layout
+		$i = preg_replace('~label class="(.*)"~U','label class="\\1 radiolabel"',$i);
+	} else {
+		if ($idata->pickmembers)
+			$i = $yes;
+		elseif (is_null($idata->pickmembers))
+			$i = $inherit;
+		else
+			$i = $no;
+	}
+	$advanced[] = array('ttl'=>$this->Lang('title_pickmembers'),
+	'inp'=>$i,
+	'hlp'=>NULL
+	);
 //------- cleargroup
 //if ($is_group) {
 	if ($pmod && $padm) {
@@ -905,8 +961,9 @@ EOS;
 	'inp'=>$i,
 	'hlp'=>NULL
 	);
-}
+} // $is_group
 //------- groups
+$rc = 0;
 $sql = 'SELECT item_id,name FROM '.$this->ItemTable.' WHERE item_id>='.Booker::MINGRPID.' AND item_id<>? ORDER BY name';
 $allgrps = $db->GetAssoc($sql,array($item_id));
 if ($allgrps) {
@@ -929,7 +986,7 @@ if ($allgrps) {
  				$i = groupstable($this,$tplvars,$id,'ingroups',$returnid,$icondn,$iconup,
 					$item_id,$allgrps,$relations,TRUE,FALSE,'groups');
 				if ($rc > 1)
-					$i .= '  '.$this->CreateInputSubmit($id,'sortlike',$this->Lang('sort'),
+					$i .= '  '.$this->CreateInputSubmit($id,'sortlike2',$this->Lang('sort'),
 						'title="'.$this->Lang('tip_sortparents').'" style="display:none;"'); //button shown by runtime js
 			} elseif ($sel)
 				$i = implode(', ',$sel);
@@ -955,22 +1012,14 @@ if ($allgrps) {
 	'hlp'=>$h
 	);
 
-	$jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/include/jquery.tablednd.min.js"></script>
-<script type="text/javascript" src="{$baseurl}/include/jquery.metadata.min.js"></script>
-<script type="text/javascript" src="{$baseurl}/include/jquery.SSsort.min.js"></script>
-EOS;
-
 	$t = $this->Lang('err_server');
 	$u = $this->create_url($id,'sortlike','',array('item_id'=>$item_id,'sort'=>''));
 	$offs = strpos($u,'?mact=');
 	$u = str_replace('&amp;','&',substr($u,$offs+1)); //'groups' or 'members' will be appended at runtime
 
-	$jsloads[] =<<<EOS
- $('p.help').hide();
- $('.dndhelp').css('display','block');
- $('.updown').hide();
- $('input[name^="{$id}sortlike"]').css('display','inline').click(function(ev) {
+	if ($rc > 1) {
+		$jsloads[] = <<<EOS
+ $('#{$id}sortlike2').css('display','block').click(function(ev) {
   ev.stopImmediatePropagation();
   ev.preventDefault();
   var \$tbl = $(this).prev('table'),
@@ -981,7 +1030,7 @@ EOS;
    data: '{$u}'+what,
    dataType: 'html',
    success: function(data,status) {
-    if (status=='success'){
+    if (status=='success') {
      if (data != ''){
       \$tbl.find('tbody').html(data);
       \$tbl.find('.updown').hide();
@@ -993,9 +1042,20 @@ EOS;
   });
   return false;
  });
- $('img.tipper').css({'display':'inline','padding-left':'10px'}).click(function() {
-   $(this).parent().next().next().slideToggle();
- });
+
+EOS;
+	}
+} //$allgrps
+//------- members and/or groups table js
+$jsincs[] = <<<EOS
+<script type="text/javascript" src="{$baseurl}/include/jquery.tablednd.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/include/jquery.metadata.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/include/jquery.SSsort.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/include/tableHeadFixer.min.js"></script>
+EOS;
+$jsloads[] = <<<EOS
+ $('.dndhelp').css('display','block');
+ $('.updown').hide();
  $('table.table_sort').SSsort({
   sortClass: 'SortAble',
   ascClass: 'SortUp',
@@ -1031,6 +1091,7 @@ EOS;
     var to = now.indexOf('hover');
     $(this).attr('class', now.substring(0,to));
  });
+ $('table.scrollable').tableHeadFixer();
  $('#members th > input').click(function() {
    var chk = $(this).is(':checked');
    $('#members > tbody').find('input[type="checkbox"]').attr('checked',chk);
@@ -1049,7 +1110,6 @@ EOS;
  });
 
 EOS;
-}
 //------- available
 if ($pmod)
 	$i = $this->CreateTextArea(FALSE,$id,$idata->available,'available','','','','',40,3,'','','style="height:3em;"');

@@ -13,15 +13,18 @@ $pre = cms_db_prefix();
 /*
  items (i.e. groups and resources) table schema:
  NOTE (almost) no NOTNULL/default values, so inheritance can be determined
- NOTE: changes here must be reflected in action.open.php, Booker\CSV::ImportItems
+ NOTE: changes here must be reflected in action.openitem, Import::ImportItems(), Export::ExportItems()
 	item_id:
 	alias:
 	name:
 	description:
 	keywords: comma-separated descriptors/tags for similarity scans
+	pickname: for a group - name to display in resource-picker
 	membersname: for a group - generic plural member-descriptor e.g. 'members'
 	image: filename or ,-separated series of names, uploaded file(s)
 	available: interval-descriptor string or empty for always-available
+	pickthis: whether to display this item in resource-picker
+ 	pickmembers: for a group - whether to display its members in resource-picker
 	slottype: enumerator for interval of a single booking per TimeIntervals()
 	slotcount: count of slottype intervals which, together with slottype, defines length of a bookings
 	bookcount: max. slots per booking, 0 = no limit, 1 = no need for booking end choice
@@ -60,9 +63,12 @@ $fields = "
  name C(64),
  description X,
  keywords C(256),
+ pickname C(48),
  membersname C(32),
  image C(128),
  available C(128),
+ pickthis I(1) DEFAULT 1,
+ pickmembers I(1) DEFAULT 0,
  slottype I(1) DEFAULT 1,
  slotcount I(1) DEFAULT 0,
  leadtype I(1) DEFAULT 2,
@@ -346,6 +352,32 @@ if ($res != 2)
 $sqlarray = $dict->CreateIndexSQL('idx_'.$this->HistoryTable,$this->HistoryTable,'booker_id');
 $dict->ExecuteSQLArray($sqlarray);
 $db->CreateSequence($this->HistoryTable.'_seq');
+
+/*
+ item-pickability table schema:
+ gid: unique identifier
+ item_id: group id
+ pick: boolean whether to always show @item_id in relevant resource-picklists
+ pickfor: group identifier or NULL, if not pick, then show item_id in relevant
+	resource-picklists when this field's value is an ancestor of item_id
+ pickmembers: boolean whether to always show members of @item_id in relevant resource-picklists
+ pickmembersfor: group identifier or NULL, if not pickmembers, then show members
+	of item_id in relevant resource-picklists when this field's value is an ancestor of item_id
+*/
+$fields = "
+ gid I AUTO KEY,
+ item_id I(4) NOTNULL,
+ pick I(1) DEFAULT 1,
+ pickfor I(4),
+ pickmembers I(1) DEFAULT 1,
+ pickmembersfor I(4)
+";
+$sqlarray = $dict->CreateTableSQL($this->ItemTable.'pick', $fields, $taboptarray);
+if ($sqlarray == FALSE)
+	return FALSE;
+$res = $dict->ExecuteSQLArray($sqlarray, FALSE);
+if ($res != 2)
+	return FALSE;
 
 /*
 Data cache

@@ -205,6 +205,10 @@ EOS;
 			 '#Name'=>'name',
 			 'Description'=>'description',
 			 'Keywords'=>'keywords',
+			 'Membersnamed'=>'membersname',
+			 'Choosername'=>'pickname',
+			 'Inchooser'=>'pickthis',
+			 'Choosemembers'=>'pickmembers',
 			 'Image'=>'image',
 			 'Available'=>'available',
 			 'Slottype'=>'slottype',
@@ -234,7 +238,6 @@ EOS;
 			 'Owner'=>'owner',
 			 'Cleargroup'=>'cleargroup',
 			 'Allocategroup'=>'subgrpalloc',
-			 'Membersnamed'=>'membersname',
 			 'Ingroups'=>'ingroups', //not a real field
 			 'Update'=>'item_id' //not a real field
 			);
@@ -256,6 +259,7 @@ EOS;
 							switch ($one) {
 							 case 'name':
 							 case 'description':
+							 case 'pickname':
 								if ($strip)
 									$fv = strip_tags($fv);
 								$fv = preg_replace('/[\n\t\r]/',$sep2,$fv);
@@ -275,6 +279,8 @@ EOS;
 							 	$fv = $periods[$fv];
 							 	break;
 							 case 'item_id':
+							 case 'pickthis':
+							 case 'pickmembers':
 							 case 'slotcount':
 							 case 'keepcount':
 							 case 'leadcount':

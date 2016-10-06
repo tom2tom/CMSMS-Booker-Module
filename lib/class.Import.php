@@ -78,6 +78,10 @@ class Import
 			 '#Name'=>'name',
 			 'Description'=>'description',
 			 'Keywords'=>'keywords',
+			 'Membersnamed'=>'membersname',
+			 'Choosername'=>'pickname',
+			 'Inchooser'=>'pickthis',
+			 'Choosemembers'=>'pickmembers',
 			 'Image'=>'image',
 			 'Available'=>'available',
 			 'Slottype'=>'slottype',
@@ -107,7 +111,6 @@ class Import
 			 'Owner'=>'owner',
 			 'Cleargroup'=>'cleargroup',
 			 'Allocategroup'=>'subgrpalloc',
-			 'Membersnamed'=>'membersname',
 			 'Ingroups'=>'ingroups', //not a real field
  			 'Update'=>'update' //not a real field
 			);
@@ -169,6 +172,7 @@ class Import
 							 case 'approver':
 							 case 'approvercontact': //TODO block injection
 							 case 'membersname':
+							 case 'pickname':
 							 case 'paymentiface':
  							 case 'formiface':
 							 case 'smsprefix':
@@ -243,6 +247,8 @@ class Import
 								$data[$k] = 0;
 								$save = TRUE;
 								break;
+							 case 'pickthis':
+							 case 'pickmembers':
 							 case 'grossfees':
 							 case 'cleargroup':
 								$data[$k] = ($one == 'no' || $one == 'NO') ? 0:1;
@@ -263,8 +269,8 @@ class Import
 							}
 						} else {
 							switch ($k) {
-							 case 'listformat':
-								$data[$k] = ($is_group) ? \Booker::LISTRS:\Booker::LISTSU;
+							 case 'pickthis':
+								$data[$k] = ($is_group) ? 1:0;
 								break;
 							 case 'slottype':
 							 case 'leadtype':
@@ -277,8 +283,12 @@ class Import
 							 case 'grossfees':
 								$data[$k] = 1;
 								break;
-							 case 'cleargroup':
-								$data[$k] = 0; //no clear group
+							 case 'pickmembers': //no pickable members
+							 case 'cleargroup': //no clear group
+								$data[$k] = 0;
+								break;
+							 case 'listformat':
+								$data[$k] = ($is_group) ? \Booker::LISTRS:\Booker::LISTSU;
 								break;
 							 case 'isgroup': //ignore fake fields
 							 case 'ingroups':
@@ -955,6 +965,7 @@ class Import
 					}
 
 					if (!(empty($data['slotstart']) || empty($data['slotend']))) {
+						$item_id = $data['item_id'];
 						list($bs,$be) = $utils->TuneBlock(
 							$propstore[$item_id]['slottype'],$propstore[$item_id]['slotcount'],
 							$data['slotstart'],$data['slotend']);
@@ -963,8 +974,8 @@ class Import
 						$data['slotlen'] = $be-$bs;
 						$funcs2 = new Schedule();
 						//any booker
-						$save = $funcs2->ItemVacantCount($mod,$data['item_id'],$bs,$be)
-							&& $funcs2->ItemAvailable($mod,$utils,$data['item_id'],0,$bs,$be);
+						$save = $funcs2->ItemVacantCount($mod,$item_id,$bs,$be)
+							&& $funcs2->ItemAvailable($mod,$utils,$item_id,0,$bs,$be);
 					} else {
 						return array(FALSE,'err_badtime');
 					}
