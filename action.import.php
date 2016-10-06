@@ -29,6 +29,8 @@ if (!function_exists('ImportRedirParms')) {
 
 if (!($this->_CheckAccess('admin') || $this->_CheckAccess('book'))) exit;
 
+$params['action'] = 'import'; //DoAction() may have got us here under a different name, which will be a redirection-problem
+
 if (isset($params['resume'])) {
 	$params['resume'] = json_decode(html_entity_decode($params['resume'],ENT_QUOTES|ENT_HTML401));
 	while (end($params['resume']) == $params['action']) {
@@ -108,6 +110,7 @@ switch ($from) {
  case 'adminbooking': //bookings
  case 'adminbooker': //bookers
  case 'processitem': //items
+ case 'defaultadmin':
 	$hidden['active_tab'] = $params['active_tab'];
 	break;
  case 'bookerbookings':
