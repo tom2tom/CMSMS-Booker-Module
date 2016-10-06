@@ -511,7 +511,7 @@ class Schedule
 	@blocks: reference to Blocks-class object
 	@rows: priority-ordered associative array of RepeatTable data, for an item and all its ancestors
 	@bs: UTC timestamp for beginning of 1st day of period to be processed
-	@be: stamp for 1-past-end of last day of period (i.e. start of next day)
+	@be: stamp for end of last day of period
 	Returns: boolean indicating complete success, TRUE if nothing found
 	*/
 	private function RecordRepeats(&$mod, &$utils, &$reps, &$blocks, $rows, $bs, $be)
@@ -721,7 +721,7 @@ class Schedule
 
 			$sql = 'UPDATE '.$mod->RepeatsTable.' SET checkedfrom=?,checkedto=? WHERE bkg_id=?';
 
-			list($bs,$be) = $utils->BlockDays($bs,$be);
+			list($bs,$be) = $utils->BlockWholeDays($bs,$be);
 			$reps = new WhenRules($mod);
 			$blocks = new Blocks();
 //TODO proper handling of inherited repeat-descriptors c.f. Payment::WhenRuledBlocks()
@@ -793,7 +793,7 @@ $this->Crash();//TODO overwrite/replace/supplement existing bookings
 			$idata = $idata + $utils->GetItemProperty($mod,$item_id,array('slottype','slotcount'),TRUE);
 			$funcs = new WhenRules($mod);
 			$timeparms = $funcs->TimeParms($idata);
-			list($starts,$ends) = $funcs->AllIntervals($idata['available'],$bs,$be+1,$timeparms); //proximal-rule-only, no ancestor-merging
+			list($starts,$ends) = $funcs->AllIntervals($idata['available'],$bs,$be,$timeparms); //proximal-rule-only, no ancestor-merging
 			//TODO deal with e.g. multi-day blocks when slotlen is <day  - ignore periods around midnight
 		} else {
 			$starts = array($bs);
@@ -845,7 +845,7 @@ $this->Crash();//TODO overwrite/replace/supplement existing bookings
 		}
 		//ignore possible 1-sec overlaps
 		$sql .= ' AND slotstart < ? AND (slotstart + slotlen) > ?';
-		$args[] = $be;
+		$args[] = $be+1;
 		$args[] = $bs;
 		if ($is_group) {
 			$c = count($all);
