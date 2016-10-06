@@ -75,9 +75,9 @@ EOS;
 						//notify user
 						$item_id = $one['item_id'];
 						if (!isset($propstore[$item_id])) {
-							$propstore[$item_id] = $utils->GetItemProperty($mod,$item_id,
-								array('item_id','name','membersname','smspattern','smsprefix'));
-							$propstore[$item_id]['approvertell'] = FALSE; //no message to sender
+							$propstore[$item_id] = array('item_id'=>$item_id,'approvertell'=>FALSE) //no message to sender
+								+ $utils->GetItemProperty($mod,$item_id,
+									array('name','membersname','smspattern','smsprefix'));
 						}
 						$idata = $propstore[$item_id];
 						list($res,$msg1) = $funcs->StatusMessage($mod,$utils,$idata,$one,\Booker::STATCANCEL,$custommsg,$sndr);
