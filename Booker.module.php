@@ -437,7 +437,9 @@ class Booker extends CMSModule
 			$node = $manager->sureGetNodeByAlias($pageid);
 			if ($node) {
 				$onpage = $node->getID();
+				$this->RegisterRoute('/[Bb]ook(ings?|er)?\/(?P<item>.+)\/submit$/',array('action'=>'requestbooking','bookat'=>-1,'returnid'=>$onpage));
 				$this->RegisterRoute('/[Bb]ook(ings?|er)?\/(?P<item>.+)$/',array('action'=>'default','returnid'=>$onpage));
+				$this->RegisterRoute('/[Bb]ook(ings?|er)?\/submit$/',array('action'=>'requestbooking','bookwhat'=>-1,'returnid'=>$onpage));
 			}
 		}
 		$this->RegisterRoute('/[Bb]ook(ings?|er)?\/(?P<returnid>[0-9]+)\/(?P<item>.+)$/',array('action'=>'default'));
