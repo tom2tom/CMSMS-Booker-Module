@@ -164,7 +164,7 @@ $showtable = (empty($params['view']) || $params['view'] == 'table');
 if (isset($params['toggle']))
 	$showtable = !$showtable;
 if (isset($params['altview'])) { //should never happen if js is enabled
-//	$this->Crash(); 
+//	$this->Crash();
 }
 $params['view'] = ($showtable)?'table':'list';
 
@@ -220,13 +220,10 @@ foreach ($names as $one) {
 $tplvars['hidden'] = $hidden;
 
 if (!empty($idata['name'])) {
-	if ($is_group)
-		$t = $this->Lang('title_booksfor',$this->Lang('group'),$idata['name']);
-	else
-		$t = $this->Lang('title_booksfor',$idata['name'],'');
+	$t = $this->Lang('title_booksfor',$idata['name'],'');
 } else {
-	$type = ($is_group) ? $this->Lang('group'):$this->Lang('item');
-	$t = $this->Lang('title_noname',$type,$item_id);
+	$typename = ($is_group) ? $this->Lang('group'):$this->Lang('item');
+	$t = $this->Lang('title_noname',$typename,$item_id);
 	$t = $this->Lang('title_booksfor',$t,'');
 }
 
