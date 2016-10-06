@@ -261,10 +261,11 @@ Each line in the file (except the header line, discussed below) represents one r
 <h4>Header line</h4>
 <p>The first line of the file names the fields in the file, as follows.
 The supplied names may be in any order. Those prefixed by a '#' represent compulsory values.<br />
-<code>#Isgroup,#Name,Alias,Description,Keywords,Image,Available,Slottype,Slotcount,BookingSlots,<br />
+<code>#Isgroup,#Name,Alias,Description,Keywords,Membersnamed,Choosername,Image,<br />
+Inchooser,Choosemembers,Available,Slottype,Slotcount,BookingSlots,<br />
 Leadtype,Leadcount,Rationcount,Keeptype,Keepcount,Grossfees,Taxrate,PayInterface,<br />
 SMSprefix,SMSpattern,Latitude,Longitude,Timezone,Dateformat,Timeformat,Listformat,Stylesfile,<br />
-Approver,Approvercontact,FormInterface,Feugroup,Owner,Cleargroup,Allocategroup,Membersnamed,Ingroups,Update</code></p>
+Approver,Approvercontact,FormInterface,Feugroup,Owner,Cleargroup,Allocategroup,Ingroups,Update</code></p>
 <h4>Other lines</h4>
 <p>The data in each line must conform to the header columns, of course. Any non-compulsory field, or entire line, may be empty.<br />
 The #Isgroup field will be treated as TRUE if it contains something other than 0 or 'no' or 'NO' (no quotes, untranslated).<br />
@@ -290,6 +291,7 @@ $lang['help_passnew'] = 'Replace existing password';
 $lang['help_passwd'] = 'A password must be provided for a registered booker';
 $lang['help_paymentiface'] = 'CMSMS module to be used for making online payments';
 $lang['help_phone'] = 'Phone number for messaging';
+$lang['help_pickname'] = 'Label for this item in dropdown item-selectors';
 $lang['help_postpay'] = 'No need to pre-pay';
 $lang['help_publicid'] = 'Must be provided for a registered booker';
 $lang['help_range'] = 'Scope of bookings-data to display (string day|week|month|year)';
@@ -660,6 +662,9 @@ $lang['title_passwd'] = 'Password';
 $lang['title_paymentiface'] = 'Payments interface';
 $lang['title_period'] = 'Interval';
 $lang['title_phone'] = 'Cell/mobile phone';
+$lang['title_pickname'] = 'Resource-selector label';
+$lang['title_pickmembers'] = 'Include resource-members of this group in item-selectors';
+$lang['title_pickthis'] = 'Include this item in item-selectors';
 $lang['title_postpay'] = 'Authorised to post-pay';
 $lang['title_prompt'] = 'Replacement for square-bracketed text';
 $lang['title_publicid'] = 'Account/login name';
