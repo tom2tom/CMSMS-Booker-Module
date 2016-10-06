@@ -28,29 +28,28 @@ class Blocks
 		$j = 0;
 		$jc = count($starts2);
 		while ($i < $ic && $j < $jc) {
-			$s1 = $starts1[$i];
-			$e1 = $ends1[$i];
-			$s2 = $starts2[$j];
-			$e2 = $ends2[$j];
-			if (!(($s2 < $s1 && $e2 <= $s1)
-			   || ($s1 < $s2 && $e1 <= $s2))) { //there's overlap
-				if ($s2 <= $s1 && $e2 <= $e1) {
-					$starts1[$i] = $e2+1;
-				} elseif ($s1 <= $s2 && $e1 <= $e2) {
-					$ends1[$i] = $s2-1;
-				} elseif ($s1 > $s2 && $e1 < $e2) {
+			$a = $starts1[$i];
+			$b = $ends1[$i];
+			$c = $starts2[$j];
+			$d = $ends2[$j];
+			if ($d > $a && $c < $b) { //there's overlap
+				if ($a >= $c && $b <= $d) {
 					unset($starts1[$i]);
 					unset($ends1[$i]);
 					$i++;
 					continue;
-				} elseif ($s2 > $s1 && $e2 < $e1) {
+				} elseif ($a < $c && $d < $b) {
 					$t = array_search($i,array_keys($starts1)); //current array-offset
-					array_splice($ends1,$t,0,$s2-1); //insert before $ends1[$i]
+					array_splice($ends1,$t,0,$c-1); //insert before $ends1[$i]
 					$t++;
-					array_splice($starts1,$t,0,$e2+1); //insert after $starts1[$i]
+					array_splice($starts1,$t,0,$d+1); //insert after $starts1[$i]
 					$i = $t; //arrays have been re-keyed
 					$ic++;
 					continue;
+				} elseif ($d < $b) {
+					$starts1[$i] = $d+1;
+				} elseif ($c > $a) {
+					$ends1[$i] = $c-1;
 				}
 			}
 			$t = $j;
@@ -62,9 +61,9 @@ class Blocks
 			}
 		}
 		foreach ($starts1 as $i=>$t) {
-			if ($ends1[$i] == $t) {
-				unset($starts1[$i]);
-				unset($ends1[$i]);
+			if ($ends1[$i] < $t) {
+				$starts1[$i] = $ends1[$i];
+				$ends1[$i] = $t;
 			}
 		}
 		return array($starts1,$ends1);
@@ -156,13 +155,13 @@ class Blocks
 	*/
 	public function MergeBlocks(&$starts, &$ends)
 	{
-		$c = count($starts);
-		if ($c > 1) {
+		$ic = count($starts);
+		if ($ic > 1) {
 			array_multisort($starts,SORT_ASC,SORT_NUMERIC,$ends);
 			$i = 0;
-			while ($i < $c) {
+			while ($i < $ic) {
 				$e1 = $ends[$i];
-				for ($j=$i+1; $j<$c; $j++) {
+				for ($j=$i+1; $j<$ic; $j++) {
 					if (isset($starts[$j])) {
 						if ($starts[$j] > $e1) {
 							break;
