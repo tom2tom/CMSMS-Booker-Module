@@ -18,10 +18,6 @@ class Cache_memcache extends CacheBase implements CacheInterface
 		throw new \Exception('no memcache storage');
 	}
 
-/*	public function __destruct()
-	{
-	}
-*/
 	public function use_driver()
 	{
 		return class_exists('Memcache') && function_exists('memcache_connect');
