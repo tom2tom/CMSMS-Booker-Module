@@ -324,6 +324,12 @@ EOS;
 	public function FinishReq(&$mod, &$utils, &$params, $success)
 	{
 		if ($success) { //successful to now
+			$cache = Cache::GetCache($mod);
+			$cart = $utils->RetrieveCart($cache,$params);
+			if (!$cart || !($pending = $cart->getItems())) {
+				return array(FALSE,$mod->Lang('err_data'));
+			}
+			$key = '';
 			$rfuncs = new Requestops();
 			$sfuncs = new Schedule();
 			$ufuncs = new Userops();
@@ -336,10 +342,6 @@ EOS;
 			} else {
 				$mfuncs = FALSE;
 			}
-			$key = '';
-			$cache = Cache::GetCache($mod);
-			$cart = $utils->RetrieveCart($cache,$params);
-			$pending = $cart->getItems();
 			foreach ($pending as $item) {
 				$data = $item->getPackage();
 				$reqdata = (array)$data->request; //from self::CartReq()
