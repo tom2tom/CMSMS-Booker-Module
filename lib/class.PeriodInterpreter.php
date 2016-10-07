@@ -13,7 +13,7 @@ class PeriodInterpreter
 	BlockYears:
 	Get year(s) in block, also sets swaps @bs, @be if necessary, sets $dtw to @bs
 	@bs: reference to block-start stamp
-	@be: reference to 1-past-block-end stamp
+	@be: reference to block-end stamp
 	Returns: array, one member or a range
 	*/
 	private function BlockYears(&$bs, &$be, $dtw)
@@ -21,7 +21,7 @@ class PeriodInterpreter
 		if ($bs > $be) {
 			list($bs,$be) = array($be,$bs);
 		}
-		$dtw->setTimestamp($be-1);
+		$dtw->setTimestamp($be);
 		$e = (int)$dtw->format('Y');
 		$dtw->setTimestamp($bs);
 		$s = (int)$dtw->format('Y');
@@ -35,12 +35,12 @@ class PeriodInterpreter
 	BlockMonths:
 	Get months(s) in block
 	@bs: block-start stamp
-	@be: 1-past-block-end stamp
+	@be: block-end stamp
 	Returns: array, one member or a range, not necessarily contiguous
 	*/
 	private function BlockMonths($bs, $be, $dtw)
 	{
-		$dtw->setTimestamp($be-1);
+		$dtw->setTimestamp($be);
 		$e = (int)$dtw->format('m');
 		$dtw->setTimestamp($bs);
 		$s = (int)$dtw->format('m');
@@ -57,7 +57,7 @@ class PeriodInterpreter
 	/**
 	BlockDays:
 	@bs: timestamp for start of block
-	@be: timestamp for 1-past-end of block
+	@be: timestamp for end of block
 	@dtw: modifiable DateTime object
 	Returns: array, or FALSE upon error. Each array member has
 	 key: a year (4-digit integer)
@@ -88,7 +88,7 @@ class PeriodInterpreter
 			}
 		}
 		$doy = array();
-		$dte->setTimestamp($be-1);
+		$dte->setTimestamp($be);
 		while ($dtw <= $dte) {
 			$doy[] = $dtw->getTimestamp();
 			$dtw->add($inc);
@@ -799,7 +799,7 @@ class PeriodInterpreter
 	@descriptor: array of parsed element(s) or string including 4-digit year,
 		or sequence of those, or ','-separated series of any of the former
 	@bs: timestamp for start of block
-	@be: timestamp for 1-past-end of block
+	@be: timestamp for end of block
 	@dtw: modifiable DateTime object
 	@merge: optional boolean, whether to report year-starts instead of day-starts
 	Returns: array, empty upon error, otherwise each member has
@@ -834,7 +834,7 @@ class PeriodInterpreter
 				while ($dtw < $dte) {
 					if (!$merge || $dtw->format('z') == 0) {
 						$st = $dtw->getTimestamp();
-						if ($st >= $bs && $st < $be) {
+						if ($st >= $bs && $st <= $be) {
 							$doy[] = $st;
 						}
 					}
@@ -848,11 +848,11 @@ class PeriodInterpreter
 			}
 		}
 		$doy = array();
-		$dte->setTimestamp($be-1);
+		$dte->setTimestamp($be);
 		while ($dtw <= $dte) {
 			if (!$merge || $dtw->format('z') == 0) {
 				$st = $dtw->getTimestamp();
-				if ($st >= $bs && $st < $be) {
+				if ($st >= $bs && $st <= $be) {
 					$doy[] = $st;
 				}
 			}
@@ -870,7 +870,7 @@ class PeriodInterpreter
 	@descriptor: array of parsed element(s) or string including token M1..M12,
 		or sequence(s) of those, or ','-separated series of any of the former
 	@bs: timestamp for start of block
-	@be: timestamp for 1-past-end of block
+	@be: timestamp for end of block
 	@dtw: modifiable DateTime object
 	@merge: optional boolean, whether to report month-starts instead of day-starts
 	Returns: array, empty upon error, otherwise each member has
@@ -909,7 +909,7 @@ class PeriodInterpreter
 				$dtw->modify($yn.'-1-1 +'.$d.' days');
 				if (!$merge || $dtw->format('j') == 1)
 					$st = $dtw->getTimestamp();
-					if ($st >= $bs && $st < $be) {
+					if ($st >= $bs && $st <= $be) {
 						$doy[] = $st;
 				}
 			}
@@ -925,7 +925,7 @@ class PeriodInterpreter
 	@descriptor: array of parsed element(s) or string including token W1..W5 or W-5..W-1,
 		or sequence of those, or ','-separated series of any of the former
 	@bs: timestamp for start of block
-	@be: timestamp for 1-past-end of block
+	@be: timestamp for end of block
 	@dtw: modifiable DateTime object
 	@merge: optional boolean, whether to report week-starts instead of day-starts
 	Returns: array, empty upon error, otherwise each member has
@@ -966,7 +966,7 @@ class PeriodInterpreter
 				$dtw->modify($yn.'-1-1 +'.$d.' days');
 				if (!$merge || $dtw->format('w') == 0)
 					$st = $dtw->getTimestamp();
-					if ($st >= $bs && $st < $be) {
+					if ($st >= $bs && $st <= $be) {
 						$doy[] = $st;
 				}
 			}
@@ -982,7 +982,7 @@ class PeriodInterpreter
 	@descriptor: array of parsed element(s) or string including token D1..D7,
 		or number 1..31 or -31..-1, or a sequence of those, or ','-separated series of any of the former
 	@bs: timestamp for start of block
-	@be: timestamp for 1-past-end of block
+	@be: timestamp for end of block
 	@dtw: modifiable DateTime object
 	Returns: array, empty upon error, otherwise each member has
 	 key: a year (4-digit integer)
@@ -1018,7 +1018,7 @@ class PeriodInterpreter
 			foreach ($offs as $d) {
 				$dtw->modify($yn.'-1-1 +'.$d.' days');
 				$st = $dtw->getTimestamp();
-				if ($st >= $bs && $st < $be)
+				if ($st >= $bs && $st <= $be)
 					$doy[] = $st;
 			}
 			if ($doy)
@@ -1032,7 +1032,7 @@ class PeriodInterpreter
 	@descriptor: array of parsed element(s) or ISO-format date,
 		or array like ['ISOstart','.','ISOend'] representing a sequence
 	@bs: timestamp for start of block
-	@be: timestamp for 1-past-end of block
+	@be: timestamp for end of block
 	@dtw: modifiable DateTime object
 	Returns: array, empty upon error, otherwise each member has
 	 key: a year (4-digit integer)
@@ -1050,7 +1050,7 @@ class PeriodInterpreter
 		foreach ($parsed['dates'] as $s) {
 			$dtw->modify($s);
 			$st = $dtw->getTimestamp();
-			if ($st >= $bs && $st < $be) {
+			if ($st >= $bs && $st <= $be) {
 				$yn = (int)$dtw->format('Y');
 				if (isset($ret[$yn])) {
 					$ret[$yn][] = $st;

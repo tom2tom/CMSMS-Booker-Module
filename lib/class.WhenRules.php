@@ -16,12 +16,12 @@ class WhenRules extends WhenRuleLexer
 
 	/*
 	PeriodBlocks:
-	Append to @starts[] and @ends[] pair(s) of timestamps in $bs..$be-1 and
+	Append to @starts[] and @ends[] pair(s) of timestamps in $bs..$be and
 		consistent with @cond
 	@cond: member of parent::conds[] with parsed components of an interval-descriptor
 		=>['P'] will be populated, =>['T'] may be populated
 	@bs: stamp for start of period being processed
-	@be: stamp for one-past-end of period being processed
+	@be: stamp for end-of-period being processed
 	@dtw: modifiable DateTime object for use in relative calcs
 	@timeparms: reference to array of parameters from self::TimeParms
 	@starts: reference to array of block-start timestamps to be updated
@@ -93,29 +93,29 @@ class WhenRules extends WhenRuleLexer
 
 		if ($dodays) {
 			switch ($cond['F']) {
-			 case 1: //whole of $bs..$be-1
+			 case 1: //whole of $bs..$be
 				$parsed = $funcs->BlockDays($bs,$be,$dtw);
 				break;
-			 case 2: //months(s) in any year in $bs..$be-1
-			 case 7: //months(s) in specific year(s) in $bs..$be-1
+			 case 2: //months(s) in any year in $bs..$be
+			 case 7: //months(s) in specific year(s) in $bs..$be
 				$parsed = $funcs->SpecificMonths($cond['P'],$bs,$be,$dtw);
 				break;
-			 case 3: //week(s) in any month in any year in $bs..$be-1
-			 case 8: //week(s) in specific month(s) in $bs..$be-1
-			 case 9: //week(s) in specific [month(s) and] year(s) in $bs..$be-1
+			 case 3: //week(s) in any month in any year in $bs..$be
+			 case 8: //week(s) in specific month(s) in $bs..$be
+			 case 9: //week(s) in specific [month(s) and] year(s) in $bs..$be
 				$parsed = $funcs->SpecificWeeks($cond['P'],$bs,$be,$dtw);
 				break;
-			 case 4: //day(s) of week in any week in $bs..$be-1
-			 case 5: //day(s) of month in any month in $bs..$be-1
-			 case 10: //day(s) in weeks(s) in $bs..$be-1
-			 case 11: //day(s) in [weeks(s) and] month(s) in $bs..$be-1
-			 case 12: //day(s) in weeks(s) and specific month(s) and specific year(s) in $bs..$be-1
+			 case 4: //day(s) of week in any week in $bs..$be
+			 case 5: //day(s) of month in any month in $bs..$be
+			 case 10: //day(s) in weeks(s) in $bs..$be
+			 case 11: //day(s) in [weeks(s) and] month(s) in $bs..$be
+			 case 12: //day(s) in weeks(s) and specific month(s) and specific year(s) in $bs..$be
 				$parsed = $funcs->SpecificDays($cond['P'],$bs,$be,$dtw);
 				break;
-			 case 6: //year(s) in $bs..$be-1
+			 case 6: //year(s) in $bs..$be
 				$parsed = $funcs->SpecificYears($cond['P'],$bs,$be,$dtw);
 				break;
-			 case 13: //specific day(s) in $bs..$be-1
+			 case 13: //specific day(s) in $bs..$be
 				$parsed = $funcs->SpecificDates($cond['P'],$bs,$be,$dtw);
 				break;
 			 default:
@@ -148,10 +148,10 @@ class WhenRules extends WhenRuleLexer
 			switch ($cond['F']) {
 			 case 1: //whole block
 				$starts[] = $bs;
-				$ends[] = $be - 1;
+				$ends[] = $be;
 				break;
-			 case 2: //months(s) in any year in $bs..$be-1
-			 case 7: //months(s) in specific year(s) in $bs..$be-1
+			 case 2: //months(s) in any year in $bs..$be
+			 case 7: //months(s) in specific year(s) in $bs..$be
 				$parsed = $funcs->SpecificMonths($cond['P'],$bs,$be,$dtw,TRUE);
 				if ($parsed) {
 					$inc = new \DateInterval('P1M');
@@ -161,10 +161,10 @@ class WhenRules extends WhenRuleLexer
 							$dtw->setTimestamp($st);
 							$dtw->add($inc);
 							$st = $dtw->getTimestamp();
-							if ($st < $be) {
+							if ($st <= $be) {
 								$ends[] = $st-1;
 							} else {
-								$ends[] = $be-1;
+								$ends[] = $be;
 								break;
 							}
 						}
@@ -172,9 +172,9 @@ class WhenRules extends WhenRuleLexer
 					//TODO merge adjacent months $blocks->MergeBlocks($starts,$ends);
 				}
 				break;
-			 case 3: //week(s) in any month in any year in $bs..$be-1
-			 case 8: //week(s) in specific month(s) in $bs..$be-1
-			 case 9: //week(s) in specific [month(s) and] year(s) in $bs..$be-1
+			 case 3: //week(s) in any month in any year in $bs..$be
+			 case 8: //week(s) in specific month(s) in $bs..$be
+			 case 9: //week(s) in specific [month(s) and] year(s) in $bs..$be
 				$parsed = $funcs->SpecificWeeks($cond['P'],$bs,$be,$dtw,TRUE);
 				if ($parsed) {
 					$inc = new \DateInterval('P7D');
@@ -184,10 +184,10 @@ class WhenRules extends WhenRuleLexer
 							$dtw->setTimestamp($st);
 							$dtw->add($inc);
 							$st = $dtw->getTimestamp();
-							if ($st < $be) {
+							if ($st <= $be) {
 								$ends[] = $st-1;
 							} else {
-								$ends[] = $be-1;
+								$ends[] = $be;
 								break;
 							}
 						}
@@ -195,7 +195,7 @@ class WhenRules extends WhenRuleLexer
 					//TODO merge adjacent weeks $blocks->MergeBlocks($starts,$ends);
 				}
 				break;
-			 case 6: //year(s) in $bs..$be-1
+			 case 6: //year(s) in $bs..$be
 				$parsed = $funcs->SpecificYears($cond['P'],$bs,$be,$dtw,TRUE);
 				if ($parsed) {
 					foreach ($parsed as $soy) {
@@ -204,10 +204,10 @@ class WhenRules extends WhenRuleLexer
 							$dtw->setTimestamp($st);
 							$dtw->modify('+1 year');
 							$st = $dtw->getTimestamp();
-							if ($st < $be) {
+							if ($st <= $be) {
 								$ends[] = $st-1;
 							} else {
-								$ends[] = $be-1;
+								$ends[] = $be;
 								break;
 							}
 						}
@@ -253,7 +253,7 @@ class WhenRules extends WhenRuleLexer
 	Get timestamps for start & end of intra-day block represented by @timedata
 	@timedata: a member of a $cond['T'] i.e. a string or 3-member array
 	@bs: timestamp for start of day being procesed
-	@be: timestamp for 1-past-end of day being procesed
+	@be: timestamp for end-of-day being procesed
 	@dtw: modifiable DateTime object for use in relative calcs
 	@timeparms: reference to array of parameters from self::TimeParms
 	Returns: 2-member array:
@@ -302,7 +302,7 @@ class WhenRules extends WhenRuleLexer
 		$dtw->setTimestamp($tbase);
 		self::RelTime($dtw,$parts[0]);
 		$s = $dtw->getTimestamp();
-		if ($s < $bs || $s >= $be) {
+		if ($s < $bs || $s > $be) {
 			$s = 0;
 		} else {
 			$s -= $bs;
@@ -322,8 +322,8 @@ class WhenRules extends WhenRuleLexer
 		$dtw->setTimestamp($tbase);
 		self::RelTime($dtw,$parts[1]);
 		$e = $dtw->getTimestamp();
-		if ($e < $bs || $e >= $be) {
-			$e = $be-$bs-1;
+		if ($e < $bs || $e > $be) {
+			$e = $be-$bs;
 		} else {
 			$e -= $bs;
 		}
@@ -377,7 +377,7 @@ class WhenRules extends WhenRuleLexer
 		$blocks = new Blocks(); //CHECKME pass as arg?
 
 		$dtw->modify('+1 day');
-		$be = $dtw->getTimestamp();
+		$be = $dtw->getTimestamp() - 1;
 
 		$starts = array();
 		$ends = array();
@@ -461,9 +461,9 @@ class WhenRules extends WhenRuleLexer
 
 	/**
 	GetBlocks:
-	Interpret parent::conds into seconds-blocks covering the interval @bs..@be-1
+	Interpret parent::conds into seconds-blocks covering the interval @bs..@be
 	@bs: UTC timestamp for start of period being processed, not necessarily a midnight
-	@be: corresponding stamp for one-past-end of the period, not necessarily a midnight
+	@be: corresponding stamp for end-of-period, not necessarily a 1-before-midnight
 	@timeparms: reference to array of parameters for sun-related time calcs
 	@defaultall: optional boolean, whether to return, if parent::conds is not set,
 	the whole interval as one block instead of empty arrays, default FALSE
@@ -502,22 +502,22 @@ class WhenRules extends WhenRuleLexer
 				$gete = array();
 				self::PeriodBlocks($cond,$bs,$be,$dtw,$timeparms,$gets,$gete);
 				if ($gets) {
-					//merge $starts,$ends,$gets,$gete
-					if ($starts) {
-						list($gets,$gete) = $blocks->IntersectBlocks($starts,$ends,$gets,$gete);
-					} else {
-						//want something to compare with
-						list($gets,$gete) = $blocks->IntersectBlocks(array($bs),array($be),$gets,$gete);
-					}
+					list($gets,$gete) = $blocks->IntersectBlocks(array($bs),array($be),$gets,$gete);
 					if ($gets) {
-						$starts = $gets;
-						$ends = $gete;
-						if (count($starts) == 1 && reset($starts) <= $bs && end($ends) >= $be-1) //all of $bs..$be now covered
+						if ($starts) {
+							$starts = array_merge($starts,$gets);
+							$ends = array_merge($ends,$gete);
+							$blocks->MergeBlocks($starts,$ends);
+						} else {
+							$starts = $gets;
+							$ends = $gete;
+						}
+						if (count($starts) == 1 && reset($starts) <= $bs && end($ends) >= $be) //all of $bs..$be now covered
 							break;
 					}
 				}
 			}
-//			unset($cond);
+			unset($cond);
 			if ($starts) {
 				//for all exclusion-conditions, subtract from $starts,$ends
 				foreach ($this->conds as &$cond) {
@@ -540,29 +540,21 @@ class WhenRules extends WhenRuleLexer
 					$gete = array();
 					self::PeriodBlocks($cond,$bs,$be,$dtw,$timeparms,$gets,$gete);
 					if ($gets) {
-						//diff $starts,$ends,$gets,$gete
-						if ($starts) {
-							list($gets,$gete) = $blocks->DiffBlocks($starts,$ends,$gets,$gete);
-						} else {
-							//want something to compare with
-							list($gets,$gete) = $blocks->DiffBlocks(array($bs),array($be),$gets,$gete);
-						}
-						if ($gets !== FALSE) {
-							$starts = $gets;
-							$ends = $gete;
+						list($gets,$gete) = $blocks->IntersectBlocks(array($bs),array($be),$gets,$gete);
+						if ($gets) {
+							list($starts,$ends) = $blocks->DiffBlocks($starts,$ends,$gets,$gete);
 							if (!$starts) //none of $bs..$be now covered
 								break;
 						}
 					}
 				}
-			}
-			unset($cond);
-			if ($starts) {
-				//sort block-pairs, merge when needed
-				$blocks->MergeBlocks($starts,$ends);
+				unset($cond);
+				if ($starts) {
+					//sort block-pairs, merge when needed
+					$blocks->MergeBlocks($starts,$ends);
+				}
 			}
 		} elseif ($defaultall) {
-			$be--; //no-longer 1-past
 			$starts[] = min($bs,$be);
 			$ends[] = max($bs,$be);
 		}
@@ -571,10 +563,10 @@ class WhenRules extends WhenRuleLexer
 
 	/**
 	AllIntervals:
-	Get pair(s) of timestamps representing time-block(s) in @bs..@be-1 that	conform to @descriptor
+	Get pair(s) of timestamps representing time-block(s) in @bs..@be that conform to @descriptor
 	@descriptor: interval-language string to be interpreted, or some variety of FALSE
 	@bs: UTC timestamp for start of period being processed
-	@be: corresponding stamp for 1-past-end of the period
+	@be: corresponding stamp for end-of-period (NOT 1-past)
 	@timeparms: reference to array of parameters from self::TimeParms, used in time calcs
 	@defaultall: optional boolean, whether to return, upon some sort of problem,
 		arrays representing the whole period instead of FALSE, default FALSE
@@ -593,18 +585,18 @@ class WhenRules extends WhenRuleLexer
 		//nothing to report
 		if ($defaultall) {
 			//limiting timestamps
-			return array(array($bs),array($be-1));
+			return array(array($bs),array($be));
 		}
 		return FALSE;
 	}
 
 	/**
 	NextInterval:
-	Get a pair of timestamps representing the earliest time-block in @bs..@be-1
+	Get a pair of timestamps representing the earliest time-block in @bs..@be
 	and conforming to @descriptor
 	@descriptor: interval-language string to be interpreted, or some variety of FALSE
 	@bs: UTC timestamp for start (midnight) of 1st day of period being processed
-	@be: corresponding stamp for 1-past-end of the period of interest
+	@be: corresponding stamp for end-of-period (NOT 1-past)
 	@timeparms: reference to array of parameters from self::TimeParms, used in time calcs
 	@slotlen: length (seconds) of wanted block
 	Returns: array with 2 timestamps, or FALSE
@@ -623,17 +615,17 @@ class WhenRules extends WhenRuleLexer
 			return FALSE;
 		}
 		//limiting timestamps
-		if ($bs+$slotlen <= $be)
+		if ($bs+$slotlen <= $be+1)
 			return array($bs,$bs+$slotlen);
 		return FALSE;
 	}
 
 	/**
 	IntervalComplies:
-	Determine whether the whole block @bs..@be-1 is consistent with @descriptor
+	Determine whether the whole block @bs..@be is consistent with @descriptor
 	@descriptor: when-rule string to be interpreted, or some variety of FALSE
 	@bs: UTC timestamp for start of the period to be checked
-	@be: corresponding stamp for 1-past-end of the period
+	@be: corresponding stamp for end-of-period (NOT 1-past)
 	@timeparms: reference to array of parameters from self::TimeParms, used in time calcs
 	Returns: boolean representing compliance, or TRUE if @descriptor is FALSE,
 		or FALSE if @descriptor is not parsable
@@ -643,8 +635,7 @@ class WhenRules extends WhenRuleLexer
 		$res = self::AllIntervals($descriptor,$bs,$be,$timeparms,TRUE);
 		if ($res) {
 			$blocks = new Blocks();
-			list($starts,$ends) = $blocks->DiffBlocks(
-				array($bs),array($be-1),$res[0],$res[1]);
+			list($starts,$ends) = $blocks->DiffBlocks(array($bs),array($be),$res[0],$res[1]);
 			return (count($starts) == 0); //none of the interval is not covered by $descriptor
 		}
 		return FALSE;
