@@ -19,7 +19,7 @@ class Cache
 	  GetCache:
 	  @mod: reference to Booker-module object
 	  @storage: optional cache-type name, one (or more, ','-separated) of
-	  auto,yac,apc,apcu,wincache,xcache,redis,predis,file,database
+	  yac,apc,apcu,wincache,xcache,memcache,redis,predis,file,database
 	  default = 'auto' to try all of the above, in that order
 	  @settings: optional array of general and cache-type-specific parameters,
 	  (e.g. see default array in this func)
@@ -51,10 +51,10 @@ class Cache
 
 		$settings = array_merge(
 			array(
-/* 			'memcache' => array(
-			  array('host'=>$url,'port'=>11211)
-			  ),
-			  'memcached' => array(
+ 			'memcache' => array(
+			  array('host'=>'127.0.0.1','port'=>11211)
+			),
+/*			  'memcached' => array(
 			  array('host'=>$url,'port'=>11211,'persist'=>1)
 			  ),
 */
@@ -77,7 +77,7 @@ class Cache
 		} else
 			$storage = 'auto';
 		if (strpos($storage, 'auto') !== FALSE)
-			$storage = 'yac,apc,apcu,wincache,xcache,redis,predis,file,database';
+			$storage = 'yac,apc,apcu,wincache,xcache,memcache,redis,predis,file,database';
 
 		$types = explode(',', $storage);
 		foreach ($types as $one) {
