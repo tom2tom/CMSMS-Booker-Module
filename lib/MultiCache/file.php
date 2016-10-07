@@ -21,7 +21,7 @@ class Cache_file extends CacheBase implements CacheInterface
 	{
 		return !empty($this->config['path']);
 	}
-	
+
 	public function connectServer()
 	{
 		$dir = trim(rtrim($this->config['path'],'/\\ \t'));
@@ -141,6 +141,7 @@ class Cache_file extends CacheBase implements CacheInterface
 	{
 		$h = @fopen($filepath,'rb');
 		if ($h) {
+			clearstatcache(TRUE,$filepath);
 			$content = @fread($h,filesize($filepath));
 			@fclose($h);
 			return unserialize($content);
