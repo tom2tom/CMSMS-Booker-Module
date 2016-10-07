@@ -15,13 +15,14 @@ class Cache_xcache extends CacheBase implements CacheInterface
 		throw new \Exception('no xcache storage');
 	}
 
-/*	public function __destruct()
-	{
-	}
-*/
 	public function use_driver()
 	{
-		return (extension_loaded('xcache') && function_exists('xcache_get'));
+		if (extension_loaded('xcache') && function_exists('xcache_get')) {
+			if (ini_get('xcache.var_size')) {
+				return TRUE;
+			}
+		}
+		return FALSE;
 	}
 
 	public function connectServer()
