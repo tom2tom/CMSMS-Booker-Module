@@ -1,3 +1,3 @@
 <ul>
-<li>Version 0.1.0 30 March 2015 Initial beta release</li>
+<li>Version 0.6.0 20 October 2016 Initial public release</li>
 </ul>
