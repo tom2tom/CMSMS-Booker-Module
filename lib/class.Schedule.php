@@ -575,7 +575,7 @@ class Schedule
 	ScheduleResource:
 	Register as many as possible of bookings in @reqdata, for a single resource @item_id.
 	The status field in each @reqdata member will be updated to indicate what
-	precisely has been done, the subgroupcount field will be added if absent
+	precisely has been done, the subgrpcount field will be added if absent
 	@mod: reference to current Booker module object
 	@utils: reference to Booker\Utils object
 	@item_id: item identifier
@@ -607,7 +607,7 @@ class Schedule
 		$res = TRUE;
 		$session_id = Cache::GetKey(\Booker::SESSIONKEY); //identifier for cached slotstatus data
 		foreach ($reqdata as &$one) {
-			$one['subgroupcount'] = 1; //force this
+			$one['subgrpcount'] = 1; //force this
 			if (!self::ScheduleOne($mod,$utils,$one,$item_id,0,$session_id,FALSE)) {
 				$res = FALSE;
 			}
@@ -625,7 +625,7 @@ class Schedule
 	ScheduleGroup:
 	Register as many as possible of bookings in @reqdata, for resource-group @item_id.
 	The status field in each @reqdata member will be updated to reflect what was done,
-	the subgroupcount field will have been added or updated if empty on arrival.
+	the subgrpcount field will have been added or updated if empty on arrival.
 	@mod: reference to current Booker module object
 	@utils: reference to Utils-class object
 	@item_id: group identifier

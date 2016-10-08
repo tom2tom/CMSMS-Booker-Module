@@ -104,7 +104,7 @@ EOS;
 					if (isset($one['approved'])) {
 						$sql1 .= 'item_id=?,subgrpcount=?,approved=?,';
 						$args1[] = $one['item_id']; //downstream may have changed item_id (for a 1-member group booking)
-						$args1[] = $one['subgroupcount']; //ditto for missing subgroupcount
+						$args1[] = $one['subgrpcount']; //ditto for missing subgrpcount
 						$args1[] = $one['approved'];
 					}
 					$sql1 .= 'status=? WHERE history_id=?';
