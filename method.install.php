@@ -364,7 +364,7 @@ $db->CreateSequence($this->HistoryTable.'_seq');
  pickmembersfor: group identifier or NULL, if not pickmembers, then show members
 	of item_id in relevant resource-picklists when this field's value is an ancestor of item_id
 */
-$fields = "
+/*$fields = "
  gid I AUTO KEY,
  item_id I(4) NOTNULL,
  pick I(1) DEFAULT 1,
@@ -378,7 +378,7 @@ if ($sqlarray == FALSE)
 $res = $dict->ExecuteSQLArray($sqlarray, FALSE);
 if ($res != 2)
 	return FALSE;
-
+*/
 /*
 Data cache
  cache_id:

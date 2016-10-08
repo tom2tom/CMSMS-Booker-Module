@@ -52,6 +52,8 @@ $sql = $dict->DropTableSQL($this->ItemTable);
 $dict->ExecuteSQLArray($sql);
 $sql = $dict->DropTableSQL($this->RepeatTable);
 $dict->ExecuteSQLArray($sql);
+//$sql = $dict->DropTableSQL($this->ItemTable.'pick');
+//$dict->ExecuteSQLArray($sql);
 $sql = $dict->DropTableSQL($pre.'module_bkr_cache');
 $dict->ExecuteSQLArray($sql);
 // remove sequences
