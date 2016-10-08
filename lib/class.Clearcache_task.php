@@ -22,38 +22,65 @@ class Clearcache_task implements \CmsRegularTask
 		return $mod->Lang('task_clearcache');
 	}
 
+	private function FileCacheDir(&$mod)
+	{
+		$config = \cmsms()->GetConfig();
+		$dir = $config['uploads_path'];
+		$rel = $mod->GetPreference('pref_uploadsdir');
+		if ($rel) {
+			$dir .= DIRECTORY_SEPARATOR.$rel;
+		}
+		$dir .= DIRECTORY_SEPARATOR.'file_cache';
+		if (is_dir($dir)) {
+			return $dir;
+		}
+		return FALSE;
+	}
+
 	public function test($time='')
 	{
-/* TODO
 		$mod = \cms_utils::get_module(self::MODNAME);
-		if (!($mod->GetPreference('logsends')
-		  || $mod->GetPreference('logdeliveries')))
-			return FALSE;
-		$days = (int)$mod->GetPreference('logdays');
-		if ($days <= 0)
-			return FALSE;
-		if (!$time)
-			$time = time();
-		$last_cleared = $mod->GetPreference('cachelastclear');
-		return ($time >= $last_cleared + $days*86400);
-*/
-		return FALSE;
+		$dir = $this->FileCacheDir($mod);
+		if ($dir) {
+			foreach (new DirectoryIterator($dir) as $fInfo) {
+				$fn = $fInfo->getFilename();
+				if (strpos($fn,\Booker::CARTKEY) === 0)
+					return TRUE;
+			}
+		}
+		//if file-cache N/A, check for database-cache
+		$sql = 'SELECT cache_id FROM '.cms_db_prefix().'module_bkr_cache';
+		$res = $mod->dbHandle->GetOne($sql);
+		return ($res != FALSE);
 	}
 
 	public function execute($time='')
 	{
 		if (!$time)
 			$time = time();
-//TODO	smsg_utils::clean_log(NULL,$time);
+		$time -= 43200; //half-day cache retention-period (as seconds)
+		$mod = \cms_utils::get_module(self::MODNAME);
+		$dir = $this->FileCacheDir($mod);
+		if ($dir) {
+			foreach (new DirectoryIterator($dir) as $fInfo) {
+				if ($fInfo->isFile() && !$fInfo->isDot()) {
+					$fn = $fInfo->getFilename();
+					if (strpos($fn,\Booker::CARTKEY) === 0) {
+						$mtime = $fInfo->getMTime();
+						if ($mtime < $time) {
+							@unlink($dir.DIRECTORY_SEPARATOR.$fn);
+						}
+					}
+				}
+			}
+		}
+		$sql = 'DELETE FROM '.cms_db_prefix().'module_bkr_cache WHERE savetime+lifetime <?';
+		$mod->dbHandle->Execute($sql,array($time));
 		return TRUE;
 	}
 
 	public function on_success($time='')
 	{
-		if (!$time)
-			$time = time();
-		$mod = \cms_utils::get_module(self::MODNAME);
-		$mod->SetPreference('cachelastclear',$time);
 	}
 
 	public function on_failure($time='')
