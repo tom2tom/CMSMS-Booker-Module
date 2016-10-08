@@ -6,7 +6,7 @@
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
 
-if (! $this->CheckAccess('admin')) return;
+if (!$this->_CheckAccess('admin')) return;
 
 switch ($oldversion) {
 }
