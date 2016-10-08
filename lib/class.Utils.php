@@ -84,6 +84,46 @@ class Utils
 		}
 	}
 
+	public function MergeJS($jsincs, $jsfuncs, $jsloads, &$merged)
+	{
+		if (is_array($jsincs)) {
+			$all = $jsincs;
+		} elseif ($jsincs) {
+			$all = array($jsincs);
+		} else {
+			$all = array();
+		}
+		if ($jsfuncs || $jsloads) {
+			$all[] =<<<EOS
+<script type="text/javascript">
+//<![CDATA[
+EOS;
+			if (is_array($jsfuncs)) {
+				$all = array_merge($all,$jsfuncs);
+			} elseif ($jsfuncs) {
+				$all[] = $jsfuncs;
+			}
+			if ($jsloads) {
+				$all[] =<<<EOS
+$(document).ready(function() {
+EOS;
+				if (is_array($jsloads)) {
+					$all = array_merge($all,$jsloads);
+				} else {
+					$all[] = $jsloads;
+				}
+				$all[] =<<<EOS
+});
+EOS;
+			}
+			$all[] =<<<EOS
+//]]>
+</script>
+EOS;
+		}
+		$merged = implode(PHP_EOL,$all);
+	}
+
 	/**
 	SafeGet:
 	Execute SQL command(s) with minimal chance of data-race
