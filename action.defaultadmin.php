@@ -119,7 +119,6 @@ $tplvars['abort'] = $this->Lang('cancel');
 
 $jsincs[] =<<<EOS
 <script type="text/javascript" src="{$baseurl}/include/jquery.modalconfirm.min.js"></script>
-
 EOS;
 $tablerows = array();
 
@@ -232,7 +231,6 @@ function select_all_req(b) {
  if (!st) { st = false; }
  $('input[name="{$id}selreq[]"][type="checkbox"]').attr('checked',st);
 }
-
 EOS;
 	} //endif $dcount > 1
 
@@ -241,7 +239,6 @@ function confirm_reqcount() {
  var cb = $('input[name="{$id}selreq[]"]:checked');
  return (cb.length > 0);
 }
-
 EOS;
 
 	if ($tell) {
@@ -299,7 +296,6 @@ function savecustom2(tg,\$d) {
  $(tg).attr('href',curl);
  return true;
 }
-
 EOS;
 		$jsloads[] =<<<EOS
  $('#datatable .bkrtell > a').modalconfirm({
@@ -319,7 +315,6 @@ EOS;
   preShow: modalsetup,
   onConfirm: savecustom
  });
-
 EOS;
 		if ($bmod) {
 			$jsloads[] =<<<EOS
@@ -340,7 +335,6 @@ EOS;
   preShow: modalsetup,
   onConfirm: savecustom
  });
-
 EOS;
 			$jsloads[] =<<<EOS
  $('#datatable .bkrrej > a').modalconfirm({
@@ -360,7 +354,6 @@ EOS;
   preShow: modalsetup,
   onConfirm: savecustom
  });
-
 EOS;
 		} //endif $bmod
 	} else { //Notifier module N/A
@@ -383,7 +376,6 @@ EOS;
    para.innerHTML = '{$this->Lang('reminder')}';
   }
  });
-
 EOS;
 			$jsloads[] =<<<EOS
  $('#datatable .bkrrej > a').modalconfirm({
@@ -403,7 +395,6 @@ EOS;
    para.innerHTML = '{$this->Lang('reminder')}';
   }
  });
-
 EOS;
 		} //endif $bmod
 	} //endif Notifier module N/A
@@ -442,7 +433,6 @@ EOS;
    para.innerHTML = '{$this->Lang('delsel_confirm',$this->Lang('request_multi'))}';
   }
  });
-
 EOS;
 	}
 	//titles
@@ -612,7 +602,6 @@ function select_all_bkr(b) {
  if (!st) { st = false; }
  $('input[name="{$id}selbkr[]"][type="checkbox"]').attr('checked',st);
 }
-
 EOS;
 	} // $pcount > 1
 
@@ -621,7 +610,6 @@ function confirm_bkrcount() {
  var cb = $('input[name="{$id}selbkr[]"]:checked');
  return (cb.length > 0);
 }
-
 EOS;
 	if($padd) {
 		$tplvars['ablebtn2'] =
@@ -652,7 +640,6 @@ EOS;
    para.innerHTML = '{$this->Lang('delsel_confirm',$this->Lang('booker_multi'))}';
   }
  });
-
 EOS;
 	} //$pper
 	$tplvars['exportbtn2'] = $this->CreateInputSubmit($id,'export',$this->Lang('export'),
@@ -930,7 +917,6 @@ function confirm_itmcount() {
  var cb = $('input[name="{$id}selitm[]"]:checked');
  return (cb.length > 0);
 }
-
 EOS;
 	if ($pdel) {
 		$t = $this->Lang('confirm_delete_type',$this->Lang('item'),'%s');
@@ -955,7 +941,6 @@ EOS;
    para.innerHTML = '{$this->Lang('delsel_confirm',$this->Lang('item_multi'))}';
   }
  });
-
 EOS;
 	}
 } else
@@ -1021,7 +1006,6 @@ function confirm_grpcount() {
  var cb = $('input[name="{$id}selgrp[]"]:checked');
  return (cb.length > 0);
 }
-
 EOS;
 	if ($pdel) {
 		$jsloads[] = <<<EOS
@@ -1045,7 +1029,6 @@ EOS;
    para.innerHTML = '{$this->Lang('delsel_confirm',$this->Lang('group_multi'))}';
   }
  });
-
 EOS;
 	}
 } else
@@ -1113,7 +1096,6 @@ $jsloads[] =<<<EOS
    \$b.attr('checked',true);
   }
  });
-
 EOS;
 
 //SETTINGS TAB
@@ -1509,7 +1491,6 @@ if ($include) {
 	$jsincs[] = <<<EOS
 <script type="text/javascript" src="{$baseurl}/include/jquery.metadata.min.js"></script>
 <script type="text/javascript" src="{$baseurl}/include/jquery.SSsort.min.js"></script>
-
 EOS;
 
 $initbls = '';
@@ -1553,7 +1534,6 @@ function pagerows(tbl,dd) {
  $.SSsort.setCurrent(tbl,'pagesize',parseInt(dd.value));
 }
 {$havetbls}
-
 EOS;
 	$extras = '['.PHP_EOL.implode(','.PHP_EOL,$pagerdata).PHP_EOL.']';
 } else {
@@ -1591,7 +1571,6 @@ $jsloads[] = <<<EOS
   }
   $(this).SSsort(cfg);
  });
-
 EOS;
 }
 
@@ -1603,17 +1582,10 @@ EOS;
    active.attr('id')+"' />");
   return true;
  });
-
 EOS;
 */
 
-$jsfuncs[] = '$(document).ready(function() {
-';
-$jsfuncs = array_merge($jsfuncs,$jsloads);
-$jsfuncs[] = '});
-';
-
-$tplvars['jsincs'] = $jsincs;
-$tplvars['jsfuncs'] = $jsfuncs;
+$tplvars['jsall'] = NULL;
+$utils->MergeJS($jsincs,$jsfuncs,$jsloads,$tplvars['jsall']);
 
 echo Booker\Utils::ProcessTemplate($this,'adminpanel.tpl',$tplvars);

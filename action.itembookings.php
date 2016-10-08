@@ -103,7 +103,7 @@ if (isset($params['resume'])) {
 	}
 } else {
 	$params['resume'] = array('defaultadmin'); //got here via link
-} 
+}
 
 $utils = new Booker\Utils();
 $params['active_tab'] = ($is_group) ? 'groups':'items';
@@ -242,7 +242,6 @@ function savecustom2(tg,\$d) {
  $(tg).attr('href',curl);
  return true;
 }
-
 EOS;
 }
 
@@ -365,7 +364,6 @@ function pageback() {
 function pagerows(cb) {
  $.SSsort.setCurrent($('#bookings')[0],'pagesize',parseInt(cb.value));
 }
-
 EOS;
 	} else {
 		$tplvars['hasnav'] = 0;
@@ -386,13 +384,11 @@ EOS;
   currentid: 'cpage',
   countid: 'tpage'
  });
-
 EOS;
 		$jsfuncs[] = <<<EOS
 function select_all(cb) {
  $('#bookings > tbody').find('input[type="checkbox"]').attr('checked',cb.checked);
 }
-
 EOS;
 		$tplvars['header_checkbox'] =
 			$this->CreateInputCheckbox($id,'selectall',TRUE,FALSE,'onclick="select_all(this);"');
@@ -403,7 +399,6 @@ function any_selected() {
  var cb = $('#bookings input[name="{$id}sel[]"]:checked');
  return (cb.length > 0);
 }
-
 EOS;
 	$tplvars['export'] = $this->CreateInputSubmit($id,'export',$this->Lang('export'),
 		'title="'.$this->Lang('tip_export_selected_records').'"');
@@ -412,7 +407,7 @@ EOS;
 
 		$tplvars['delete'] = $this->CreateInputSubmit($id,'delete',$this->Lang('delete'),
 		'title="'.$this->Lang('tip_delsel_items').'"');
-		
+
 		if ($tell) {
 			$tplvars['notify'] = $this->CreateInputSubmit($id,'notify',$this->Lang('notify'),
 			'title="'.$this->Lang('tip_notify_selected_records').'"');
@@ -452,7 +447,6 @@ EOS;
   preShow: modalsetup,
   onConfirm: savecustom2
  });
-
 EOS;
 		} else { //no Notifier module
 			$t = $this->Lang('confirm_delete_type',$this->Lang('booking'),'%s');
@@ -477,7 +471,6 @@ EOS;
    para.innerHTML = m;
   }
  });
-
 EOS;
 		}
 	}
@@ -581,7 +574,6 @@ function any_selected2() {
  var cb = $('#repeats input[name="{$id}sel[]"]:checked');
  return (cb.length > 0);
 }
-
 EOS;
 	if ($pmod) {
 		if ($rc > 1) {
@@ -596,13 +588,11 @@ EOS;
   oddsortClass: 'row1s',
   evensortClass: 'row2s'
  });
-
 EOS;
 			$jsfuncs[] = <<<EOS
 function select_all2(cb) {
  $('#repeats > tbody').find('input[type="checkbox"]').attr('checked',cb.checked);
 }
-
 EOS;
 			$tplvars['header_checkbox2'] =
 				$this->CreateInputCheckbox($id,'selectall',TRUE,FALSE,'onclick="select_all2(this);"');
@@ -629,7 +619,6 @@ EOS;
   preShow: modalsetup,
   onConfirm: savecustom2
  });
-
 EOS;
 		}
 
@@ -658,7 +647,6 @@ EOS;
    para.innerHTML = m;
   }
  });
-
 EOS;
 	} //pmod
 } else { //rc i.e. data found
@@ -676,25 +664,16 @@ if ($pmod) {
 if ($from_group)
 	$tplvars['help_group'] = $this->Lang('help_groupbooking');
 
-if ($jsloads) {
-	$jsfuncs[] = '$(document).ready(function() {
-';
-	$jsfuncs = array_merge($jsfuncs,$jsloads);
-	$jsfuncs[] = '});
-';
-}
-$tplvars['jsfuncs'] = $jsfuncs;
-
 $jsincs[] = <<<EOS
 <script type="text/javascript" src="{$baseurl}/include/jquery.metadata.min.js"></script>
 <script type="text/javascript" src="{$baseurl}/include/jquery.SSsort.min.js"></script>
-
 EOS;
 if ($pmod)
 	$jsincs[] = <<<EOS
 <script type="text/javascript" src="{$baseurl}/include/jquery.modalconfirm.min.js"></script>
-
 EOS;
-$tplvars['jsincs'] = $jsincs;
+
+$tplvars['jsall'] = NULL;
+$utils->MergeJS($jsincs,$jsfuncs,$jsloads,$tplvars['jsall']);
 
 echo Booker\Utils::ProcessTemplate($this,'bookings.tpl',$tplvars);

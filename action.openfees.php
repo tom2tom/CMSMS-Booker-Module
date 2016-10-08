@@ -512,7 +512,6 @@ if ($pdata) {
    para.innerHTML = prompt;
   }
  });
-
 EOS;
 		$tplvars['yes'] = $this->Lang('yes');
 		$tplvars['no'] = $this->Lang('no');
@@ -553,7 +552,6 @@ if ($pmod) {
 
 		$jsloads[] = <<<EOS
  $('.updown').hide();
-
 EOS;
 		$jsfuncs[] = <<<EOS
 function selitm_count() {
@@ -577,7 +575,6 @@ function confirm_delete_item(btn) {
  }
  return false;
 }
-
 EOS;
 		if ($count > 1) {
 			$tplvars['selectall'] = $this->CreateInputCheckbox($id,'item',1,-1,
@@ -588,7 +585,6 @@ function select_all_itm(b) {
  if (!st) st = false;
  $('input[name^="{$id}selfees"][type="checkbox"]').attr('checked', st);
 }
-
 EOS;
 			$tplvars['dndhelp'] = $this->Lang('help_dnd');
 			$jsincs[] =
@@ -626,7 +622,6 @@ EOS;
   var to = now.indexOf('hover');
   $(this).attr('class', now.substring(0,to));
  });
-
 EOS;
 		}//$count > 1
 	}//$count > 0
@@ -635,14 +630,7 @@ EOS;
 	$tplvars['cancel'] =  $this->CreateInputSubmit($id,'cancel',$this->Lang('close'));
 }
 
-$tplvars['jsincs'] = $jsincs;
-if ($jsloads) {
-	$jsfuncs[] = '$(document).ready(function() {
-';
-	$jsfuncs = array_merge($jsfuncs,$jsloads);
-	$jsfuncs[] = '});
-';
-}
-$tplvars['jsfuncs'] = $jsfuncs;
+$tplvars['jsall'] = NULL;
+$utils->MergeJS($jsincs,$jsfuncs,$jsloads,$tplvars['jsall']);
 
 echo Booker\Utils::ProcessTemplate($this,'fullfees.tpl',$tplvars);

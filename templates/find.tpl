@@ -54,13 +54,5 @@
 &nbsp;&nbsp;<input id="mc_deny" class="cms_submit btn_deny" type="submit" value="{$no}" /></p>
 </div>
 {/if}
-{if $jsincs}
-{foreach from=$jsincs item=inc}{$inc}
-{/foreach}{/if}
-{if $jsfuncs}
-<script type="text/javascript">
-//<![CDATA[
-{foreach from=$jsfuncs item=func}{$func}{/foreach}
-//]]>
-</script>
+{if !empty($jsall)}{$jsall}
 {/if}

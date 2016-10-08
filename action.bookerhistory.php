@@ -25,9 +25,10 @@ $tplvars = array(
 if (isset($params['message']))
 	$tplvars['message'] = $params['message'];
 
-$jsloads = array();
-$jsfuncs = array();
-$jsincs = array();
+//$jsloads = array();
+//$jsfuncs = array();
+//$jsincs = array();
+
 $baseurl = $this->GetModuleURLPath();
 $theme = ($this->before20) ? cmsms()->get_variable('admintheme'):
 	cms_utils::get_theme_object();
@@ -67,14 +68,7 @@ if ($count) {
 }
 //TODO date-range selectors
 
-if ($jsloads) {
-	$jsfuncs[] = '$(document).ready(function() {
-';
-	$jsfuncs = array_merge($jsfuncs,$jsloads);
-	$jsfuncs[] = '});
-';
-}
-$tplvars['jsfuncs'] = $jsfuncs;
-$tplvars['jsincs'] = $jsincs;
+//$tplvars['jsall'] = NULL;
+//$utils->MergeJS($jsincs,$jsfuncs,$jsloads,$tplvars['jsall']);
 
 echo Booker\Utils::ProcessTemplate($this,'bookerhistory.tpl',$tplvars);

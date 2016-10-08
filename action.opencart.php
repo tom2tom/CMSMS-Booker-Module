@@ -115,7 +115,6 @@ $baseurl = $this->GetModuleURLPath();
 
 $jsloads[] = <<<EOS
  $('#needjs').css('display','none');
-
 EOS;
 
 $hidden = $utils->FilterParameters($params,$localparams);
@@ -230,7 +229,6 @@ if (!$cart->seemsEmpty()) {
   }
   return false;
  });
-
 EOS;
 
 } else { //empty cart
@@ -255,14 +253,7 @@ if (\$linklast.length) {
 }
 EOS;
 
-if ($jsloads) {
-	$jsfuncs[] = '$(document).ready(function() {
-';
-	$jsfuncs = array_merge($jsfuncs,$jsloads);
-	$jsfuncs[] = '});
-';
-}
-$tplvars['jsfuncs'] = $jsfuncs;
-$tplvars['jsincs'] = $jsincs;
+$tplvars['jsall'] = NULL;
+$utils->MergeJS($jsincs,$jsfuncs,$jsloads,$tplvars['jsall']);
 
 echo Booker\Utils::ProcessTemplate($this,'opencart.tpl',$tplvars);

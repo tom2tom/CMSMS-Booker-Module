@@ -194,7 +194,6 @@ $baseurl = $this->GetModuleURLPath();
 
 $jsloads[] = <<<EOS
  $('#needjs').css('display','none');
-
 EOS;
 
 $tplvars = array('needjs'=>$this->Lang('needjs'));
@@ -278,7 +277,6 @@ $jsloads[] = <<<EOS
  $('#{$id}rangepick').change(function() {
   $(this).closest('form').trigger('submit');
  });
-
 EOS;
 
 if ($showtable) {
@@ -296,7 +294,6 @@ if ($chooser) {
  $('#{$id}itempick').change(function() {
   $(this).closest('form').trigger('submit');
  });
-
 EOS;
 }
 
@@ -347,7 +344,6 @@ else {
 	$('#{$id}newlist').val(1);
   $(this).closest('form').trigger('submit');
  });
-
 EOS;
 }
 
@@ -375,7 +371,7 @@ if ($showtable) {
 function slot_activate() {
  var idx = $(this).index();
  if (idx === 0) //labels col
- 	return;
+  return;
  slot_record(this);
  var bkid = $(this).attr('id');
  if (typeof bkid != 'undefined')
@@ -400,7 +396,6 @@ function col_focus() {
  dt += table.rows[1].cells[0].getAttribute('iso');
  $('#{$id}clickat').val(dt);
 }
-
 EOS;
 	$jsincs[] = <<<EOS
 <script type="text/javascript" src="{$baseurl}/include/tableHeadFixer.min.js"></script>
@@ -410,7 +405,6 @@ EOS;
  \$table.find('th.periodname').click(col_focus);
  \$table.find('td').click(slot_focus).dblclick(slot_activate);
  \$table.tableHeadFixer({'left':1});
-
 EOS;
 }
 
@@ -452,7 +446,6 @@ $jsloads[] = <<<EOS
    }
   }
  });
-
 EOS;
 
 $stylers = <<<EOS
@@ -478,13 +471,7 @@ if (\$linklast.length) {
 }
 EOS;
 
-$jsfuncs[] = '$(document).ready(function() {
-';
-$jsfuncs = array_merge($jsfuncs,$jsloads);
-$jsfuncs[] = '});
-';
-
-$tplvars['jsfuncs'] = $jsfuncs;
-$tplvars['jsincs'] = $jsincs;
+$tplvars['jsall'] = NULL;
+$utils->MergeJS($jsincs,$jsfuncs,$jsloads,$tplvars['jsall']);
 
 echo Booker\Utils::ProcessTemplate($this,$tplname,$tplvars);

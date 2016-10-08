@@ -508,7 +508,6 @@ $jsloads[] = <<<EOS
  $('img.tipper').css({'display':'inline','padding-left':'10px'}).click(function() {
    $(this).parent().next().next().slideToggle();
  });
-
 EOS;
 
 //construct arrays of UI-items, in display-order
@@ -701,7 +700,6 @@ function confirm_saved(btn) {
  });
  return false;
 }
-
 EOS;
 }
 $basic[] = array('ttl'=>$cascade.$this->Lang('title_feeusage'),
@@ -919,7 +917,6 @@ if ($is_group) {
   ev.preventDefault();
 	return false;
  });
-
 EOS;
 	} //$rc>1
 //------- pickmembers
@@ -1042,7 +1039,6 @@ if ($allgrps) {
   });
   return false;
  });
-
 EOS;
 	}
 } //$allgrps
@@ -1108,7 +1104,6 @@ $jsloads[] = <<<EOS
    $('#members td > input[value='+v+']').removeAttr('checked');
   }
  });
-
 EOS;
 //------- available
 if ($pmod)
@@ -1487,17 +1482,9 @@ function stylefile_selected(el) {
 	$('#{$id}stylesfile').val(now);
  }
 }
-
 EOS;
 
-if ($jsloads) {
-	$jsfuncs[] = '$(document).ready(function() {
-';
-	$jsfuncs = array_merge($jsfuncs,$jsloads);
-	$jsfuncs[] = '});
-';
-}
-$tplvars['jsfuncs'] = $jsfuncs;
-$tplvars['jsincs'] = $jsincs;
+$tplvars['jsall'] = NULL;
+$utils->MergeJS($jsincs,$jsfuncs,$jsloads,$tplvars['jsall']);
 
 echo Booker\Utils::ProcessTemplate($this,'openitem.tpl',$tplvars);

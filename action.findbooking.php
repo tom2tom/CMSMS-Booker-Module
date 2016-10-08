@@ -129,7 +129,6 @@ $tableid = 'details';
 
 $jsloads[] = <<<EOS
  $('#needjs').css('display','none');
-
 EOS;
 
 $hidden = $utils->FilterParameters($params,$localparams);
@@ -201,7 +200,6 @@ if (isset($params['search'])) {
  'findusertype' => int 1 or 2 for exact or partial name-match
  'finduser' => string like 'Tom'
  */
-	$utils = new Booker\Utils();
 	$cond = array();
 	$t = (int)$params['findpick'];
 	if ($t < Booker::MINGRPID) {
@@ -317,7 +315,6 @@ function pageback() {
 function pagerows(cb) {
  $.SSsort.setCurrent($('#{$tableid}')[0],'pagesize',parseInt(cb.value));
 }
-
 EOS;
 				$extras = <<<EOS
 ,
@@ -353,7 +350,6 @@ EOS;
   oddsortClass: 'row1s',
   evensortClass: 'row2s'{$extras}
  });
-
 EOS;
 		}//$count > 1
 	} else { // no matches found
@@ -374,7 +370,6 @@ if (!$admin) { //frontend
 function showerr(msg) {
  alert(msg);
 }
-
 EOS;
 } else { //admin search
 	$tplvars['submit'] = NULL;
@@ -398,7 +393,6 @@ function showerr(msg) { //QQQ $.modalconfirm.show({ //error message, ok-button o
   }
  });
 }
-
 EOS;
 }
 
@@ -450,7 +444,6 @@ function validate(ev) {
  ev.preventDefault();
  return false;
 }
-
 EOS;
 
 $jsloads[] = <<<EOS
@@ -467,7 +460,6 @@ $jsloads[] = <<<EOS
     $('#{$id}submit').prop('disabled',true);
   }
  });
-
 EOS;
 
 //for picker
@@ -517,7 +509,6 @@ $jsloads[] = <<<EOS
  setTimeout(function() {
   $('.dateinput').watermark();
  },10);
-
 EOS;
 
 $stylers .= <<<EOS
@@ -544,14 +535,7 @@ if (\$linklast.length) {
 }
 EOS;
 
-if ($jsloads) {
-	$jsfuncs[] = '$(document).ready(function() {
-';
-	$jsfuncs = array_merge($jsfuncs,$jsloads);
-	$jsfuncs[] = '});
-';
-}
-$tplvars['jsfuncs'] = $jsfuncs;
-$tplvars['jsincs'] = $jsincs;
+$tplvars['jsall'] = NULL;
+$utils->MergeJS($jsincs,$jsfuncs,$jsloads,$tplvars['jsall']);
 
 echo Booker\Utils::ProcessTemplate($this,'find.tpl',$tplvars);

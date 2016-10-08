@@ -240,7 +240,6 @@ EOS;
   type:'see4',
   symbol:'\u25CF'
  });
-
 EOS;
 }
 // address C(96)
@@ -325,15 +324,7 @@ if ($pmod) {
 	$tplvars['cancel'] = $this->CreateInputSubmit($id,'cancel',$this->Lang('close'));
 }
 
-$tplvars['jsincs'] = $jsincs;
-
-if ($jsloads) {
-	$jsfuncs[] = '$(document).ready(function() {
-';
-	$jsfuncs = array_merge($jsfuncs,$jsloads);
-	$jsfuncs[] = '});
-';
-}
-$tplvars['jsfuncs'] = $jsfuncs;
+$tplvars['jsall'] = NULL;
+$utils->MergeJS($jsincs,$jsfuncs,$jsloads,$tplvars['jsall']);
 
 echo Booker\Utils::ProcessTemplate($this,'openbooker.tpl',$tplvars);

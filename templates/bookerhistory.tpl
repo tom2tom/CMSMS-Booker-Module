@@ -54,15 +54,5 @@ STARTDATECHOOSER ENDDATECHOOSER
 {if $mod} {$approvbtn} {$rejectbtn} {/if}{if $tell}{$notifybtn}{/if}{if $mod} {$deletebtn}{/if}
 </div>
 {$endform}
-{if !empty($jsincs)}{foreach from=$jsincs item=inc}{$inc}
-{/foreach}{/if}
-{if !empty($jsfuncs)}
-<script type="text/javascript">
-//<![CDATA[
-{foreach from=$jsfuncs item=func}{$func}{/foreach}
-//]]>
-</script>
-{/if}
-{else}
- <p class="pageinput">{$nodata}</p>
+{if !empty($jsall)}{$jsall}
 {/if}

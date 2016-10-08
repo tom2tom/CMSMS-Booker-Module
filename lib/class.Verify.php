@@ -277,7 +277,6 @@ function showerr(message,target) {
   }
  });
 }
-
 EOS;
 		} else { //frontend, no modalconfirm
 			$js1 = <<<EOS
@@ -287,7 +286,6 @@ function showerr(message,target) {
   tg.focus();
  },10);
 }
-
 EOS;
 		}
 
@@ -350,7 +348,6 @@ function validate(ev) {
     ok = (de !== null);
   }
  }
-
 EOS;
 			if ($nopast) {
 				$js2 .= <<<EOS
@@ -358,12 +355,10 @@ EOS;
   dn = new Date();
   ok = (ds === null || (ds > dn && (de === null || de > ds)));
  }
-
 EOS;
 			} else {
 				$js2 .= <<<EOS
  ok = ok && (ds === null || de === null || de > ds);
-
 EOS;
 			}
 			$js2 .= <<<EOS
@@ -378,7 +373,6 @@ EOS;
     ok = false;
   }
  }
-
 EOS;
 		} else { //no date checks
  			$js2 = <<<EOS
@@ -391,7 +385,6 @@ function validate(ev) {
   showerr('$usererr',tg);
   ok = false;
  }
-
 EOS;
 		}
 
@@ -413,7 +406,6 @@ EOS;
     return lv.get(str1,str2);
    },
    suggested: function(tg,suggest) {
-
 EOS;
 		if ($admin) {
 			$js4 = <<<EOS
@@ -442,7 +434,6 @@ EOS;
       },10);
      }
     });
-
 EOS;
 		} else { //frontend, no modalconfirm
 			$js4 = <<<EOS
@@ -459,7 +450,6 @@ EOS;
       tg.focus();
      },10);
     }
-
 EOS;
 		}
 		$js5 = <<<EOS
@@ -471,7 +461,6 @@ EOS;
   });
   ok = false;
  }
-
 EOS;
 		if ($admin)
 			$js6 = '';
@@ -488,7 +477,6 @@ EOS;
    }
   }
  }
-
 EOS;
 		}
 		$js7 = <<<EOS
@@ -499,7 +487,6 @@ EOS;
  ev.preventDefault();
  return false;
 }
-
 EOS;
 		return $js1.$js2.$js3.$js4.$js5.$js6.$js7;
 	}
