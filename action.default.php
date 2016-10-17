@@ -471,7 +471,13 @@ if (\$linklast.length) {
 }
 EOS;
 
-$tplvars['jsall'] = NULL;
-$utils->MergeJS($jsincs,$jsfuncs,$jsloads,$tplvars['jsall']);
+$jsall = NULL;
+$utils->MergeJS($jsincs,$jsfuncs,$jsloads,$jsall);
+unset($jsincs);
+unset($jsfuncs);
+unset($jsloads);
 
 echo Booker\Utils::ProcessTemplate($this,$tplname,$tplvars);
+//inject constructed js after other content (pity we can't get to </body> or </html> from here)
+if ($jsall)
+	echo $jsall;

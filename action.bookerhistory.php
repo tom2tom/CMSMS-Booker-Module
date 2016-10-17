@@ -67,8 +67,13 @@ if ($count) {
 	$tplvars['nodata'] = $this->Lang('TODO');
 }
 //TODO date-range selectors
-
-//$tplvars['jsall'] = NULL;
-//$utils->MergeJS($jsincs,$jsfuncs,$jsloads,$tplvars['jsall']);
+$jsall = NULL;
+//$utils->MergeJS($jsincs,$jsfuncs,$jsloads,$jsall);
+//unset($jsincs);
+//unset($jsfuncs);
+//unset($jsloads);
 
 echo Booker\Utils::ProcessTemplate($this,'bookerhistory.tpl',$tplvars);
+//inject constructed js after other content (pity we can't get to </body> or </html> from here)
+if ($jsall)
+	echo $jsall;
