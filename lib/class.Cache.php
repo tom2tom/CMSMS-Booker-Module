@@ -37,7 +37,7 @@ class Cache
 		require_once($path.'CacheInterface.php'); //prevent repeated creation crash
 		require_once($path.'CacheBase.php');
 
-		$config = cmsms()->GetConfig();
+		$config = \cmsms()->GetConfig();
 		$url = (empty($_SERVER['HTTPS'])) ? $config['root_url'] : $config['ssl_url'];
 
 		$basedir = $config['uploads_path'];

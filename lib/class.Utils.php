@@ -134,7 +134,7 @@ EOS;
 	*/
 	public function SafeGet($sql, $args, $mode='all')
 	{
-		$db = cmsms()->GetDb();
+		$db = \cmsms()->GetDb();
 		$nt = 10;
 		while ($nt > 0) {
 			$db->Execute('SET TRANSACTION ISOLATION LEVEL SERIALIZABLE');
@@ -175,7 +175,7 @@ EOS;
 	*/
 	public function SafeExec($sql, $args)
 	{
-		$db = cmsms()->GetDb();
+		$db = \cmsms()->GetDb();
 		$nt = 10;
 		while ($nt > 0) {
 			$db->Execute('SET TRANSACTION ISOLATION LEVEL SERIALIZABLE'); //this isn't perfect!
@@ -939,7 +939,7 @@ EOS;
 	*/
 	public function GetUploadsPath(&$mod)
 	{
-		$config = cmsms()->GetConfig();
+		$config = \cmsms()->GetConfig();
 		$fp = $config['uploads_path'];
 		if ($fp && is_dir($fp)) {
 			$ud = $mod->GetPreference('pref_uploadsdir','');
@@ -997,7 +997,7 @@ EOS;
 	*/
 	private function PathURL(&$mod, $file)
 	{
-		$config = cmsms()->GetConfig();
+		$config = \cmsms()->GetConfig();
 		$rooturl = (empty($_SERVER['HTTPS'])) ? $config['uploads_url']:$config['ssl_uploads_url'];
 		$ud = $mod->GetPreference('pref_uploadsdir','');
 		$lp = ($ud) ? '/'.str_replace('\\','/',$ud) : '';
@@ -1227,7 +1227,7 @@ $this->Crash();
 	*/
 	public function GetLocale()
 	{
-		$cfg = cmsms()->GetConfig();
+		$cfg = \cmsms()->GetConfig();
 		$loc = $cfg['locale'];
 		if (!$loc)
 			$loc = 'en_US';

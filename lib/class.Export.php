@@ -90,7 +90,7 @@ class Export
 	*/
 	private function ExportContent(&$mod, $fname, $csv)
 	{
-		$config = cmsms()->GetConfig();
+		$config = \cmsms()->GetConfig();
 		if (!empty($config['default_encoding']))
 			$defchars = trim($config['default_encoding']);
 		else

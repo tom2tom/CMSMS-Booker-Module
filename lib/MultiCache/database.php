@@ -18,7 +18,7 @@ class Cache_database extends CacheBase implements CacheInterface
 
 	public function use_driver()
 	{
-		$db = cmsms()->GetDb();
+		$db = \cmsms()->GetDb();
 		$rs = $db->Execute("SHOW TABLES LIKE '".$this->table."'");
 		if ($rs) {
 			$ret = ($rs->RecordCount() == 1);
@@ -30,7 +30,7 @@ class Cache_database extends CacheBase implements CacheInterface
 
 	public function _newsert($keyword, $value, $lifetime=FALSE)
 	{
-		$db = cmsms()->GetDb();
+		$db = \cmsms()->GetDb();
 		$sql = 'SELECT cache_id FROM '.$this->table.' WHERE keyword=?';
 		$id = $db->GetOne($sql,array($keyword));
 		if (!$id) {
@@ -48,7 +48,7 @@ class Cache_database extends CacheBase implements CacheInterface
 
 	public function _upsert($keyword, $value, $lifetime=FALSE)
 	{
-		$db = cmsms()->GetDb();
+		$db = \cmsms()->GetDb();
 		$sql = 'SELECT cache_id FROM '.$this->table.' WHERE keyword=?';
 		$id = $db->GetOne($sql,array($keyword));
 		$value = serialize($value);
@@ -69,7 +69,7 @@ class Cache_database extends CacheBase implements CacheInterface
 
 	public function _get($keyword)
 	{
-		$db = cmsms()->GetDb();
+		$db = \cmsms()->GetDb();
 		$row = $db->GetRow('SELECT value,savetime,lifetime FROM '.$this->table.' WHERE keyword=?',array($keyword));
 		if ($row) {
 			if (is_null($row['lifetime']) ||
@@ -85,7 +85,7 @@ class Cache_database extends CacheBase implements CacheInterface
 	public function _getall($filter)
 	{
 		$items = array();
-		$db = cmsms()->GetDb();
+		$db = \cmsms()->GetDb();
 		$info = $db->GetArray('SELECT * FROM '.$this->table);
 		if ($info) {
 			foreach ($info as $row) {
@@ -107,7 +107,7 @@ class Cache_database extends CacheBase implements CacheInterface
 
 	public function _has($keyword)
 	{
-		$db = cmsms()->GetDb();
+		$db = \cmsms()->GetDb();
 		$sql = 'SELECT cache_id,savetime,lifetime FROM '.$this->table.' WHERE keyword=?';
 		$row = $db->GetRow($sql,array($keyword));
 		if ($row) {
@@ -121,7 +121,7 @@ class Cache_database extends CacheBase implements CacheInterface
 
 	public function _delete($keyword)
 	{
-		$db = cmsms()->GetDb();
+		$db = \cmsms()->GetDb();
 		if ($db->Execute('DELETE FROM '.$this->table.' WHERE keyword=?',array($keyword))) {
 			return TRUE;
 		} else {
@@ -132,7 +132,7 @@ class Cache_database extends CacheBase implements CacheInterface
 	public function _clean($filter)
 	{
 		$ret = TRUE;
-		$db = cmsms()->GetDb();
+		$db = \cmsms()->GetDb();
 		$info = $db->GetArray('SELECT cache_id,keyword,value FROM '.$this->table);
 		if ($info) {
 			$sql = 'DELETE FROM '.$this->table.' WHERE cache_id=?';
