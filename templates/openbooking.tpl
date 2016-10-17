@@ -1,8 +1,3 @@
-{if !empty($jsstyler)}<script type="text/javascript">
-//<![CDATA[
-{$jsstyler}
-//]]>
-</script>{/if}
 <div class="bkr_browsenav">{$pagenav}</div><br />
 {if !empty($message)}<p class="pagetext pagemessage">{$message}</p><br />{/if}
 <h3 class="pagetext">{$title}</h3>

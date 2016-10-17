@@ -1,8 +1,3 @@
-{if $jsstyler}<script type="text/javascript">
-//<![CDATA[
-{$jsstyler}
-//]]>
-</script>{/if}
 <div id="needjs">{$needjs}</div>
 {if !empty($message)}<p class="pagemessage">{$message}</p>{/if}
 <h4 class="bkgtitle">{$title}</h4>
