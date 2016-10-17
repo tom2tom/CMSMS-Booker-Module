@@ -54,5 +54,3 @@ STARTDATECHOOSER ENDDATECHOOSER
 {if $mod} {$approvbtn} {$rejectbtn} {/if}{if $tell}{$notifybtn}{/if}{if $mod} {$deletebtn}{/if}
 </div>
 {$endform}
-{if !empty($jsall)}{$jsall}
-{/if}

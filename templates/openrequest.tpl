@@ -34,5 +34,3 @@
 <p style="text-align:center;"><input id="mc_conf2" class="cms_submit btn_conf" type="submit" value="{$proceed}" />
 &nbsp;&nbsp;<input id="mc_deny2" class="cms_submit btn_deny" type="submit" value="{$abort}" /></p>
 </div>
-{if !empty($jsall)}{$jsall}
-{/if}

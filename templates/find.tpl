@@ -54,5 +54,3 @@
 &nbsp;&nbsp;<input id="mc_deny" class="cms_submit btn_deny" type="submit" value="{$no}" /></p>
 </div>
 {/if}
-{if !empty($jsall)}{$jsall}
-{/if}

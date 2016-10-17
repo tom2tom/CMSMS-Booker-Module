@@ -30,5 +30,3 @@
 </div>
 </div>
 {/if}
-{if !empty($jsall)}{$jsall}
-{/if}

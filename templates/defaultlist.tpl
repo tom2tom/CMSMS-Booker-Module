@@ -42,5 +42,3 @@
 </table>
 </div>
 {$endform}
-{if !empty($jsall)}{$jsall}
-{/if}

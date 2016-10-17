@@ -325,5 +325,3 @@
 &nbsp;&nbsp;<input id="mc_deny2" class="cms_submit btn_deny" type="submit" value="{$abort}" /></p>
 </div>
 {/if}
-{if !empty($jsall)}{$jsall}
-{/if}

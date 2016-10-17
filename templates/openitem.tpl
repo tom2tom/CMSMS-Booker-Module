@@ -37,5 +37,3 @@
 {if $mod}{$submit} {/if}{$cancel}{if $mod} {$apply}{/if}
 </div>
 {$endform}
-{if !empty($jsall)}{$jsall}
-{/if}

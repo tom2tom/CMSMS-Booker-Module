@@ -46,5 +46,3 @@
   {if $count && $submit}{$submit}{/if}{if $cancel} {$cancel}{/if}{if ($count && $delete)} {$delete}{/if}
  </div>
 {$endform}
-{if !empty($jsall)}{$jsall}
-{/if}

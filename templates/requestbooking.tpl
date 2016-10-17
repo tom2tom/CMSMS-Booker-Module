@@ -28,5 +28,3 @@
 {$cartmsg}<br />
 {$submit}{if isset($cart)} {$cart}{/if} {$cancel} {if isset($choose)} {$choose}{/if} {$register}
 {$endform}
-{if !empty($jsall)}{$jsall}
-{/if}
