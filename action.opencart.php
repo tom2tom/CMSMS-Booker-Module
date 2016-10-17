@@ -240,9 +240,9 @@ EOS;
 	$stylers = <<<EOS
 <link rel="stylesheet" type="text/css" href="{$baseurl}/css/public.css" />
 EOS;
-//porting heredoc-var newlines is a problem for qouted strings! workaround ...
+//heredoc-var newlines are a problem for quoted strings! workaround ...
 $stylers = str_replace("\n",'',$stylers);
-$tplvars['jsstyler'] = <<<EOS
+$t = <<<EOS
 var linkadd = '{$stylers}',
  \$head = $('head'),
  \$linklast = \$head.find("link[rel='stylesheet']:last");
@@ -252,6 +252,9 @@ if (\$linklast.length) {
  \$head.append(linkadd);
 }
 EOS;
+$jsall = NULL;
+$utils->MergeJS(FALSE,array($t),FALSE,$jsall);
+echo $jsall;
 
 $jsall = NULL;
 $utils->MergeJS($jsincs,$jsfuncs,$jsloads,$jsall);
