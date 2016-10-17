@@ -25,7 +25,7 @@ class Cache_phpfile extends CacheBase implements CacheInterface
 	{
 		return TRUE;
 	}
-	
+
 	public function connectServer()
 	{
 		if (empty($this->config['path'])) {
@@ -44,7 +44,7 @@ class Cache_phpfile extends CacheBase implements CacheInterface
 		}
 		$dir .= DIRECTORY_SEPARATOR.'file_cache';
 		if (!is_dir($dir)) {
-			if (!(@mkdir($dir) && file_exists($dir)))
+			if (!(@mkdir($dir,0755) && file_exists($dir)))
 				return FALSE;
 		}
 		$this->basepath = $dir.DIRECTORY_SEPARATOR;
