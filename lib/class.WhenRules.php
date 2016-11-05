@@ -21,7 +21,7 @@ class WhenRules extends WhenRuleLexer
 	@cond: member of parent::conds[] with parsed components of an interval-descriptor
 		=>['P'] will be populated, =>['T'] may be populated
 	@bs: stamp for start of period being processed
-	@be: stamp for end-of-period being processed
+	@be: stamp for end of period being processed
 	@dtw: modifiable DateTime object for use in relative calcs
 	@timeparms: reference to array of parameters from self::TimeParms
 	@starts: reference to array of block-start timestamps to be updated
@@ -253,7 +253,7 @@ class WhenRules extends WhenRuleLexer
 	Get timestamps for start & end of intra-day block represented by @timedata
 	@timedata: a member of a $cond['T'] i.e. a string or 3-member array
 	@bs: timestamp for start of day being procesed
-	@be: timestamp for end-of-day being procesed
+	@be: timestamp for end of day being procesed
 	@dtw: modifiable DateTime object for use in relative calcs
 	@timeparms: reference to array of parameters from self::TimeParms
 	Returns: 2-member array:
@@ -463,7 +463,7 @@ class WhenRules extends WhenRuleLexer
 	GetBlocks:
 	Interpret parent::conds into seconds-blocks covering the interval @bs..@be
 	@bs: UTC timestamp for start of period being processed, not necessarily a midnight
-	@be: corresponding stamp for end-of-period, not necessarily a 1-before-midnight
+	@be: corresponding stamp for end of period, not necessarily a 1-before-midnight
 	@timeparms: reference to array of parameters for sun-related time calcs
 	@defaultall: optional boolean, whether to return, if parent::conds is not set,
 	the whole interval as one block instead of empty arrays, default FALSE

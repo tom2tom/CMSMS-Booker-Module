@@ -1628,7 +1628,7 @@ $this->Crash();
 
 	/*
 	isodate_from_format:
-	Convert @dvalue to ISO format i.e. like Y-M-d H:i:s
+	Convert @dvalue to ISO format i.e. like Y-m-d H:i:s
 	For testing, at least
 	@dformat: string which includes one or more of many (not all) format-characters
 	 understood by PHP date(). If it includes 'z', the corresponding element of

@@ -475,9 +475,6 @@ class Booker extends CMSModule
 	@id: session identifier
 	@params:
 	@returnid:
-	No permission-checks are done here or in related action files, as capabilities
-	are governed by which actionable widgets are displayed
-	- and those are permission-checked before creation
 	*/
 	public function DoAction($action, $id, $params, $returnid=-1)
 	{
