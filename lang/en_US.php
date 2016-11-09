@@ -155,7 +155,7 @@ $lang['help_email_domains'] = 'Comma-separated series of email domains, e.g. \'m
 $lang['help_email_subdomains'] = 'Comma-separated series of partial domains, e.g. \'yahoo,hotmail\' to use instead of the default values used by the mailcheck script for secondary address-validation';
 $lang['help_email_topdomains'] = 'Comma-separated series of top domains, e.g. \'com,com.tw,de,net,net.au\' to use instead of the default values used by the mailcheck script for final address-validation';
 $lang['help_fee'] = 'Fixed cost, or rate per defined-interval, applied when specified condition(s) met.';
-$lang['help_fees'] = <<<EOS
+$lang['help_fees'] = <<<'EOS'
 Entered fees may be absolute (like 1.23 or 4.5 or 6) or relative (indicated by leading +/-, maybe trailing %/percent, like -2.50 or +4% or -3.2% or +12.5percent).<br />
 Fees are per period as entered, or fixed if the corresponding period is 'anything'.
 EOS;
@@ -163,14 +163,14 @@ $lang['help_feecondition'] = 'See advice for available days and times. If blank,
 $lang['help_feugroup'] = 'Front-end users group whose members may commit and change bookings directly, instead of via request.';
 $lang['help_focus'] = 'You can click/tap any table-cell to \'focus\' that time for the next operation, or double-click/tap to initiate a booking request/change';
 $lang['help_formiface'] = 'TODO';
-$lang['help_groups'] = <<<EOS
+$lang['help_groups'] = <<<'EOS'
 This %s may be in one or more groups, or none.<br />
 <strong>NOTE</strong> Any missing property of this %s will, if possible, be inherited from a group of which this %s is a member.<br />
 If in more than one group, their order matters! Groups are checked sequentially, from last-displayed to first-displayed (as if - nearest to furthest ancestor).
 EOS;
 $lang['help_groupbooking'] = 'Any booking marked with &Dagger; represents a resource-group booking';
 $lang['help_image'] = 'Supply one (or more, in which case comma-separated) name(s) of uploaded image files';
-$lang['help_importbooking'] = <<<EOS
+$lang['help_importbooking'] = <<<'EOS'
 <h3>File format</h3>
 <p>The input file must be in ASCII format with data fields separated by commas.
 Any actual comma in a field should be represented by '&amp;#44;'.
@@ -192,7 +192,7 @@ The Paid and Update fields will be treated as TRUE if they contain something oth
 <li>a start or end field is malformed</li>
 </ul></p>
 EOS;
-$lang['help_importbooker'] = <<<EOS
+$lang['help_importbooker'] = <<<'EOS'
 <h3>File format</h3>
 <p>The input file must be in ASCII format with data fields separated by commas.
 Any actual comma in a field should be represented by '&amp;#44;'.
@@ -214,7 +214,7 @@ The Displaytype field controls display styling for the user, and if provided sho
 <li>an email address or mobile/cell phone number is malformed</li>
 </ul></p>
 EOS;
-$lang['help_importfee'] = <<<EOS
+$lang['help_importfee'] = <<<'EOS'
 <h3>File format</h3>
 <p>The input file must be in ASCII format with data fields separated by commas.
 Any actual comma in a field should be represented by '&amp;#44;'.
@@ -233,7 +233,7 @@ TODO explain fields</p>
 <li>a resource is not recognised</li>
 </ul></p>
 EOS;
-$lang['help_importhistory'] = <<<EOS
+$lang['help_importhistory'] = <<<'EOS'
 <h3>File format</h3>
 <p>The input file must be in ASCII format with data fields separated by commas.
 Any actual comma in a field should be represented by '&amp;#44;'.
@@ -253,7 +253,7 @@ TODO explain fields</p>
 <li>a date-time value is malformed</li>
 </ul></p>
 EOS;
-$lang['help_importitem'] = <<<EOS
+$lang['help_importitem'] = <<<'EOS'
 <h3>File format</h3>
 <p>The input file must be in ASCII format with data fields separated by commas.
 Any actual comma in a field should be represented by '&amp;#44;'.
@@ -305,7 +305,7 @@ $lang['help_smsprefix']='One or more numbers e.g. 1 for USA. <a href="http://cou
 $lang['help_taxrate'] = 'A value less than 1 will be treated as a proportion, >= 1 as a percentage';
 $lang['help_time'] = 'See advice for date format.';
 //$lang['help_upload'] = '%s or %s doesn\'t upload a selected file, so it must be done independently, via the button.';
-$lang['help_uploadsdir'] = <<<EOS
+$lang['help_uploadsdir'] = <<<'EOS'
 Filesystem path relative to website-host uploads directory.
 No leading or trailing path-separator, and any intermediate path-separator must be host-system-specific e.g. '\' on Windows.
 If left blank, the default will be used.
@@ -785,7 +785,7 @@ $lang['start+user'] = 'Group by start,user'; //LISTSU
 $lang['user+resource'] = 'Group by user,resource'; //LISTUR
 $lang['user+start'] = 'Group by user,start'; //LISTUS
 
-$lang['help'] = <<<EOS
+$lang['help'] = <<<'EOS'
 <h3>What Does It Do?</h3>
 <p>It manages and displays bookings for resources, singly and/or in groups.<br /><br />
 Any resource may be in one or more group(s). Any group may be in other group(s), creating a hierarchy.<br /><br />

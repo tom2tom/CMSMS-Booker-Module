@@ -279,7 +279,7 @@ function showerr(message,target) {
 }
 EOS;
 		} else { //frontend, no modalconfirm
-			$js1 = <<<EOS
+			$js1 = <<<'EOS'
 function showerr(message,target) {
  alert(message);
  setTimeout(function() {
@@ -350,14 +350,14 @@ function validate(ev) {
  }
 EOS;
 			if ($nopast) {
-				$js2 .= <<<EOS
+				$js2 .= <<<'EOS'
  if (ok) {
   dn = new Date();
   ok = (ds === null || (ds > dn && (de === null || de > ds)));
  }
 EOS;
 			} else {
-				$js2 .= <<<EOS
+				$js2 .= <<<'EOS'
  ok = ok && (ds === null || de === null || de > ds);
 EOS;
 			}
@@ -479,7 +479,7 @@ EOS;
  }
 EOS;
 		}
-		$js7 = <<<EOS
+		$js7 = <<<'EOS'
  if (ok) {
   return true;
  }

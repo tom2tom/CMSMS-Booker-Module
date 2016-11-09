@@ -94,7 +94,7 @@ class Utils
 			$all = array();
 		}
 		if ($jsfuncs || $jsloads) {
-			$all[] =<<<EOS
+			$all[] =<<<'EOS'
 <script type="text/javascript">
 //<![CDATA[
 EOS;
@@ -104,7 +104,7 @@ EOS;
 				$all[] = $jsfuncs;
 			}
 			if ($jsloads) {
-				$all[] =<<<EOS
+				$all[] =<<<'EOS'
 $(document).ready(function() {
 EOS;
 				if (is_array($jsloads)) {
@@ -112,11 +112,11 @@ EOS;
 				} else {
 					$all[] = $jsloads;
 				}
-				$all[] =<<<EOS
+				$all[] =<<<'EOS'
 });
 EOS;
 			}
-			$all[] =<<<EOS
+			$all[] =<<<'EOS'
 //]]>
 </script>
 EOS;
