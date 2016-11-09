@@ -19,7 +19,7 @@
    <th>{$activetext}</th>
 {if $mod}   <th class="updown">{$movetext}</th>
    <th class="pageicon">&nbsp;</th>
-   <th class="checkbox" style="width:20px;">{if $count > 1}{$selectall}{/if}</th>
+   <th class="checkbox">{if $count > 1}{$selectall}{/if}</th>
 {/if}
   </tr></thead>
   <tbody>
