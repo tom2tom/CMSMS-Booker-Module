@@ -1431,7 +1431,7 @@ EOS;
 	$one = new stdClass();
 	$one->title = $this->Lang('title_cssfile');
 	$one->input = $this->CreateInputFile($id,'pref_stylesfile','text/css',36,'id="'.$id.'pref_stylesfile" title="'.
-		$this->Lang('tip_upload').'" onchange="file_selected()"');
+		$this->Lang('tip_upload').'"');
 	$t = $this->GetPreference('pref_stylesfile');
 	if ($t)
 		$one->input .= ' '.$this->CreateInputCheckbox($id,'stylesdelete',1,-1).'&nbsp;'.$this->Lang('delete_upload',$t);
