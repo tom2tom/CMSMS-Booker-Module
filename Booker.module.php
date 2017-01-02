@@ -149,18 +149,22 @@ class Booker extends CMSModule
 		}
 		$this->havemcrypt = function_exists('mcrypt_encrypt');
 
-		spl_autoload_register(array($this,'cmsms_spacedload'));
+//		spl_autoload_register(array($this,'cmsms_spacedload'));
+		if (!function_exists('cmsms_spacedload')) {
+			require __DIR__.DIRECTORY_SEPARATOR.'lib'.DIRECTORY_SEPARATOR.'CMSMSSpacedClassLoader.php';
+			spl_autoload_register('cmsms_spacedload');
+		}
 	}
 
-	public function __destruct()
+/*	public function __destruct()
 	{
 		spl_autoload_unregister(array($this,'cmsms_spacedload'));
 		if (function_exists('parent::__destruct'))
 			parent::__destruct();
 	}
-
+*/
 	/* namespace autoloader - CMSMS default autoloader doesn't do spacing */
-	private function cmsms_spacedload($class)
+/*	private function cmsms_spacedload($class)
 	{
 		$prefix = get_class().'\\'; //our namespace prefix
 		// ignore if $class doesn't have that
@@ -193,7 +197,7 @@ class Booker extends CMSModule
 				include $fp;
 		}
 	}
-
+*/
 	public function AllowAutoInstall()
 	{
 		return FALSE;
