@@ -40,12 +40,3 @@
 <br />
 {$search} {$cancel} {$submit}
 {$endform}
-{if isset($yes)}
-<div id="confirm" class="modal-overlay"></div>
-<div id="confgeneral" class="confirm-container">
-<p style="text-align:center;font-weight:bold;"></p>
-<br />
-<p style="text-align:center;"><input id="mc_conf" class="cms_submit btn_conf" type="submit" value="{$yes}" />
-&nbsp;&nbsp;<input id="mc_deny" class="cms_submit btn_deny" type="submit" value="{$no}" /></p>
-</div>
-{/if}

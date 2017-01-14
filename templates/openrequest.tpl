@@ -15,17 +15,3 @@
 {if $mod}{$submit} {/if}{$cancel}{if $mod} {$apply}<br /><br />{$approve} {$reject}{/if}{if $pmsg} {$ask} {$notify}{/if} {$find} {$table} {$list}
 </div>
 {$endform}
-<div id="confirm" class="modal-overlay"></div>
-<div id="confgeneral" class="confirm-container">
-<p style="text-align:center;font-weight:bold;"></p>
-<br />
-<p style="text-align:center;"><input id="mc_conf" class="cms_submit btn_conf" type="submit" value="{$yes}" />
-&nbsp;&nbsp;<input id="mc_deny" class="cms_submit btn_deny" type="submit" value="{$no}" /></p>
-</div>
-<div id="confmessage" class="confirm-container">
-<p style="text-align:center;font-weight:bold;">{$modaltitle}
-<br /><br /><span id="common"></span>
-<br /><br />{$prompttitle} {$customentry}</p>
-<p style="text-align:center;"><input id="mc_conf2" class="cms_submit btn_conf" type="submit" value="{$proceed}" />
-&nbsp;&nbsp;<input id="mc_deny2" class="cms_submit btn_deny" type="submit" value="{$abort}" /></p>
-</div>
