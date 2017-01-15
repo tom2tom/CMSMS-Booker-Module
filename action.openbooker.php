@@ -157,7 +157,7 @@ if (!empty($params['message']))
 
 $tplvars['title'] = $this->Lang('title_booker_page');
 if ($pmod) { //add/edit mode
-	$tplvars['compulsory'] = $this->Lang('help_compulsory');
+	$tplvars['compulsory'] = $this->Lang('compulsory_items');
 } else {
 	$missing = '&lt;'.$this->Lang('missing').'&gt;';
 }
