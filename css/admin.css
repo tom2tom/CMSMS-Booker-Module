@@ -73,77 +73,154 @@ table.table_sort th.SortDown {
 }
 
 table.table_sort td.row1s {
- background-color:#E9E9E9;
+ background-color:#e9e9e9;
 }
 
 table.table_sort td.row2s {
- background:#D9D9D9;
-}
-/* for popup-modal confirmation */
-div.modal\-overlay {
-	display:none;
-	position:fixed;
-	top:0;
-	left:0;
-	height:100%;
-	width:100%;
-	z-index:1001;
-	background-color:rgba(0,0,0,.3); /* can be safely ignored */
-}
-div.confirm\-container {
-	display:none;
-	position:fixed;
-	top:50%;
-	left:50%;
-	border:2px solid #847B7B;
-	-moz-border-radius:5px 5px 5px 5px;
-	-webkit-border-radius:5px 5px 5px 5px;
-	border-radius:5px 5px 5px 5px;
-	padding:10px 40px;
-	z-index:1002;
-	background:#DBD6D6;
-}
-input.btn_conf {
-	font-weight:bold;
-	color:#000;
-	background:#B5B0B0;
-}
-input.btn_conf:hover {
-	color:#FFF;
-	background:#00B200;
-}
-input.btn_deny {
-	font-weight:bold;
-	color:#000;
-	background:#B5B0B0;
-}
-input.btn_deny:hover {
-	color:#FFF;
-	background:#F00;
+ background-color:#d9d9d9;
 }
 /* for making inputs look like links */
 input.fakeicon {
-	margin:0;
-	padding:0;
-	border-style:hidden;
-	border-radius:0;
-	-moz-border-radius:0;
-	-webkit-border-radius:0;
-	background:none;
-	vertical-align:middle;
+ margin:0;
+ padding:0;
+ border-style:hidden;
+ border-radius:0;
+ -moz-border-radius:0;
+ -webkit-border-radius:0;
+ background:none;
+ vertical-align:middle;
 }
 /* color and size will be conformed at runtime, if js is enabled */
 input.fakelink {
-	margin:0;
-	padding:0;
-	text-align:left;
-	text-decoration:underline;
-	font-size:1em;
-	color:#000;
-	background:none;
+ margin:0;
+ padding:0;
+ text-align:left;
+ text-decoration:underline;
+ font-size:1em;
+ color:#000;
+ background:none;
 }
 
 input.fakelink:hover {
-	text-decoration:none;
-	background:none;
+ text-decoration:none;
+ background:none;
+}
+
+/* popup modal dialog */
+/* Overlay */
+#alertable\-overlay {
+ position:fixed;
+ z-index:9998;
+ top:0;
+ right:0;
+ bottom:0;
+ left:0;
+ background:rgba(0, 0, 0, .3);
+}
+
+/* Form */
+#alertable {
+ position:fixed;
+ z-index:9999;
+ top:38vh; /* TODO */
+ left:calc(50% - 150px); /* TODO */
+ width:300px;
+ background-color:#bfbfbf;
+ border:solid 3px #003300;
+ -moz-border-radius:4px;
+ -webkit-border-radius:4px;
+ border-radius:4px;
+ padding:20px;
+ margin:0 auto;
+}
+
+#alertable\-error {
+ position:fixed;
+ z-index:9999;
+ top:38vh; /* TODO */
+ left:calc(50% - 150px); /* TODO */
+ width:300px;
+ background-color:#ffe6e6;
+ border:solid 3px #990000;
+ -moz-border-radius:4px;
+ -webkit-border-radius:4px;
+ border-radius:4px;
+ padding:20px;
+ margin:0 auto;
+}
+
+/* Message */
+#alertable\-message {
+ margin-bottom:20px;
+ font-weight:bold;
+/* font-size:inherit; */
+}
+
+/* Prompt */
+#alertable\-prompt {
+ margin-bottom:20px;
+}
+
+#alertable\-input {
+ width:95%;
+ box-shadow:none;
+ border:solid 1px #003300;
+ font-family:inherit;
+/* font-size:inherit; */
+ color:inherit;
+ padding:6px 12px;
+ display:block;
+ box-sizing:border-box;
+ margin-bottom:10px;
+}
+
+/* Button group */
+#alertable\-buttons {
+ text-align:center;
+}
+
+/* OK button */
+#alertable\-ok {
+ background-color:#c4a636;
+ border:solid 1px #09d;
+ font-family:inherit;
+/* font-size:inherit; */
+ font-weight:bold;
+ color:#000;
+ -moz-border-radius:4px;
+ -webkit-border-radius:4px;
+ border-radius:4px;
+ padding:6px 12px;
+ margin-left:4px;
+ cursor:pointer;
+}
+
+#alertable\-ok:hover,
+#alertable\-ok:focus,
+#alertable\-ok:active {
+ color:#fff;
+ background-color:#00b200;
+}
+
+/* Cancel button */
+#alertable\-cancel {
+ border:solid 1px #ddd;
+ background-color:#c4a636;
+ font-family:inherit;
+/* font-size:inherit; */
+ font-weight:bold;
+ color:#000;
+ -moz-border-radius:4px;
+ -webkit-border-radius:4px;
+ border-radius:4px;
+ padding:6px 12px;
+ margin-left:4px;
+ cursor:pointer;
+}
+
+#alertable\-cancel:hover,
+#alertable\-cancel:focus,
+#alertable\-cancel:active {
+ color:#fff;
+ background-color:#f00;
 }
