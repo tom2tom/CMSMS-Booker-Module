@@ -10,7 +10,7 @@ namespace Booker;
 class Crypter
 {
 	const MODNAME = 'Booker';
-	const ENCROUNDS = 10000;
+	const STRETCHES = 10000;
 	private $mod;
 
 	public function __construct(&$mod=NULL)
@@ -49,7 +49,7 @@ class Crypter
 						$passwd = self::unfusc($passwd);
 				}
 				if ($passwd) {
-					$e = new Encryption(\MCRYPT_TWOFISH,\MCRYPT_MODE_CBC,self::ENCROUNDS);
+					$e = new Encryption(\MCRYPT_TWOFISH,\MCRYPT_MODE_CBC,self::STRETCHES);
 					$value = $e->encrypt($value,$passwd);
 				}
 			}
@@ -67,7 +67,7 @@ class Crypter
 						$passwd = self::unfusc($passwd);
 				}
 				if ($passwd) {
-					$e = new Encryption(\MCRYPT_TWOFISH,\MCRYPT_MODE_CBC,self::ENCROUNDS);
+					$e = new Encryption(\MCRYPT_TWOFISH,\MCRYPT_MODE_CBC,self::STRETCHES);
 					$value = $e->decrypt($value,$passwd);
 				}
 			}
