@@ -459,9 +459,9 @@ if ($customcss)
 <link rel="stylesheet" type="text/css" href="{$customcss}" />
 EOS;
 //heredoc-var newlines are a problem for quoted strings! workaround ...
-$stylers = str_replace("\n",'',$stylers);
+$stylers = preg_replace('/\n\r/g','',$stylers);
 $t = <<<EOS
-var linkadd = '{$stylers}',
+var linkadd = '$stylers',
  \$head = $('head'),
  \$linklast = \$head.find("link[rel='stylesheet']:last");
 if (\$linklast.length) {
@@ -470,17 +470,14 @@ if (\$linklast.length) {
  \$head.append(linkadd);
 }
 EOS;
-$jsall = NULL;
-$utils->MergeJS(FALSE,array($t),FALSE,$jsall);
-echo $jsall;
+echo $utils->MergeJS(FALSE,array($t),FALSE);
 
-$jsall = NULL;
-$utils->MergeJS($jsincs,$jsfuncs,$jsloads,$jsall);
+$jsall = $utils->MergeJS($jsincs,$jsfuncs,$jsloads);
 unset($jsincs);
 unset($jsfuncs);
 unset($jsloads);
 
 echo Booker\Utils::ProcessTemplate($this,$tplname,$tplvars);
-//inject constructed js after other content (pity we can't get to </body> or </html> from here)
-if ($jsall)
-	echo $jsall;
+if ($jsall) {
+	echo $jsall; //inject constructed js after other content
+}

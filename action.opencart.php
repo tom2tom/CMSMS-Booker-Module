@@ -219,13 +219,13 @@ if (!$cart->seemsEmpty()) {
 			'title="'.$this->Lang('tip_delseltype',$this->Lang('booking_multi')).'"')
 	);
 
-	//js setup frontend, no modalconfirm
+	//js setup frontend, no alertable
 	$t = $this->Lang('delsel_confirm',$this->Lang('booking_multi'));
 	$jsloads[] = <<<EOS
- $('#{$id}delete').click(function(ev) {
+ $('#{$id}delete').click(function() {
   var \$sel = $('#cart').find('input:checked');
   if(\$sel.length > 0) {
-   return confirm('{$t}');
+   return confirm('$t');
   }
   return false;
  });
@@ -241,9 +241,9 @@ EOS;
 <link rel="stylesheet" type="text/css" href="{$baseurl}/css/public.css" />
 EOS;
 //heredoc-var newlines are a problem for quoted strings! workaround ...
-$stylers = str_replace("\n",'',$stylers);
+$stylers = preg_replace('/[\n\r]/g','',$stylers);
 $t = <<<EOS
-var linkadd = '{$stylers}',
+var linkadd = '$stylers',
  \$head = $('head'),
  \$linklast = \$head.find("link[rel='stylesheet']:last");
 if (\$linklast.length) {
@@ -252,17 +252,14 @@ if (\$linklast.length) {
  \$head.append(linkadd);
 }
 EOS;
-$jsall = NULL;
-$utils->MergeJS(FALSE,array($t),FALSE,$jsall);
-echo $jsall;
+echo $utils->MergeJS(FALSE,array($t),FALSE);
 
-$jsall = NULL;
-$utils->MergeJS($jsincs,$jsfuncs,$jsloads,$jsall);
+$jsall = $utils->MergeJS($jsincs,$jsfuncs,$jsloads);
 unset($jsincs);
 unset($jsfuncs);
 unset($jsloads);
 
 echo Booker\Utils::ProcessTemplate($this,'opencart.tpl',$tplvars);
-//inject constructed js after other content (pity we can't get to </body> or </html> from here)
-if ($jsall)
-	echo $jsall;
+if ($jsall) {
+	echo $jsall; //inject constructed js after other content
+}
