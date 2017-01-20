@@ -1,3 +1,11 @@
+.pageoverflow {
+ overflow:auto;
+}
+
+.pagenav, .browsenav {
+ padding:5px;
+}
+
 .lolines textarea {
  height:4em;
 }
@@ -7,13 +15,12 @@
 .hilines textarea {
  height:15em;
 }
-.pageoverflow {
- overflow:auto;
-}
+
 /* parameter-tip icons displayed by jQuery if working */
 div.pageoverflow img.tipper {
  display:none;
 }
+
 /* radio buttons */
 label.radiolabel {
  margin:0 0.5em;
@@ -46,6 +53,16 @@ table.table_sort th {
  background-image:none;
  text-align:left;
  cursor:default;
+}
+
+table.table_sort th.ord, table.table_sort th.\{sss\:false\} {
+ margin-left: 0;
+ padding-left: 2px;
+}
+
+table.table_sort th.checkbox {
+ margin-left: 20px;
+ padding-left: 10px;
 }
 
 table.table_sort th.SortAble {
