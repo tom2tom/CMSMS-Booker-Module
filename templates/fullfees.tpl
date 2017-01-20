@@ -1,4 +1,4 @@
-<div class="bkr_browsenav">{$pagenav}</div><br />
+<div class="browsenav">{$pagenav}</div><br />
 {if !empty($message)}{$message}<br />{/if}
 <h3 style="margin:2em 0 1em 2em">{$title}</h3>
 {if $count > 0}
