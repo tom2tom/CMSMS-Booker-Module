@@ -84,7 +84,7 @@ class Utils
 		}
 	}
 
-	public function MergeJS($jsincs, $jsfuncs, $jsloads, &$merged)
+	public function MergeJS($jsincs, $jsfuncs, $jsloads)
 	{
 		if (is_array($jsincs)) {
 			$all = $jsincs;
@@ -121,7 +121,7 @@ EOS;
 </script>
 EOS;
 		}
-		$merged = implode(PHP_EOL,$all);
+		return implode(PHP_EOL,$all);
 	}
 
 	/**
