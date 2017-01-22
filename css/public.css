@@ -165,6 +165,7 @@ input.captcha {
  display:table-cell;
  vertical-align:28px;
 }
+
 /* sorted tables */
 table.table_sort thead tr th
 {
@@ -175,11 +176,13 @@ table.table_sort thead tr th
 	text-align: left;
 	cursor: default;
 }
+
 table.table_sort thead tr th.ord, table.table_sort thead tr th.\{sss\:false\}
 {
 	margin-left: 0;
 	padding-left: 2px;
 }
+
 table.table_sort thead tr th.checkbox
 {
 	margin-left: 20px;
