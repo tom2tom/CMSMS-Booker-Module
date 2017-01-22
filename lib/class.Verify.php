@@ -192,16 +192,16 @@ $this->Crash();
 	private function ConvertDomains($pref)
 	{
 		if (!$pref)
-			return FALSE; //'""';
+			return '';
 		$parts = explode(',',$pref);
-		if (isset($parts[1])) { //>1 array-member
-			$parts = array_unique($parts);
-			ksort($parts);
-		}
 		foreach ($parts as &$one) {
 			$one = '\''.trim($one).'\'';
 		}
 		unset($one);
+		if (count($parts) > 1) {
+			$parts = array_unique($parts);
+			sort($parts, SORT_STRING);
+		}
 		return implode(',',$parts);
 	}
 
@@ -243,8 +243,7 @@ $this->Crash();
 	/**
 	VerifyScript:
 	Construct js string for in-browser verification of booking/request data
-	If @admin, uses modalconfirm dialogs for interaction, with modal div
-	'#confgeneral' and buttons '#mc_conf' and '#mc_deny'
+	If @admin, uses jquery-alertable dialogs for interaction
 	@mod: reference to current module-object
 	@utils: reference to Utils-class object
 	@id: session identifier
@@ -257,40 +256,17 @@ $this->Crash();
 	*/
 	public function VerifyScript(&$mod, &$utils, $id, $item_id, $withdates, $nopast, $zonename, $admin)
 	{
-		if ($admin) {
-			$js1 = <<<EOS
-function showerr(message,target) {
- $.modalconfirm.show({
-  overlayID: 'confirm',
-  popupID: 'confgeneral',
-  seeButtons: 'deny',
-  showTarget: target,
-  preShow: function(tg,\$d) {
-   var para = \$d.children('p:first')[0];
-   para.innerHTML = message;
-   \$d.find('#mc_deny').val('{$mod->Lang('close')}');
-  },
-  onDeny: function(tg) {
-   setTimeout(function() {
-     tg.focus();
-   },10);
-  }
+		//TODO adjust styling for error
+		$js1 = <<<EOS
+function showerr(msg,tg) {
+ $.alertable.alert(msg, {
+  okName: '{$mod->Lang('close')}'
+ }).then(function() {
+  tg.focus(); //TODO check ok
  });
 }
 
 EOS;
-		} else { //frontend, no modalconfirm
-			$js1 = <<<'EOS'
-function showerr(message,target) {
- alert(message);
- setTimeout(function() {
-  tg.focus();
- },10);
-}
-
-EOS;
-		}
-
 		$usererr = ($admin)?
 		 $mod->Lang('missing_type',$mod->Lang('name')):
 		 $mod->Lang('err_nosender');
@@ -316,38 +292,48 @@ EOS;
 			$smnames = "'".str_replace(",","','",$t)."'";
 			$t = $mod->Lang('meridiem');
 			$meridiem = "'".str_replace(",","','",$t)."'";
+
 			$js2 = <<<EOS
-var clicker = null;
+function suretrim(str) {
+ if (typeof String.prototype.trim === "function") {
+  return str.trim();
+ } else {
+  return str.replace(/^\s+|\s+$/gm,'');
+ }
+}
 function validate(ev) {
  var ok = true,
-   f = '{$datetimefmt}',
-   fmt = new DateFormatter({
-    longDays: [{$dnames}],
-    shortDays: [{$sdnames}],
-    longMonths: [{$mnames}],
-    shortMonths: [{$smnames}],
-    meridiem: [{$meridiem}],
-    ordinal: function (number) {
-     var n = number % 10, suffixes = {1: 'st', 2: 'nd', 3: 'rd'};
-     return Math.floor(number % 100 / 10) === 1 || !suffixes[n] ? 'th' : suffixes[n];
-    }
-   }),
-   tg = document.getElementById('{$id}when'),
-   ds = null,
-   de = null;
- if (tg !== null){
-  var str = tg.value;
-  if (typeof me.trim === "function") str = str.trim();
-   ds = fmt.parseDate(str,f); //null upon failure
-   ok = (ds !== null);
+  f = '$datetimefmt',
+  fmt = new DateFormatter({
+   longDays: [$dnames],
+   shortDays: [$sdnames],
+   longMonths: [$mnames],
+   shortMonths: [$smnames],
+   meridiem: [$meridiem],
+   ordinal: function(number) {
+    var n = number % 10,
+     suffixes = {
+      1: 'st',
+      2: 'nd',
+      3: 'rd'
+     };
+    return Math.floor(number % 100 / 10) === 1 || !suffixes[n] ? 'th' : suffixes[n];
+   }
+  }),
+  tg = document.getElementById('{$id}when'),
+  ds = null,
+  de = null;
+ if (tg !== null) {
+  var str = suretrim(tg.value);
+  ds = fmt.parseDate(str,f); //null upon failure
+  ok = (ds !== null);
  }
  if (ok) {
   tg = document.getElementById('{$id}until');
   if (tg !== null) {
-   str = tg.value;
-   if (typeof me.trim === "function") str = str.trim();
-    de = fmt.parseDate(str,f);
-    ok = (de !== null);
+   str = suretrim(tg.value);
+   de = fmt.parseDate(str,f);
+   ok = (de !== null);
   }
  }
 
@@ -358,7 +344,6 @@ EOS;
   dn = new Date();
   ok = (ds === null || (ds > dn && (de === null || de > ds)));
  }
-
 EOS;
 			} else {
 				$js2 .= <<<'EOS'
@@ -371,11 +356,10 @@ EOS;
   showerr('{$mod->Lang('err_badtime')}',tg);
  } else {
   tg = document.getElementById('{$id}name');
-  str = tg.value;
-  if (typeof me.trim === "function") str = str.trim();
+  str = suretrim(tg.value);
   if (str == false) {
-    showerr('$usererr',tg);
-    ok = false;
+   showerr('$usererr',tg);
+   ok = false;
   }
  }
 
@@ -385,12 +369,12 @@ EOS;
 function validate(ev) {
  var ok = true,
    tg = document.getElementById('{$id}name'),
-   str = tg.value;
- if (typeof me.trim === "function") str = str.trim();
+   str = suretrim(tg.value);
  if (str == false) {
   showerr('$usererr',tg);
   ok = false;
  }
+
 EOS;
 		}
 
@@ -404,70 +388,31 @@ EOS;
 		$domains = self::EmailDomains($mod,$t);
  		$js3 = <<<EOS
  if (ok) {
-  clicker = this;
-  $('#{$id}contact').mailcheck({
+  var clicker = this,
+   tg = document.getElementById('{$id}contact');
+  ok = Mailcheck.check(tg,{
 {$domains}
    distanceFunction: function(str1,str2) {
     var lv = Levenshtein;
     return lv.get(str1,str2);
    },
    suggested: function(tg,suggest) {
-EOS;
-		if ($admin) {
-			$js4 = <<<EOS
-    $.modalconfirm.show({
-     overlayID: 'confirm',
-     popupID: 'confgeneral',
-     showTarget: tg,
-     preShow: function(tg,\$d) {
-      var para = \$d.children('p:first')[0],
-       prompt = '{$mod->Lang('meaning_type','%s')}'.replace('%s','<strong>'+suggest.full+'</strong>');
-      para.innerHTML = prompt;
-      \$d.find('#mc_conf').val('{$mod->Lang('yes')}');
-      \$d.find('#mc_deny').val('{$mod->Lang('no')}');
-     },
-     onConfirm: function(tg,\$d) {
-      tg.value = suggest.full;
-      setTimeout(function() {
-       $(clicker).unbind('click',validate);
-       clicker.click();
-       $(clicker).bind('click',validate);
-      },10);
-     },
-     onDeny: function(tg) {
-      setTimeout(function() {
-       tg.focus();
-      },10);
-     }
-    });
-
-EOS;
-		} else { //frontend, no modalconfirm
-			$js4 = <<<EOS
-    var prompt = '{$mod->Lang('meaning_type','%s')}'.replace('%s',suggest.full);
-    if (confirm(prompt)){
+    var msg = '{$mod->Lang('meaning_type','%s')}'.replace('%s','<strong>'+suggest.full+'</strong>');
+    $.alertable.confirm(msg, {
+     html: true,
+     okName: '{$mod->Lang('yes')}',
+     cancelName: '{$mod->Lang('no')}'
+    }).then(function() {
      tg.value = suggest.full;
-     setTimeout(function() {
-      $(clicker).unbind('click',validate);
-      clicker.click();
-      $(clicker).bind('click',validate);
-     },10);
-    } else {
-     setTimeout(function() {
-      tg.focus();
-     },10);
-    }
-
-EOS;
-		}
-		$js5 = <<<EOS
+     $(clicker).trigger('click');
+    }, function() {
+     tg.focus();
+    });
    },
    empty: function(tg) {
     showerr('{$mod->Lang('err_nocontact')}',tg);
-    return false;
    }
   });
-  ok = false;
  }
 
 EOS;
@@ -477,13 +422,10 @@ EOS;
 			$js6 = <<<EOS
  if (ok) {
   tg = document.getElementById('{$id}captcha');
-  if (tg !== null){
-   str = tg.value;
-   if (typeof me.trim === "function") str = str.trim();
-   if (str == false) {
-    showerr('{$mod->Lang('err_nocaptcha')}',tg);
-    ok = false;
-   }
+  str = suretrim(tg.value);
+  if (str == false) {
+   showerr('{$mod->Lang('err_nocaptcha')}',tg);
+   ok = false;
   }
  }
 
@@ -497,8 +439,7 @@ EOS;
  ev.preventDefault();
  return false;
 }
-
 EOS;
-		return $js1.$js2.$js3.$js4.$js5.$js6.$js7;
+		return $js1.$js2.$js3.$js6.$js7;
 	}
 }
