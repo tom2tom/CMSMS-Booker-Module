@@ -292,7 +292,11 @@ class Booker extends CMSModule
 */
 	public function GetHeaderHTML()
 	{
-		return '<link rel="stylesheet" type="text/css" id="adminstyler" href="'.$this->GetModuleURLPath().'/css/admin.css" />';
+		$p = $this->GetModuleURLPath();
+		return <<<EOS
+<link rel="stylesheet" type="text/css" id="adminstyler" href="{$p}/css/admin.min.css" />
+<link rel="stylesheet" type="text/css" href="{$p}/css/alertable.min.css" />
+EOS;
 	}
 
 	public function SuppressAdminOutput(&$request)
