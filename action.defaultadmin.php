@@ -111,14 +111,9 @@ $resume = json_encode(array($params['action'])); //head of resumption Q
 $jsfuncs = array(); //script accumulators
 $jsloads = array();
 $jsincs = array();
-//modal overlay
-$tplvars['yes'] = $yes;
-$tplvars['no'] = $no;
-$tplvars['proceed'] = $this->Lang('proceed');
-$tplvars['abort'] = $this->Lang('cancel');
 
 $jsincs[] =<<<EOS
-<script type="text/javascript" src="{$baseurl}/include/jquery.modalconfirm.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/include/jquery.alertable.min.js"></script>
 EOS;
 $tablerows = array();
 
@@ -218,6 +213,17 @@ if ($data) {
 	unset($row);
 }
 
+$jsfuncs[] = <<<EOS
+function confirmclick(tg,msg) {
+ $.alertable.confirm(msg,{
+  okName: '{$this->Lang('proceed')}',
+  cancelName: '{$this->Lang('cancel')}'
+ }).then(function() {
+  $(tg).trigger('click.deferred');
+ });
+}
+EOS;
+
 if ($pending) {
 	$tplvars['title_pending'] = $this->Lang('pending');
 	$dcount = count($data);
@@ -242,10 +248,6 @@ function confirm_reqcount() {
 EOS;
 
 	if ($tell) {
-		$tplvars['modaltitle'] = $this->Lang('title_feedback2');
-		$tplvars['customentry'] = $this->CreateInputText($id,'customentry','',20,30);
-		$tplvars['prompttitle'] = $this->Lang('title_prompt');
-
 		$what = '{'.$this->Lang('item').'}';
 		$on = '{'.$this->Lang('date').'}';
 		$detail = $this->Lang('whatovrday',$what,$on);
@@ -254,12 +256,13 @@ EOS;
 		$ask = $this->Lang('email_ask',$detail);
 
 		$jsfuncs[] =<<<EOS
-function modalsetup(tg,\$d) {
- var msg,action,id = $(this).attr('id');
- if (id) {
+function modalsetup(tg,btn) {
+ var action,msg,clue;
+ if (btn) {
+  var id = $(tg).attr('id');
   action = id.replace('{$id}','');
  } else {
-  var m = $(this).attr('href').match(/^.+{$id}task=(\w+).*$/);
+  var m = tg.attr('href').match(/^.+{$id}task=(\w+).*$/);
   if (m) {
    action = m[1];
   } else {
@@ -268,132 +271,108 @@ function modalsetup(tg,\$d) {
  }
  switch (action) {
   case 'approve':
-   msg = "$approve";
+   msg = '$approve';
    break;
   case 'reject':
-   msg = "$reject";
+   msg = '$reject';
    break;
   case 'ask':
-   msg = "$ask";
+   msg = '$ask';
    break;
   default:
    msg = '?';
    break;
  }
- \$d.find('#common').html(msg);
- var clue = msg.substring(msg.lastIndexOf('['),msg.lastIndexOf(']')+1);
- \$d.find('#{$id}customentry').val(clue);
+ clue = msg.substring(msg.lastIndexOf('['),msg.lastIndexOf(']')+1);
+ return [msg,clue];
 }
-function savecustom(tg,\$d) {
- var custom = \$d.find('#{$id}customentry').val();
- $('input[name="{$id}custmsg"]').val(custom);
- return true;
+function deferbutton(tg) {
+ var mstr = modalsetup(tg,true);
+ $.alertable.prompt(mstr[0],{
+  prompt: '<input id="alertable-input" type="text" name="choice" value="' + mstr[1] + '" />'
+ }).then(function() {
+  var cust = $('#alertable-input').val();
+  $('input[name="{$id}custmsg"]').val(cust);
+  $(tg).trigger('click.deferred');
+ });
 }
-function savecustom2(tg,\$d) {
- var custom = \$d.find('#{$id}customentry').val(),
-   url = $(tg).attr('href'),
-   curl = url+'&{$id}custmsg='+encodeURIComponent(custom);
- $(tg).attr('href',curl);
- return true;
+function deferlink(tg) {
+ var \$a = $(tg).closest('a'),
+  mstr = modalsetup(\$a,false);
+ $.alertable.prompt(mstr[0],{
+  prompt: '<input id="alertable-input" type="text" name="choice" value="' + mstr[1] + '" />'
+ }).then(function() {
+  var cust = $('#alertable-input').val(),
+   url = \$a.attr('href'),
+   curl = url+'&{$id}custmsg='+encodeURIComponent(cust);
+  \$a.attr('href',curl).trigger('click.deferred');
+ });
 }
 EOS;
 		$jsloads[] =<<<EOS
- $('#datatable .bkrtell > a').modalconfirm({
-  overlayID: 'confirm',
-  popupID: 'confmessage',
-  confirmBtnID: 'mc_conf2',
-  denyBtnID: 'mc_deny2',
-  preShow: modalsetup,
-  onConfirm: savecustom2
+ $('#datatable .bkrtell > a').click(function(ev) {
+  var tg = ev.target || ev.srcElement;
+  deferlink(tg);
+  return false;
  });
- $('#{$id}notify').modalconfirm({
-  overlayID: 'confirm',
-  popupID: 'confmessage',
-  confirmBtnID: 'mc_conf2',
-  denyBtnID: 'mc_deny2',
-  doCheck: confirm_reqcount,
-  preShow: modalsetup,
-  onConfirm: savecustom
+ $('#{$id}notify').click(function() {
+  if (confirm_reqcount()) {
+   deferbutton(this);
+  }
  });
 EOS;
 		if ($bmod) {
 			$jsloads[] =<<<EOS
- $('#datatable .bkrapp > a').modalconfirm({
-  overlayID: 'confirm',
-  popupID: 'confmessage',
-  confirmBtnID: 'mc_conf2',
-  denyBtnID: 'mc_deny2',
-  preShow: modalsetup,
-  onConfirm: savecustom2
+ $('#datatable .bkrapp > a').click(function(ev) {
+  var tg = ev.target || ev.srcElement;
+  deferlink(tg);
+  return false;
  });
- $('#{$id}approve').modalconfirm({
-  overlayID: 'confirm',
-  popupID: 'confmessage',
-  confirmBtnID: 'mc_conf2',
-  denyBtnID: 'mc_deny2',
-  doCheck: confirm_reqcount,
-  preShow: modalsetup,
-  onConfirm: savecustom
+ $('#{$id}approve').click(function() {
+  if (confirm_reqcount()) {
+   deferbutton(this);
+  }
+  return false;
  });
 EOS;
 			$jsloads[] =<<<EOS
- $('#datatable .bkrrej > a').modalconfirm({
-  overlayID: 'confirm',
-  popupID: 'confmessage',
-  confirmBtnID: 'mc_conf2',
-  denyBtnID: 'mc_deny2',
-  preShow: modalsetup,
-  onConfirm: savecustom2
+ $('#datatable .bkrrej > a').click(function(ev) {
+  var tg = ev.target || ev.srcElement;
+  deferlink(tg);
+  return false;
  });
- $('#{$id}reject').modalconfirm({
-  overlayID: 'confirm',
-  popupID: 'confmessage',
-  confirmBtnID: 'mc_conf2',
-  denyBtnID: 'mc_deny2',
-  doCheck: confirm_reqcount,
-  preShow: modalsetup,
-  onConfirm: savecustom
+ $('#{$id}reject').click(function() {
+  if (confirm_reqcount()) {
+   deferbutton(this);
+  }
+  return false;
  });
 EOS;
 		} //endif $bmod
 	} else { //Notifier module N/A
 		if ($bmod) {
 			$jsloads[] =<<<EOS
- $('#datatable .bkrapp > a').modalconfirm({
-  overlayID: 'confirm',
-  popupID: 'confgeneral',
-  preShow: function(tg,\$d) {
-   var para = \$d.children('p:first')[0];
-   para.innerHTML = '{$this->Lang('reminder')}';
-  }
+ $('#datatable .bkrapp > a').click(function(ev) {
+  confirmclick(ev.target,'{$this->Lang('reminder')}');
+  return false;
  });
- $('#{$id}approve').modalconfirm({
-  overlayID: 'confirm',
-  popupID: 'confgeneral',
-  doCheck: confirm_reqcount,
-  preShow: function(tg,\$d) {
-   var para = \$d.children('p:first')[0];
-   para.innerHTML = '{$this->Lang('reminder')}';
+ $('#{$id}approve').click(function() {
+  if (confirm_reqcount()) {
+   confirmclick(this,'{$this->Lang('reminder')}');
   }
+  return false;
  });
 EOS;
 			$jsloads[] =<<<EOS
- $('#datatable .bkrrej > a').modalconfirm({
-  overlayID: 'confirm',
-  popupID: 'confgeneral',
-  preShow: function(tg,\$d) {
-   var para = \$d.children('p:first')[0];
-   para.innerHTML = '{$this->Lang('reminder')}';
-  }
+ $('#datatable .bkrrej > a').click(function(ev) {
+  confirmclick(ev.target,'{$this->Lang('reminder')}');
+  return false;
  });
- $('#{$id}reject').modalconfirm({
-  overlayID: 'confirm',
-  popupID: 'confgeneral',
-  doCheck: confirm_reqcount,
-  preShow: function(tg,\$d) {
-   var para = \$d.children('p:first')[0];
-   para.innerHTML = '{$this->Lang('reminder')}';
+ $('#{$id}reject').click(function() {
+  if (confirm_reqcount()) {
+   confirmclick(this,'{$this->Lang('reminder')}');
   }
+  return false;
  });
 EOS;
 		} //endif $bmod
@@ -413,25 +392,18 @@ EOS;
 
 		$t = $this->Lang('confirm_delete_type',$this->Lang('request'),'%s');
 		$jsloads[] =<<<EOS
- $('#datatable .bkrdel > a').modalconfirm({
-  overlayID: 'confirm',
-  popupID: 'confgeneral',
-  preShow: function(tg,\$d) {
-   var n = $(this.parentNode).siblings(':first').text(),
-    t = "{$t}",
-    m = t.replace('%s',n),
-    para = \$d.children('p:first')[0];
-   para.innerHTML = m;
-  }
+ $('#datatable .bkrdel > a').click(function(ev) {
+  var n = $(this.parentNode).siblings(':first').text(),
+    msg = '$t'.replace('%s',n);
+  confirmclick(ev.target,msg);
+  return false;
  });
- $('#dataacts #{$id}delete').modalconfirm({
-  overlayID: 'confirm',
-  popupID: 'confgeneral',
-  doCheck: confirm_reqcount,
-  preShow: function(tg,\$d) {
-   var para = \$d.children('p:first')[0];
-   para.innerHTML = '{$this->Lang('delsel_confirm',$this->Lang('request_multi'))}';
+ $('#dataacts #{$id}delete').click(function() {
+  if (confirm_reqcount()) {
+   var msg = '{$this->Lang('delsel_confirm',$this->Lang('request_multi'))}';
+   confirmclick(this,msg);
   }
+  return false;
  });
 EOS;
 	}
@@ -620,25 +592,18 @@ EOS;
 
 		$t = $this->Lang('confirm_delete_type',$this->Lang('booker'),'%s');
 		$jsloads[] =<<<EOS
- $('#peopletable .bkrdel > a').modalconfirm({
-  overlayID: 'confirm',
-  popupID: 'confgeneral',
-  preShow: function(tg,\$d) {
+ $('#peopletable .bkrdel > a').click(function(ev) {
    var n = $(this.parentNode).siblings(':first').text(),
-    t = "{$t}",
-    m = t.replace('%s',n),
-    para = \$d.children('p:first')[0];
-   para.innerHTML = m;
-  }
+    msg = '$t'.replace('%s',n);
+  confirmclick(ev.target,msg);
+  return false;
  });
- $('#peopleacts #{$id}delete').modalconfirm({
-  overlayID: 'confirm',
-  popupID: 'confgeneral',
-  doCheck: confirm_bkrcount,
-  preShow: function(tg,\$d) {
-   var para = \$d.children('p:first')[0];
-   para.innerHTML = '{$this->Lang('delsel_confirm',$this->Lang('booker_multi'))}';
+ $('#peopleacts #{$id}delete').click(function() {
+  if (confirm_bkrcount()) {
+   var msg = '{$this->Lang('delsel_confirm',$this->Lang('booker_multi'))}';
+   confirmclick(this,msg);
   }
+  return false;
  });
 EOS;
 	} //$pper
@@ -921,25 +886,18 @@ EOS;
 	if ($pdel) {
 		$t = $this->Lang('confirm_delete_type',$this->Lang('item'),'%s');
 		$jsloads[] = <<<EOS
- $('#itemstable .bkrdel > a').modalconfirm({
-  overlayID: 'confirm',
-  popupID: 'confgeneral',
-  preShow: function(tg,\$d) {
+ $('#itemstable .bkrdel > a').click(function(ev) {
    var n = $(this.parentNode).siblings(':first').children(':first').text(),
-    t = "{$t}",
-    m = t.replace('%s',n),
-    para = \$d.children('p:first')[0];
-   para.innerHTML = m;
-  }
+    msg = '$t'.replace('%s',n);
+  confirmclick(ev.target,msg);
+  return false;
  });
- $('#itemacts #{$id}delete').modalconfirm({
-  overlayID: 'confirm',
-  popupID: 'confgeneral',
-  doCheck: confirm_itmcount,
-  preShow: function(tg,\$d) {
-   var para = \$d.children('p:first')[0];
-   para.innerHTML = '{$this->Lang('delsel_confirm',$this->Lang('item_multi'))}';
+ $('#itemacts #{$id}delete').click(function() {
+  if (confirm_itmcount()) {
+   var msg = '{$this->Lang('delsel_confirm',$this->Lang('item_multi'))}';
+   confirmclick(this,msg);
   }
+  return false;
  });
 EOS;
 	}
@@ -1009,25 +967,18 @@ function confirm_grpcount() {
 EOS;
 	if ($pdel) {
 		$jsloads[] = <<<EOS
- $('#groupstable .bkrdel > a').modalconfirm({
-  overlayID: 'confirm',
-  popupID: 'confgeneral',
-  preShow: function(tg,\$d) {
-   var n = $(this.parentNode).siblings(':first').children(':first').text(),
-    t = "{$t}",
-    m = t.replace('%s',n),
-    para = \$d.children('p:first')[0];
-   para.innerHTML = m;
-  }
+ $('#groupstable .bkrdel > a').click(function(ev) {
+  var n = $(this.parentNode).siblings(':first').children(':first').text(),
+   msg = '$t'.replace('%s',n);
+  confirmclick(ev.target,msg);
+  return false;
  });
- $('#groupacts #{$id}delete').modalconfirm({
-  overlayID: 'confirm',
-  popupID: 'confgeneral',
-  doCheck: confirm_grpcount,
-  preShow: function(tg,\$d) {
-   var para = \$d.children('p:first')[0];
-   para.innerHTML = '{$this->Lang('delsel_confirm',$this->Lang('group_multi'))}';
+ $('#groupacts #{$id}delete').click(function() {
+  if (confirm_grpcount()) {
+   var msg = '{$this->Lang('delsel_confirm',$this->Lang('group_multi'))}';
+   confirmclick(this,msg);
   }
+  return false;
  });
 EOS;
 	}
@@ -1438,7 +1389,7 @@ EOS;
 	$one->help = $this->Lang('help_cssfile');
 	$settings[] = $one;
 
-	$tplvars['compulsory'] = $this->Lang('help_compulsory');
+	$tplvars['compulsory'] = $this->Lang('compulsory_items');
 	$tplvars['settings'] = $settings;
 	//buttons
 	$tplvars['submitbtn4'] = $this->CreateInputSubmit($id,'submit',$this->Lang('apply'));
@@ -1585,13 +1536,11 @@ EOS;
 EOS;
 */
 
-$jsall = NULL;
-$utils->MergeJS($jsincs,$jsfuncs,$jsloads,$jsall);
+$jsall = $utils->MergeJS($jsincs,$jsfuncs,$jsloads);
 unset($jsincs);
 unset($jsfuncs);
 unset($jsloads);
 
 echo Booker\Utils::ProcessTemplate($this,'adminpanel.tpl',$tplvars);
-//inject constructed js after other content (pity we can't get to </body> or </html> from here)
 if ($jsall)
-	echo $jsall;
+	echo $jsall; //inject constructed js after other content
