@@ -44,13 +44,24 @@
 
 /* Message */
 #alertable\-message {
- margin-bottom:20px;
  font-weight:bold;
 /* font-size:inherit; */
+ margin-bottom:20px;
+}
+
+#alertable\-error\-message {
+ margin-bottom:20px;
+ color:#f00;
+/* font-size:inherit; */
+ font-weight:bold;
 }
 
 /* Prompt */
-#alertable\-prompt {
+#alertable\-prompt,
+#alertable h3,
+#alertable h4,
+#alertable h5 {
+ font-weight:bold;
  margin-bottom:20px;
 }
 
