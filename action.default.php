@@ -431,11 +431,11 @@ $jsloads[] = <<<EOS
  }).pikaday({
   field: document.getElementById('{$id}showfrom'),
   i18n: {
-   previousMonth: '{$prevm}',
-   nextMonth: '{$nextm}',
-   months: [{$mnames}],
-   weekdays: [{$dnames}],
-   weekdaysShort: [{$sdnames}]
+   previousMonth: '$prevm',
+   nextMonth: '$nextm',
+   months: [$mnames],
+   weekdays: [$dnames],
+   weekdaysShort: [$sdnames]
   },
   onClose: function() {
    if('_d' in this && this._d) {
@@ -458,8 +458,8 @@ if ($customcss)
 	$stylers .= <<<EOS
 <link rel="stylesheet" type="text/css" href="{$customcss}" />
 EOS;
-//heredoc-var newlines are a problem for quoted strings! workaround ...
-$stylers = preg_replace('/\n\r/g','',$stylers);
+//heredoc-var newlines are a problem for in-js quoted strings, so ...
+$stylers = preg_replace('/[\\n\\r]+/','',$stylers);
 $t = <<<EOS
 var linkadd = '$stylers',
  \$head = $('head'),
