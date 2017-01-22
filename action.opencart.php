@@ -219,29 +219,43 @@ if (!$cart->seemsEmpty()) {
 			'title="'.$this->Lang('tip_delseltype',$this->Lang('booking_multi')).'"')
 	);
 
-	//js setup frontend, no alertable
 	$t = $this->Lang('delsel_confirm',$this->Lang('booking_multi'));
 	$jsloads[] = <<<EOS
  $('#{$id}delete').click(function() {
   var \$sel = $('#cart').find('input:checked');
   if(\$sel.length > 0) {
-   return confirm('$t');
+   var tg = this;
+   $.alertable.confirm('$t',{
+    okName: '{$this->Lang('proceed')}',
+    cancelName: '{$this->Lang('cancel')}'
+   }).then(function() {
+    $(tg).trigger('click.deferred');
+   });
   }
   return false;
  });
+EOS;
+
+	$stylers = <<<EOS
+<link rel="stylesheet" type="text/css" href="{$baseurl}/css/alertable.css" />
+EOS;
+
+$jsincs[] = <<<EOS
+<script type="text/javascript" src="{$baseurl}/include/jquery.alertable.min.js"></script>
 EOS;
 
 } else { //empty cart
 	$tplvars['count'] = 0;
 	$tplvars['noitems'] = $this->Lang('nocartitems');
 	$tplvars['cancel'] = $this->CreateInputSubmit($id,'cancel',$this->Lang('close')); //or back
+	$stylers = '';
 }
 
-	$stylers = <<<EOS
+$stylers .= <<<EOS
 <link rel="stylesheet" type="text/css" href="{$baseurl}/css/public.css" />
 EOS;
-//heredoc-var newlines are a problem for quoted strings! workaround ...
-$stylers = preg_replace('/[\n\r]/g','',$stylers);
+//heredoc-var newlines are a problem for quoted in-js strings, so ...
+$stylers = preg_replace('/[\\n\\r]+/','',$stylers);
 $t = <<<EOS
 var linkadd = '$stylers',
  \$head = $('head'),
