@@ -11,7 +11,8 @@
 $params[]:
 if arrive via redirect
 'returnid'
-'bookat'=> int 1473591600
+'bookat'=> int 1473591600 or -1 to choose or missing if choosing an item (and time)
+'item' => -1 to choose or missing
 'action'
 for all form-inputs here:
  'account'
@@ -135,32 +136,10 @@ if ($idata) {
 	return;
 }
 
-$is_group = ($item_id >= Booker::MINGRPID);
-
-if (!empty($params['bkgid'])) { //activated slot with current booking(s)
-	//get some useful representative data
-	$bkgid = $params['bkgid'];
-	$sql = <<<EOS
-SELECT D.*,B.name,B.publicid,B.address,B.phone FROM {$this->DataTable} D
-JOIN {$this->BookerTable} B ON D.booker_id=B.booker_id
-WHERE D.bkg_id=?
-EOS;
-	$bdata = $utils->SafeGet($sql,array($bkgid),'row');
-} else { //TODO if first-pass
-	$bdata = array();
-	if (isset($params['bookat'])) {
-		$bdata['slotstart'] = $params['bookat'];
-	} elseif (isset($params['showfrom'])) {
-		$bdata['slotstart'] = $params['showfrom'] + 10*3600; //TODO
-	} else {
-		$bdata['slotstart'] = time(); //TODO
-	}
-	$bdata['slotlen'] = $utils->GetInterval($this,$item_id,'slot');
-}
-
 $utils->DecodeParameters($params,
 	array('account','comment','contact','contactnew','name','passwd'));
 
+$is_group = ($item_id >= Booker::MINGRPID);
 $now = $utils->GetZoneTime($idata['timezone']);
 
 if (isset($params['cart'])) {
@@ -295,6 +274,55 @@ elseif (isset($params['find'])) { //empty $params['submit']
 }
 */
 
+if (!isset($params['when'])) { //first-pass
+	if (empty($params['bkgid'])) { //not activated slot with current booking(s)
+		$bdata = array();
+		if (isset($params['bookat'])) {
+			if ($params['bookat'] > 0) {
+				$bdata['slotstart'] = $params['bookat'];
+			} else {
+				//set nowish start-time as fallback
+				$slen = $utils->GetInterval($this,$item_id,'slot');
+				$bdata['slotstart'] = (int)($now/$slen) * $slen + $slen + 3600;
+			}
+		} elseif (isset($params['showfrom'])) {
+			$bdata['slotstart'] = $params['showfrom'] + 10*3600; //TODO
+		} else {
+			$bdata['slotstart'] = time(); //TODO
+		}
+		$bdata['slotlen'] = $utils->GetInterval($this,$item_id,'slot');
+	} else {
+		//get some useful representative data
+		$bkgid = $params['bkgid'];
+		$sql = <<<EOS
+SELECT D.*,B.name,B.publicid,B.address,B.phone FROM $this->DataTable D
+JOIN $this->BookerTable B ON D.booker_id=B.booker_id
+WHERE D.bkg_id=?
+EOS;
+		$bdata = $utils->SafeGet($sql,array($bkgid),'row');
+	}
+} else {
+	$bdata = array();
+	$dtw = new DateTime('@0',NULL);
+	$lvl = error_reporting(0);
+	$res = $dtw->modify($params['when']);
+	if ($res) {
+		$bdata['slotstart'] = $dtw->getTimestamp();
+	} else {
+		$bdata['slotstart'] = $now;
+	}
+	$res = $dtw->modify($params['when']);
+	error_reporting($lvl);
+	if ($res) {
+		$t = $dtw->getTimestamp() - $bdata['slotstart'];
+		if($t < 0)
+			$t = 3600;
+		$bdata['slotlen'] = $t;
+	} else {
+		$bdata['slotlen'] = 3600;
+	}
+}
+
 $be = $bdata['slotstart'] + $bdata['slotlen'];
 $past = ($be <= $now);
 //$is_new = !$past && $params['task'] == 'add' && (!$is_group || 1); //TODO || count vacant members > 0
@@ -314,9 +342,8 @@ $jsloads = array();
 $jsincs = array();
 $baseurl = $this->GetModuleURLPath();
 
-$jsloads[] = <<<EOS
+$jsloads[] = <<<'EOS'
  $('#needjs').css('display','none');
-
 EOS;
 
 $tplvars['needjs'] = $this->Lang('needjs');
@@ -515,7 +542,6 @@ $jsloads[] = <<<EOS
   $('.hide2').css('visibility','collapse');
   $('.hide1').css('visibility','visible');
  });
-
 EOS;
 
 $oneset = new stdClass();
@@ -539,7 +565,6 @@ $jsloads[] = <<<EOS
   type:'see4',
   symbol:'\u25CF'
  });
-
 EOS;
 
 $oneset = new stdClass();
@@ -561,7 +586,6 @@ $jsloads[] = <<<EOS
   $('.hide1').css('visibility','collapse');
   $('.hide2').css('visibility','visible');
  });
-
 EOS;
 */
 
@@ -614,6 +638,7 @@ $jsincs[] =<<<EOS
 <script type="text/javascript" src="{$baseurl}/include/jquery.watermark.min.js"></script>
 EOS;
 
+$datetimefmt = $utils->DateTimeFormat(FALSE,FALSE,TRUE,!$overday,$idata['dateformat'],$idata['timeformat']);
 $nextm = $this->Lang('nextm');
 $prevm = $this->Lang('prevm');
 //js wants quoted period-names
@@ -627,22 +652,26 @@ $t = $this->Lang('shortmonths');
 $smnames = "'".str_replace(",","','",$t)."'";
 $t = $this->Lang('meridiem');
 $meridiem = "'".str_replace(",","','",$t)."'";
-$datetimefmt = $utils->DateTimeFormat(FALSE,FALSE,TRUE,!$overday,$idata['dateformat'],$idata['timeformat']);
 
 $jsloads[] = <<<EOS
  var fmt = new DateFormatter({
-  longDays: [{$dnames}],
-  shortDays: [{$sdnames}],
-  longMonths: [{$mnames}],
-  shortMonths: [{$smnames}],
-  meridiem: [{$meridiem}],
+  longDays: [$dnames],
+  shortDays: [$sdnames],
+  longMonths: [$mnames],
+  shortMonths: [$smnames],
+  meridiem: [$meridiem],
   ordinal: function (number) {
-   var n = number % 10, suffixes = {1: 'st', 2: 'nd', 3: 'rd'};
+   var n = number % 10,
+   suffixes = {
+    1: 'st',
+    2: 'nd',
+    3: 'rd'
+   };
    return Math.floor(number % 100 / 10) === 1 || !suffixes[n] ? 'th' : suffixes[n];
   }
  });
  $('.dateinput').pikaday({
-  format: '{$datetimefmt}',
+  format: '$datetimefmt',
   reformat: function(target,f) {
    return fmt.formatDate(target,f);
   },
@@ -650,18 +679,18 @@ $jsloads[] = <<<EOS
    return fmt.parseDate(target,f);
   },
   i18n: {
-   previousMonth: '{$prevm}',
-   nextMonth: '{$nextm}',
-   months: [{$mnames}],
-   weekdays: [{$dnames}],
-   weekdaysShort: [{$sdnames}]
+   previousMonth: '$prevm',
+   nextMonth: '$nextm',
+   months: [$mnames],
+   weekdays: [$dnames],
+   weekdaysShort: [$sdnames]
   }
  });
  var pk = $('#{$id}when').data('pikaday');
  if (pk) {
   pk._o.onClose = function() {
    if ('_d' in this && this._d) {
-    var ob = new Date(this._d.getTime() + {$bdata['slotlen']}*1000);
+    var ob = new Date(this._d.getTime() + {$bdata['slotlen']} * 1000);
     var dt = fmt.formatDate(ob,'{$datetimefmt}');
     $('#{$id}until').val(dt);
    }
@@ -670,17 +699,16 @@ $jsloads[] = <<<EOS
  setTimeout(function() {
   $('.dateinput').watermark();
  },10);
-
 EOS;
 
 $funcs = new Booker\Verify();
 $checkdates = !($past || (isset($params['bkgid']) && !$groupextra)); //$bcount?
 $jsfuncs[] = $funcs->VerifyScript($this,$utils,$id,$item_id,$checkdates,FALSE,$idata['timezone'],FALSE);
-//for email-validator
+//for email-validator & alerter
 $jsincs[] = <<<EOS
 <script type="text/javascript" src="{$baseurl}/include/mailcheck.min.js"></script>
 <script type="text/javascript" src="{$baseurl}/include/levenshtein.min.js"></script>
-
+<script type="text/javascript" src="{$baseurl}/include/jquery.alertable.min.js"></script>
 EOS;
 
 $tplvars['submit'] = $this->CreateInputSubmit($id,'submit',$this->Lang('submit'));
@@ -692,9 +720,7 @@ $tplvars['cart'] = $this->CreateInputSubmit($id,'cart',$this->Lang('cart'),
 $tplvars['register'] = NULL;
 
 $jsloads[] = <<<EOS
- $('#{$id}submit').bind('click',validate);
- $('#{$id}cart').bind('click',validate);
-
+ $('#{$id}submit,#{$id}cart').bind('click',validate);
 EOS;
 
 $tplvars['choose'] = NULL; /*$utils->GetItemPicker($this,$id,'itempick',$params['firstpick'],$item_id);
@@ -703,7 +729,6 @@ if ($tplvars['choose']) {
  $('#{$id}itempick').change(function() {
   $(this).closest('form').trigger('submit');
  });
-
 EOS;
 }
 */
@@ -711,34 +736,35 @@ EOS;
 $stylers = <<<EOS
 <link rel="stylesheet" type="text/css" href="{$baseurl}/css/public.css" />
 <link rel="stylesheet" type="text/css" href="{$baseurl}/css/pikaday.css" />
+<link rel="stylesheet" type="text/css" href="{$baseurl}/css/alertable.css" />
 EOS;
 $customcss = $utils->GetStylesURL($this,$item_id);
 if ($customcss) {
 	$stylers .= <<<EOS
-<link rel="stylesheet" type="text/css" href="{$customcss}" />{/if}
+<link rel="stylesheet" type="text/css" href="{$customcss}" />
 EOS;
 }
-//porting heredoc-var newlines is a problem for qouted strings! workaround ...
-$stylers = str_replace("\n",'',$stylers);
-$tplvars['jsstyler'] = <<<EOS
-var \$head = $('head'),
- \$linklast = \$head.find("link[rel='stylesheet']:last"),
- linkadd = '{$stylers}';
+//heredoc-var newlines are a problem for in-js quoted strings! so ...
+$stylers = preg_replace('/[\\n\\r]+/','',$stylers);
+
+$t = <<<EOS
+var linkadd = '$stylers',
+ \$head = $('head'),
+ \$linklast = \$head.find("link[rel='stylesheet']:last");
 if (\$linklast.length) {
  \$linklast.after(linkadd);
 } else {
  \$head.append(linkadd);
 }
 EOS;
+echo $utils->MergeJS(FALSE,array($t),FALSE);
 
-if ($jsloads) {
-	$jsfuncs[] = '$(document).ready(function() {
-';
-	$jsfuncs = array_merge($jsfuncs,$jsloads);
-	$jsfuncs[] = '});
-';
-}
-$tplvars['jsfuncs'] = $jsfuncs;
-$tplvars['jsincs'] = $jsincs;
+$jsall = $utils->MergeJS($jsincs,$jsfuncs,$jsloads);
+unset($jsincs);
+unset($jsfuncs);
+unset($jsloads);
 
 echo Booker\Utils::ProcessTemplate($this,'requestbooking.tpl',$tplvars);
+if ($jsall) {
+	echo $jsall; //inject constructed js after other content
+}
