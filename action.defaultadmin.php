@@ -256,13 +256,13 @@ EOS;
 		$ask = $this->Lang('email_ask',$detail);
 
 		$jsfuncs[] =<<<EOS
-function modalsetup(tg,btn) {
+function modalsetup(\$tg,btn) {
  var action,msg,clue;
  if (btn) {
-  var id = $(tg).attr('id');
+  var id = \$tg.attr('id');
   action = id.replace('{$id}','');
  } else {
-  var m = tg.attr('href').match(/^.+{$id}task=(\w+).*$/);
+  var m = \$tg.attr('href').match(/^.+{$id}task=(\w+).*$/);
   if (m) {
    action = m[1];
   } else {
@@ -286,22 +286,34 @@ function modalsetup(tg,btn) {
  clue = msg.substring(msg.lastIndexOf('['),msg.lastIndexOf(']')+1);
  return [msg,clue];
 }
-function deferbutton(tg) {
- var mstr = modalsetup(tg,true);
- $.alertable.prompt(mstr[0],{
-  prompt: '<input id="alertable-input" type="text" name="choice" value="' + mstr[1] + '" />'
- }).then(function() {
+function deferbutton(tg,title) {
+ var mstr = modalsetup($(tg),true),
+  opts = {
+   prompt: '<input id="alertable-input" type="text" name="choice" value="' + mstr[1] + '" />'
+  };
+ if (title !== undefined) {
+  opts.modal = '<form id="alertable"><h4 id="alertable-title">' + title + '</h4>' +
+   '<p id="alertable-message"></p><div id="alertable-prompt"></div>' +
+   '<div id="alertable-buttons"></div></form>';
+ }
+ $.alertable.prompt(mstr[0],opts).then(function() {
   var cust = $('#alertable-input').val();
   $('input[name="{$id}custmsg"]').val(cust);
   $(tg).trigger('click.deferred');
  });
 }
-function deferlink(tg) {
+function deferlink(tg,title) {
  var \$a = $(tg).closest('a'),
-  mstr = modalsetup(\$a,false);
- $.alertable.prompt(mstr[0],{
-  prompt: '<input id="alertable-input" type="text" name="choice" value="' + mstr[1] + '" />'
- }).then(function() {
+  mstr = modalsetup(\$a,false),
+  opts = {
+   prompt: '<input id="alertable-input" type="text" name="choice" value="' + mstr[1] + '" />'
+  };
+ if (title !== undefined) {
+  opts.modal = '<form id="alertable"><h4 id="alertable-title">' + title + '</h4>' +
+   '<p id="alertable-message"></p><div id="alertable-prompt"></div>' +
+   '<div id="alertable-buttons"></div></form>';
+ }
+ $.alertable.prompt(mstr[0],opts).then(function() {
   var cust = $('#alertable-input').val(),
    url = \$a.attr('href'),
    curl = url+'&{$id}custmsg='+encodeURIComponent(cust);
@@ -309,15 +321,16 @@ function deferlink(tg) {
  });
 }
 EOS;
+		$t = $this->Lang('title_feedback3');
 		$jsloads[] =<<<EOS
  $('#datatable .bkrtell > a').click(function(ev) {
   var tg = ev.target || ev.srcElement;
-  deferlink(tg);
+  deferlink(tg,'$t');
   return false;
  });
  $('#{$id}notify').click(function() {
   if (confirm_reqcount()) {
-   deferbutton(this);
+   deferbutton(this,'$t');
   }
  });
 EOS;
@@ -325,12 +338,12 @@ EOS;
 			$jsloads[] =<<<EOS
  $('#datatable .bkrapp > a').click(function(ev) {
   var tg = ev.target || ev.srcElement;
-  deferlink(tg);
+  deferlink(tg,'$t');
   return false;
  });
  $('#{$id}approve').click(function() {
   if (confirm_reqcount()) {
-   deferbutton(this);
+   deferbutton(this,'$t');
   }
   return false;
  });
@@ -338,12 +351,12 @@ EOS;
 			$jsloads[] =<<<EOS
  $('#datatable .bkrrej > a').click(function(ev) {
   var tg = ev.target || ev.srcElement;
-  deferlink(tg);
+  deferlink(tg,'$t');
   return false;
  });
  $('#{$id}reject').click(function() {
   if (confirm_reqcount()) {
-   deferbutton(this);
+   deferbutton(this,'$t');
   }
   return false;
  });
@@ -351,26 +364,29 @@ EOS;
 		} //endif $bmod
 	} else { //Notifier module N/A
 		if ($bmod) {
+			$t = $this->Lang('reminder');
 			$jsloads[] =<<<EOS
  $('#datatable .bkrapp > a').click(function(ev) {
-  confirmclick(ev.target,'{$this->Lang('reminder')}');
+  var tg = ev.target || ev.srcElement;
+  confirmclick(tg,'$t');
   return false;
  });
  $('#{$id}approve').click(function() {
   if (confirm_reqcount()) {
-   confirmclick(this,'{$this->Lang('reminder')}');
+   confirmclick(this,'$t')}');
   }
   return false;
  });
 EOS;
 			$jsloads[] =<<<EOS
  $('#datatable .bkrrej > a').click(function(ev) {
-  confirmclick(ev.target,'{$this->Lang('reminder')}');
+  var tg = ev.target || ev.srcElement;
+  confirmclick(tg,'$t');
   return false;
  });
  $('#{$id}reject').click(function() {
   if (confirm_reqcount()) {
-   confirmclick(this,'{$this->Lang('reminder')}');
+   confirmclick(this,'$t')}');
   }
   return false;
  });
@@ -393,9 +409,10 @@ EOS;
 		$t = $this->Lang('confirm_delete_type',$this->Lang('request'),'%s');
 		$jsloads[] =<<<EOS
  $('#datatable .bkrdel > a').click(function(ev) {
+  var tg = ev.target || ev.srcElement;
   var n = $(this.parentNode).siblings(':first').text(),
-    msg = '$t'.replace('%s',n);
-  confirmclick(ev.target,msg);
+   msg = '$t'.replace('%s',n);
+  confirmclick(tg,msg);
   return false;
  });
  $('#dataacts #{$id}delete').click(function() {
@@ -593,9 +610,10 @@ EOS;
 		$t = $this->Lang('confirm_delete_type',$this->Lang('booker'),'%s');
 		$jsloads[] =<<<EOS
  $('#peopletable .bkrdel > a').click(function(ev) {
-   var n = $(this.parentNode).siblings(':first').text(),
-    msg = '$t'.replace('%s',n);
-  confirmclick(ev.target,msg);
+  var tg = ev.target || ev.srcElement;
+  var n = $(this.parentNode).siblings(':first').text(),
+   msg = '$t'.replace('%s',n);
+  confirmclick(tg,msg);
   return false;
  });
  $('#peopleacts #{$id}delete').click(function() {
@@ -887,9 +905,10 @@ EOS;
 		$t = $this->Lang('confirm_delete_type',$this->Lang('item'),'%s');
 		$jsloads[] = <<<EOS
  $('#itemstable .bkrdel > a').click(function(ev) {
-   var n = $(this.parentNode).siblings(':first').children(':first').text(),
-    msg = '$t'.replace('%s',n);
-  confirmclick(ev.target,msg);
+  var tg = ev.target || ev.srcElement;
+  var n = $(this.parentNode).siblings(':first').children(':first').text(),
+   msg = '$t'.replace('%s',n);
+  confirmclick(tg,msg);
   return false;
  });
  $('#itemacts #{$id}delete').click(function() {
@@ -968,9 +987,10 @@ EOS;
 	if ($pdel) {
 		$jsloads[] = <<<EOS
  $('#groupstable .bkrdel > a').click(function(ev) {
+  var tg = ev.target || ev.srcElement;
   var n = $(this.parentNode).siblings(':first').children(':first').text(),
    msg = '$t'.replace('%s',n);
-  confirmclick(ev.target,msg);
+  confirmclick(tg,msg);
   return false;
  });
  $('#groupacts #{$id}delete').click(function() {
