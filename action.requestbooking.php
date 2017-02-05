@@ -80,7 +80,9 @@ if (isset($params['cancel'])) {
 $tplvars = array();
 
 if (isset($params['register'])) {
-	$tplvars['message'] = $this->Lang('notyet');
+	$newparms = $utils->FilterParameters($params,$localparams);
+	$newparms['task'] = 'register';
+	$this->Redirect($id, 'auth', $params['returnid'], $newparms);
 }
 
 if (isset($params['item_id'])) {
@@ -519,10 +521,10 @@ if ($choosend) {
 }
 
 //alternative for disabled registered-user UI
-$hidden[] = $this->CreateInputHidden($id,'account','');
-$hidden[] = $this->CreateInputHidden($id,'passwd','');
-$hidden[] = $this->CreateInputHidden($id,'contactnew','');
-/* DISABLE registered-user UI for now
+//$hidden[] = $this->CreateInputHidden($id,'account','');
+//$hidden[] = $this->CreateInputHidden($id,'passwd','');
+//$hidden[] = $this->CreateInputHidden($id,'contactnew','');
+//* DISABLE registered-user UI for now
 $choices = array($this->Lang('title_registered')=>1,
 	$this->Lang('title_occasional')=>2);
 $t = (!empty($params['bookertype'])) ? (int)$params['bookertype']:1;
@@ -587,7 +589,7 @@ $jsloads[] = <<<EOS
   $('.hide2').css('visibility','visible');
  });
 EOS;
-*/
+//*/
 
 $oneset = new stdClass();
 $oneset->class = 'hide2';
@@ -715,9 +717,9 @@ $tplvars['submit'] = $this->CreateInputSubmit($id,'submit',$this->Lang('submit')
 $tplvars['cancel'] = $this->CreateInputSubmit($id,'cancel',$this->Lang('cancel'));
 $tplvars['cart'] = $this->CreateInputSubmit($id,'cart',$this->Lang('cart'),
 	'title="'.$this->Lang('tip_cartadd').'"');
-//$tplvars['register'] = $this->CreateInputSubmit($id,'register',$this->Lang('register'),
-//	'title="'.$this->Lang('tip_register').'"');
-$tplvars['register'] = NULL;
+$tplvars['register'] = $this->CreateInputSubmit($id,'register',$this->Lang('register'),
+	'title="'.$this->Lang('tip_register').'"');
+//$tplvars['register'] = NULL;
 
 $jsloads[] = <<<EOS
  $('#{$id}submit,#{$id}cart').bind('click',validate);
