@@ -226,3 +226,26 @@ table.bkr_collapse {
 	border: 0;
 	border-collapse: collapse;
 }
+
+input.fakelink {
+	margin:0;
+	padding:0;
+	border:none;
+    border:0;
+	outline:none;
+	background:none;
+	text-align:left;
+	text-decoration:underline;
+    font-family:inherit;
+    font-size:inherit;	
+}
+
+input.fakelink:hover {
+	text-decoration:none;
+	background:none;
+}
+
+/* registration panel */
+div#authactions {
+	margin-top: 1em;
+}
