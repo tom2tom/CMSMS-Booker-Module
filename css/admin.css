@@ -111,14 +111,21 @@ input.fakeicon {
 input.fakelink {
  margin:0;
  padding:0;
+ border:none;
+ border:0;
+ outline:none;
+ background:none;
  text-align:left;
  text-decoration:underline;
+ font-family:inherit;
  font-size:1em;
- color:#000;
- background:none;
 }
 
 input.fakelink:hover {
  text-decoration:none;
  background:none;
+}
+
+input.fakelink:focus {
+  outline: none;
 }
