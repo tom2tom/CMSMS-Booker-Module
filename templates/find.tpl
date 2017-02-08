@@ -6,7 +6,7 @@
 <div id="selectors">
  <table style="border:0"><tbody>
 {foreach from=$selects item=entry}
- <tr></tr><td>{$entry->title}</td><td>{$entry->input}</td><tr></tr>
+ <tr></tr><td>{$entry->ttl}</td><td>{$entry->inp}</td><tr></tr>
 {/foreach}
  </tbody></table>
 </div>

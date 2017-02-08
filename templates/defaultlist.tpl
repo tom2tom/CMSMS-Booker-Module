@@ -4,7 +4,7 @@
 {if isset($desc)}<p class="bkgdesc">{$desc}</p>{/if}
 {if isset($pictures)}<div class="bkgimg">
 {foreach from=$pictures item=pic}
-<img src="{$pic->url}"{if !empty($pic->title)} alt="{$pic->title}"{/if} />
+<img src="{$pic->url}"{if !empty($pic->ttl)} alt="{$pic->ttl}"{/if} />
 {/foreach}
 </div><br />{/if}
 {$startform}
@@ -17,7 +17,7 @@
 {foreach from=$sections item=block}{cycle values="2,1,0" assign=nc}
 {if $nc==2}<tr>{/if}
  <td class="list">
-{if !empty($block->title)}<h5>{$block->title}</h5>{/if}
+{if !empty($block->ttl)}<h5>{$block->ttl}</h5>{/if}
 {foreach from=$block->rows item=text}<p>&nbsp;&nbsp;{$text}</p>{/foreach}
  </td>
 {if !$nc}</tr>{/if}

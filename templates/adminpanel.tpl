@@ -294,9 +294,9 @@
 <div style="margin:0 20px;overflow:auto;">
 <p class="pagetext" style="font-weight:normal;">{$compulsory}</p>
 {foreach from=$settings item=entry name=opts}
- <p class="pagetext">{$entry->title}:{if !empty($entry->must)} *{/if}</p>
- <div class="pageinput">{$entry->input}</div>
- {if !empty($entry->help)}<p class="pageinput">{$entry->help}</p>{/if}
+ <p class="pagetext">{$entry->ttl}:{if !empty($entry->mst)} *{/if}</p>
+ <div class="pageinput">{$entry->inp}</div>
+ {if !empty($entry->hlp)}<p class="pageinput">{$entry->hlp}</p>{/if}
 {if !$smarty.foreach.opts.last}<br />{/if}
 {/foreach}
 </div>

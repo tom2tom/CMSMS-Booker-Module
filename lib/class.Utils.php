@@ -1030,7 +1030,7 @@ EOS;
 
 	/**
 	GetImageURLs:
-	Get array of URLs of image files represented by @imageparam
+	Get array of URLs of image files represented by @image
 
 	@mod: reference to current module-object
 	@image: string with one (or more, and if so, ','-separated) name(s),
@@ -1053,7 +1053,7 @@ EOS;
 			if ($url) {
 				$oneset = new \stdClass();
 				$oneset->url = $url;
-				$oneset->title = $title;
+				$oneset->ttl = $title;
 				$all[] = $oneset;
 			}
 		}

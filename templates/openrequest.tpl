@@ -6,9 +6,9 @@
 {$startform}
 <div class="pageoverflow">
 {foreach from=$data item=entry}
- <p class="pagetext">{$entry->title}:{if !empty($entry->must)} *{/if}</p>
- <div class="pageinput">{$entry->input}</div>
- {if !empty($entry->help)}<p class="pageinput">{$entry->help}</p>{/if}
+ <p class="pagetext">{$entry->ttl}:{if !empty($entry->mst)} *{/if}</p>
+ <div class="pageinput">{$entry->inp}</div>
+ {if !empty($entry->hlp)}<p class="pageinput">{$entry->hlp}</p>{/if}
 {/foreach}
 </div>
 <div class="pageinput" style="margin-top:1em">

@@ -4,7 +4,7 @@
 {if isset($desc)}<p class="bkgdesc">{$desc}</p><br /><br />{/if}
 {if isset($pictures)}<div class="bkgimg">
 {foreach from=$pictures item=pic}
-<img src="{$pic->url}"{if !empty($pic->title)} alt="{$pic->title}"{/if} />
+<img src="{$pic->url}"{if !empty($pic->ttl)} alt="{$pic->ttl}"{/if} />
 {/foreach}
 </div><br /><br />{/if}
 {if isset($membermsg)}<p>{$membermsg}</p>{/if}
