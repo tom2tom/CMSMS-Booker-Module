@@ -418,6 +418,7 @@ $this->CreatePermission($this->PermPerName, $this->Lang('perm_booker'));
 $this->SetPreference('pref_approver','');
 $this->SetPreference('pref_approvercontact','');
 $this->SetPreference('pref_approvertell',1);
+$this->SetPreference('pref_authbulletin','');
 $this->SetPreference('pref_available',''); //always available
 $this->SetPreference('pref_bookcount',0); //book any no. of slots
 $this->SetPreference('pref_bookertell',1);
@@ -437,6 +438,7 @@ $this->SetPreference('pref_taxrate',0.0);
 $this->SetPreference('pref_leadcount',0);
 $this->SetPreference('pref_leadtype',3); //week-index per TimeIntervals()
 $this->SetPreference('pref_listformat',Booker::LISTSU);
+$this->SetPreference('pref_logincontext','');
 $this->SetPreference('pref_masterpass','OWFmNT1dGbU5FbnRlciBhdCB5b3VyIG93biByaXNrISBEYW5nZXJvdXMgZGF0YSE=');
 $this->SetPreference('pref_membersname',$this->Lang('members'));
 $this->SetPreference('pref_owner',0);	//each resource/group may have a specific owner/contact
