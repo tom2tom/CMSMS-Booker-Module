@@ -42,7 +42,7 @@ class Cache
 
 		$basedir = $config['uploads_path'];
 		if (is_dir($basedir)) {
-			$rel = $mod->GetPreference('pref_uploadsdir');
+			$rel = $mod->GetPreference('uploadsdir');
 			if ($rel) {
 				$basedir .= DIRECTORY_SEPARATOR . $rel;
 			}

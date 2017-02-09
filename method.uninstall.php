@@ -77,7 +77,7 @@ $this->RemovePermission($this->PermModName);
 
 $fp = $config['uploads_path'];
 if ($fp && is_dir($fp)) {
-	$ud = $this->GetPreference('pref_uploadsdir','');
+	$ud = $this->GetPreference('uploadsdir','');
 	if ($ud) {
 		$fp = cms_join_path($fp,$ud);
 		if ($fp && is_dir($fp))

@@ -26,7 +26,7 @@ class Clearcache_task implements \CmsRegularTask
 	{
 		$config = \cmsms()->GetConfig();
 		$dir = $config['uploads_path'];
-		$rel = $mod->GetPreference('pref_uploadsdir');
+		$rel = $mod->GetPreference('uploadsdir');
 		if ($rel) {
 			$dir .= DIRECTORY_SEPARATOR.$rel;
 		}
@@ -42,7 +42,7 @@ class Clearcache_task implements \CmsRegularTask
 		$mod = \cms_utils::get_module(self::MODNAME);
 		$dir = $this->FileCacheDir($mod);
 		if ($dir) {
-			foreach (new DirectoryIterator($dir) as $fInfo) {
+			foreach (new \DirectoryIterator($dir) as $fInfo) {
 				$fn = $fInfo->getFilename();
 				if (strpos($fn,\Booker::CARTKEY) === 0)
 					return TRUE;
@@ -62,7 +62,7 @@ class Clearcache_task implements \CmsRegularTask
 		$mod = \cms_utils::get_module(self::MODNAME);
 		$dir = $this->FileCacheDir($mod);
 		if ($dir) {
-			foreach (new DirectoryIterator($dir) as $fInfo) {
+			foreach (new \DirectoryIterator($dir) as $fInfo) {
 				if ($fInfo->isFile() && !$fInfo->isDot()) {
 					$fn = $fInfo->getFilename();
 					if (strpos($fn,\Booker::CARTKEY) === 0) {

@@ -44,7 +44,7 @@ class Crypter
 		if ($value) {
 			if ($this->mod->havemcrypt) {
 				if (!$passwd) {
-					$passwd = $this->mod->GetPreference('pref_masterpass');
+					$passwd = $this->mod->GetPreference('masterpass');
 					if ($passwd)
 						$passwd = self::unfusc($passwd);
 				}
@@ -62,7 +62,7 @@ class Crypter
 		if ($value) {
 			if ($this->mod->havemcrypt) {
 				if (!$passwd) {
-					$passwd = $this->mod->GetPreference('pref_masterpass');
+					$passwd = $this->mod->GetPreference('masterpass');
 					if ($passwd)
 						$passwd = self::unfusc($passwd);
 				}

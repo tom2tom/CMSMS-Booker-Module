@@ -20,7 +20,7 @@ if (isset($params['stylesdelete'])) {
 	if ($fn) {
 		$fp = $config['uploads_path'];
 		if ($fp && is_dir($fp)) {
-			$ud = $this->GetPreference('pref_uploadsdir','');
+			$ud = $this->GetPreference('uploadsdir','');
 			if ($ud)
 				$fp = cms_join_path($fp,$ud,$fn);
 			else
@@ -35,31 +35,32 @@ if (isset($params['stylesdelete'])) {
 $updates = preg_grep('/^pref_.*/',array_keys($params));
 foreach ($updates as $k) {
 	$val = $params[$k];
+	$k = substr($k,5);
 	switch ($k) {
-	 case 'pref_cleargroup':
+	 case 'cleargroup':
 		$this->SetPreference($k,(int)$val);
 		break;
-	 case 'pref_timezone':
+	 case 'timezone':
 		if ($val == FALSE)
 			$val = 'UTC';
 		$this->SetPreference($k,trim($val));
 		break;
-	 case 'pref_dateformat':
+	 case 'dateformat':
 		if ($val == FALSE)
 			$val = 'j M Y';
 		$this->SetPreference($k,trim($val));
 		break;
-	 case 'pref_timeformat':
+	 case 'timeformat':
 		if ($val == FALSE)
 			$val = 'G:i';
 		$this->SetPreference($k,trim($val));
 		break;
-	 case 'pref_smspattern':
+	 case 'smspattern':
 		if ($val == FALSE)
 			$val = '^\d{6,15}$';
 		$this->SetPreference($k,trim($val));
 		break;
-/*	 case 'pref_smsprefix':
+/*	 case 'smsprefix':
 		if ($val == FALSE)
 			$val = ; TODO func(timezone)
 		$this->SetPreference($k,trim($val));

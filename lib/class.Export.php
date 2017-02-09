@@ -97,14 +97,14 @@ class Export
 			$defchars = 'UTF-8';
 
 		if (ini_get('mbstring.internal_encoding') !== FALSE) { //conversion is possible
-			$expchars = $mod->GetPreference('pref_exportencoding','UTF-8');
+			$expchars = $mod->GetPreference('exportencoding','UTF-8');
 			$convert = (strcasecmp ($expchars,$defchars) != 0);
 		} else {
 			$expchars = $defchars;
 			$convert = FALSE;
 		}
 
-		if ($mod->GetPreference('pref_exportfile')) {
+		if ($mod->GetPreference('exportfile')) {
 			$utils = new Utils();
 			$updir = $utils->GetUploadsPath($mod);
 			if ($updir) {
@@ -197,7 +197,7 @@ SELECT DISTINCT I.name FROM $mod->ItemTable I
 LEFT JOIN $mod->GroupTable G ON I.item_id=G.parent
 WHERE G.child=? ORDER BY G.proximity,G.likeorder
 EOS;
-			$strip = $mod->GetPreference('pref_stripexport');
+			$strip = $mod->GetPreference('stripexport');
 			//file-column-name to fieldname translation
 			$translates = array(
 			 '#Isgroup'=>'isgroup', //not a real field
@@ -375,7 +375,7 @@ EOS;
 				break;
 			}
 
-			$strip = $mod->GetPreference('pref_stripexport');
+			$strip = $mod->GetPreference('stripexport');
 			//file-column-name to fieldname translation
 			$translates = array(
 			 '#ID'=>'name',
@@ -481,7 +481,7 @@ EOS;
 				break;
 			}
 
-			$strip = $mod->GetPreference('pref_stripexport');
+			$strip = $mod->GetPreference('stripexport');
 			//file-column-name to fieldname translation
 			$translates = array(
 			 '#Name'=>'name',
@@ -695,7 +695,7 @@ EOS;
 				break;
 			}
 
-			$strip = $mod->GetPreference('pref_stripexport');
+			$strip = $mod->GetPreference('stripexport');
 			//file-column-name to fieldname translation
 			$translates = array(
 			 '#ID'=>'item_id', //intepreted
@@ -826,7 +826,7 @@ EOS;
 				break;
 			}
 
-			$strip = $mod->GetPreference('pref_stripexport');
+			$strip = $mod->GetPreference('stripexport');
 			//file-column-name to fieldname translation
 			$translates = array(
 			 '#ID'=>'what',
