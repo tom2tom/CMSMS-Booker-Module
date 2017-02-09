@@ -215,7 +215,7 @@ $this->Crash();
 	*/
 	private function EmailDomains(&$mod, $countrycode='')
 	{
-		$pref = $mod->GetPreference('pref_topdomains','co,com,net,org');
+		$pref = $mod->GetPreference('topdomains','co,com,net,org');
 		$tops = self::LocalDomains($countrycode);
 		if ($pref)
 			$pref .= ','.$tops;
@@ -226,11 +226,11 @@ $this->Crash();
 		//mailcheck requires domain-arrays, even if single-membered
 		if ($topdomains)
 			$parts[] = "   topLevelDomains: [$topdomains]";
-		$pref = $mod->GetPreference('pref_domains');
+		$pref = $mod->GetPreference('domains');
 		$domains = self::ConvertDomains($pref);
 		if ($domains)
 			$parts[] = "   domains: [$domains]";
-		$pref = $mod->GetPreference('pref_subdomains');
+		$pref = $mod->GetPreference('subdomains');
 		$subdomains = self::ConvertDomains($pref);
 		if ($subdomains)
 			$parts[] = "   secondLevelDomains: [$subdomains]";
@@ -243,7 +243,7 @@ $this->Crash();
 	/**
 	VerifyScript:
 	Construct js string for in-browser verification of booking/request data
-	If @admin, uses jquery-alertable dialogs for interaction
+	Uses jquery-alertable dialogs for interaction
 	@mod: reference to current module-object
 	@utils: reference to Utils-class object
 	@id: session identifier
@@ -382,7 +382,7 @@ EOS;
 			$lzone = new \DateTimeZone($zonename);
 			$t = $lzone->getLocation();
 			$t = $t['country_code'];
-		} catch (Exception $e) {
+		} catch (\Exception $e) {
 			$t = '';
 		}
 		$domains = self::EmailDomains($mod,$t);

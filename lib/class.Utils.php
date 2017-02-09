@@ -330,7 +330,7 @@ EOS;
 					uasort($picknames,array(new bkr_itemname_cmp($col),'namecmp'));
 //					$col->sort($picknames,SORT_STRING);
 					//TODO preserve keys like asort
-				} catch (Exception $e) {
+				} catch (\Exception $e) {
 					asort($picknames,SORT_LOCALE_STRING);
 				}
 			} else {
@@ -376,7 +376,7 @@ EOS;
 				try {
 					$col = new \Collator(self::GetLocale());
 					uasort($grps,array(new bkr_itemname_cmp($col),'namecmp'));
-				} catch (Exception $e) {
+				} catch (\Exception $e) {
 					asort($grps,SORT_LOCALE_STRING);
 				}
 			} else {
@@ -398,7 +398,7 @@ EOS;
 					try {
 						$col = new \Collator(self::GetLocale());
 						uasort($mems,array(new bkr_itemname_cmp($col),'namecmp'));
-					} catch (Exception $e) {
+					} catch (\Exception $e) {
 						asort($mems,SORT_LOCALE_STRING);
 					}
 				} else {
@@ -1124,12 +1124,12 @@ EOS;
 		}
 		try {
 			$tz = new \DateTimeZone($local_zone);
-		} catch (Exception $e) {
+		} catch (\Exception $e) {
 			return 0;
 		}
 		try {
 			$dt = new \DateTime($local_time,$tz);
-		} catch (Exception $e) {
+		} catch (\Exception $e) {
 			return 0;
 		}
 //		$dt2 = new \DateTime($local_time,new \DateTimeZone('UTC'));
@@ -1155,7 +1155,7 @@ EOS;
 		} else {
 			try {
 				$dt = new \DateTime($when,$tz);
-			} catch (Exception $e) {
+			} catch (\Exception $e) {
 				return 0;
 			}
 			$stamp = $dt->getTimestamp();
@@ -1163,8 +1163,7 @@ EOS;
 		try {
 			$tz = new \DateTimeZone($zonename);
 			$offt = $tz->getOffset($dt);
-		} catch (Exception $e) {
-$this->Crash();
+		} catch (\Exception $e) {
 			$offt = 0;
 		}
 		return $offt + $stamp;

@@ -1172,7 +1172,7 @@ class Import
 							 case 'slotstart':
 								try {
 									$dtw->modify($one);
-								} catch (Exception $e) {
+								} catch (\Exception $e) {
 									return array(FALSE,'err_badstart');
 								}
 								$data[$k] = $dtw->getTimestamp();
@@ -1184,7 +1184,7 @@ class Import
 							 case 'slotlen': //interpret end-time
 								try {
 									$dtw->modify($one);
-								} catch (Exception $e) {
+								} catch (\Exception $e) {
 									return array(FALSE,'err_badend');
 								}
 								if (isset($data['slotstart'])) {

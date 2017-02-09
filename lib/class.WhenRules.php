@@ -366,7 +366,7 @@ class WhenRules extends WhenRuleLexer
 					$tz = new \DateTimeZone($timeparms['zone']);
 					$dt2 = new \DateTime($at,$tz);
 					$offs = $dt2->format('Z'); //DST-specific, unlike DateTimeZone::getOffset
-				} catch (Exception $e) {
+				} catch (\Exception $e) {
 					$offs = 0;
 				}
 				break;
@@ -447,7 +447,7 @@ class WhenRules extends WhenRuleLexer
 
 		$zone = $idata['timezone'];
 		if (!$zone)
-			$zone = $this->mod->GetPreference('pref_timezone','UTC');
+			$zone = $this->mod->GetPreference('timezone','UTC');
 
 		return array (
 		 'count'=>$num, //part default slot length, for DateTime modification

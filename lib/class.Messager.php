@@ -179,7 +179,7 @@ class Messager
 			$localzone = new \DateTimeZone($idata['timezone']);
 			$parms = $localzone->getLocation();
 			$country = $parms['country_code'];
-		} catch (Exception $e) {
+		} catch (\Exception $e) {
 			$country = FALSE;
 		}
 * /
@@ -292,7 +292,7 @@ class Messager
 	public function StatusMessage(&$mod, &$utils, $idata, $reqdata, $status, $custommsg, $sender=NULL)
 	{
 		if (!$sender)
-			$sender = new \MessageSender();
+			$sender = new Notifier\MessageSender();
 		$sent = FALSE;
 		$fail = FALSE;
 	 	$res = self::MsgKeys($status);
@@ -344,7 +344,7 @@ class Messager
 			$rows = $funcs->GetBkgData($mod,$bkgid);
 			if ($rows) {
 				list($etitlekey,$ebodykey,$tbodykey) = self::MsgKeys(\Booker::STATCHG);
-				$funcs = new \MessageSender();
+				$funcs = new Notifier\MessageSender();
 				$utils = new Utils();
 				$propstore = array();
 				$msg = array();
