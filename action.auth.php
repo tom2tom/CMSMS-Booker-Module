@@ -112,7 +112,7 @@ if (\$linklast.length) {
 EOS;
 echo $utils->MergeJS(FALSE,array($js),FALSE);
 
-$context = $this->GetPreference('pref_logincontext', 0);
+$context = $this->GetPreference('authcontext',0);
 $task = (empty($params['task'])) ? 'login' : $params['task'];
 $token = (empty($params['token'])) ? FALSE : $params['token'];
 
@@ -135,9 +135,8 @@ if ($task == 'register') {
 	$tplvars['title'] = $this->Lang('title_recover');
 }
 
-if (0) {
-	$tplvars['bulletin'] = 'TODO'; //site-specific custom message = property of ?
-}
+$t = FALSE; //$utils->GetItemProperty($this, $item_id, 'bulletin'); //TODO
+$tplvars['bulletin'] = ($t) ? $t : NULL;
 if (isset($params['message'])) {
 	$tplvars['message'] = $params['message'];
 }
