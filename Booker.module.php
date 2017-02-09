@@ -314,7 +314,7 @@ EOS;
 
 	public function GetDependencies()
 	{
-		return array();
+		return array('Auther'=>'0.2');
 	}
 
 	/*
@@ -435,7 +435,7 @@ EOS;
 		// display bookings for a specific group/item
 		//NB the correct page-id is needed (in the URL or otherwise) to display
 		//generated content on the correct page! TODO find a dynamic way around this
-		$pageid = $this->GetPreference('pref_sitepage','');
+		$pageid = $this->GetPreference('sitepage','');
 		if ($pageid) {
 			$manager = cmsms()->GetHierarchyManager();
 			$node = $manager->sureGetNodeByAlias($pageid);
@@ -495,6 +495,7 @@ EOS;
 		 case 'openbooking':
 		 case 'openrequest':
 		 case 'requestbooking':
+		 case 'auth':
 		 case 'openfees':
 		 case 'opencart':
 		 case 'setprefs':
