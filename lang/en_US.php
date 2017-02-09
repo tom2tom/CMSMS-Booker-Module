@@ -131,6 +131,8 @@ $lang['help_styles'] = '.css file containing style-parameters.';
 */
 $lang['help_address'] = 'Email address for general messaging and/or billing';
 $lang['help_alias'] = 'For use in web-page smarty-tags that display this %s. If left blank, a default will be applied, or else the entered string must be unique.';
+$lang['help_authcontext'] = 'Authenticator-module context-identifier, an id-number or alias';
+//$lang['help_authbulletin'] = '';
 $lang['help_book_contact'] = 'An email address or phone number for providing information to the user';
 $lang['help_book_end'] = 'A numeric timestamp formatted as for the start, or if left blank, the end will be assumed to be 1-hour after the start';
 $lang['help_book_start'] = 'A numeric timestamp like YYYY-[M]M-[D]D [H]H:[M]M (where [] is optional)';
@@ -440,22 +442,25 @@ $lang['postinstall'] = 'Be sure to set "... bookings" permission(s) for users of
 $lang['postuninstall'] = 'Bookings Manager module uninstalled';
 $lang['previous'] = 'Previous';
 $lang['proceed'] = 'Proceed';
+
 $lang['really_uninstall'] = 'You\'re sure you want to uninstall Bookings Manager?';
+$lang['recorded'] = 'recorded'; //adjective included in tip
+$lang['recover_lost'] = 'Click here to recover lost password';
+$lang['register'] = 'Register';
 $lang['registered'] = 'Registered';
 $lang['reject'] = 'Reject';
 $lang['reminder'] = 'Remember to advise the user about this';
-$lang['recorded'] = 'recorded'; //adjective included in tip
-$lang['register'] = 'Register';
 $lang['reports'] = 'Reports';
+$lang['reregister'] = 'If your password is lost, you will need to re-register';
 //request-booking radio labels
 $lang['reqadd'] = 'request new booking';
 $lang['reqchange'] = 'change existing booking';
 $lang['reqdelete'] = 'delete existing booking';
 $lang['reqnotice'] = 'supply extra information';
-
 $lang['request'] = 'request';
 $lang['request_multi'] = 'request(s)';
 //$lang['reset'] = 'Reset';
+
 $lang['scrolldown'] = 'scroll down';
 $lang['scrollleft'] = 'scroll left';
 $lang['scrollright'] = 'scroll right';
@@ -570,6 +575,8 @@ $lang['title_active'] = 'Activated';
 $lang['title_alias'] = 'Alias';
 $lang['title_anytime'] = 'Anytime';
 $lang['title_atimes'] = 'Available times';
+$lang['title_authbulletin'] = 'Custom message for registration page';
+$lang['title_authcontext'] = 'Login context to be used';
 $lang['title_available'] = 'Available days and times';
 $lang['title_bookcount'] = 'Maximum slots in a single booking';
 $lang['title_booker_page'] = 'Booker details';
@@ -672,6 +679,8 @@ $lang['title_range'] = 'Timespan of booking displays';
 $lang['title_range2'] = 'Display';
 $lang['title_ration'] = 'Maximum pending bookings per user';
 $lang['title_record'] = 'Authorised to record';
+$lang['title_recover'] = 'Recover your password for use in the bookings system';
+$lang['title_register'] = 'Register your details for use in the bookings system';
 $lang['title_registered'] = 'Registered-user details';
 $lang['title_repeats'] = 'Repeat bookings';
 //$lang['title_repeatsfor'] = 'Repeat bookings for %s %s';
