@@ -782,7 +782,7 @@ EOS;
 		}
 
 		foreach ($prefs as $k=>&$val) {
-			$val = $mod->GetPreference('pref_'.$k,NULL);
+			$val = $mod->GetPreference($k,NULL);
 		}
 		unset($val);
 		$found[-1] = $prefs; //append preferences
@@ -942,7 +942,7 @@ EOS;
 		$config = \cmsms()->GetConfig();
 		$fp = $config['uploads_path'];
 		if ($fp && is_dir($fp)) {
-			$ud = $mod->GetPreference('pref_uploadsdir','');
+			$ud = $mod->GetPreference('uploadsdir','');
 			if ($ud) {
 				$fp = $fp.DIRECTORY_SEPARATOR.$ud;
 				if (!is_dir($fp))
@@ -999,7 +999,7 @@ EOS;
 	{
 		$config = \cmsms()->GetConfig();
 		$rooturl = (empty($_SERVER['HTTPS'])) ? $config['uploads_url']:$config['ssl_uploads_url'];
-		$ud = $mod->GetPreference('pref_uploadsdir','');
+		$ud = $mod->GetPreference('uploadsdir','');
 		$lp = ($ud) ? '/'.str_replace('\\','/',$ud) : '';
 		$url = $rooturl.$lp.'/'.str_replace('\\','/',$file);
 		return $url;
@@ -1283,7 +1283,7 @@ $this->Crash();
 			}
 		}
 		//default
-		return (int)$mod->GetPreference('pref_showrange');
+		return (int)$mod->GetPreference('showrange');
 	}
 
 	/**

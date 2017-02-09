@@ -1079,7 +1079,7 @@ if ($pset) {
 	$one = new stdClass();
 	$one->ttl = $this->Lang('title_sitepage');
 	$one->inp = $this->CreateInputText($id,'pref_sitepage',
-		$this->GetPreference('pref_sitepage',''),25,25);
+		$this->GetPreference('sitepage',''),25,25);
 	$one->mst = 1;
 	$one->hlp = $this->Lang('help_sitepage');
 	$settings[] = $one;
@@ -1087,7 +1087,7 @@ if ($pset) {
 	$one = new stdClass();
 	$one->ttl = $this->Lang('title_cleargroup');
 	$one->inp = $this->CreateInputCheckbox($id,'pref_cleargroup',TRUE,
-		$this->GetPreference('pref_cleargroup',FALSE),'');
+		$this->GetPreference('cleargroup',0),'');
 	$settings[] = $one;
 
 	$sql = 'SELECT user_id,first_name,last_name FROM '.$this->UserTable.' WHERE active=1 ORDER BY last_name,first_name';
@@ -1101,73 +1101,74 @@ if ($pset) {
 		unset($t);
 		$allusers = array_flip($allusers);
 		$allusers = array($this->Lang('none')=>0) + $allusers; //prepend 'none'
-		$one->inp = $this->CreateInputDropdown($id,'pref_owner',$allusers,-1,$this->GetPreference('pref_owner'));
+		$one->inp = $this->CreateInputDropdown($id,'pref_owner',$allusers,-1,$this->GetPreference('owner'));
 		$settings[] = $one;
 	}
 
 	$one = new stdClass();
 	$one->ttl = $this->Lang('approver');
-	$one->inp = $this->CreateInputText($id,'pref_approver',$this->GetPreference('pref_approver'),30,64);
+	$one->inp = $this->CreateInputText($id,'pref_approver',$this->GetPreference('approver'),30,64);
 //	$one->hlp = $this->Lang('help_approver');
 	$settings[] = $one;
 
 	$one = new stdClass();
 	$one->ttl = $this->Lang('approvercontact');
-	$one->inp = $this->CreateInputText($id,'pref_approvercontact',$this->GetPreference('pref_approvercontact'),40,128);
+	$one->inp = $this->CreateInputText($id,'pref_approvercontact',$this->GetPreference('approvercontact'),40,128);
 //	$one->hlp = $this->Lang('help_approvercontact');
 	$settings[] = $one;
 
 	$one = new stdClass();
 	$one->ttl = $this->Lang('approvertell');
 	$one->inp = $this->CreateInputCheckbox($id,'pref_approvertell',TRUE,
-		$this->GetPreference('pref_approvertell',FALSE),'');
+		$this->GetPreference('approvertell',0),'');
 	$settings[] = $one;
 
 	$one = new stdClass();
-	$one->ttl = $this->Lang('title_logincontext');
-	$one->inp = $this->CreateInputText($id,'pref_logincontext',$this->GetPreference('pref_logincontext'),20,32);
-	$one->hlp = $this->Lang('help_logincontext');
+	$one->ttl = $this->Lang('title_authcontext');
+	$one->inp = $this->CreateInputText($id,'pref_authcontext',$this->GetPreference('authcontext'),20,32);
+	$one->hlp = $this->Lang('help_authcontext');
 	$settings[] = $one;
 
 	$one = new stdClass();
-	$one->ttl = $this->Lang('title_loginbulletin');
-	$one->inp = $this->CreateInputText($id,'pref_loginbulletin',$this->GetPreference('pref_loginbulletin'),40,64);
-	$one->hlp = $this->Lang('help_loginbulletin');
+	$one->ttl = $this->Lang('title_authbulletin');
+	$one->inp = $this->CreateTextArea(FALSE,$id,$this->GetPreference('authbulletin'),
+		'authbulletin','','','','',40,3,'','','style="height:3em;"');
+//	$one->hlp = $this->Lang('help_authbulletin');
 	$settings[] = $one;
 
 	$one = new stdClass();
 	$one->ttl = $this->Lang('title_formiface');
-	$one->inp = $this->CreateInputText($id,'pref_formiface',$this->GetPreference('pref_formiface'),30,48);
+	$one->inp = $this->CreateInputText($id,'pref_formiface',$this->GetPreference('formiface'),30,48);
 	$one->hlp = $this->Lang('help_formiface');
 	$settings[] = $one;
 
 	$one = new stdClass();
 	$one->ttl = $this->Lang('title_smsprefix');
-	$one->inp = $this->CreateInputText($id,'pref_smsprefix',$this->GetPreference('pref_smsprefix'),4,8);
+	$one->inp = $this->CreateInputText($id,'pref_smsprefix',$this->GetPreference('smsprefix'),4,8);
 	$one->hlp = $this->Lang('help_smsprefix');
 	$settings[] = $one;
 
 	$one = new stdClass();
 	$one->ttl = $this->Lang('title_smspattern');
-	$one->inp = $this->CreateInputText($id,'pref_smspattern',$this->GetPreference('pref_smspattern'),20,32);
+	$one->inp = $this->CreateInputText($id,'pref_smspattern',$this->GetPreference('smspattern'),20,32);
 	$one->hlp = $this->Lang('help_smspattern');
 	$settings[] = $one;
 
 	$one = new stdClass();
 	$one->ttl = $this->Lang('title_email_domains');
-	$one->inp = $this->CreateInputText($id,'email_domains',$this->GetPreference('pref_domains'),40,80);
+	$one->inp = $this->CreateInputText($id,'email_domains',$this->GetPreference('domains'),40,80);
 	$one->hlp = $this->Lang('help_email_domains');
 	$settings[] = $one;
 
 	$one = new stdClass();
 	$one->ttl = $this->Lang('title_email_subdomains');
-	$one->inp = $this->CreateInputText($id,'email_subdomains',$this->GetPreference('pref_subdomains'),40,80);
+	$one->inp = $this->CreateInputText($id,'email_subdomains',$this->GetPreference('subdomains'),40,80);
 	$one->hlp = $this->Lang('help_email_subdomains');
 	$settings[] = $one;
 
 	$one = new stdClass();
 	$one->ttl = $this->Lang('title_email_topdomains');
-	$one->inp = $this->CreateInputText($id,'email_topdomains',$this->GetPreference('pref_topdomains'),40,80);
+	$one->inp = $this->CreateInputText($id,'email_topdomains',$this->GetPreference('topdomains'),40,80);
 	$one->hlp = $this->Lang('help_email_topdomains');
 	$settings[] = $one;
 
@@ -1178,7 +1179,7 @@ if ($pset) {
 	unset($choices[0]);
 	unset($choices[1]);
 	$choices = array_values($choices);
-	$one->inp = $this->CreateInputDropdown($id,'pref_showrange',array_flip($choices),-1,$this->GetPreference('pref_showrange'));
+	$one->inp = $this->CreateInputDropdown($id,'pref_showrange',array_flip($choices),-1,$this->GetPreference('showrange'));
 	$one->mst = 1;
 	$one->hlp = ''; //$this->Lang('help_range');
 	$settings[] = $one;
@@ -1191,7 +1192,7 @@ if ($pset) {
 		$this->Lang('user+resource')=>Booker::LISTUR,
 		$this->Lang('user+start')=>Booker::LISTUS
 	);
-	$one->inp = $this->CreateInputDropdown($id,'pref_listformat',$choices,-1,$this->GetPreference('pref_listformat'));
+	$one->inp = $this->CreateInputDropdown($id,'pref_listformat',$choices,-1,$this->GetPreference('listformat'));
 	$one->mst = 1;
 //	$one->hlp = $this->Lang('help_listformat');
 	$settings[] = $one;
@@ -1201,15 +1202,15 @@ if ($pset) {
 
 	$one = new stdClass();
 	$one->ttl = $this->Lang('title_slotlength');
-	$one->inp = $this->CreateInputText($id,'pref_slotcount',$this->GetPreference('pref_slotcount'),3,3).'&nbsp;'.
-			$this->CreateInputDropdown($id,'pref_slottype',$alltypes,-1,$this->GetPreference('pref_slottype'));
+	$one->inp = $this->CreateInputText($id,'pref_slotcount',$this->GetPreference('slotcount'),3,3).'&nbsp;'.
+			$this->CreateInputDropdown($id,'pref_slottype',$alltypes,-1,$this->GetPreference('slottype'));
 	$one->mst = 1;
 	$one->hlp = ''; //$this->Lang('help_slotlength');
 	$settings[] = $one;
 
 	$one = new stdClass();
 	$one->ttl = $this->Lang('title_available');
-	$one->inp = $this->CreateTextArea(FALSE,$id,$this->GetPreference('pref_available'),
+	$one->inp = $this->CreateTextArea(FALSE,$id,$this->GetPreference('available'),
 		'available','','','','',40,3,'','','style="height:3em;"');
 	$one->hlp = $this->Lang('help_intervals');
 	$settings[] = $one;
@@ -1242,7 +1243,7 @@ EOS;
 
 		$one = new stdClass();
 		$one->ttl = $this->Lang('title_feugroup');
-		$one->inp = $this->CreateInputDropdown($id,'pref_feugroup',$allusers,-1,$this->GetPreference('pref_feugroup',0));
+		$one->inp = $this->CreateInputDropdown($id,'pref_feugroup',$allusers,-1,$this->GetPreference('feugroup',0));
 		$one->hlp = $this->Lang('help_feugroup');
 		$settings[] = $one;
 	}
@@ -1255,34 +1256,34 @@ EOS;
 		$this->Lang('assignrandom')=>Booker::ALLOCRAND,
 		$this->Lang('assignrotate')=>Booker::ALLOCROTE
 	);
-	$one->inp = $this->CreateInputDropdown($id,'pref_subgrpalloc',$choices,-1,$this->GetPreference('pref_subgrpalloc'));
+	$one->inp = $this->CreateInputDropdown($id,'pref_subgrpalloc',$choices,-1,$this->GetPreference('subgrpalloc'));
 	$one->mst = 1;
 	$one->hlp = $this->Lang('help_subgrpalloc');
 	$settings[] = $one;
 
 	$one = new stdClass();
 	$one->ttl = $this->Lang('title_feeusage');
-	$one->inp = $this->CreateInputText($id,'pref_fee',$this->GetPreference('pref_fee'),6,8);
+	$one->inp = $this->CreateInputText($id,'pref_fee',$this->GetPreference('fee'),6,8);
 	$one->hlp = $this->Lang('help_fee');
 	$settings[] = $one;
 
 	$one = new stdClass();
 	$one->ttl = $this->Lang('title_grossfees');
 	$one->inp = $this->CreateInputCheckbox($id,'pref_grossfees',TRUE,
-		$this->GetPreference('pref_grossfees',FALSE),'');
+		$this->GetPreference('grossfees',0),'');
 	$settings[] = $one;
 
 	$one = new stdClass();
 	$one->ttl = $this->Lang('title_taxrate');
 	$one->inp = $this->CreateInputText($id,'pref_taxrate',
-		$this->GetPreference('pref_taxrate',0.0),4,8);
+		$this->GetPreference('taxrate',0.0),4,8);
 //	$one->mst = 1;
 	$one->hlp = $this->Lang('help_taxrate');
 	$settings[] = $one;
 
 	$one = new stdClass();
 	$one->ttl = $this->Lang('title_feecondition');
-	$one->inp = $this->CreateTextArea(FALSE,$id,$this->GetPreference('pref_feecondition'),
+	$one->inp = $this->CreateTextArea(FALSE,$id,$this->GetPreference('feecondition'),
 		'pref_feecondition','','','','',40,3,'','','style="height:3em;"');
 	$one->hlp = $this->Lang('help_feecondition');
 	$settings[] = $one;
@@ -1304,33 +1305,33 @@ EOS;
 	}
 	$choices = array($this->Lang('none')=>'') + $choices;
 	$one->inp = $this->CreateInputDropdown($id,'pref_paymentiface',$choices,-1,
-	$this->GetPreference('pref_paymentiface'));
+		$this->GetPreference('paymentiface'));
 	$one->hlp = $this->Lang('help_paymentiface');
 	$settings[] = $one;
 
 	$one = new stdClass();
 	$one->ttl = $this->Lang('title_ration');
-	$one->inp = $this->CreateInputText($id,'pref_rationcount',$this->GetPreference('pref_rationcount'),3,3);
+	$one->inp = $this->CreateInputText($id,'pref_rationcount',$this->GetPreference('rationcount'),3,3);
 	$one->hlp = $this->Lang('help_ration');
 	$settings[] = $one;
 
 	$one = new stdClass();
 	$one->ttl = $this->Lang('title_bookcount');
-	$one->inp = $this->CreateInputText($id,'pref_bookcount',$this->GetPreference('pref_bookcount'),3,3);
+	$one->inp = $this->CreateInputText($id,'pref_bookcount',$this->GetPreference('bookcount'),3,3);
 	$one->hlp = $this->Lang('help_bookcount');
 	$settings[] = $one;
 
 	$one = new stdClass();
 	$one->ttl = $this->Lang('title_lead');
-	$one->inp = $this->CreateInputText($id,'pref_leadcount',$this->GetPreference('pref_leadcount'),3,3).'&nbsp;'.
-			$this->CreateInputDropdown($id,'pref_leadtype',$alltypes,-1,$this->GetPreference('pref_leadtype'));
+	$one->inp = $this->CreateInputText($id,'pref_leadcount',$this->GetPreference('leadcount'),3,3).'&nbsp;'.
+		$this->CreateInputDropdown($id,'pref_leadtype',$alltypes,-1,$this->GetPreference('leadtype'));
 	$one->hlp = $this->Lang('help_lead');
 	$settings[] = $one;
 
 	$one = new stdClass();
 	$one->ttl = $this->Lang('bookertell');
 	$one->inp = $this->CreateInputCheckbox($id,'pref_bookertell',TRUE,
-		$this->GetPreference('pref_bookertell',FALSE),'');
+		$this->GetPreference('bookertell',FALSE),'');
 	$settings[] = $one;
 
 	//days+ for this one
@@ -1339,34 +1340,34 @@ EOS;
 	unset($t[1]);
 	$one = new stdClass();
 	$one->ttl = $this->Lang('title_keep');
-	$one->inp = $this->CreateInputText($id,'pref_keepcount',$this->GetPreference('pref_keepcount'),3,3).'&nbsp;'.
-			$this->CreateInputDropdown($id,'pref_keeptype',array_flip($t),-1,$this->GetPreference('pref_keeptype'));
+	$one->inp = $this->CreateInputText($id,'pref_keepcount',$this->GetPreference('keepcount'),3,3).'&nbsp;'.
+		$this->CreateInputDropdown($id,'pref_keeptype',array_flip($t),-1,$this->GetPreference('keeptype'));
 	$one->hlp = $this->Lang('help_keep');
 	$settings[] = $one;
 
 	$one = new stdClass();
 	$choices = $utils->GetTimeZones($this);
 	$one->ttl = $this->Lang('title_timezone');
-	$one->inp = $this->CreateInputDropdown($id,'pref_timezone',$choices,-1,$this->GetPreference('pref_timezone'));
+	$one->inp = $this->CreateInputDropdown($id,'pref_timezone',$choices,-1,$this->GetPreference('timezone'));
 	$one->hlp = $this->Lang('help_zone');
 	$settings[] = $one;
 
 	$one = new stdClass();
 	$one->ttl = $this->Lang('latitude');
-	$one->inp = $this->CreateInputText($id,'pref_latitude',$this->GetPreference('pref_latitude'),6,8);
+	$one->inp = $this->CreateInputText($id,'pref_latitude',$this->GetPreference('latitude'),6,8);
 	$one->hlp = $this->Lang('help_latitude');
 	$settings[] = $one;
 
 	$one = new stdClass();
 	$one->ttl = $this->Lang('longitude');
-	$one->inp = $this->CreateInputText($id,'pref_longitude',$this->GetPreference('pref_longitude'),6,8);
+	$one->inp = $this->CreateInputText($id,'pref_longitude',$this->GetPreference('longitude'),6,8);
 	$one->hlp = $this->Lang('help_longitude');
 	$settings[] = $one;
 
 	$one = new stdClass();
 	$one->ttl = $this->Lang('title_dateformat');
 	$one->inp = $this->CreateInputText($id,'pref_dateformat',
-		$this->GetPreference('pref_dateformat','j F Y'),10,12);
+		$this->GetPreference('dateformat','j F Y'),10,12);
 	$one->mst = 1;
 	$one->hlp = $this->Lang('help_date');
 	$settings[] = $one;
@@ -1374,7 +1375,7 @@ EOS;
 	$one = new stdClass();
 	$one->ttl = $this->Lang('title_timeformat');
 	$one->inp = $this->CreateInputText($id,'pref_timeformat',
-		$this->GetPreference('pref_timeformat','G:i'),10,12);
+		$this->GetPreference('timeformat','G:i'),10,12);
 	$one->mst = 1;
 	$one->hlp = $this->Lang('help_time');
 	$settings[] = $one;
@@ -1383,7 +1384,7 @@ EOS;
 		$one = new stdClass();
 		$one->ttl = $this->Lang('title_exportencoding');
 		$encodings = array('utf-8'=>'UTF-8','windows-1252'=>'Windows-1252','iso-8859-1'=>'ISO-8859-1');
-		$expchars = $this->GetPreference('pref_exportencoding','UTF-8');
+		$expchars = $this->GetPreference('exportencoding','UTF-8');
 		$t = $this->CreateInputRadioGroup($id,'pref_exportencoding',$encodings,$expchars,'','&nbsp;&nbsp;');
 		//override crappy default label-layout
 		$t = preg_replace('~label class="(.*)"~U','label class="\\1 radiolabel"',$t);
@@ -1394,20 +1395,20 @@ EOS;
 	$one = new stdClass();
 	$one->ttl = $this->Lang('title_stripexport');
 	$one->inp = $this->CreateInputCheckbox($id,'pref_stripexport',1,
-		   $this->GetPreference('pref_stripexport'));
+		   $this->GetPreference('stripexport'));
 	$one->hlp = $this->Lang('help_stripexport');
 	$settings[] = $one;
 
 	$one = new stdClass();
 	$one->ttl = $this->Lang('title_exportfile');
 	$one->inp = $this->CreateInputCheckbox($id,'pref_exportfile',1,
-		   $this->GetPreference('pref_exportfile'));
+		$this->GetPreference('exportfile'));
 	$one->hlp = $this->Lang('help_exportfile');
 	$settings[] = $one;
 
 	$one = new stdClass();
 	$one->ttl = $this->Lang('title_uploadsdir');
-	$one->inp = $this->CreateInputText($id,'pref_uploadsdir',$this->GetPreference('pref_uploadsdir',''),30);
+	$one->inp = $this->CreateInputText($id,'pref_uploadsdir',$this->GetPreference('uploadsdir',''),30);
 	$one->hlp = $this->Lang('help_uploadsdir');
 	$settings[] = $one;
 
@@ -1415,7 +1416,7 @@ EOS;
 	$one->ttl = $this->Lang('title_cssfile');
 	$one->inp = $this->CreateInputFile($id,'pref_stylesfile','text/css',36,'id="'.$id.'pref_stylesfile" title="'.
 		$this->Lang('tip_upload').'"');
-	$t = $this->GetPreference('pref_stylesfile');
+	$t = $this->GetPreference('stylesfile');
 	if ($t)
 		$one->inp .= ' '.$this->CreateInputCheckbox($id,'stylesdelete',1,-1).'&nbsp;'.$this->Lang('delete_upload',$t);
 	$one->hlp = $this->Lang('help_cssfile');
@@ -1432,7 +1433,7 @@ EOS;
 
 //js
 // TODO make page-rows count window-size-responsive
-$pagerows = $this->GetPreference('pref_pagerows',10);
+$pagerows = $this->GetPreference('pagerows',10);
 $tablevars = array(); //accumulator for relevant table-identifiers
 $pagerdata = array(); //accumulator for relevant js-object properties
 $include = FALSE;

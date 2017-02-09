@@ -414,50 +414,50 @@ $this->CreatePermission($this->PermModName, $this->Lang('perm_modify'));
 //bookers
 $this->CreatePermission($this->PermPerName, $this->Lang('perm_booker'));
 
-// create preferences NOTE all named like corresponding table-column-name with 'pref_' prefix
-$this->SetPreference('pref_approver','');
-$this->SetPreference('pref_approvercontact','');
-$this->SetPreference('pref_approvertell',1);
-$this->SetPreference('pref_authbulletin','');
-$this->SetPreference('pref_available',''); //always available
-$this->SetPreference('pref_bookcount',0); //book any no. of slots
-$this->SetPreference('pref_bookertell',1);
-$this->SetPreference('pref_cleargroup',0);	//delete items in group when group is deleted (admin)
-$this->SetPreference('pref_exportencoding','UTF-8'); //preference-only, not an items-table field
-$this->SetPreference('pref_exportfile',0); //preference-only, not an items-table field
-$this->SetPreference('pref_fee',0.0);
-$this->SetPreference('pref_feecondition',''); //empty = always used
-$this->SetPreference('pref_feugroup',0);
-$this->SetPreference('pref_formiface',''); //data for custom request-form
-$this->SetPreference('pref_grossfees',1);
-$this->SetPreference('pref_keepcount',0);
-$this->SetPreference('pref_keeptype',8); //year-index per TimeIntervals()
-$this->SetPreference('pref_latitude',0.0);
-$this->SetPreference('pref_longitude',0.0);
-$this->SetPreference('pref_taxrate',0.0);
-$this->SetPreference('pref_leadcount',0);
-$this->SetPreference('pref_leadtype',3); //week-index per TimeIntervals()
-$this->SetPreference('pref_listformat',Booker::LISTSU);
-$this->SetPreference('pref_logincontext','');
-$this->SetPreference('pref_masterpass','OWFmNT1dGbU5FbnRlciBhdCB5b3VyIG93biByaXNrISBEYW5nZXJvdXMgZGF0YSE=');
-$this->SetPreference('pref_membersname',$this->Lang('members'));
-$this->SetPreference('pref_owner',0);	//each resource/group may have a specific owner/contact
-$this->SetPreference('pref_pagerows',10); //page-length of admin bookings-data view
-$this->SetPreference('pref_paymentiface',''); //data for payment-processing
-$this->SetPreference('pref_rationcount',0);
-$this->SetPreference('pref_showrange',1); //week-index per DisplayIntervals(), default bookings-display-period
-$this->SetPreference('pref_slotcount',1);
-$this->SetPreference('pref_slottype',1); //hour-index per TimeIntervals()
-$this->SetPreference('pref_smspattern','^\d[ \d]{6,15}$');
-$this->SetPreference('pref_smsprefix',''); //TODO func(timezone)
-$this->SetPreference('pref_stripexport',0);
-$this->SetPreference('pref_stylesfile','');
-$this->SetPreference('pref_subgrpalloc',Booker::ALLOCNONE);
-$this->SetPreference('pref_timeformat','G:i');	//default date/time format string
+// create preferences NOTE most names correspond to a column-name in items-table 
+$this->SetPreference('approver','');
+$this->SetPreference('approvercontact','');
+$this->SetPreference('approvertell',1);
+$this->SetPreference('authbulletin',''); //NOT in items table
+$this->SetPreference('authcontext',''); //NOT in items table
+$this->SetPreference('available',''); //always available
+$this->SetPreference('bookcount',0); //book any no. of slots
+$this->SetPreference('bookertell',1);
+$this->SetPreference('cleargroup',0);	//delete items in group when group is deleted (admin)
+$this->SetPreference('exportencoding','UTF-8'); //preference-only, not an items-table field
+$this->SetPreference('exportfile',0); //preference-only, not an items-table field
+$this->SetPreference('fee',0.0);
+$this->SetPreference('feecondition',''); //empty = always used
+$this->SetPreference('feugroup',0);
+$this->SetPreference('formiface',''); //data for custom request-form
+$this->SetPreference('grossfees',1);
+$this->SetPreference('keepcount',0);
+$this->SetPreference('keeptype',8); //year-index per TimeIntervals()
+$this->SetPreference('latitude',0.0);
+$this->SetPreference('longitude',0.0);
+$this->SetPreference('taxrate',0.0);
+$this->SetPreference('leadcount',0);
+$this->SetPreference('leadtype',3); //week-index per TimeIntervals()
+$this->SetPreference('listformat',Booker::LISTSU);
+$this->SetPreference('masterpass','OWFmNT1dGbU5FbnRlciBhdCB5b3VyIG93biByaXNrISBEYW5nZXJvdXMgZGF0YSE=');
+$this->SetPreference('membersname',$this->Lang('members'));
+$this->SetPreference('owner',0);	//each resource/group may have a specific owner/contact
+$this->SetPreference('pagerows',10); //page-length of admin bookings-data view
+$this->SetPreference('paymentiface',''); //data for payment-processing
+$this->SetPreference('rationcount',0);
+$this->SetPreference('showrange',1); //week-index per DisplayIntervals(), default bookings-display-period
+$this->SetPreference('slotcount',1);
+$this->SetPreference('slottype',1); //hour-index per TimeIntervals()
+$this->SetPreference('smspattern','^\d[ \d]{6,15}$');
+$this->SetPreference('smsprefix',''); //TODO func(timezone)
+$this->SetPreference('stripexport',0);
+$this->SetPreference('stylesfile','');
+$this->SetPreference('subgrpalloc',Booker::ALLOCNONE);
+$this->SetPreference('timeformat','G:i');	//default date/time format string
 //for email address checking by mailcheck.js
-$this->SetPreference('pref_domains',''); //for initial check
-$this->SetPreference('pref_subdomains',''); //for secondary check
-$this->SetPreference('pref_topdomains','biz,co,com,edu,gov,info,mil,name,net,org'); //for final check
+$this->SetPreference('domains',''); //for initial check
+$this->SetPreference('subdomains',''); //for secondary check
+$this->SetPreference('topdomains','biz,co,com,edu,gov,info,mil,name,net,org'); //for final check
 
 $format = get_site_preference('defaultdateformat');
 if ($format) {
@@ -485,7 +485,7 @@ if ($format) {
 } else
 	$format = 'd F y';
 
-$this->SetPreference('pref_dateformat',$format); //default date/time format string
+$this->SetPreference('dateformat',$format); //default date/time format string
 
 if (date_default_timezone_get())
 	$zone = date_default_timezone_get();
@@ -496,7 +496,7 @@ else {
 	if ($zone == FALSE)
 		$zone = 'Europe/London';//default to GMT
 }
-$this->SetPreference('pref_timezone',$zone);	//default zone for time calcs
+$this->SetPreference('timezone',$zone);	//default zone for time calcs
 
 //place for file uploads, not an inheritable item-property
 $ud = $this->GetName();
@@ -510,9 +510,9 @@ if ($ud) {
 		}
 	}
 }
-$this->SetPreference('pref_uploadsdir',$ud);
+$this->SetPreference('uploadsdir',$ud);
 //site-page alias for use in RegisterRoute, not an inheritable item-property
-$this->SetPreference('pref_sitepage','booker');
+$this->SetPreference('sitepage','booker');
 
 // enable FormBuilder-module custom processing
 $ob = cms_utils::get_module('FormBuilder');
