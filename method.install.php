@@ -99,7 +99,8 @@ owner I(8),
 cleargroup I(1) DEFAULT 0,
 subgrpalloc I(1),
 subgrpdata I(1) DEFAULT 0,
-active I(1) DEFAULT 1
+active I(1) DEFAULT 1,
+bulletin B
 ';
 $sqlarray = $dict->CreateTableSQL($this->ItemTable, $fields, $taboptarray);
 if ($sqlarray == FALSE)
@@ -273,6 +274,7 @@ if ($res != 2)
 $db->CreateSequence($this->FeeTable.'_seq');
 
 /*
+TODO apapt for use with Auther module
 bookers table schema:
  booker_id: table key
  name: identifier for display, and identity check if publicid N/A
@@ -418,7 +420,7 @@ $this->CreatePermission($this->PermPerName, $this->Lang('perm_booker'));
 $this->SetPreference('approver','');
 $this->SetPreference('approvercontact','');
 $this->SetPreference('approvertell',1);
-$this->SetPreference('authbulletin',''); //NOT in items table
+$this->SetPreference('bulletin','');
 $this->SetPreference('authcontext',''); //NOT in items table
 $this->SetPreference('available',''); //always available
 $this->SetPreference('bookcount',0); //book any no. of slots
