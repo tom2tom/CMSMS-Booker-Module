@@ -1124,19 +1124,6 @@ if ($pset) {
 	$settings[] = $one;
 
 	$one = new stdClass();
-	$one->ttl = $this->Lang('title_authcontext');
-	$one->inp = $this->CreateInputText($id,'pref_authcontext',$this->GetPreference('authcontext'),20,32);
-	$one->hlp = $this->Lang('help_authcontext');
-	$settings[] = $one;
-
-	$one = new stdClass();
-	$one->ttl = $this->Lang('title_authbulletin');
-	$one->inp = $this->CreateTextArea(FALSE,$id,$this->GetPreference('authbulletin'),
-		'authbulletin','','','','',40,3,'','','style="height:3em;"');
-//	$one->hlp = $this->Lang('help_authbulletin');
-	$settings[] = $one;
-
-	$one = new stdClass();
 	$one->ttl = $this->Lang('title_formiface');
 	$one->inp = $this->CreateInputText($id,'pref_formiface',$this->GetPreference('formiface'),30,48);
 	$one->hlp = $this->Lang('help_formiface');
@@ -1343,6 +1330,34 @@ EOS;
 	$one->inp = $this->CreateInputText($id,'pref_keepcount',$this->GetPreference('keepcount'),3,3).'&nbsp;'.
 		$this->CreateInputDropdown($id,'pref_keeptype',array_flip($t),-1,$this->GetPreference('keeptype'));
 	$one->hlp = $this->Lang('help_keep');
+	$settings[] = $one;
+
+	$sql = 'SELECT id,name,alias FROM '.cms_db_prefix().'module_auth_contexts';
+	$allcontexts = $db->GetAssoc($sql);
+	if ($allcontexts) {
+		foreach ($allcontexts as $k=>&$t) {
+			$v = $t['name'];
+			if (!$v) $v = $t['alias'];
+			if (!$v) $v = $k;
+			$t = $v;
+		}
+		unset($t);
+		asort($allcontexts);
+		$choices = array_flip($allcontexts);
+	} else {
+		$choices = array();
+	}
+	$one = new stdClass();
+	$one->ttl = $this->Lang('title_authcontext');
+	$one->inp = $this->CreateInputDropdown($id,'pref_authcontext',$choices,-1,$this->GetPreference('authcontext'));
+	$one->hlp = $this->Lang('help_authcontext');
+	$settings[] = $one;
+
+	$one = new stdClass();
+	$one->ttl = $this->Lang('title_bulletin');
+	$one->inp = $this->CreateTextArea(FALSE,$id,$this->GetPreference('bulletin'),
+		'bulletin','','','','',40,3,'','','style="height:3em;"');
+//	$one->hlp = $this->Lang('help_bulletin');
 	$settings[] = $one;
 
 	$one = new stdClass();
