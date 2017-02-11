@@ -37,6 +37,17 @@ foreach ($updates as $k) {
 	$val = $params[$k];
 	$k = substr($k,5);
 	switch ($k) {
+	 case 'masterpass':
+		$val = trim($val);
+		if ($val) {
+			$funcs = new Booker\Crypter();
+			$oldpw = $funcs->decrypt_preference($this,$k);
+			if ($oldpw != $val) {
+	//TODO re-hash all relevant data
+			}
+			$funcs->encrypt_preference($this,$k,$val);
+		}
+	 	break;
 	 case 'cleargroup':
 		$this->SetPreference($k,(int)$val);
 		break;
