@@ -277,11 +277,10 @@ $db->CreateSequence($this->FeeTable.'_seq');
 TODO apapt for use with Auther module
 bookers table schema:
  booker_id: table key
- name: identifier for display, and identity check if publicid N/A
- publicid: login/account for 'registed' bookers
- passhash: login password, 1-way encrypted
+ name: identifier for display, and identity check if authid <=0
  address: email (maybe accept a post-address...) for general messaging and billing
  phone: cell-phone number, preferred for messaging
+ authid: numeric identifier for a registered user per Authenticator-module users table
  addwhen: UTC timestamp when this record added
  type: combination of 10 generic types and permission-flags - see class.Userops
  displayclass: display-stying enum 1..Booker::USERSTYLES
@@ -290,10 +289,9 @@ bookers table schema:
 $fields = '
 booker_id I(4) KEY,
 name C(64),
-publicid C(32),
-passhash C(48),
-address C(96),
-phone C(24),
+address B,
+phone B,
+authid I(4),
 addwhen I(8),
 type I(1) DEFAULT 0,
 displayclass I(1) DEFAULT 1,
@@ -416,7 +414,7 @@ $this->CreatePermission($this->PermModName, $this->Lang('perm_modify'));
 //bookers
 $this->CreatePermission($this->PermPerName, $this->Lang('perm_booker'));
 
-// create preferences NOTE most names correspond to a column-name in items-table 
+// create preferences NOTE most names correspond to a column-name in items-table i.e. inheritable property
 $this->SetPreference('approver','');
 $this->SetPreference('approvercontact','');
 $this->SetPreference('approvertell',1);
@@ -441,7 +439,6 @@ $this->SetPreference('taxrate',0.0);
 $this->SetPreference('leadcount',0);
 $this->SetPreference('leadtype',3); //week-index per TimeIntervals()
 $this->SetPreference('listformat',Booker::LISTSU);
-$this->SetPreference('masterpass','OWFmNT1dGbU5FbnRlciBhdCB5b3VyIG93biByaXNrISBEYW5nZXJvdXMgZGF0YSE=');
 $this->SetPreference('membersname',$this->Lang('members'));
 $this->SetPreference('owner',0);	//each resource/group may have a specific owner/contact
 $this->SetPreference('pagerows',10); //page-length of admin bookings-data view
@@ -460,6 +457,9 @@ $this->SetPreference('timeformat','G:i');	//default date/time format string
 $this->SetPreference('domains',''); //for initial check
 $this->SetPreference('subdomains',''); //for secondary check
 $this->SetPreference('topdomains','biz,co,com,edu,gov,info,mil,name,net,org'); //for final check
+
+$funcs = new Booker\Crypter();
+$funcs->encrypt_preference($this,'masterpass',base64_decode('U3VjayBpdCB1cCwgY3JhY2tlcnMh'));
 
 $format = get_site_preference('defaultdateformat');
 if ($format) {
