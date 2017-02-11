@@ -7,6 +7,7 @@
 <img src="{$pic->url}"{if !empty($pic->ttl)} alt="{$pic->ttl}"{/if} />
 {/foreach}
 </div><br />{/if}
+{if !empty($bulletin)}<p>{$bulletin}</p><br />{/if}
 {$startform}
 {foreach from=$hidden item=inc}{$inc}{/foreach}
 {if isset($actions)}{foreach from=$actions key=k item=btn}{if $k>0}&nbsp;&nbsp;{/if}{$btn}{/foreach}<br /><br />{/if}

@@ -7,6 +7,7 @@
 <img src="{$pic->url}"{if !empty($pic->ttl)} alt="{$pic->ttl}"{/if} />
 {/foreach}
 </div><br /><br />{/if}
+{if !empty($bulletin)}<h5>{$bulletin}</h5><br />{/if}
 {if isset($membermsg)}<p>{$membermsg}</p>{/if}
 {if isset($currentmsg)}<p>{$currentmsg}</p>{/if}
 <p>{$mustmsg}</p>

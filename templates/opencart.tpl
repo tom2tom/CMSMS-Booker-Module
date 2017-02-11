@@ -2,6 +2,7 @@
 {if !empty($message)}<p class="pagemessage">{$message}</p><br />{/if}
 <h4 class="bkgtitle">{$title}</h4>
 {if !empty($desc)}<p class="bkgdesc">{$desc}</p><br /><br />{/if}
+{if !empty($bulletin)}<p>{$bulletin}</p><br /><br />{/if}
 {$startform}
 {if $count}
 <div style="overflow:auto;">
