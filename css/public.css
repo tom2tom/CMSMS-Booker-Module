@@ -237,12 +237,16 @@ input.fakelink {
 	text-align:left;
 	text-decoration:underline;
     font-family:inherit;
-    font-size:inherit;	
+/*	font-size:inherit;*/
 }
 
 input.fakelink:hover {
 	text-decoration:none;
 	background:none;
+}
+
+input.fakelink:focus {
+  outline: none;
 }
 
 /* registration panel */

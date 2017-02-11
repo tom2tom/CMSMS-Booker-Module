@@ -118,7 +118,7 @@ input.fakelink {
  text-align:left;
  text-decoration:underline;
  font-family:inherit;
- font-size:1em;
+/* font-size:1em; */
 }
 
 input.fakelink:hover {
