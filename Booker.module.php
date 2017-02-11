@@ -109,7 +109,6 @@ class Booker extends CMSModule
 	public $UserTable; //admin users (who may 'own' resource/group)
 	public $before20;
 	public $havenotifier;
-	public $havemcrypt;
 
 	protected $PermStructName = 'Booker Module Admin';
 	protected $PermAdminName = 'Booker Admin';
@@ -147,7 +146,6 @@ class Booker extends CMSModule
 		} else {
 			$this->havenotifier = FALSE;
 		}
-		$this->havemcrypt = function_exists('mcrypt_encrypt');
 
 		spl_autoload_register(array($this,'cmsms_spacedload'));
 	}
@@ -314,7 +312,8 @@ EOS;
 
 	public function GetDependencies()
 	{
-		return array('Auther'=>'0.2');
+//		return array('Auther'=>'0.2'); NOT YET
+		return array();
 	}
 
 	/*
