@@ -47,9 +47,11 @@ function RetrieveParms(&$cache, $key)
 //parameter keys filtered out before redirect etc
 $localparams = array(
 	'cancel',
+	'change',
 	'focus',
 	'html',
 	'message',
+	'recover',
 	'repeat',
 	'success',
 	'task',
