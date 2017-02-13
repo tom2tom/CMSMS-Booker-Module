@@ -235,7 +235,7 @@ class Payment
 
 		if ($rules) {
 			//identify the relevant ones
-			$funcs = new Userops();
+			$funcs = new Userops($mod);
 			$btype = $funcs->GetBaseType($mod,$bookerid);
 			$dorules = array();
 			foreach($rules as $i=>&$one)

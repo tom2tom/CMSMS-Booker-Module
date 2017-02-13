@@ -75,7 +75,7 @@ if (isset($params['submit'])) {
 			$funcs = new Booker\Requestops();
 			list($res,$msg) = $funcs->FinishReq($this, $utils, $params, TRUE);
 			if ($res && !$msg) {
-				$funcs = new Booker\Userops();
+				$funcs = new Booker\Userops($this);
 				$key = ($funcs->HasRight($this,$params['booker_id'],'record')) ?
 						'booking_feedback2':'booking_feedback';
 				$msg = $this->Lang($key);

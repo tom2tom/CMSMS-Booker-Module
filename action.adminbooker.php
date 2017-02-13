@@ -20,7 +20,7 @@ if (isset($params['cancel'])) {
 		$this->Redirect($id,'openbooker','',$params);
 		break;
 	 case 'delete':
-	 	$funcs = new Booker\Userops();
+	 	$funcs = new Booker\Userops($this);
 		$funcs->DeleteUser($this,$params['booker_id']);
 		break;
 	 case 'export';
@@ -43,7 +43,7 @@ if (isset($params['cancel'])) {
 		'active_tab'=>$params['active_tab'],
 		'message'=>$this->_PrettyMessage('nosel',FALSE)));
 
- 	$funcs = new Booker\Userops();
+ 	$funcs = new Booker\Userops($this);
 	if (!$funcs->DeleteUser($this,$params['selbkr']))
 		$this->Redirect($id,'defaultadmin','',array(
 		'active_tab'=>$params['active_tab'],
