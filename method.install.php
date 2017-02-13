@@ -277,10 +277,10 @@ $db->CreateSequence($this->FeeTable.'_seq');
 TODO apapt for use with Auther module
 bookers table schema:
  booker_id: table key
- name: identifier for display, and identity check if authid <=0
+ name: identifier for display, and identity check if publicid==FALSE
+ publicid: login/username/account for 'registered' bookers
  address: email (maybe accept a post-address...) for general messaging and billing
  phone: cell-phone number, preferred for messaging
- authid: numeric identifier for a registered user per Authenticator-module users table
  addwhen: UTC timestamp when this record added
  type: combination of 10 generic types and permission-flags - see class.Userops
  displayclass: display-stying enum 1..Booker::USERSTYLES
@@ -289,9 +289,9 @@ bookers table schema:
 $fields = '
 booker_id I(4) KEY,
 name C(64),
+publicid C(48),
 address B,
 phone B,
-authid I(4),
 addwhen I(8),
 type I(1) DEFAULT 0,
 displayclass I(1) DEFAULT 1,
