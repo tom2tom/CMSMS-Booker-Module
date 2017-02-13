@@ -117,7 +117,7 @@ EOS;
 				if ($mod->havenotifier) {
 					//notify lodger
 					$funcs = new Messager();
-					$sndr = new \MessageSender();
+					$sndr = new Notifier\MessageSender();
 					$propstore = array();
 					$msgs = array();
 					foreach ($rows as $one) {
@@ -172,7 +172,7 @@ EOS;
 			if ($mod->havenotifier) {
 				//notify lodgers
 				$funcs = new Messager();
-				$sndr = new \MessageSender();
+				$sndr = new Notifier\MessageSender();
 				$propstore = array();
 				$msgs = array();
 				foreach ($rows as $history_id=>$one) {
@@ -224,7 +224,7 @@ EOS;
 			if ($mod->havenotifier) {
 				//notify lodgers
 				$funcs = new Messager();
-				$sndr = new \MessageSender();
+				$sndr = new Notifier\MessageSender();
 				$propstore = array();
 				$msgs = array();
 				foreach ($rows as $history_id=>$one) {
@@ -281,7 +281,7 @@ EOS;
 			if ($mod->havenotifier) {
 				//notify lodgers
 				$funcs = new Messager();
-				$sndr = new \MessageSender();
+				$sndr = new Notifier\MessageSender();
 				$propstore = array();
 				$msgs = array();
 				foreach ($rows as $history_id=>$one) {
@@ -332,10 +332,10 @@ EOS;
 			$key = '';
 			$rfuncs = new Requestops();
 			$sfuncs = new Schedule();
-			$ufuncs = new Userops();
+			$ufuncs = new Userops($mod);
 			if ($mod->havenotifier) {
 				$mfuncs = new Messager();
-				$sndr = new \MessageSender();
+				$sndr = new Notifier\MessageSender();
 //				$propstore = array();
 				$msg = array();
 				$err = array();
@@ -445,7 +445,7 @@ OR
  		//date/time $params[] have been verified before calling here
 		if (!empty($params['conformuser'])) {
 			//general update where needed
-			$funcs = new Userops();
+			$funcs = new Userops($mod);
 			$funcs->ConformUserData($mod,$params); //general update where needed
 		}
 
@@ -558,7 +558,7 @@ OR
 			if ($params['contactnew']) {
 				$t = $params['contactnew'];
 			} else {
-				$funcs = new Userops();
+				$funcs = new Userops($mod);
 				$row = $funcs->GetContact($mod,$params['booker_id']); //get current contact for account
 				if ($row) {
 					$t = ($row['address']) ? $row['address'] : $row['phone'];
