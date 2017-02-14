@@ -225,9 +225,12 @@ class Booker extends CMSModule
 		if ($cont) {
 			$example = preg_replace(array('~\s?/\*(.*)?\*/~Usm','~\s?//.*$~m'),array('',''),$cont);
 			$example = str_replace(array("\n\n","\n","\t"),array('<br />','<br />',' '),trim($example));
-		} else
+		} else {
 			$example = $this->Lang('missing');
-		return $this->Lang('help',$example);
+		}
+		$fn = cms_join_path(__DIR__,'include','modhelp.html');
+		$cont = @file_get_contents($fn);
+		return sprintf($cont,$example);
 	}
 
 	public function GetVersion()
@@ -247,7 +250,7 @@ class Booker extends CMSModule
 
 	public function GetChangeLog()
 	{
-		$fn = cms_join_path(__DIR__,'include','changelog.inc');
+		$fn = cms_join_path(__DIR__,'include','changelog.html');
 		return @file_get_contents($fn);
 	}
 
