@@ -163,7 +163,7 @@ Fees are per period as entered, or fixed if the corresponding period is 'anythin
 EOS;
 $lang['help_feecondition'] = 'See advice for available days and times. If blank, applies <strong>always</strong>';
 $lang['help_feugroup'] = 'Front-end users group whose members may commit and change bookings directly, instead of via request.';
-$lang['help_focus'] = 'You can click/tap any table-cell to \'focus\' that time for the next operation, or double-click/tap to initiate a booking request/change';
+$lang['help_focus'] = 'Click/tap any table-cell, then one of the buttons +/- or Book<br />double-click/tap to initiate a booking request/change';
 $lang['help_formiface'] = 'TODO';
 $lang['help_groups'] = <<<'EOS'
 This %s may be in one or more groups, or none.<br />
@@ -263,8 +263,8 @@ Each line in the file (except the header line, discussed below) represents one r
 <h4>Header line</h4>
 <p>The first line of the file names the fields in the file, as follows.
 The supplied names may be in any order. Those prefixed by a '#' represent compulsory values.<br />
-<code>#Isgroup,#Name,Alias,Description,Keywords,Membersnamed,Choosername,Image,<br />
-Inchooser,Choosemembers,Available,Slottype,Slotcount,BookingSlots,<br />
+<code>#Isgroup,#Name,Alias,Description,Keywords,Image,Notice,Membersnamed,<br />
+Choosername,Inchooser,Choosemembers,Available,Slottype,Slotcount,BookingSlots,<br />
 Leadtype,Leadcount,Rationcount,Keeptype,Keepcount,Grossfees,Taxrate,PayInterface,<br />
 SMSprefix,SMSpattern,Latitude,Longitude,Timezone,Dateformat,Timeformat,Listformat,Stylesfile,<br />
 Approver,Approvercontact,FormInterface,Feugroup,Owner,Cleargroup,Allocategroup,Ingroups,Update</code></p>
@@ -655,6 +655,7 @@ $lang['title_members'] = 'Members of this group';
 $lang['title_membersname'] = 'Generic plural member-descriptor e.g. \'rooms\'';
 $lang['title_minutes'] = 'Minutes';
 $lang['title_months'] = 'Months';
+$lang['title_masterpass']='Pass-phrase for securing sensitive data';
 $lang['title_must'] = 'Information <strong>must</strong> be provided for each item below which is marked with a <strong>*</strong>';
 $lang['title_name'] = 'Name';
 $lang['title_noname'] = 'un-named %s %d';
@@ -674,7 +675,7 @@ $lang['title_pickmembers'] = 'Include resource-members of this group in item-sel
 $lang['title_pickthis'] = 'Include this item in item-selectors';
 $lang['title_postpay'] = 'Authorised to post-pay';
 $lang['title_prompt'] = 'Replacement for square-bracketed text';
-$lang['title_publicid'] = 'Account/login name';
+$lang['title_publicid'] = 'Login/account name';
 $lang['title_range'] = 'Timespan of booking displays';
 $lang['title_range2'] = 'Display';
 $lang['title_ration'] = 'Maximum pending bookings per user';
@@ -793,37 +794,3 @@ $lang['resource+start'] = 'Group by resource,start'; //LISTRS
 $lang['start+user'] = 'Group by start,user'; //LISTSU
 $lang['user+resource'] = 'Group by user,resource'; //LISTUR
 $lang['user+start'] = 'Group by user,start'; //LISTUS
-
-$lang['help'] = <<<'EOS'
-<h3>What Does It Do?</h3>
-<p>It manages and displays bookings for resources, singly and/or in groups.<br /><br />
-Any resource may be in one or more group(s). Any group may be in other group(s), creating a hierarchy.<br /><br />
-Any group may be assigned to an authorized admin user.</p>
-<h3>How Do I Use It?</h3>
-<p>Start by creating resource(s), and group(s) if wanted, via the Content menu.</p>
-<p>Place a smarty tag <code>{cms_module module='Booker'}</code> in a suitable page or template.</p>
-<p>Customise booking-display styling, by supplying resource-specific stylesheet(s). The default styles are:<br /><br />
-<code>%s</code></p>
-<h3>Requirements</h3>
-<p><ul>
-<li>PHP 5.3.6+</li>
-<li>PHP MultiByte String extension</li>
-</ul></p>
-<h3>Works better if you have</h3>
-<p><ul>
-<li><a href="http://dev.cmsmadesimple.org/projects/notifier">CMSMS Notifier module</a>
-<li><a href="http://php.net/manual/class.collator.php">PHP Collator class</a></li>
-<li><a href="http://php.net/manual/ref.mcrypt.php">PHP mcrypt module</a></li>
-<li>At least one of these PHP cache modules: apc[u],[p]redis,wincache,memcache,xcache,yac</li>
-</ul></p>
-<h3>Support</h3>
-<p>This module is provided as-is. Please read the text of the license for the full disclaimer.</p>
-<p>For help:<ul>
-<li>discussion may be found in the <a href="http://forum.cmsmadesimple.org">CMS Made Simple Forums</a>; or</li>
-<li>you may have some success emailing the author directly.</li>
-</ul></p>
-<p>For the latest version of the module, or to report a bug, visit the module's <a href="http://dev.cmsmadesimple.org/projects/booker">forge-page</a>.</p>
-<h3>Copyright and License</h3>
-<p>Copyright &copy; 2015 Tom Phane. All rights reserved.</p>
-<p>This module has been released under version 3 of the <a href="http://www.gnu.org/licenses/licenses.html#AGPL">GNU Affero General Public License</a>. You must agree to that license before using the module.</p>
-EOS;
