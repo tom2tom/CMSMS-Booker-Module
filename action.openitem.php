@@ -260,7 +260,7 @@ if (isset($params['submit']) || isset($params['apply'])) {
 	if (isset($fields['stylesdelete'])) {
 		$fp = $config['uploads_path'];
 		if ($fp && is_dir($fp)) {
-			$ud = $this->GetPreference('pref_uploadsdir','');
+			$ud = $this->GetPreference('uploadsdir','');
 			if ($ud)
 				$fp = cms_join_path($fp,$ud,$fields['oldstyles']);
 			else
@@ -300,7 +300,7 @@ if (isset($params['submit']) || isset($params['apply'])) {
 				if (empty($umsg)) {
 					$fp = $config['uploads_path'];
 					if ($fp && is_dir($fp)) {
-						$ud = $this->GetPreference('pref_uploadsdir','');
+						$ud = $this->GetPreference('uploadsdir','');
 						if ($ud)
 							$fp = cms_join_path($fp,$ud,$file_data['name']);
 						else
@@ -335,7 +335,7 @@ if (isset($params['submit']) || isset($params['apply'])) {
 			else {
 				$fp = $config['uploads_path'];
 				if ($fp && is_dir($fp)) {
-					$ud = $this->GetPreference('pref_uploadsdir','');
+					$ud = $this->GetPreference('uploadsdir','');
 					if ($ud)
 						$fp = cms_join_path($fp,$ud,$file_data['name']);
 					else
@@ -491,7 +491,7 @@ $s = ($is_group) ? $this->Lang('group'):$this->Lang('item');
 
 $baseurl = $this->GetModuleURLPath();
 
-$intro = ($pmod) ? $this->Lang('help_compulsory').'<br />' : '';
+$intro = ($pmod) ? $this->Lang('compulsory_items').'<br />' : '';
 $intro .= $this->Lang('help_cascade');
 $tplvars['intro'] = $intro;
 
@@ -672,33 +672,31 @@ if ($sel) {
 	$i = Booker\Utils::ProcessTemplate($this,'brieffees.tpl',$tplvars);
 	if ($pmod) {
 		$t = $this->Lang('edit');
-		$i .= '<br /><br />'.$this->CreateInputSubmit($id,'modfee',$t,'onclick="return confirm_saved(this);"');
+		$i .= '<br /><br />'.$this->CreateInputSubmit($id,'modfee',$t,'onclick="confirm_saved(this);return false;"');
 	}
 	$h = $this->Lang('help_fee');
 } else {
 	$i = $this->Lang('nofees');
 	if ($pmod) {
 		$t = $this->Lang('addfee');
-		$i .= '<br /><br />'.$this->CreateInputSubmit($id,'modfee',$t,'onclick="return confirm_saved(this);"');
+		$i .= '<br /><br />'.$this->CreateInputSubmit($id,'modfee',$t,'onclick="confirm_saved(this);return false;"');
 	}
 	$h = NULL;
 }
 if ($pmod) {
+	$jsincs[] = <<<EOS
+<script type="text/javascript" src="{$baseurl}/include/jquery.alertable.min.js"></script>
+EOS;
+
 	$jsfuncs[] = <<<EOS
 function confirm_saved(btn) {
- $.modalconfirm.show({
-  overlayID: 'confirm',
-  popupID: 'confgeneral',
-  showTarget: btn,
-  preShow: function(tg,\$d) {
-   var para = \$d.children('p:first')[0];
-   para.innerHTML = '{$this->Lang('allsaved')}';
-  },
-  onConfirm: function(tg,\$d) {
-   current_tab();
-  }
- });
- return false;
+ $.alertable.confirm('{$this->Lang('allsaved')}',{
+  okName: '{$this->Lang('yes')}',
+  cancelName: '{$this->Lang('no')}'
+ }).then(function() {
+  current_tab();
+  $(btn).trigger('click.deferred');
+ })
 }
 EOS;
 }
@@ -1484,13 +1482,12 @@ function stylefile_selected(el) {
 }
 EOS;
 
-$jsall = NULL;
-$utils->MergeJS($jsincs,$jsfuncs,$jsloads,$jsall);
+$jsall = $utils->MergeJS($jsincs,$jsfuncs,$jsloads);
 unset($jsincs);
 unset($jsfuncs);
 unset($jsloads);
 
 echo Booker\Utils::ProcessTemplate($this,'openitem.tpl',$tplvars);
-//inject constructed js after other content (pity we can't get to </body> or </html> from here)
-if ($jsall)
-	echo $jsall;
+if ($jsall) {
+	echo $jsall;//inject constructed js after other content
+}
