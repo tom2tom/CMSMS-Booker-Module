@@ -147,20 +147,20 @@ $tplvars['title'] = $this->Lang('title_find');
 $selects = array();
 
 $oneset = new stdClass();
-$oneset->title = $this->Lang('title_item');
+$oneset->ttl = $this->Lang('title_item');
 $current = (isset($params['findpick'])) ? $params['findpick'] : $params['itempick'];
 $chooser = $utils->GetItemPicker($this,$id,'findpick',$params['firstpick'],$current);
 if ($chooser) {
-	$oneset->input = $chooser;
+	$oneset->inp = $chooser;
 } elseif (isset($params['item_id'])) {
-	$oneset->input = $utils->GetItemNameForID($params['item_id']);
+	$oneset->inp = $utils->GetItemNameForID($params['item_id']);
 } else {
-	$oneset->input = $this->Lang('all');
+	$oneset->inp = $this->Lang('all');
 }
 $selects[] = $oneset;
 
 $oneset = new stdClass();
-$oneset->title = $this->Lang('start');
+$oneset->ttl = $this->Lang('start');
 
 $xl1 = strlen($example)+1;
 $t = $this->Lang('tip_enter',$example);
@@ -174,11 +174,11 @@ $t2 = isset($params['findlast']) ? $params['findlast'] : '';
 $t2 = $this->CreateInputText($id,'findlast',$t2,$xl2,$xl1,'title="'.$t.'"');
 $t2 = str_replace('class="','class="dateinput ',$t2);
 
-$oneset->input = $this->Lang('showrange',$t1,$t2);
+$oneset->inp = $this->Lang('showrange',$t1,$t2);
 $selects[] = $oneset;
 
 $oneset = new stdClass();
-$oneset->title = $this->Lang('title_user');
+$oneset->ttl = $this->Lang('title_user');
 $choices = array($this->Lang('is')=>1,$this->Lang('islike')=>2);
 
 // 'finduser' => string like 'Tom'
@@ -187,7 +187,7 @@ $t1 = $this->CreateInputRadioGroup($id,'findusertype',$choices,$t1,'','&nbsp');
 //override crappy default label-layout
 $t1 = preg_replace('~label class="(.*)"~U','label class="\\1 radiolabel"',$t1);
 $t2 = isset($params['finduser']) ? $params['finduser'] : '';
-$oneset->input = $t1.' '.$this->CreateInputText($id,'finduser',$t2,15,45);
+$oneset->inp = $t1.' '.$this->CreateInputText($id,'finduser',$t2,15,45);
 $selects[] = $oneset;
 
 $tplvars['selects'] = $selects;
@@ -273,7 +273,7 @@ EOS;
 <script type="text/javascript" src="{$baseurl}/include/jquery.SSsort.min.js"></script>
 EOS;
 			//TODO make page-rows count window-size-responsive
-			$pagerows = $this->GetPreference('pref_pagerows',10);
+			$pagerows = $this->GetPreference('pagerows',10);
 			if ($pagerows && $count > $pagerows) {
 				$tplvars['hasnav'] = 1;
 				//setup for SSsort
@@ -361,40 +361,31 @@ EOS;
 $tplvars['count'] = $count;
 $tplvars['search'] = $this->CreateInputSubmit($id,'search',$this->Lang('find'));
 
-if (!$admin) { //frontend
+if ($admin)  { //admin search
+	$tplvars['submit'] = NULL;
+	$tplvars['cancel'] = $this->CreateInputSubmit($id,'cancel',$this->Lang('close'));
+} else { //frontend
 	$xtra = ($count) ? '' : 'disabled="disabled"';
 	$tplvars['submit'] = $this->CreateInputSubmit($id,'submit',$this->Lang('useselection'),$xtra);
 	$tplvars['cancel'] = $this->CreateInputSubmit($id,'cancel',$this->Lang('cancel'));
-
-	$jsfuncs[] = <<<EOS
-function showerr(msg) {
- alert(msg);
 }
+
+ $stylers = <<<EOS
+<link rel="stylesheet" type="text/css" href="{$baseurl}/css/alertable.css" />
 EOS;
-} else { //admin search
-	$tplvars['submit'] = NULL;
-	$tplvars['cancel'] = $this->CreateInputSubmit($id,'cancel',$this->Lang('close'));
 
-	$jsincs[] =
-'<script type="text/javascript" src="'.$baseurl.'/include/jquery.modalconfirm.min.js"></script>';
+$jsincs[] = <<<EOS
+<script type="text/javascript" src="{$baseurl}/include/jquery.alertable.min.js"></script>
+EOS;
 
-	$tplvars['yes'] = '';
-	$tplvars['no'] = $this->Lang('close');
-	$jsfuncs[] = <<<EOS
-function showerr(msg) { //QQQ $.modalconfirm.show({ //error message, ok-button only, prompt msg
- $.modalconfirm.show({
-  overlayID: 'confirm',
-  popupID: 'confgeneral',
-  seeButtons: 'deny',
-  preShow: function(tg,\$d) {
-   var para = \$d.children('p:first')[0];
-   para.innerHTML = msg;
-   \$d.find('#mc_deny').val('{$this->Lang('close')}');
-  }
+//TODO adjust dialog styling for error
+$jsfuncs[] = <<<EOS
+function showerr(msg) {
+ $.alertable.alert(msg,{
+  okName: '{$this->Lang('close')}'
  });
 }
 EOS;
-}
 
 //js wants quoted period-names
 $t = $this->Lang('longdays');
@@ -410,7 +401,7 @@ $meridiem = "'".str_replace(",","','",$t)."'";
 
 $jsfuncs[] = <<<EOS
 function validate(ev) {
- var f = '{$datetimefmt}',
+ var f = '$datetimefmt',
   \$os = $('#{$id}findfirst'),
   s = \$os.val(),
   \$oe = $('#{$id}findlast'),
@@ -464,7 +455,7 @@ EOS;
 
 //for picker
 
-$stylers = <<<EOS
+$stylers .= <<<EOS
 <link rel="stylesheet" type="text/css" href="{$baseurl}/css/pikaday.css" />
 EOS;
 
@@ -480,18 +471,18 @@ $prevm = $this->Lang('prevm');
 
 $jsloads[] = <<<EOS
  var fmt = new DateFormatter({
-  longDays: [{$dnames}],
-  shortDays: [{$sdnames}],
-  longMonths: [{$mnames}],
-  shortMonths: [{$smnames}],
-  meridiem: [{$meridiem}],
+  longDays: [$dnames],
+  shortDays: [$sdnames],
+  longMonths: [$mnames],
+  shortMonths: [$smnames],
+  meridiem: [$meridiem],
   ordinal: function (number) {
    var n = number % 10, suffixes = {1: 'st', 2: 'nd', 3: 'rd'};
    return Math.floor(number % 100 / 10) === 1 || !suffixes[n] ? 'th' : suffixes[n];
   }
  });
  $('.dateinput').pikaday({
-  format: '{$datetimefmt}',
+  format: '$datetimefmt',
   reformat: function(target,f) {
    return fmt.formatDate(target,f);
   },
@@ -499,11 +490,11 @@ $jsloads[] = <<<EOS
    return fmt.parseDate(target,f);
   },
   i18n: {
-   previousMonth: '{$prevm}',
-   nextMonth: '{$nextm}',
-   months: [{$mnames}],
-   weekdays: [{$dnames}],
-   weekdaysShort: [{$sdnames}]
+   previousMonth: '$prevm',
+   nextMonth: '$nextm',
+   months: [$mnames],
+   weekdays: [$dnames],
+   weekdaysShort: [$sdnames]
   }
  });
  setTimeout(function() {
@@ -522,10 +513,10 @@ if (isset($params['item_id'])) {
 EOS;
 }
 
-//heredoc-var newlines are a problem for quoted strings! workaround ...
-$stylers = str_replace("\n",'',$stylers);
+//heredoc-var newlines are a problem for in-js quoted strings, so ...
+$stylers = preg_replace('/[\\n\\r]+/','',$stylers);
 $t = <<<EOS
-var linkadd = '{$stylers}',
+var linkadd = '$stylers',
  \$head = $('head'),
  \$linklast = \$head.find("link[rel='stylesheet']:last");
 if (\$linklast.length) {
@@ -534,17 +525,15 @@ if (\$linklast.length) {
  \$head.append(linkadd);
 }
 EOS;
-$jsall = NULL;
-$utils->MergeJS(FALSE,array($t),FALSE,$jsall);
-echo $jsall;
 
-$jsall = NULL;
-$utils->MergeJS($jsincs,$jsfuncs,$jsloads,$jsall);
+echo $utils->MergeJS(FALSE,array($t),FALSE);
+
+$jsall = $utils->MergeJS($jsincs,$jsfuncs,$jsloads);
 unset($jsincs);
 unset($jsfuncs);
 unset($jsloads);
 
 echo Booker\Utils::ProcessTemplate($this,'find.tpl',$tplvars);
-//inject constructed js after other content (pity we can't get to </body> or </html> from here)
-if ($jsall)
-	echo $jsall;
+if ($jsall) {
+	echo $jsall; //inject constructed js after other content
+}

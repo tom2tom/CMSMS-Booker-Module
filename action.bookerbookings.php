@@ -121,16 +121,6 @@ if (!empty($params['message']))
 $yes = $this->Lang('yes');
 $no = $this->Lang('no');
 $from_group = FALSE;
-//modal overlay
-$tplvars += array(
-	'modaltitle' => $this->Lang('title_feedback3'),
-	'customentry' => $this->CreateInputText($id,'customentry','',20,30),
-	'prompttitle' => $this->Lang('title_prompt'),
-	'proceed' => $this->Lang('proceed'),
-	'abort' => $this->Lang('cancel'),
-	'yes' => $yes,
-	'no' => $no
-);
 
 $baseurl = $this->GetModuleURLPath();
 $theme = ($this->before20) ? cmsms()->get_variable('admintheme'):
@@ -269,7 +259,7 @@ $rc = count($rows);
 $tplvars['ocount'] = $rc;
 if ($rc) {
 	//TODO make page-rows count window-size-responsive
-	$pagerows = $this->GetPreference('pref_pagerows',10);
+	$pagerows = $this->GetPreference('pagerows',10);
 	if ($pagerows && $rc > $pagerows) {
 		$tplvars['hasnav'] = 1;
 		//setup for SSsort
@@ -326,7 +316,7 @@ EOS;
   oddsortClass: 'row1s',
   evensortClass: 'row2s',
   paginate: true,
-  pagesize: {$pagerows},
+  pagesize: $pagerows,
   currentid: 'cpage',
   countid: 'tpage'
  });
@@ -357,64 +347,47 @@ EOS;
 			$tplvars['notify'] = $this->CreateInputSubmit($id,'notify',$this->Lang('notify'),
 			'title="'.$this->Lang('tip_notify_selected_records').'"');
 
+			$t = $this->Lang('title_feedback3');
 			$jsloads[] = <<<EOS
- $('#{$id}moduleform_1 #{$id}delete').modalconfirm({
-  overlayID: 'confirm',
-  popupID: 'confmessage',
-  confirmBtnID: 'mc_conf2',
-  denyBtnID: 'mc_deny2',
-  doCheck: any_selected,
-  preShow: modalsetup,
-  onConfirm: savecustom
+ $('#{$id}moduleform_1 #{$id}delete').click(function() {
+  if (any_selected()) {
+   deferbutton(this);
+  }
+  return false;
  });
- $('#bookings .bkrdel > a').modalconfirm({
-  overlayID: 'confirm',
-  popupID: 'confmessage',
-  confirmBtnID: 'mc_conf2',
-  denyBtnID: 'mc_deny2',
-  preShow: modalsetup,
-  onConfirm: savecustom2
+ $('#bookings .bkrdel > a').click(function(ev) {
+  var tg = ev.target || ev.srcElement;
+  deferlink(tg);
+  return false;
  });
- $('#{$id}moduleform_1 #{$id}notify').modalconfirm({
-  overlayID: 'confirm',
-  popupID: 'confmessage',
-  confirmBtnID: 'mc_conf2',
-  denyBtnID: 'mc_deny2',
-  doCheck: any_selected,
-  preShow: modalsetup,
-  onConfirm: savecustom
+ $('#{$id}moduleform_1 #{$id}notify').click(function() {
+  if (any_selected()) {
+   deferbutton(this,'$t');
+  }
+  return false;
  });
- $('#bookings .bkrtell > a').modalconfirm({
-  overlayID: 'confirm',
-  popupID: 'confmessage',
-  confirmBtnID: 'mc_conf2',
-  denyBtnID: 'mc_deny2',
-  preShow: modalsetup,
-  onConfirm: savecustom2
+ $('#bookings .bkrtell > a').click(function(ev) {
+  var tg = ev.target || ev.srcElement;
+  deferlink(tg,'$t');
+  return false;
  });
 EOS;
 		} else { //no Notifier module, no message popup
 			$t = $this->Lang('confirm_delete_type',$this->Lang('booking'),'%s');
 			$jsloads[] = <<<EOS
- $('#{$id}moduleform_1 #{$id}delete').modalconfirm({
-  overlayID: 'confirm',
-  popupID: 'confgeneral',
-  doCheck: any_selected,
-  preShow: function(tg,\$d) {
-   var para = \$d.children('p:first')[0];
-   para.innerHTML = '{$this->Lang('delsel_confirm',$this->Lang('booking_multi'))}';
+ $('#{$id}moduleform_1 #{$id}delete').click(function() {
+  if (any_selected()) {
+   var msg = '{$this->Lang('delsel_confirm',$this->Lang('booking_multi'))}';
+   confirmclick(this,msg);
   }
+  return false;
  });
- $('#bookings .bkrdel > a').modalconfirm({
-  overlayID: 'confirm',
-  popupID: 'confgeneral',
-  preShow: function(tg,\$d) {
-    var n = $(this.parentNode).siblings(':first').children(':first').text(),
-    t = "{$t}",
-    m = t.replace('%s',n),
-    para = \$d.children('p:first')[0];
-   para.innerHTML = m;
-  }
+ $('#bookings .bkrdel > a').click(function(ev) {
+  var tg = ev.target || ev.srcElement;
+  var nm = $(this.parentNode).siblings(':first').children(':first').text(),
+    msg = '$t'.replace('%s',nm);
+  confirmclick(tg,msg);
+  return false;
  });
 EOS;
 		}
@@ -555,23 +528,18 @@ EOS;
 		if ($tell) {
 			$tplvars['notify2'] = $this->CreateInputSubmit($id,'notify',$this->Lang('notify'),
 			 'title="'.$this->Lang('tip_notify_selected_records').'"');
+			$t = $this->Lang('title_feedback3');
 			$jsloads[] = <<<EOS
- $('#{$id}moduleform_2 #{$id}notify').modalconfirm({
-  overlayID: 'confirm',
-  popupID: 'confmessage',
-  confirmBtnID: 'mc_conf2',
-  denyBtnID: 'mc_deny2',
-  doCheck: any_selected2,
-  preShow: modalsetup,
-  onConfirm: savecustom
+ $('#{$id}moduleform_2 #{$id}notify').click(function() {
+  if (any_selected2()) {
+   deferbutton(this,'$t');
+  }
+  return false;
  });
- $('#repeats .bkrtell > a').modalconfirm({
-  overlayID: 'confirm',
-  popupID: 'confmessage',
-  confirmBtnID: 'mc_conf2',
-  denyBtnID: 'mc_deny2',
-  preShow: modalsetup,
-  onConfirm: savecustom2
+ $('#repeats .bkrtell > a').click(function(ev) {
+  var tg = ev.target || ev.srcElement;
+  deferlink(tg,'$t');
+  return false;
  });
 EOS;
 		}
@@ -581,29 +549,33 @@ EOS;
 
 		$t = $this->Lang('confirm_delete_type',$this->Lang('booking'),'%s');
 		$jsloads[] = <<<EOS
- $('#{$id}moduleform_2 #{$id}delete').modalconfirm({
-  overlayID: 'confirm',
-  popupID: 'confgeneral',
-  doCheck: any_selected2,
-  preShow: function(tg,\$d) {
-   var para = \$d.children('p:first')[0];
-   para.innerHTML = '{$this->Lang('delsel_confirm',$this->Lang('booking_multi'))}';
+ $('#{$id}moduleform_2 #{$id}delete').click(function() {
+  if (any_selected2()) {
+   var msg = '{$this->Lang('delsel_confirm',$this->Lang('booking_multi'))}';
+   confirmclick(this,msg);
   }
+  return false;
  });
- $('#repeats .bkrdel > a').modalconfirm({
-  overlayID: 'confirm',
-  popupID: 'confgeneral',
-  preShow: function(tg,\$d) {
-    var n = $(this.parentNode).siblings(':first').children(':first').text(),
-    t = "{$t}",
-    m = t.replace('%s',n),
-    para = \$d.children('p:first')[0];
-   para.innerHTML = m;
-  }
+ $('#repeats .bkrdel > a').click(function(ev) {
+  var tg = ev.target || ev.srcElement;
+  var nm = $(this.parentNode).siblings(':first').children(':first').text(),
+    msg = '{$t}'.replace('%s',nm);
+  confirmclick(tg,msg);
+  return false;
  });
 EOS;
+		$jsfuncs[] = <<<EOS
+function confirmclick(tg,msg) {
+ $.alertable.confirm(msg,{
+  okName: '{$this->Lang('proceed')}',
+  cancelName: '{$this->Lang('cancel')}'
+ }).then(function() {
+  $(tg).trigger('click.deferred');
+ });
+}
+EOS;
 	} //pmod
-} else { //rc i.e. data found
+} else { // !rc i.e. no data found
 	$tplvars['norecords'] = $this->Lang('nodata'); //maybe epeat assigment, don't care
 }
 
@@ -614,47 +586,69 @@ if ($tell && ($rc || $tplvars['ocount'])) {
 	$notify = $this->Lang('email_change',$detail); //ETC
 	$delete = $this->Lang('email_cancel',$detail);
 	$jsfuncs[] = <<<EOS
-function modalsetup(tg,\$d) {
- var msg,action,id = $(this).attr('id');
- if (id) {
+function modalsetup(\$tg,btn) {
+ var action,msg,clue;
+ if (btn) {
+  var id = \$tg.attr('id');
   action = id.replace('{$id}','');
  } else {
-  action = $(this).attr('href').replace(/^.+,{$id},(\w+),.+/,'$1');
+  action = \$tg.attr('href').replace(/^.+,{$id},(\w+),.+/,'$1');
  }
  switch (action) {
   case 'notifybooker':
   case 'notify':
-   msg = "$notify";
+   msg = '$notify';
    break;
   case 'itembookings':
   case 'delete':
-   msg = "$delete";
+   msg = '$delete';
    break;
   default:
    msg = '?';
    break;
  }
- \$d.find('#common').html(msg);
- var clue = msg.substring(msg.lastIndexOf('['),msg.lastIndexOf(']')+1);
- \$d.find('#{$id}customentry').val(clue);
+ clue = msg.substring(msg.lastIndexOf('['),msg.lastIndexOf(']')+1);
+ return [msg,clue];
 }
-function savecustom(tg,\$d) {
- var custom = \$d.find('#{$id}customentry').val();
- $('input[name="{$id}custmsg"]').val(custom);
- return true;
+function deferbutton(tg,title) {
+ var mstr = modalsetup($(tg),true),
+  opts = {
+   prompt: '<input id="alertable-input" type="text" name="value" value="' + mstr[1] + '" />'
+  };
+ if (title !== undefined) {
+  opts.modal = '<form id="alertable"><h4 id="alertable-title">' + title + '</h4>' +
+   '<p id="alertable-message"></p><div id="alertable-prompt"></div>' +
+   '<div id="alertable-buttons"></div></form>';
+ }
+ $.alertable.prompt(mstr[0],opts).then(function() {
+  var cust = $('#alertable-input').val();
+  $('input[name="{$id}custmsg"]').val(cust);
+  $(tg).trigger('click.deferred');
+ });
 }
-function savecustom2(tg,\$d) {
- var custom = \$d.find('#{$id}customentry').val(),
-   url = $(tg).attr('href'),
-   curl = url+'&{$id}custmsg='+encodeURIComponent(custom);
- $(tg).attr('href',curl);
- return true;
+function deferlink(tg,title) {
+ var \$a = $(tg).closest('a'),
+  mstr = modalsetup(\$a,false),
+  opts = {
+   prompt: '<input id="alertable-input" type="text" name="value" value="' + mstr[1] + '" />'
+  };
+ if (title !== undefined) {
+  opts.modal = '<form id="alertable"><h4 id="alertable-title">' + title + '</h4>' +
+   '<p id="alertable-message"></p><div id="alertable-prompt"></div>' +
+   '<div id="alertable-buttons"></div></form>';
+ }
+ $.alertable.prompt(mstr[0],opts).then(function() {
+  var cust = $('#alertable-input').val(),
+   url = \$a.attr('href'),
+   curl = url+'&{$id}custmsg='+encodeURIComponent(cust);
+  \$a.attr('href',curl).trigger('click.deferred');
+ });
 }
 EOS;
 }
 
 if (!isset($tplvars['item_title'])) {
-	$funcs = new Booker\Userops();
+	$funcs = new Booker\Userops($this);
 	$name = $funcs->GetName($this,$bookerid);
 	$tplvars['item_title'] = $this->Lang('title_booksfor',$this->Lang('user'),$name);
 }
@@ -670,21 +664,24 @@ if ($pmod) {
 if ($from_group)
 	$tplvars['help_group'] = $this->Lang('help_groupbooking');
 
-$jsincs[] = <<<EOS
+if ($rc > 1) {
+	$jsincs[] = <<<EOS
 <script type="text/javascript" src="{$baseurl}/include/jquery.metadata.min.js"></script>
 <script type="text/javascript" src="{$baseurl}/include/jquery.SSsort.min.js"></script>
 EOS;
-if ($pmod)
+}
+if ($pmod || $tell) { //TODO CHECKME
 	$jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/include/jquery.modalconfirm.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/include/jquery.alertable.min.js"></script>
 EOS;
-$jsall = NULL;
-$utils->MergeJS($jsincs,$jsfuncs,$jsloads,$jsall);
+}
+
+$jsall = $utils->MergeJS($jsincs,$jsfuncs,$jsloads);
 unset($jsincs);
 unset($jsfuncs);
 unset($jsloads);
 
 echo Booker\Utils::ProcessTemplate($this,'bookings.tpl',$tplvars);
-//inject constructed js after other content (pity we can't get to </body> or </html> from here)
-if ($jsall)
-	echo $jsall;
+if ($jsall) {
+	echo $jsall; //inject constructed js after other content
+}
