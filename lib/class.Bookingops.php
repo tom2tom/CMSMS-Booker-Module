@@ -9,6 +9,56 @@ namespace Booker;
 
 class Bookingops
 {
+	protected $afuncs = NULL;
+
+	/*
+	* Gets user-data from Auther module, and substitutes that for field(s) in @data
+	* props is array with at least publicid e.g. ['name','publicid','address']
+	*/
+	protected function GetAuthData(&$mod, &$data, $props)
+	{
+		$logins = array();
+		foreach ($data as $one) {
+			if $one['publicid']) {
+				$logins[$one['publicid']] = 1;
+			}
+		}
+		if ($logins) {
+			if (!$this->afuncs) {
+				$ob = \cms_utils::get_module('Auther');
+				if ($ob) {
+					$this->afuncs = new Auther\Auth($ob,$mod->GetPreference('authcontext',0));
+					unset($ob);
+				} else {
+					return;
+				}
+			}
+			ksort($logins);
+			$xdata = $this->afuncs->getUserProperties(array_keys($logins),$props);
+			if ($xdata) {
+				foreach ($data as &$one) {
+					$authid = $one['publicid'];
+					if ($logins[$authid] === 1) {
+						$logins[$authid] = FALSE;
+						foreach ($xdata as $newrow) {
+							if ($newrow['publicid'] == $authid) {
+								$logins[$authid] = $newrow;
+								break;
+							}
+						}
+					}
+					if ($logins[$authid]) {
+						$newrow = $logins[$authid];
+						foreach ($newrow as $k=>$val) {
+							$one[$k] = $val;
+						}
+					}
+				}
+				unset($one);
+			}
+		}
+	}
+
 	/**
 	GetBkgData:
 	Get row(s) of data for @bkgid from DataTable
@@ -23,9 +73,14 @@ JOIN $mod->BookerTable B ON D.booker_id=B.booker_id
 WHERE D.bkg_id
 EOS;
 		if (is_array($bkgid)) {
-			return $mod->dbHandle->GetAssoc($sql.' IN ('.str_repeat('?,',count($bkgid)-1).'?)',$bkgid);
-		} else
-			return $mod->dbHandle->GetAssoc($sql.'=?',array($bkgid));
+			$data = $mod->dbHandle->GetAssoc($sql.' IN ('.str_repeat('?,',count($bkgid)-1).'?)',$bkgid);
+		} else (
+			$data = $mod->dbHandle->GetAssoc($sql.'=?',array($bkgid));
+		}
+		if ($data) {
+			$this->GetAuthData($mod,$data,['name','publicid','address']);
+		}
+		return $data;
 	}
 
 	/**
@@ -58,7 +113,7 @@ EOS;
 		if ($rows) {
 			if ($mod->havenotifier) {
 				$funcs = new Messager();
-				$sndr = new \MessageSender();
+				$sndr = new Notifier\MessageSender();
 				$propstore = array();
 				$msg = array();
 			} else {
@@ -68,7 +123,8 @@ EOS;
 
 			$utils = new Utils();
 			$sql = 'DELETE FROM '.$mod->DataTable.' WHERE bkg_id=? OR bulk_id=?';
-
+//TODO CHECK set active=0 instead of delete iff keeptime > 0?
+//TODO CHECK any change to HistoryTable e.g. was deleted 'now'
 			foreach ($rows as $bid=>$one) {
 				if ($utils->SafeExec($sql,array($bid,$bid))) {
 					if ($funcs && $one['status'] !== \Booker::STATOK) {
@@ -120,6 +176,8 @@ EOS;
 			$sql2 = 'SELECT COUNT(1) AS num FROM '.$mod->DataTable.' WHERE bulk_id=? AND slotstart<?';
 			$sql3 = 'UPDATE '.$mod->RepeatTable.' SET active=0 WHERE bkg_id=?';
 			$sql4 = 'DELETE FROM '.$mod->RepeatTable.' WHERE bkg_id=?';
+//TODO CHECK set active=0 iff keeptime > 0?
+//TODO CHECK any change to HistoryTable e.g. was deleted 'now'
 			$propstore = array();
 $dtw = new \DateTime('@0',NULL); //DEBUG
 			foreach ($rows as $bid=>$one) {
@@ -128,7 +186,7 @@ $dtw = new \DateTime('@0',NULL); //DEBUG
 					$idata = $utils->GetItemProperty($mod,$item_id,'timezone');
 					$propstore[$item_id] = $utils->GetZoneTime($idata['timezone']);
 				}
-$dtw->setTimestamp($propstore[$item_id]);
+$dtw->setTimestamp($propstore[$item_id]); //DEBUG
 				//if historic bookings exist, just flag stuff, don't delete yet
 				$args = array($bid,$propstore[$item_id]);
 				$count = $utils->SafeGet($sql2,$args,'one');
@@ -155,7 +213,7 @@ $dtw->setTimestamp($propstore[$item_id]);
 /*	public function SaveBkg(&$mod, &$params, $is_new, $bulk_id=0)
 	{
 		if (empty($params['booker_id'])) {
-	 		$funcs = new Userops();
+	 		$funcs = new Userops($mod);
 			list($bookerid,$newbooker) = $funcs->GetParamsID($mod,$params);
 			if ($bookerid === FALSE) {
 				//TODO nicely handle bad password e.g. message
@@ -216,9 +274,9 @@ $dtw->setTimestamp($propstore[$item_id]);
 	public function GetBooked(&$mod, $item_id, $startstamp, $endstamp)
 	{
 		$sql = <<<EOS
-SELECT D.*,B.name,I.name AS what FROM {$mod->DataTable} D
-LEFT JOIN {$mod->BookerTable} B ON D.booker_id=B.booker_id
-LEFT JOIN {$mod->ItemTable} I ON D.item_id=I.item_id
+SELECT D.*,B.name,B.publicid,I.name AS what FROM $mod->DataTable D
+LEFT JOIN $mod->BookerTable B ON D.booker_id=B.booker_id
+LEFT JOIN $mod->ItemTable I ON D.item_id=I.item_id
 WHERE D.item_id
 EOS;
 		if (is_array($item_id)) {
@@ -241,7 +299,11 @@ EOS;
 		$args[] = $startstamp;
 		$sql .= ' AND D.slotstart <= ? AND (D.slotstart+D.slotlen) >= ? ORDER BY I.name,D.slotstart';
 		$utils = new Utils();
-		return $utils->SafeGet($sql,$args);
+		$data = $utils->SafeGet($sql,$args);
+		if ($data) {
+			$this->GetAuthData($mod,$data,['name','publicid']);
+		}
+		return $data;
 	}
 
 	/**
@@ -256,11 +318,6 @@ EOS;
 	*/
 	public function GetTableBooked(&$mod, $item_id, $startstamp, $endstamp)
 	{
-$dts = new \DateTime('@0',NULL); //DEBUG
-$dts->setTimestamp($startstamp);
-$dte = new \DateTime('@0',NULL); //DEBUG
-$dte->setTimestamp($endstamp);
-
 		if (!is_array($item_id))
 			$args = array($item_id);
 		else
@@ -298,7 +355,7 @@ EOS;
 			$args = $item_id;
 		$fillers = str_repeat('?,',count($args)-1);
 		$sql = <<<EOS
-SELECT D.item_id,D.slotstart,D.slotlen,D.booker_id,B.name,I.name AS what FROM $mod->DataTable D
+SELECT D.item_id,D.slotstart,D.slotlen,D.booker_id,B.name,B,publicid,I.name AS what FROM $mod->DataTable D
 JOIN $mod->BookerTable B ON D.booker_id=B.booker_id
 JOIN $mod->ItemTable I ON D.item_id=I.item_id
 WHERE D.item_id IN ({$fillers}?) AND D.slotstart <= ? AND (D.slotstart+D.slotlen) >= ?
@@ -325,6 +382,10 @@ EOS;
 		$args[] = $endstamp;
 		$args[] = $startstamp;
 		$utils = new Utils();
-		return $utils->SafeGet($sql,$args);
+		$data = $utils->SafeGet($sql,$args);
+		if ($data) {
+			$this->GetAuthData($mod,$data,['name','publicid']);
+		}
+		return $data;
 	}
 }
