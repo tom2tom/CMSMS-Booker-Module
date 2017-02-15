@@ -274,14 +274,13 @@ if ($res != 2)
 $db->CreateSequence($this->FeeTable.'_seq');
 
 /*
-TODO apapt for use with Auther module
 bookers table schema:
  booker_id: table key
- name: identifier for display, and identity check if publicid==FALSE
+ name: identifier for display, and identity check if publicid==FALSE NB NULL if unused, to enable COALESCE
  publicid: login/username/account for 'registered' bookers
- address: email (maybe accept a post-address...) for general messaging and billing
+ address: email (maybe accept a post-address...) for general messaging and billing NB NULL if unused, to enable COALESCE
  phone: cell-phone number, preferred for messaging
- addwhen: UTC timestamp when this record added
+ addwhen: UTC timestamp when this record added NB NULL if unused, to enable COALESCE
  type: combination of 10 generic types and permission-flags - see class.Userops
  displayclass: display-stying enum 1..Booker::USERSTYLES
  active: whether currently enabled
