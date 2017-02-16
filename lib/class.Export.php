@@ -86,7 +86,7 @@ class Export
 	@mod: reference to current Booker module object
 	@fname: filename string
 	@csv: content to be saved string
-	Returns: 2-member array, 1st is T/F indicating success, 2nd '' or lang key for message
+	Returns: 2-member array, [0]=T/F indicating success, [1]='' or lang key for message
 	*/
 	private function ExportContent(&$mod, $fname, $csv)
 	{
@@ -152,7 +152,7 @@ class Export
 	@mod: reference to current Booker module object
 	@item_id: enumerator of the item to process, or array of such, or '*'
 	@sep: optional field-separator for exported content, assumed single-byte ASCII, default ','
-	Returns: 2-member array, 1st is T/F indicating success, 2nd '' or lang key for message
+	Returns: 2-member array, [0]=T/F indicating success, [1]='' or lang key for message
 	*/
 	public function ExportItems(&$mod, $item_id, $sep=',')
 	{
@@ -334,7 +334,7 @@ EOS;
 	@mod: reference to current Booker module object
 	@condition_id: enumerator of the item to process, or array of such, or '*'
 	@sep: optional field-separator for exported content, assumed single-byte ASCII, default ','
-	Returns: 2-member array, 1st is T/F indicating success, 2nd '' or lang key for message
+	Returns: 2-member array, [0]=T/F indicating success, [1]='' or lang key for message
 	*/
 	public function ExportFees(&$mod, $condition_id, $sep=',')
 	{
@@ -443,14 +443,20 @@ EOS;
 	@mod: reference to current Booker module object
 	@bookerid: enumerator of the booker to process, or array of such, or '*'
 	@sep: optional field-separator for exported content, assumed single-byte ASCII, default ','
-	Returns: 2-member array, 1st is T/F indicating success, 2nd '' or lang key for message
+	Returns: 2-member array, [0]=T/F indicating success, [1]='' or lang key for message
 	*/
 	public function ExportBookers(&$mod, $bookerid, $sep=',')
 	{
-		if (!$bookerid)
+		if (!$bookerid) {
 			return array(FALSE,'err_system');
-
-		$sql = 'SELECT * FROM '.$mod->BookerTable;
+		}
+		//get B.* except name,address
+		$sql = <<<EOS
+SELECT B.booker_id,B.publicid,B.phone,B.addwhen,B.type,B.displayclass,B.active,
+COALESCE(A.name,B.name,'') AS name,COALESCE(A.address,B.address,'') AS address,A.passhash
+FROM $mod->BookerTable B
+LEFT JOIN $mod->AuthTable A ON B.publicid=A.publicid
+EOS;
 		if (is_array($bookerid)) {
 			$fillers = str_repeat('?,',count($bookerid)-1);
 			$sql .= ' WHERE booker_id IN('.$fillers.'?) ORDER BY name';
@@ -465,6 +471,7 @@ EOS;
 		$utils = new Utils();
 		$all = $utils->SafeGet($sql,$args);
 		if ($all) {
+			$utils->UserProperties($mod,$all);
 			$sep2 = ($sep != ' ')?' ':',';
 			switch ($sep) {
 			 case '&':
@@ -485,11 +492,11 @@ EOS;
 			//file-column-name to fieldname translation
 			$translates = array(
 			 '#Name'=>'name',
-			 'Login'=>'publicid',
-			 'Password'=>'fake', //not real field
-			 'Passhash'=>'passhash',
 			 '#Email'=>'address',
 			 'Phone'=>'phone',
+			 'Login'=>'publicid',
+			 'Password'=>'password', //not real field
+			 'Passhash'=>'passhash',
 			 'Usertype'=>'type',
 			 'Postpayer'=>'poster', //not real
 			 'Recorder'=>'recorder', //not real
@@ -517,6 +524,9 @@ EOS;
 								$fv = preg_replace('/[\n\t\r]/',$sep2,$fv);
 							 case 'publicid':
 								$fv = str_replace($sep,$r,$fv);
+								break;
+							 case 'passhash':
+								$fv = unpack('H*',$fv);
 								break;
 							 case 'type':
 								$fv	= $fv % 10; //base type
@@ -713,14 +723,16 @@ EOS;
 			$outstr = implode($sep,array_keys($translates));
 			$outstr .= $sep."\n";
 			$sql = <<<EOS
-SELECT D.*,B.name,B.publicid
-FROM {$mod->DataTable} D
-JOIN {$mod->BookerTable} B ON D.booker_id=B.booker_id
+SELECT D.*,COALESCE(A.name,B.name,'') AS name,B.publicid
+FROM $mod->DataTable D
+JOIN $mod->BookerTable B ON D.booker_id=B.booker_id
+LEFT JOIN $mod->AuthTable A ON B.publicid=A.publicid
 WHERE D.bkg_id=?
 EOS;
 			//data lines(s)
 			foreach ($all as $one) {
 				$data = $utils->SafeGet($sql,array($one),'row');
+				$utils->UserProperties($mod,$data);
 				$stores = array();
 				foreach ($translates as $one) {
 					$fv = $data[$one];
@@ -741,7 +753,7 @@ EOS;
 					 	break;
 					 case 'name':
 					 	if ($data['publicid']) {
-							$fv = $data['publicid']; //prefer account identifier
+							$fv = $data['publicid']; //prefer login identifier
 						}
 						$fv = str_replace($sep,$r,$fv);
 					 	break;
@@ -792,8 +804,10 @@ EOS;
 			return array(FALSE,'err_system');
 
 		$sql =<<<EOS
-SELECT H.*,B.name,I.name AS what FROM $mod->HistoryTable H
+SELECT H.*,COALESCE(A.name,B.name) AS name,B.publicid,I.name AS what
+FROM $mod->HistoryTable H
 JOIN $mod->BookerTable B ON H.booker_id=B.booker_id
+LEFT JOIN $mod->AuthTable A ON B.publicid=A.publicid
 JOIN $mod->ItemTable I ON H.item_id=I.item_id
 EOS;
 		if (is_array($history_id)) {
@@ -810,6 +824,7 @@ EOS;
 		$utils = new Utils();
 		$all = $utils->SafeGet($sql,$args);
 		if ($all) {
+			$utils->UserProperties($mod,$all);
 			$sep2 = ($sep != ' ')?' ':',';
 			switch ($sep) {
 			 case '&':
@@ -860,17 +875,20 @@ EOS;
 				foreach ($translates as $one) {
 					$fv = $data[$one];
 					switch ($one) {
-					case 'what':
-					case 'name':
-					case 'comment':
-					case 'gatetransaction':
+					 case 'name':
+					 	if ($data['publicid']) {
+							$fv = $data['publicid']; //prefer login identifier
+						}
+					//no break here
+					 case 'what':
+					 case 'comment':
+					 case 'gatetransaction':
 						$fv = preg_replace('/[\n\t\r]/',$sep2,$fv);
 						$fv = str_replace($sep,$r,$fv);
 						break;
-						break;
-					case 'lodged':
-					case 'approved':
-					case 'slotstart':
+					 case 'lodged':
+					 case 'approved':
+					 case 'slotstart':
 						if ($fv) {
 							$dtw->setTimestamp($fv);
 							$fv = $dtw->format('Y-m-d G:i');
@@ -878,7 +896,7 @@ EOS;
 							$fv = '';
 						}
 						break;
-					case 'slotlen':
+					 case 'slotlen':
 						if ($fv && $data['slotstart']) {
 							$dtw->setTimestamp($fv+$data['slotstart']);
 							$fv = $dtw->format('Y-m-d G:i');
@@ -886,14 +904,14 @@ EOS;
 							$fv = '';
 						}
 						break;
-					case 'fee':
-					case 'netfee':
+					 case 'fee':
+					 case 'netfee':
 						$fv = (float)$fv;
 						break;
-					case 'subgrpcount':
-					case 'status':
-					case 'payment':
-					case 'history_id':
+					 case 'subgrpcount':
+					 case 'status':
+					 case 'payment':
+					 case 'history_id':
 						$fv = (int)$fv;
 						break;
 					}

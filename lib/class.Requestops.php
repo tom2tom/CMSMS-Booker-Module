@@ -18,15 +18,23 @@ class Requestops
 	private function GetReqData(&$mod, $history)
 	{
 		$sql = <<<EOS
-SELECT H.*,B.name,B.address,B.phone FROM $mod->HistoryTable H
+SELECT H.*,COALESCE(A.name,B.name,'') AS name,COALESCE(A.address,B.address,'') AS address,B.publicid,B.phone
+FROM $mod->HistoryTable H
 JOIN $mod->BookerTable B ON H.booker_id=B.booker_id
-WHERE history_id
+LEFT JOIN $mod->AuthTable A ON B.publicid=A.publicid
+WHERE H.history_id
 EOS;
 		if (is_array($history)) {
 			$fillers = str_repeat('?,',count($history)-1);
-			return $mod->dbHandle->GetAssoc($sql.' IN ('.$fillers.'?)',$history);
-		} else
-			return $mod->dbHandle->GetAssoc($sql.'=?',array($history));
+			$data = $mod->dbHandle->GetAssoc($sql.' IN ('.$fillers.'?)',$history);
+		} else {
+			$data = $mod->dbHandle->GetAssoc($sql.'=?',array($history));
+		}
+		if ($data) {
+			$utils = new Utils();
+			$utils->UserProperties($this,$data);
+		}
+		return $data;
 	}
 
 	/**
