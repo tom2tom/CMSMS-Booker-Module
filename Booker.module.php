@@ -98,6 +98,7 @@ class Booker extends CMSModule
 
 	public $dbHandle; //cached connection to adodb
 //	public $AvailTable; //resource-availabilty cache
+	public $AuthTable; //authenticated-users data
 	public $BookerTable; //booker details
 	public $DataTable; //non-repeated bookings-data
 	public $FeeTable; //payment amounts/rates and associated conditions
@@ -128,6 +129,7 @@ class Booker extends CMSModule
 		$this->dbHandle = cmsms()->GetDb();
 		$pre = cms_db_prefix();
 //		$this->AvailTable = $pre.'module_bkr_avail';
+		$this->AuthTable = $pre.'module_auth_users'; //table belongs to Auther module
 		$this->BookerTable = $pre.'module_bkr_bookers';
 		$this->DataTable = $pre.'module_bkr_data';
 		$this->FeeTable = $pre.'module_bkr_fees';
