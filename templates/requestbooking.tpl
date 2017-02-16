@@ -22,5 +22,5 @@
 </div>
 <br />
 {$cartmsg}<br />
-{$submit}{if isset($cart)} {$cart}{/if} {$cancel} {if isset($choose)} {$choose}{/if} {$register}
+{$submit}{if isset($cart)} {$cart}{/if} {$cancel} {if isset($choose)} {$choose}{/if} {$register} {$change}
 {$endform}
