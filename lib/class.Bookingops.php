@@ -10,51 +10,38 @@ namespace Booker;
 class Bookingops
 {
 	protected $afuncs = NULL;
+	protected $cfuncs = NULL;
 
-	/*
-	* Gets user-data from Auther module, and substitutes that for field(s) in @data
-	* props is array with at least publicid e.g. ['name','publicid','address']
-	*/
-	protected function GetAuthData(&$mod, &$data, $props)
+	//see also: Utils::UserProperties();
+	protected function UserProperties(&$mod, &$data)
 	{
-		$logins = array();
-		foreach ($data as $one) {
-			if $one['publicid']) {
-				$logins[$one['publicid']] = 1;
-			}
-		}
-		if ($logins) {
+		if ($data['publicid']) {
 			if (!$this->afuncs) {
-				$ob = \cms_utils::get_module('Auther');
-				if ($ob) {
-					$this->afuncs = new Auther\Auth($ob,$mod->GetPreference('authcontext',0));
-					unset($ob);
+				$amod = \cms_utils::get_module('Auther');
+				if ($amod) {
+					$this->afuncs = new Auther\Auth($amod,$mod->GetPreference('authcontext',0));
+					unset($amod);
 				} else {
 					return;
 				}
 			}
-			ksort($logins);
-			$xdata = $this->afuncs->getUserProperties(array_keys($logins),$props);
-			if ($xdata) {
-				foreach ($data as &$one) {
-					$authid = $one['publicid'];
-					if ($logins[$authid] === 1) {
-						$logins[$authid] = FALSE;
-						foreach ($xdata as $newrow) {
-							if ($newrow['publicid'] == $authid) {
-								$logins[$authid] = $newrow;
-								break;
-							}
-						}
-					}
-					if ($logins[$authid]) {
-						$newrow = $logins[$authid];
-						foreach ($newrow as $k=>$val) {
-							$one[$k] = $val;
-						}
-					}
+			$this->afuncs->getPlainUserProperties($data);
+//TODO if multi-row
+			if ($data['address']) {
+				if (preg_match(\Booker::PATNPHONE,$data['address'])) {
+					$data['phone'] = $data['address'];
+					$data['address'] = '';
+				} else {
+					$data['phone'] = '';
 				}
-				unset($one);
+			}
+		} else {
+//TODO if multi-row
+			if ($data['address']) {
+				$data['address'] = $this->cfuncs->decrypt_value($mod,$data['address']);
+			}
+			if ($data['phone']) {
+				$data['phone'] = $this->cfuncs->decrypt_value($mod,$data['phone']);
 			}
 		}
 	}
@@ -68,17 +55,21 @@ class Bookingops
 	public function GetBkgData(&$mod, $bkgid)
 	{
 		$sql = <<<EOS
-SELECT D.*,B.name,B.publicid,B.address,B.phone,B.displayclass FROM $mod->DataTable D
+SELECT D.*,COALESCE(A.name,B.name,'') AS name,COALESCE(A.address,B.address,'') AS address,B.publicid,B.phone,B.displayclass
+FROM $mod->DataTable D
 JOIN $mod->BookerTable B ON D.booker_id=B.booker_id
+LEFT JOIN $mod->AuthTable A ON B.publicid=A.publicid
 WHERE D.bkg_id
 EOS;
 		if (is_array($bkgid)) {
-			$data = $mod->dbHandle->GetAssoc($sql.' IN ('.str_repeat('?,',count($bkgid)-1).'?)',$bkgid);
-		} else (
-			$data = $mod->dbHandle->GetAssoc($sql.'=?',array($bkgid));
+			$sql .= ' IN ('.str_repeat('?,',count($bkgid)-1).'?)';
+			$data = $mod->dbHandle->GetAssoc($sql,$bkgid);
+		} else {
+			$sql .= '=?';
+			$data = $mod->dbHandle->GetAssoc($sql,array($bkgid));
 		}
 		if ($data) {
-			$this->GetAuthData($mod,$data,['name','publicid','address']);
+			$this->UserProperties($mod,$data);
 		}
 		return $data;
 	}
@@ -274,8 +265,10 @@ $dtw->setTimestamp($propstore[$item_id]); //DEBUG
 	public function GetBooked(&$mod, $item_id, $startstamp, $endstamp)
 	{
 		$sql = <<<EOS
-SELECT D.*,B.name,B.publicid,I.name AS what FROM $mod->DataTable D
+SELECT D.*,COALESCE(A.name,B.name,'') AS name,B.publicid,I.name AS what
+FROM $mod->DataTable D
 LEFT JOIN $mod->BookerTable B ON D.booker_id=B.booker_id
+LEFT JOIN $mod->AuthTable A ON B.publicid=A.publicid
 LEFT JOIN $mod->ItemTable I ON D.item_id=I.item_id
 WHERE D.item_id
 EOS;
@@ -301,7 +294,7 @@ EOS;
 		$utils = new Utils();
 		$data = $utils->SafeGet($sql,$args);
 		if ($data) {
-			$this->GetAuthData($mod,$data,['name','publicid']);
+			$this->UserProperties($mod,$data);
 		}
 		return $data;
 	}
@@ -355,8 +348,10 @@ EOS;
 			$args = $item_id;
 		$fillers = str_repeat('?,',count($args)-1);
 		$sql = <<<EOS
-SELECT D.item_id,D.slotstart,D.slotlen,D.booker_id,B.name,B,publicid,I.name AS what FROM $mod->DataTable D
+SELECT D.item_id,D.slotstart,D.slotlen,D.booker_id,COALESCE(A.name,B.name,'') AS name,B.publicid,I.name AS what
+FROM $mod->DataTable D
 JOIN $mod->BookerTable B ON D.booker_id=B.booker_id
+LEFT JOIN $mod->AuthTable A ON B.publicid=A.publicid
 JOIN $mod->ItemTable I ON D.item_id=I.item_id
 WHERE D.item_id IN ({$fillers}?) AND D.slotstart <= ? AND (D.slotstart+D.slotlen) >= ?
 ORDER BY
@@ -384,7 +379,7 @@ EOS;
 		$utils = new Utils();
 		$data = $utils->SafeGet($sql,$args);
 		if ($data) {
-			$this->GetAuthData($mod,$data,['name','publicid']);
+			$this->UserProperties($mod,$data);
 		}
 		return $data;
 	}

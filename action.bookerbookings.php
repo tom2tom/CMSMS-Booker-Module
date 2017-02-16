@@ -147,25 +147,34 @@ $funcs = new Booker\Payment();
 //========== NON-REPEAT BOOKINGS ===========
 //TODO support limit to date-range, changing such date-range
 $sql = <<<EOS
-SELECT D.item_id,D.booker_id,D.bkg_id,D.slotstart,D.slotlen,D.paid,I.name AS what,B.name FROM {$this->DataTable} D
-JOIN {$this->ItemTable} I ON D.item_id=I.item_id
-JOIN {$this->BookerTable} B ON D.booker_id=B.booker_id
+SELECT D.item_id,D.booker_id,D.bkg_id,D.slotstart,D.slotlen,D.paid,I.name AS what,COALESCE(A.name,B.name,'') AS name,B.publicid
+FROM $this->DataTable D
+JOIN $this->ItemTable I ON D.item_id=I.item_id
+JOIN $this->BookerTable B ON D.booker_id=B.booker_id
+LEFT JOIN $this->AuthTable A ON B.publicid=A.publicid
 WHERE D.booker_id=? ORDER BY D.slotstart
 EOS;
 $data = $utils->SafeGet($sql,array($bookerid));
+if ($data) {
+	$utils->UserProperties($this,$data);
+}
+
 
 /* TODO
 $groups = $utils->GetItemGroups($this,$item_id);
 if ($groups) {
 	$fillers = str_repeat('?,',count($groups)-1).'?';
 	$sql = <<<EOS
-SELECT D.bkg_id,D.item_id,D.slotstart,D.slotlen,D.paid,B.name FROM {$this->DataTable} D
-JOIN {$this->BookerTable} B ON D.booker_id=B.booker_id
-WHERE D.item_id IN({$fillers})
+SELECT D.bkg_id,D.item_id,D.slotstart,D.slotlen,D.paid,COALESCE(A.name,B.name,'') AS name,B.publicid
+FROM $this->DataTable D
+JOIN $this->BookerTable B ON D.booker_id=B.booker_id
+LEFT JOIN $this->AuthTable A ON B.publicid=A.publicid
+WHERE D.item_id IN ({$fillers})
 ORDER BY D.slotstart
 EOS;
 	$data2 = $utils->SafeGet($sql,$groups);
 	if ($data2) {
+		$utils->UserProperties($this,$data2);
 		$data = array_merge($data,$data2);
 		usort($data, function ($a, $b)
 		{
@@ -417,23 +426,31 @@ if ($pmod) {
 $tplvars['item_title2'] = $this->Lang('title_repeats');
 
 $sql = <<<EOS
-SELECT R.bkg_id,R.item_id,R.formula,R.subgrpcount,R.paid,I.name AS what,B.name FROM $this->RepeatTable R
+SELECT R.bkg_id,R.item_id,R.formula,R.subgrpcount,R.paid,I.name AS what,COALESCE(A.name,B.name,'') AS name,B.publicid
+FROM $this->RepeatTable R
 JOIN $this->ItemTable I ON R.item_id=I.item_id
 JOIN $this->BookerTable B ON R.booker_id=B.booker_id
+LEFT JOIN $this->AuthTable A ON B.publicid=A.publicid
 WHERE R.booker_id=? AND R.active=1
 EOS;
-
 $data = $db->GetArray($sql,array($bookerid));
+if ($data) {
+	$utils->UserProperties($this,$data);
+}
 /* TODO
 if ($groups) {
 	$sql = <<<EOS
-SELECT R.bkg_id,R.item_id,R.formula,R.subgrpcount,R.paid,B.name FROM {$this->RepeatTable} R
-JOIN {$this->BookerTable} B ON R.booker_id=B.booker_id
-WHERE R.item_id IN({$fillers}) AND R.active=1
+SELECT R.bkg_id,R.item_id,R.formula,R.subgrpcount,R.paid,COALESCE(A.name,B.name,'') AS name,B.publicid
+FROM $this->RepeatTable R
+JOIN $this->BookerTable B ON R.booker_id=B.booker_id
+LEFT JOIN $this->AuthTable A ON B.publicid=A.publicid
+WHERE R.item_id IN ({$fillers}) AND R.active=1
 EOS;
 	$data2 = $db->GetArray($sql,$groups);
-	if ($data2)
+	if ($data2) {
+		$utils->UserProperties($this,$data2);
 		$data = array_merge($data,$data2);
+	}
 }
 */
 $linkparms['repeat'] = 1; //rest of links are for repeat bookings

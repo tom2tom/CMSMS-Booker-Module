@@ -229,9 +229,11 @@ if (isset($params['search'])) {
 		$cond[] = 'D.slotstart<='.$dts->getTimestamp();
 	}
 	$sql = <<<EOS
-SELECT D.bkg_id,D.slotstart,D.slotlen,B.name,I.name AS what FROM {$this->DataTable} D
-JOIN {$this->BookerTable} B ON D.booker_id=B.booker_id
-JOIN {$this->ItemTable} I ON D.item_id=I.item_id
+SELECT D.bkg_id,D.slotstart,D.slotlen,COALESCE(A.name,B.name,'') AS name,B.publicid,I.name AS what
+FROM $this->DataTable D
+JOIN $this->BookerTable B ON D.booker_id=B.booker_id
+JOIN $this->ItemTable I ON D.item_id=I.item_id
+LEFT JOIN $this->AuthTable A ON B.publicid=A.publicid
 EOS;
 	if ($cond) {
 		$sql .= ' WHERE '.implode(' AND ',$cond);
@@ -247,6 +249,7 @@ EOS;
 		$daynames = $utils->DayNames($this,range(0,6),TRUE); //onetime lookup short-form day-names, for speed
 		$class = 'row1';
 		while ($one = $rs->FetchRow()) {
+			$utils->UserProperties($this,$one);
 			$oneset = new stdClass();
 			$oneset->rowclass = $class;
 			$oneset->what = $one['what'];
