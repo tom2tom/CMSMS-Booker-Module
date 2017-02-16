@@ -156,7 +156,7 @@ $params = array
 'active_tab' => string 'items' OR 'groups'
 'action' => string 'processitem'
 */
-	$item_id = array_unshift($params['selitm']); //use 1st-selected for editing
+	$item_id = array_shift($params['selitm']); //use 1st-selected for editing
 	$sel = $params['selitm']; //maybe empty now
 } elseif (isset($params['selgrp'])) {
 	$item_id = array_unshift($params['selgrp']);
@@ -490,7 +490,7 @@ if ($pdata) {
 
 	if ($pmod) {
 		$jsincs[] =
-'<script type="text/javascript" src="'.$baseurl.'/include/jquery.modalconfirm.min.js"></script>';
+'<script type="text/javascript" src="'.$baseurl.'/include/jquery.alertable.min.js"></script>';
 /*	$t = ($one['description']) ? $one['description'] : $one['fee'].
 		(($one['feecondition']) ? '::'.$one['feecondition']:'');
 	if ($t)
@@ -499,22 +499,27 @@ if ($pdata) {
 		$t = $this->Lang('fee_multi');
 	$t = $this->Lang('del_confirm',$t);
 */
+		$jsfuncs[] = <<<EOS
+function confirmclick(tg,msg) {
+ $.alertable.confirm(msg,{
+  okName: '{$this->Lang('yes')}',
+  cancelName: '{$this->Lang('no')}'
+ }).then(function() {
+  $(tg).trigger('click.deferred');
+ });
+}
+EOS;
 		$t = $this->Lang('del_confirm','%s');
+		//this table uses fakelinks for deletes
 		$jsloads[] = <<<EOS
- $('#fees .feedel > a').modalconfirm({
-  overlayID: 'confirm',
-  popupID: 'confgeneral',
-  preShow: function(tg,\$d) {
-   var text = '{$t}';
-   var id = "\'"+'someidentifier'+"\'"; //TODO func(tg)
-   var prompt = text.replace('%s',id);
-   var para = \$d.children('p:first')[0];
-   para.innerHTML = prompt;
-  }
+ $('#fees .feedel > input').click(function(ev) {
+  var tg = ev.target || ev.srcElement;
+  var n = $(this.parentNode).siblings(':first').children('[name^="{$id}description"]').val(),
+   msg = '$t'.replace('%s','\''+n+'\'');
+  confirmclick(tg,msg);
+  return false;
  });
 EOS;
-		$tplvars['yes'] = $this->Lang('yes');
-		$tplvars['no'] = $this->Lang('no');
 	}
 
 	$tplvars = $tplvars + array(
@@ -546,9 +551,7 @@ if ($pmod) {
 	if ($count > 0) {
 		$t = $this->Lang('tip_delseltype',$this->Lang('fee_multi'));
 		$tplvars['delete'] = $this->CreateInputSubmit($id,'delete',$this->Lang('delete'),
-			'title="'.$t.'" onclick="return confirm_delete_item(this);"');
-		$tplvars['yes'] = $this->Lang('yes');
-		$tplvars['no'] = $this->Lang('no');
+			'title="'.$t.'" onclick="confirm_delete_item(this);return false;"');
 
 		$jsloads[] = <<<EOS
  $('.updown').hide();
@@ -563,17 +566,14 @@ function confirm_selitm_count() {
 }
 function confirm_delete_item(btn) {
  if (selitm_count() > 0) {
-  $.modalconfirm.show({
-   overlayID: 'confirm',
-   popupID: 'confgeneral',
-   showTarget: btn,
-   preShow: function(tg,\$d) {
-    var para = \$d.children('p:first')[0];
-    para.innerHTML = '{$this->Lang('delsel_confirm',$this->Lang('fee_multi'))}';
-   }
+  var msg = '{$this->Lang('delsel_confirm',$this->Lang('fee_multi'))}';
+  $.alertable.confirm(msg,{
+   okName: '{$this->Lang('proceed')}',
+   cancelName: '{$this->Lang('cancel')}'
+  }).then(function() {
+   $(btn).trigger('click.deferred');
   });
  }
- return false;
 }
 EOS;
 		if ($count > 1) {
@@ -630,13 +630,12 @@ EOS;
 	$tplvars['cancel'] =  $this->CreateInputSubmit($id,'cancel',$this->Lang('close'));
 }
 
-$jsall = NULL;
-$utils->MergeJS($jsincs,$jsfuncs,$jsloads,$jsall);
+$jsall = $utils->MergeJS($jsincs,$jsfuncs,$jsloads);
 unset($jsincs);
 unset($jsfuncs);
 unset($jsloads);
 
 echo Booker\Utils::ProcessTemplate($this,'fullfees.tpl',$tplvars);
-//inject constructed js after other content (pity we can't get to </body> or </html> from here)
-if ($jsall)
-	echo $jsall;
+if ($jsall) {
+	echo $jsall; //inject constructed js after other content
+}
