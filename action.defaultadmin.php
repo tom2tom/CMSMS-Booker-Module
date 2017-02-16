@@ -106,6 +106,14 @@ $tplvars['tab_footers'] = $this->EndTabContent();
 $tplvars['end_tab'] = $this->EndTab();
 $tplvars['endform'] = $this->CreateFormEnd();
 
+$amod = cms_utils::get_module('Auther');
+if ($amod) {
+	$afuncs = new Auther\Auth($amod,$this->GetPreference('authcontext',0));
+	unset($amod);
+} else {
+	throw new Exception($this->Lang('err_system'));
+}
+$cfuncs = new Booker\Crypter();
 $utils = new Booker\Utils();
 $resume = json_encode(array($params['action'])); //head of resumption Q
 $jsfuncs = array(); //script accumulators
@@ -124,11 +132,19 @@ $tplvars['start_data_tab'] = $this->StartTab('data');
 
 $tablerows[1] = 0;
 $pending = array();
-$sql = 'SELECT H.*,B.name,B.publicid,B.address,B.phone FROM '.$this->HistoryTable.
-' H LEFT JOIN '.$this->BookerTable.' B ON H.booker_id = B.booker_id WHERE status<='.
-Booker::STATMAXREQ.' OR status>'.Booker::STATMAXOK.' ORDER BY lodged';
+$min = Booker::STATMAXOK;
+$max = Booker::STATMAXREQ;
+$sql = <<<EOS
+SELECT H.*,COALESCE(A.name,B.name,'') AS name,COALESCE(A.address,B.address,'') AS address,B.publicid,B.phone
+FROM $this->HistoryTable H
+LEFT JOIN $this->BookerTable B ON H.booker_id = B.booker_id
+LEFT JOIN $this->AuthTable A ON B.publicid = A.publicid
+WHERE H.status<={$max} OR H.status>{$min}
+ORDER BY H.lodged
+EOS;
 $data = $db->GetArray($sql);
 if ($data) {
+	$utils->UserProperties($this,$data);
 	$t = $this->Lang('request');
 	$rtip = $this->Lang('tip_seereq');
 	$iconrsee = '<img src="'.$baseurl.'/images/request.png" alt="'.$rtip.'" title="'.$rtip.'" border="0" />';
@@ -151,7 +167,7 @@ if ($data) {
 
 	foreach ($data as &$row) {
 		$one = new stdClass();
-		$one->sender = $row['publicid'] ? $row['publicid']:$row['name'];
+		$one->sender = $row['name'] ? $row['name']:$row['publicid'];
 		$one->contact = $row['address'] ? $row['address']:$row['phone'];
 		$dt->setTimestamp($row['lodged']);
 		$one->lodged = $dt->format($fmt);
@@ -373,7 +389,7 @@ EOS;
  });
  $('#{$id}approve').click(function() {
   if (confirm_reqcount()) {
-   confirmclick(this,'$t')}');
+   confirmclick(this,'$t');
   }
   return false;
  });
@@ -386,7 +402,7 @@ EOS;
  });
  $('#{$id}reject').click(function() {
   if (confirm_reqcount()) {
-   confirmclick(this,'$t')}');
+   confirmclick(this,'$t');
   }
   return false;
  });
@@ -460,9 +476,15 @@ $tablerows[2] = 0;
 
 $histdata = FALSE;
 $bkrs = array();
-$sql = 'SELECT booker_id,name,publicid,passhash,addwhen,active FROM '.$this->BookerTable.' ORDER BY name';
+$sql = <<<EOS
+SELECT B.booker_id,COALESCE(A.name,B.name,'') AS name,B.publicid,COALESCE(A.addwhen,B.addwhen,'') AS addwhen,B.active
+FROM $this->BookerTable B
+LEFT JOIN $this->AuthTable A ON B.publicid=A.publicid
+ORDER BY B.name,aname
+EOS;
 $data = $db->GetArray($sql);
 if ($data) {
+	$utils->UserProperties($this,$data);
 	$sb = $this->Lang('booker');
 	$st = $utils->GetZoneTime('UTC'); //'now' timestamp with same zone as booking data
 	$dt = new DateTime('@0',NULL);
@@ -492,7 +514,7 @@ if ($data) {
 		$one->name = ($pper) ?
 			$this->CreateLink($id,'adminbooker',$returnid,$row['name'],array('booker_id'=>$bookerid,'task'=>'edit')):
 			$row['name'];
-		$one->reg = ($row['publicid'] && $row['passhash']) ? $iconyes : $iconno;
+		$one->reg = ($row['publicid']) ? $iconyes : $iconno;
 		if ($pper) {
 			$one->act = ($row['active']) ?
 				$this->CreateLink($id,'adminbooker',$returnid,$iconyes,
@@ -1076,6 +1098,14 @@ $tplvars['start_settings_tab'] = $this->StartTab('settings');
 if ($pset) {
 	$settings = array();
 
+	$t = $cfuncs->decrypt_preference($this,'masterpass');
+	$one = new stdClass();
+	$one->ttl = $this->Lang('title_masterpass');
+	$one->inp = $this->CreateTextArea(FALSE,$id,$t,'pref_masterpass','',
+		'masterpass','','',40,3,'','','style="height:3em;"');
+	$one->mst = 1;
+	$settings[] = $one;
+
 	$one = new stdClass();
 	$one->ttl = $this->Lang('title_sitepage');
 	$one->inp = $this->CreateInputText($id,'pref_sitepage',
@@ -1572,6 +1602,18 @@ $jsloads[] = <<<EOS
  });
 EOS;
 }
+
+$jsincs[] = <<<EOS
+<script type="text/javascript" src="{$baseurl}/include/jquery-inputCloak.min.js"></script>
+EOS;
+
+$jsloads[] = <<<'EOS'
+ $('#masterpass').inputCloak({
+  type:'see4',
+  symbol:'\u25CF'
+ });
+EOS;
+
 
 //hacky js here to work around tab-specific forms, i.e. no single page-tab object
 /*$jsloads[] = <<<EOS
