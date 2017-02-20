@@ -590,6 +590,7 @@ $lang['title_booknewfor'] = 'New booking for %s %s';
 $lang['title_booksfor'] = 'Bookings for %s %s';
 $lang['title_captcha'] = 'Characters in the image';
 $lang['title_cart'] = 'Current cart contents';
+$lang['title_change'] = 'Change your account details';
 $lang['title_cleargroup'] = 'Delete all resources in a group when the group itself is deleted';
 $lang['title_cleargroup2'] = 'Delete all resources in this group when the group is deleted';
 $lang['title_commenced'] = 'Commenced';
