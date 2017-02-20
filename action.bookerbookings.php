@@ -156,9 +156,8 @@ WHERE D.booker_id=? ORDER BY D.slotstart
 EOS;
 $data = $utils->SafeGet($sql,array($bookerid));
 if ($data) {
-	$utils->UserProperties($this,$data);
+	$utils->GetUserProperties($this,$data);
 }
-
 
 /* TODO
 $groups = $utils->GetItemGroups($this,$item_id);
@@ -174,7 +173,7 @@ ORDER BY D.slotstart
 EOS;
 	$data2 = $utils->SafeGet($sql,$groups);
 	if ($data2) {
-		$utils->UserProperties($this,$data2);
+		$utils->GetUserProperties($this,$data2);
 		$data = array_merge($data,$data2);
 		usort($data, function ($a, $b)
 		{
@@ -435,7 +434,7 @@ WHERE R.booker_id=? AND R.active=1
 EOS;
 $data = $db->GetArray($sql,array($bookerid));
 if ($data) {
-	$utils->UserProperties($this,$data);
+	$utils->GetUserProperties($this,$data);
 }
 /* TODO
 if ($groups) {
@@ -448,7 +447,7 @@ WHERE R.item_id IN ({$fillers}) AND R.active=1
 EOS;
 	$data2 = $db->GetArray($sql,$groups);
 	if ($data2) {
-		$utils->UserProperties($this,$data2);
+		$utils->GetUserProperties($this,$data2);
 		$data = array_merge($data,$data2);
 	}
 }

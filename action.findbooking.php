@@ -249,7 +249,7 @@ EOS;
 		$daynames = $utils->DayNames($this,range(0,6),TRUE); //onetime lookup short-form day-names, for speed
 		$class = 'row1';
 		while ($one = $rs->FetchRow()) {
-			$utils->UserProperties($this,$one);
+			$utils->GetUserProperties($this,$one);
 			$oneset = new stdClass();
 			$oneset->rowclass = $class;
 			$oneset->what = $one['what'];
