@@ -9,43 +9,6 @@ namespace Booker;
 
 class Bookingops
 {
-	protected $afuncs = NULL;
-	protected $cfuncs = NULL;
-
-	//see also: Utils::UserProperties();
-	protected function UserProperties(&$mod, &$data)
-	{
-		if ($data['publicid']) {
-			if (!$this->afuncs) {
-				$amod = \cms_utils::get_module('Auther');
-				if ($amod) {
-					$this->afuncs = new Auther\Auth($amod,$mod->GetPreference('authcontext',0));
-					unset($amod);
-				} else {
-					return;
-				}
-			}
-			$this->afuncs->getPlainUserProperties($data);
-//TODO if multi-row
-			if ($data['address']) {
-				if (preg_match(\Booker::PATNPHONE,$data['address'])) {
-					$data['phone'] = $data['address'];
-					$data['address'] = '';
-				} else {
-					$data['phone'] = '';
-				}
-			}
-		} else {
-//TODO if multi-row
-			if ($data['address']) {
-				$data['address'] = $this->cfuncs->decrypt_value($mod,$data['address']);
-			}
-			if ($data['phone']) {
-				$data['phone'] = $this->cfuncs->decrypt_value($mod,$data['phone']);
-			}
-		}
-	}
-
 	/**
 	GetBkgData:
 	Get row(s) of data for @bkgid from DataTable
@@ -69,7 +32,8 @@ EOS;
 			$data = $mod->dbHandle->GetAssoc($sql,array($bkgid));
 		}
 		if ($data) {
-			$this->UserProperties($mod,$data);
+			$utils = new Utils();
+			$utils->GetUserProperties($mod,$data);
 		}
 		return $data;
 	}
@@ -104,7 +68,7 @@ EOS;
 		if ($rows) {
 			if ($mod->havenotifier) {
 				$funcs = new Messager();
-				$sndr = new Notifier\MessageSender();
+				$sndr = new \Notifier\MessageSender();
 				$propstore = array();
 				$msg = array();
 			} else {
@@ -294,7 +258,7 @@ EOS;
 		$utils = new Utils();
 		$data = $utils->SafeGet($sql,$args);
 		if ($data) {
-			$this->UserProperties($mod,$data);
+			$utils->GetUserProperties($mod,$data);
 		}
 		return $data;
 	}
@@ -379,7 +343,7 @@ EOS;
 		$utils = new Utils();
 		$data = $utils->SafeGet($sql,$args);
 		if ($data) {
-			$this->UserProperties($mod,$data);
+			$utils->GetUserProperties($mod,$data);
 		}
 		return $data;
 	}
