@@ -236,18 +236,18 @@ class Messager
 		if ($mfuncs) {
 			$to = array();
 			if ($idata['approvertell'] && !empty($idata['approvercontact'])) {
-				if (preg_match('/\w+@\w+\.\w+/',$idata['approvercontact'])) {
+				if (preg_match(\Booker::PATNADDRESS,$idata['approvercontact'])) {
 					$to[] = array($idata['approver']=>$idata['approvercontact']);
-				} else {//if (preg_match('/^(\+\d{1,4} *)?[\d ]{5,15}$/',$idata['approvercontact']))
+				} else {//if (preg_match(\Booker::PATNPHONE,$idata['approvercontact']))
 					$to[] = $idata['approvercontact'];
 				}
 				//TODO ignore twitter handle?
 			}
 			if ($idata['bookertell']) {
 				if ($data->contact) {
-					if (preg_match('/\w+@\w+\.\w+/',$data->contact)) {
+					if (preg_match(\Booker::PATNADDRESS,$data->contact)) {
 						$to[] = array($data->name=>$data->contact);
-					} elseif (preg_match('/^(\+\d{1,4} *)?[\d ]{5,15}$/',$data->contact)) {
+					} elseif (preg_match(\Booker::PATNPHONE,$data->contact)) {
 						$to[] = $data->contact;
 					}
 				} else {
@@ -255,11 +255,11 @@ class Messager
 					if ($addrs) { //booker contact is known
 						//contact via social media not supported
 						if ($addrs['address'] &&
-						 preg_match('/\w+@\w+\.\w+/',$addrs['address'])) {
+						 preg_match(\Booker::PATNADDRESS,$addrs['address'])) {
 							$name = $ufuncs->GetName($bookerid);
 							$to[] = array($name=>$addrs['address']);
 						} elseif ($addrs['phone'] &&
-						 preg_match('/^(\+\d{1,4} *)?[\d ]{5,15}$/',$addrs['phone'])) {
+						 preg_match(\Booker::PATNPHONE,$addrs['phone'])) {
 							$to[] = $addrs['phone'];
 						}
 					}
@@ -291,8 +291,9 @@ class Messager
 	*/
 	public function StatusMessage(&$mod, &$utils, $idata, $reqdata, $status, $custommsg, $sender=NULL)
 	{
-		if (!$sender)
-			$sender = new Notifier\MessageSender();
+		if (!$sender) {
+			$sender = new \Notifier\MessageSender();
+		}
 		$sent = FALSE;
 		$fail = FALSE;
 	 	$res = self::MsgKeys($status);
@@ -344,7 +345,7 @@ class Messager
 			$rows = $funcs->GetBkgData($mod,$bkgid);
 			if ($rows) {
 				list($etitlekey,$ebodykey,$tbodykey) = self::MsgKeys(\Booker::STATCHG);
-				$funcs = new Notifier\MessageSender();
+				$funcs = new \Notifier\MessageSender();
 				$utils = new Utils();
 				$propstore = array();
 				$msg = array();
