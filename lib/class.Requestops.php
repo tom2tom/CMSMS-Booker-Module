@@ -32,7 +32,7 @@ EOS;
 		}
 		if ($data) {
 			$utils = new Utils();
-			$utils->UserProperties($this,$data);
+			$utils->GetUserProperties($this,$data);
 		}
 		return $data;
 	}
@@ -125,7 +125,7 @@ EOS;
 				if ($mod->havenotifier) {
 					//notify lodger
 					$funcs = new Messager();
-					$sndr = new Notifier\MessageSender();
+					$sndr = new \Notifier\MessageSender();
 					$propstore = array();
 					$msgs = array();
 					foreach ($rows as $one) {
@@ -180,7 +180,7 @@ EOS;
 			if ($mod->havenotifier) {
 				//notify lodgers
 				$funcs = new Messager();
-				$sndr = new Notifier\MessageSender();
+				$sndr = new \Notifier\MessageSender();
 				$propstore = array();
 				$msgs = array();
 				foreach ($rows as $history_id=>$one) {
@@ -232,7 +232,7 @@ EOS;
 			if ($mod->havenotifier) {
 				//notify lodgers
 				$funcs = new Messager();
-				$sndr = new Notifier\MessageSender();
+				$sndr = new \Notifier\MessageSender();
 				$propstore = array();
 				$msgs = array();
 				foreach ($rows as $history_id=>$one) {
@@ -289,7 +289,7 @@ EOS;
 			if ($mod->havenotifier) {
 				//notify lodgers
 				$funcs = new Messager();
-				$sndr = new Notifier\MessageSender();
+				$sndr = new \Notifier\MessageSender();
 				$propstore = array();
 				$msgs = array();
 				foreach ($rows as $history_id=>$one) {
@@ -343,7 +343,7 @@ EOS;
 			$ufuncs = new Userops($mod);
 			if ($mod->havenotifier) {
 				$mfuncs = new Messager();
-				$sndr = new Notifier\MessageSender();
+				$sndr = new \Notifier\MessageSender();
 //				$propstore = array();
 				$msg = array();
 				$err = array();
