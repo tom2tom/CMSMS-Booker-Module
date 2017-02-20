@@ -192,7 +192,7 @@ class Export
 
 			$periods = $utils->TimeIntervals();
 
-			$sql =<<<EOS
+			$sql = <<<EOS
 SELECT DISTINCT I.name FROM $mod->ItemTable I
 LEFT JOIN $mod->GroupTable G ON I.item_id=G.parent
 WHERE G.child=? ORDER BY G.proximity,G.likeorder
@@ -341,7 +341,7 @@ EOS;
 		if (!$condition_id)
 			return array(FALSE,'err_system');
 
-		$sql =<<<EOS
+		$sql = <<<EOS
 SELECT F.*,I.name FROM $mod->FeeTable F
 JOIN $mod->ItemTable I ON F.item_id=I.item_id
 EOS;
@@ -471,7 +471,7 @@ EOS;
 		$utils = new Utils();
 		$all = $utils->SafeGet($sql,$args);
 		if ($all) {
-			$utils->UserProperties($mod,$all);
+			$utils->GetUserProperties($mod,$all);
 			$sep2 = ($sep != ' ')?' ':',';
 			switch ($sep) {
 			 case '&':
@@ -732,7 +732,7 @@ EOS;
 			//data lines(s)
 			foreach ($all as $one) {
 				$data = $utils->SafeGet($sql,array($one),'row');
-				$utils->UserProperties($mod,$data);
+				$utils->GetUserProperties($mod,$data);
 				$stores = array();
 				foreach ($translates as $one) {
 					$fv = $data[$one];
@@ -803,8 +803,8 @@ EOS;
 		if (!$history_id)
 			return array(FALSE,'err_system');
 
-		$sql =<<<EOS
-SELECT H.*,COALESCE(A.name,B.name) AS name,B.publicid,I.name AS what
+		$sql = <<<EOS
+SELECT H.*,COALESCE(A.name,B.name,'') AS name,B.publicid,I.name AS what
 FROM $mod->HistoryTable H
 JOIN $mod->BookerTable B ON H.booker_id=B.booker_id
 LEFT JOIN $mod->AuthTable A ON B.publicid=A.publicid
@@ -824,7 +824,7 @@ EOS;
 		$utils = new Utils();
 		$all = $utils->SafeGet($sql,$args);
 		if ($all) {
-			$utils->UserProperties($mod,$all);
+			$utils->GetUserProperties($mod,$all);
 			$sep2 = ($sep != ' ')?' ':',';
 			switch ($sep) {
 			 case '&':

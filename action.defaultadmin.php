@@ -106,13 +106,6 @@ $tplvars['tab_footers'] = $this->EndTabContent();
 $tplvars['end_tab'] = $this->EndTab();
 $tplvars['endform'] = $this->CreateFormEnd();
 
-$amod = cms_utils::get_module('Auther');
-if ($amod) {
-	$afuncs = new Auther\Auth($amod,$this->GetPreference('authcontext',0));
-	unset($amod);
-} else {
-	throw new Exception($this->Lang('err_system'));
-}
 $cfuncs = new Booker\Crypter();
 $utils = new Booker\Utils();
 $resume = json_encode(array($params['action'])); //head of resumption Q
@@ -120,7 +113,7 @@ $jsfuncs = array(); //script accumulators
 $jsloads = array();
 $jsincs = array();
 
-$jsincs[] =<<<EOS
+$jsincs[] = <<<EOS
 <script type="text/javascript" src="{$baseurl}/include/jquery.alertable.min.js"></script>
 EOS;
 $tablerows = array();
@@ -144,7 +137,7 @@ ORDER BY H.lodged
 EOS;
 $data = $db->GetArray($sql);
 if ($data) {
-	$utils->UserProperties($this,$data);
+	$utils->GetUserProperties($this,$data);
 	$t = $this->Lang('request');
 	$rtip = $this->Lang('tip_seereq');
 	$iconrsee = '<img src="'.$baseurl.'/images/request.png" alt="'.$rtip.'" title="'.$rtip.'" border="0" />';
@@ -256,7 +249,7 @@ function select_all_req(b) {
 EOS;
 	} //endif $dcount > 1
 
-	$jsfuncs[] =<<<EOS
+	$jsfuncs[] = <<<EOS
 function confirm_reqcount() {
  var cb = $('input[name="{$id}selreq[]"]:checked');
  return (cb.length > 0);
@@ -271,7 +264,7 @@ EOS;
 		$reject = $this->Lang('email_reject',$detail);
 		$ask = $this->Lang('email_ask',$detail);
 
-		$jsfuncs[] =<<<EOS
+		$jsfuncs[] = <<<EOS
 function modalsetup(\$tg,btn) {
  var action,msg,clue;
  if (btn) {
@@ -338,7 +331,7 @@ function deferlink(tg,title) {
 }
 EOS;
 		$t = $this->Lang('title_feedback3');
-		$jsloads[] =<<<EOS
+		$jsloads[] = <<<EOS
  $('#datatable .bkrtell > a').click(function(ev) {
   var tg = ev.target || ev.srcElement;
   deferlink(tg,'$t');
@@ -351,7 +344,7 @@ EOS;
  });
 EOS;
 		if ($bmod) {
-			$jsloads[] =<<<EOS
+			$jsloads[] = <<<EOS
  $('#datatable .bkrapp > a').click(function(ev) {
   var tg = ev.target || ev.srcElement;
   deferlink(tg,'$t');
@@ -364,7 +357,7 @@ EOS;
   return false;
  });
 EOS;
-			$jsloads[] =<<<EOS
+			$jsloads[] = <<<EOS
  $('#datatable .bkrrej > a').click(function(ev) {
   var tg = ev.target || ev.srcElement;
   deferlink(tg,'$t');
@@ -381,7 +374,7 @@ EOS;
 	} else { //Notifier module N/A
 		if ($bmod) {
 			$t = $this->Lang('reminder');
-			$jsloads[] =<<<EOS
+			$jsloads[] = <<<EOS
  $('#datatable .bkrapp > a').click(function(ev) {
   var tg = ev.target || ev.srcElement;
   confirmclick(tg,'$t');
@@ -394,7 +387,7 @@ EOS;
   return false;
  });
 EOS;
-			$jsloads[] =<<<EOS
+			$jsloads[] = <<<EOS
  $('#datatable .bkrrej > a').click(function(ev) {
   var tg = ev.target || ev.srcElement;
   confirmclick(tg,'$t');
@@ -423,7 +416,7 @@ EOS;
 			$this->Lang('delete'),'title="'.$this->Lang('tip_delseltype',$this->Lang('request_multi')).'"');
 
 		$t = $this->Lang('confirm_delete_type',$this->Lang('request'),'%s');
-		$jsloads[] =<<<EOS
+		$jsloads[] = <<<EOS
  $('#datatable .bkrdel > a').click(function(ev) {
   var tg = ev.target || ev.srcElement;
   var n = $(this.parentNode).siblings(':first').text(),
@@ -484,7 +477,7 @@ ORDER BY B.name,aname
 EOS;
 $data = $db->GetArray($sql);
 if ($data) {
-	$utils->UserProperties($this,$data);
+	$utils->GetUserProperties($this,$data);
 	$sb = $this->Lang('booker');
 	$st = $utils->GetZoneTime('UTC'); //'now' timestamp with same zone as booking data
 	$dt = new DateTime('@0',NULL);
@@ -616,7 +609,7 @@ function select_all_bkr(b) {
 EOS;
 	} // $pcount > 1
 
-	$jsfuncs[] =<<<EOS
+	$jsfuncs[] = <<<EOS
 function confirm_bkrcount() {
  var cb = $('input[name="{$id}selbkr[]"]:checked');
  return (cb.length > 0);
@@ -630,7 +623,7 @@ EOS;
 			$this->Lang('delete'),'title="'.$this->Lang('tip_delseltype',$this->Lang('booker_multi')).'"');
 
 		$t = $this->Lang('confirm_delete_type',$this->Lang('booker'),'%s');
-		$jsloads[] =<<<EOS
+		$jsloads[] = <<<EOS
  $('#peopletable .bkrdel > a').click(function(ev) {
   var tg = ev.target || ev.srcElement;
   var n = $(this.parentNode).siblings(':first').text(),
@@ -677,7 +670,7 @@ $memcounts = $db->GetAssoc('SELECT parent,COUNT(gid) AS num FROM '.$this->GroupT
 $grpnames = $db->GetAssoc('SELECT item_id,name FROM '.$this->ItemTable.' WHERE item_id>='.Booker::MINGRPID.' ORDER BY item_id');
 $owned = $db->GetOne('SELECT FIRST(item_id) AS own FROM '.$this->ItemTable.' WHERE owner > 0'); //something has an owner
 
-$sql =<<<EOS
+$sql = <<<EOS
 SELECT I.item_id,I.alias,I.name,I.owner,I.active,U.first_name,U.last_name
 FROM $this->ItemTable I
 LEFT JOIN $this->UserTable U ON I.owner = U.user_id
@@ -1080,7 +1073,7 @@ $tplvars['reportrows'] = 4;
 $tplvars['displaybtn'] = '[BTNDISPLAY]';
 $tplvars['exportbtn5'] = '[BTNEXPORT]';
 
-$jsloads[] =<<<EOS
+$jsloads[] = <<<EOS
  $('#reportstable').find('input.reportcheck').click(function(ev) {
   var \$b = $(this),
    st = \$b.attr('checked');
@@ -1241,7 +1234,7 @@ if ($pset) {
 			ksort($allusers,SORT_NATURAL | SORT_FLAG_CASE);
 /* TODO filter by permissions c.f. for admin users
 			$pref = cms_db_prefix();
-			$sql =<<<EOS
+			$sql = <<<EOS
 SELECT DISTINCT U.user_id,U.username,U.first_name,U.last_name FROM $this->UserTable U
 JOIN {$pref}user_groups UG ON U.user_id = UG.user_id
 JOIN {$pref}group_perms GP ON GP.group_id = UG.group_id
@@ -1251,7 +1244,7 @@ WHERE
 EOS;
 			if (!$allowners)
 				$sql .= "U.user_id=$uid AND "; //no injection risk
-			$sql .=<<<EOS U.admin_access=1 AND U.active=1 AND GR.active=1 AND
+			$sql .= <<<EOS U.admin_access=1 AND U.active=1 AND GR.active=1 AND
 P.permission_name IN('{$this->PermAddName}','{$this->PermAdminName}','{$this->PermModName}')
 ORDER BY U.last_name,U.first_name
 EOS;
