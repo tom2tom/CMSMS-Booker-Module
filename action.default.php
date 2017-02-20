@@ -339,7 +339,7 @@ else {
 	}
 	$actions2[] = $this->CreateInputDropdown($id,'listformat',$choices,-1,$idata['listformat'],
 		'id="'.$id.'listformat" title="'.$this->Lang('tip_listtype').'"');
-	$jsloads[] =<<<EOS
+	$jsloads[] = <<<EOS
  $('#{$id}listformat').change(function() {
 	$('#{$id}newlist').val(1);
   $(this).closest('form').trigger('submit');
