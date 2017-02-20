@@ -418,7 +418,7 @@ if ($row) {
 } else {
 	//postgres supported pre-1.11
 	$stype = (preg_match('/mysql/i',$config['dbms'])) ? '=DATABASE()':' IN (SELECT current_database())';
-	$sql =<<<EOS
+	$sql = <<<EOS
 SELECT column_name,is_nullable FROM information_schema.columns
 WHERE table_schema{$stype} AND table_name='{$this->ItemTable}'
 ORDER BY ordinal_position
@@ -1245,7 +1245,7 @@ if (is_object($ob)) {
 			ksort($allusers, SORT_NATURAL | SORT_FLAG_CASE);
 /* TODO filter by permissions c.f. for admin users
 		$pref = cms_db_prefix();
-		$sql =<<<EOS
+		$sql = <<<EOS
 SELECT DISTINCT U.user_id,U.username,U.first_name,U.last_name FROM $this->UserTable U
 JOIN {$pref}user_groups UG ON U.user_id = UG.user_id
 JOIN {$pref}group_perms GP ON GP.group_id = UG.group_id
@@ -1255,7 +1255,7 @@ WHERE
 EOS;
 		if (!$allowners)
 			$sql .= "U.user_id=$uid AND "; //no injection risk
-		$sql .=<<<EOS U.admin_access=1 AND U.active=1 AND GR.active=1 AND
+		$sql .= <<<EOS U.admin_access=1 AND U.active=1 AND GR.active=1 AND
 P.permission_name IN ('{$this->PermAddName}','{$this->PermAdminName}','{$this->PermModName}')
 ORDER BY U.last_name,U.first_name
 EOS;
