@@ -131,11 +131,18 @@ list($authhtm,$authjs) = $funcs->GetPanel($context, $task, ['Booker','auth',$id]
 
 $tplvars = array('authform' => $authhtm);
 
-if ($task == 'register') {
-	$tplvars['title'] = $this->Lang('title_register');
-} else {
-	$tplvars['title'] = $this->Lang('title_recover');
+switch ($task) {
+ case 'register':
+	$key = 'title_register';
+	break;
+ case 'recover':
+	$key = 'title_recover';
+	break;
+ case 'change':
+	$key = 'title_change';
+	break;
 }
+$tplvars['title'] = $this->Lang($key);
 
 $t = FALSE; //$utils->GetItemProperty($this, $item_id, 'bulletin'); //TODO
 $tplvars['bulletin'] = ($t) ? $t : NULL;
