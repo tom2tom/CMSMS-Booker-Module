@@ -32,6 +32,7 @@ for all form-inputs here:
  'until'
  'when'
 */
+
 //parameter keys filtered out before redirect etc
 $localparams = array(
 	'account',
@@ -41,12 +42,14 @@ $localparams = array(
 	'cancel',
 	'captcha',
 	'cart',
+	'change',
 	'comment',
 	'contact',
 	'contactnew',
 	'origreturnid',
 	'name',
 	'passwd',
+	'recover',
 	'register',
 	'request',
 	'requesttype',
@@ -79,9 +82,16 @@ if (isset($params['cancel'])) {
 
 $tplvars = array();
 
-if (isset($params['register'])) {
+if (isset($params['register']) || isset($params['recover']) || isset($params['change'])) {
+	$params['resume'][] = $params['action']; //cancellation comes back here
 	$newparms = $utils->FilterParameters($params,$localparams);
-	$newparms['task'] = 'register';
+	if (isset($params['register'])) {
+		$newparms['task'] = 'register';
+	} elseif (isset($params['recover'])) {
+		$newparms['task'] = 'recover';
+	} else { //isset($params['change'])
+		$newparms['task'] = 'change';
+	}
 	$this->Redirect($id, 'auth', $params['returnid'], $newparms);
 }
 
@@ -122,7 +132,8 @@ $idata = $utils->GetItemProperty($this,$item_id,array(
 'paymentiface',
 'feugroup',
 'subgrpalloc',
-'subgrpdata'
+'subgrpdata',
+'bulletin'
 ));
 if ($idata) {
 	$idata['item_id'] = $item_id;
@@ -154,8 +165,8 @@ if (isset($params['cart'])) {
 		$bs = $params['slotstart'];
 		$be = $bs + $params['slotlen'] + 1; //1-past-end
 		if (!$is_new || $be > $now) { //$bs > $now - 300 //some slop
-			$funcs = new Booker\Userops();
-			list($bookerid,$newbooker) = $funcs->GetParamsID($this,$params);
+			$funcs = new Booker\Userops($this);
+			list($bookerid,$newbooker) = $funcs->GetParamsID($this,$params); //TODO conform $params
 			if ($bookerid !== FALSE) {
 				$params['booker_id'] = $bookerid;
 				$funcs = new Booker\Payment();
@@ -203,8 +214,8 @@ if (isset($params['cart'])) {
 		$bs = $params['slotstart'];
 		$be = $bs + $params['slotlen'] + 1; //1-past-end
 		if (!$is_new || $be > $now) { // $bs > $now - 300 some slop
-			$funcs = new Booker\Userops();
-			list($bookerid,$newbooker) = $funcs->GetParamsID($this,$params);
+			$funcs = new Booker\Userops($this);
+			list($bookerid,$newbooker) = $funcs->GetParamsID($this,$params); //TODO conform $params
 			if ($bookerid !== FALSE) {
 				$params['booker_id'] = $bookerid;
 				$rights = $funcs->GetRights($this,$bookerid); //before we change $funcs
@@ -297,11 +308,16 @@ if (!isset($params['when'])) { //first-pass
 		//get some useful representative data
 		$bkgid = $params['bkgid'];
 		$sql = <<<EOS
-SELECT D.*,B.name,B.publicid,B.address,B.phone FROM $this->DataTable D
+SELECT D.*,COALESCE(A.name,B.name,'') AS name,COALESCE(A.address,B.address,'') AS address,B.publicid,B.phone
+FROM $this->DataTable D
 JOIN $this->BookerTable B ON D.booker_id=B.booker_id
+LEFT JOIN $this->AuthTable A ON B.publicid=A.publicid
 WHERE D.bkg_id=?
 EOS;
 		$bdata = $utils->SafeGet($sql,array($bkgid),'row');
+		if ($bdata) {
+			$utils->GetUserProperties($this,$bdata);
+		}
 	}
 } else {
 	$bdata = array();
@@ -337,6 +353,9 @@ $hidden = $utils->FilterParameters($params,$localparams);
 
 $tplvars['startform'] = $this->CreateFormStart($id,'requestbooking',$returnid,'POST','','','',$hidden);
 $tplvars['endform'] = $this->CreateFormEnd();
+
+$t = $idata['bulletin'];
+$tplvars['bulletin'] = ($t) ? $t:NULL;
 
 //script accumulators
 $jsfuncs = array();
@@ -546,6 +565,8 @@ $jsloads[] = <<<EOS
  });
 EOS;
 
+$rec = TRUE; //TODO Auth::isResettable()
+
 $oneset = new stdClass();
 $oneset->class = 'hide1';
 $oneset->ttl = $this->Lang('title_account');
@@ -557,9 +578,17 @@ $items[] = $oneset;
 $oneset = new stdClass();
 $oneset->class = 'hide1';
 $oneset->ttl = $this->Lang('title_passwd');
-$oneset->mst = 1;
+$oneset->mst = !$rec;
 $t = (!empty($params['passwd'])) ? $params['passwd']:'';
 $oneset->inp = $this->CreateInputText($id,'passwd',$t,15,20);
+$items[] = $oneset;
+$oneset = new stdClass();
+$oneset->class = 'hide1';
+$oneset->ttl = '';
+$oneset->mst = NULL;
+$oneset->inp = ($rec) ?
+ $this->_CreateInputLinks($id,'bkr_recover',FALSE,TRUE,$this->Lang('recover_lost')):
+ $this->Lang('reregister');
 $items[] = $oneset;
 $jsincs[] = '<script type="text/javascript" src="'.$baseurl.'/include/jquery-inputCloak.min.js"></script>';
 $jsloads[] = <<<EOS
@@ -633,7 +662,7 @@ $tplvars['hidden'] = implode($hidden);
 $tplvars['cartmsg'] = '<img src="'.$baseurl.'/images/information.png" alt="icon" border="0" /> '.
 $this->Lang('help_cart');
 
-$jsincs[] =<<<EOS
+$jsincs[] = <<<EOS
 <script type="text/javascript" src="{$baseurl}/include/pikaday.min.js"></script>
 <script type="text/javascript" src="{$baseurl}/include/pikaday.jquery.min.js"></script>
 <script type="text/javascript" src="{$baseurl}/include/php-date-formatter.min.js"></script>
@@ -717,8 +746,10 @@ $tplvars['submit'] = $this->CreateInputSubmit($id,'submit',$this->Lang('submit')
 $tplvars['cancel'] = $this->CreateInputSubmit($id,'cancel',$this->Lang('cancel'));
 $tplvars['cart'] = $this->CreateInputSubmit($id,'cart',$this->Lang('cart'),
 	'title="'.$this->Lang('tip_cartadd').'"');
-$tplvars['register'] = $this->CreateInputSubmit($id,'register',$this->Lang('register'),
+$tplvars['register'] = $this->CreateInputSubmit($id,'bkr_register',$this->Lang('register'),
 	'title="'.$this->Lang('tip_register').'"');
+$tplvars['change'] = $this->CreateInputSubmit($id,'bkr_change',$this->Lang('change'),
+	'title="'.$this->Lang('tip_change').'"');
 //$tplvars['register'] = NULL;
 
 $jsloads[] = <<<EOS
