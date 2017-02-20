@@ -93,7 +93,7 @@ class Booker extends CMSModule
 	const CARTKEY = 'bkr_Cart';
 	const PARMKEY = 'bkr_Parm';
 	const SESSIONKEY = 'bkr_Sess';
-	const PATNADDRESS = '/^.+@.+\..+$/';
+	const PATNADDRESS = '/^\S+@[^\s.]+\.\S+$/';
 	const PATNPHONE = '/^(\+\d{1,4} *)?[\d ]{5,15}$/';
 
 	public $dbHandle; //cached connection to adodb
