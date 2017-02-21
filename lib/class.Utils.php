@@ -936,7 +936,7 @@ EOS;
 				if ($fld) {
 					if ($this->afuncs) {
 						if (!array_key_exists($fld, $regs)) {
-							$this->afuncs->getPlainGetUserProperties($row);
+							$this->afuncs->GetPlainGetUserProperties($row);
 							if ($row['address']) {
 								if (preg_match(\Booker::PATNPHONE, $row['address'])) {
 									$row['phone'] = $row['address'];
@@ -974,7 +974,7 @@ EOS;
 					return;
 				}
 			}
-			$this->afuncs->getPlainGetUserProperties($data);
+			$this->afuncs->GetPlainGetUserProperties($data);
 			if ($data['address']) {
 				if (preg_match(\Booker::PATNPHONE, $data['address'])) {
 					$data['phone'] = $data['address'];
@@ -1105,36 +1105,20 @@ EOS;
 
 				$login = $row['publicid'];
 				$password = $row['password'];
-				if ($this->afuncs->isKnown($login,$password)) {
+				if ($this->afuncs->IsKnown($login,$password)) {
 					$name = !empty($authfields['name']) ? $authfields['name']:FALSE;
 					$address = !empty($authfields['address']) ? $authfields['address']:FALSE;
 					$active = !empty($authfields['active']) ? $authfields['active']:FALSE;
-
-					$res = $this->afuncs->validateAll([
-						'publicid' => $login,
-						'password' => $password,
-						'name' => $name, //TODO or oldname
-						'address' => $address //TODO or old address
-					]);
-					if ($res[0]) {
-						$this->afuncs->changeUserReal($login,FALSE,$name,$address,$active,array());
-					} else {
+					$res = $this->afuncs->ChangeUser($login,$password,FALSE,$name,$address,$active,array(),FALSE);
+					if (!$res[0]) {
 					//TODO report error
 					}
 				} else {
 					$name = !empty($authfields['name']) ? $authfields['name']:NULL;
 					$address = !empty($authfields['address']) ? $authfields['address']:NULL;
-					$active = !empty($authfields['active']) ? $authfields['active']:1;
-
-					$res = $this->afuncs->validateAll([
-						'publicid' => $login,
-						'password' => $password,
-						'name' => $name,
-						'address' => $address
-					]);
-					if ($res[0]) {
-						$this->afuncs->addUserReal($login,$password,$name,$address,$active,array());
-					} else {
+//					$active = !empty($authfields['active']) ? $authfields['active']:1;
+					$res = $this->afuncs->AddUser($login,$password,$name,$address,array(),FALSE);
+					if (!$res[0]) {
 					//TODO report error
 					}
 				}
