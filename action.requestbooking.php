@@ -565,7 +565,14 @@ $jsloads[] = <<<EOS
  });
 EOS;
 
-$rec = TRUE; //TODO Auth::isResettable()
+$amod = cms_utils::get_module('Auther');
+if ($amod) {
+	$afuncs = new Auther\Auth($amod,$this->GetPreference('authcontext',0));
+	unset($amod);
+	$rec = $afuncs->IsRecoverable();
+} else {
+	$rec = FALSE;
+}
 
 $oneset = new stdClass();
 $oneset->class = 'hide1';
