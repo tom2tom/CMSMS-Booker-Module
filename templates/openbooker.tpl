@@ -1,7 +1,7 @@
 <div class="browsenav">{$pagenav}</div><br />
 {if !empty($message)}<p class="pagetext pagemessage">{$message}</p><br />{/if}
 <h3 class="pagetext">{$title}</h3><br />
-<p class="pageinput">{$compulsory}</p><br />
+{if !empty($compulsory)}<p class="pagetext" style="font-weight:normal;">{$compulsory}</p><br />{/if}
 {$startform}
 <div class="pageinput pageoverflow">
 {foreach from=$settings item=entry}
