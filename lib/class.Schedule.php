@@ -54,7 +54,7 @@ class Schedule
 	}
 
 	//Try to match displayclass with an existing booker, or else return default class 1
-	//c.f. Userops::GetDisplayClass()
+	//c.f. Userops->GetDisplayClass()
 	private function GetDisplayClass(&$mod, &$utils, $item_id, $user)
 	{
 		$sql = 'SELECT displayclass FROM '.$mod->BookerTable.' WHERE name=? OR publicid=?';
