@@ -604,6 +604,7 @@ $lang['title_count'] = 'Resources';
 $lang['title_cssfile'] = 'File with CSS styles for displayed bookings';
 $lang['title_dateformat'] = 'Template for formatting displayed dates';
 $lang['title_days'] = 'Days';
+$lang['title_deletemarked'] = 'Flagged for deletion';
 $lang['title_description'] = 'Booking descriptor';
 $lang['title_displayclass'] = 'Display category';
 $lang['title_email_domains'] = 'Email-address-check domains';
