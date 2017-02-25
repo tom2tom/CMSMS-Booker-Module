@@ -730,22 +730,26 @@ EOS;
 		if (isset($params['item_id'])) {
 			$qdata = array();
 			if (isset($params['active'])) {
-				if ($params['active'])
+				if ($params['active'] > 0) { //1 always; 2 inherit
 					$qdata[] = 0;
-				else
+				} else { //0 inactive; -1 deletion pending
 					$qdata[] = 1;
-			} else
+				}
+			} else {
 				$qdata[] = 0;
+			}
 			$qdata[] = $params['item_id'];
 
 			$sql = 'UPDATE '.$this->ItemTable.' SET active=? WHERE item_id=?';
 	    	$this->dbHandle->Execute($sql,$qdata);
 
-			if ($params['item_id'] < Booker::MINGRPID)
+			if ($params['item_id'] < Booker::MINGRPID) {
 				$params = array('active_tab' => 'items');
-			else
+			} else {
 				$params = array('active_tab' => 'groups');
-		} else
+			}
+		} else {
 			$params = array('active_tab' => 'items');
+		}
 	}
 }
