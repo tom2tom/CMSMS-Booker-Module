@@ -163,34 +163,40 @@ class Booker extends CMSModule
 	private function cmsms_spacedload($class)
 	{
 		$prefix = get_class().'\\'; //our namespace prefix
-		// ignore if $class doesn't have that
-		if (($p = strpos($class,$prefix)) === FALSE)
-			return;
-		if (!($p === 0 || ($p === 1 && $class[0] == '\\')))
-			return;
-		// get the relative class name
-		$len = strlen($prefix);
-		if ($class[0] == '\\') {
-			$len++;
+		$o = ($class[0] != '\\') ? 0:1;
+		$p = strpos($class, $prefix, $o);
+		if ($p === 0 || ($p == 1 && $o == 1)) {
+			// directory for the namespace
+			$bp = __DIR__.DIRECTORY_SEPARATOR.'lib'.DIRECTORY_SEPARATOR;
+		} else {
+			$p = strpos($class, '\\', 1);
+			if ($p === FALSE) {
+				return;
+			}
+			$prefix = substr($class, $o, $p-$o);
+			$bp = dirname(__DIR__).DIRECTORY_SEPARATOR.$prefix.DIRECTORY_SEPARATOR.'lib'.DIRECTORY_SEPARATOR;
 		}
-		$relative_class = trim(substr($class,$len),'\\');
+		// relative class name
+		$len = strlen($prefix) + $o;
+		$relative_class = trim(substr($class, $len), '\\');
+
 		if (($p = strrpos($relative_class,'\\',-1)) !== FALSE) {
-			$relative_dir = str_replace('\\',DIRECTORY_SEPARATOR,$relative_class);
+			$relative_dir = strtr ($relative_class, '\\', DIRECTORY_SEPARATOR);
 			$base = substr($relative_dir,$p+1);
-			$relative_dir = substr($relative_dir,0,$p).DIRECTORY_SEPARATOR;
+			$relative_dir = substr($relative_dir, 0, $p);
+			$bp .= $relative_dir.DIRECTORY_SEPARATOR;
 		} else {
 			$base = $relative_class;
-			$relative_dir = '';
 		}
-		// directory for the namespace
-		$bp = __DIR__.DIRECTORY_SEPARATOR.'lib'.DIRECTORY_SEPARATOR.$relative_dir;
+
 		$fp = $bp.'class.'.$base.'.php';
 		if (file_exists($fp)) {
 			include $fp;
-		} elseif ($relative_dir) {
-			$fp = $bp.$base.'.php';
-			if (file_exists($fp))
-				include $fp;
+			return;
+		}
+		$fp = $bp.$base.'.php';
+		if (file_exists($fp)) {
+			include $fp;
 		}
 	}
 
