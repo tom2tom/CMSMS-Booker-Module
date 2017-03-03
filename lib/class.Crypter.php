@@ -16,13 +16,16 @@ class Crypter
 	@mod: reference to current Auther module object
 	@value: value to be stored, normally a string
 	@key: module-preferences key
+	@e: optional Encryption-class object, default NULL
 	*/
-	public function encrypt_preference(&$mod, $key, $value)
+	public function encrypt_preference(&$mod, $key, $value, $e=NULL)
 	{
 		$config = \cmsms()->GetConfig();
-		$root = (empty($_SERVER['HTTPS'])) ? $config['root_url'] : $config['ssl_url'];
+		$root =  $config['ssl_url'] ? $config['ssl_url'] : $config['root_url'];
 		$hash = hash('crc32b', $root.$mod->GetModulePath()); //site-dependent
-		$e = new Encryption('BF-CBC', 'default', self::STRETCHES);
+		if (!$e) {
+			$e = new Encryption('BF-CBC', 'default', self::STRETCHES);
+		}
 		$st = $e->encrypt($value, $hash);
 		$mod->SetPreference($key, base64_encode($st));
 	}
@@ -31,15 +34,18 @@ class Crypter
 	decrypt_preference:
 	@mod: reference to current Auther module object
 	@key: module-preferences key
+	@e: optional Encryption-class object, default NULL
 	Returns: plaintext string
 	*/
-	public function decrypt_preference(&$mod, $key)
+	public function decrypt_preference(&$mod, $key, $e=NULL)
 	{
 		$st = base64_decode($mod->GetPreference($key));
 		$config = \cmsms()->GetConfig();
-		$root = (empty($_SERVER['HTTPS'])) ? $config['root_url'] : $config['ssl_url'];
+		$root =  $config['ssl_url'] ? $config['ssl_url'] : $config['root_url'];
 		$hash = hash('crc32b', $root.$mod->GetModulePath()); //site-dependent
-		$e = new Encryption('BF-CBC', 'default', self::STRETCHES);
+		if (!$e) {
+			$e = new Encryption('BF-CBC', 'default', self::STRETCHES);
+		}
 		return $e->decrypt($st, $hash);
 	}
 
@@ -52,11 +58,11 @@ class Crypter
 	public function encrypt_value(&$mod, $value, $passwd=FALSE)
 	{
 		if ($value) {
+			$e = new Encryption('BF-CBC', 'default', self::STRETCHES);
 			if (!$passwd) {
-				$passwd = $this->decrypt_preference($mod, 'masterpass');
+				$passwd = $this->decrypt_preference($mod, 'masterpass', $e);
 			}
 			if ($passwd) {
-				$e = new Encryption('BF-CBC', 'default', self::STRETCHES);
 				$value = $e->encrypt($value, $passwd);
 			}
 		}
@@ -73,32 +79,14 @@ class Crypter
 	public function decrypt_value(&$mod, $value, $passwd=FALSE)
 	{
 		if ($value) {
+			$e = new Encryption('BF-CBC', 'default', self::STRETCHES);
 			if (!$passwd) {
-				$passwd = $this->decrypt_preference($mod, 'masterpass');
+				$passwd = $this->decrypt_preference($mod, 'masterpass', $e);
 			}
 			if ($passwd) {
-				$e = new Encryption('BF-CBC', 'default', self::STRETCHES);
 				$value = $e->decrypt($value, $passwd);
 			}
 		}
 		return $value;
-	}
-
-	public function fusc($str)
-	{
-		if ($str) {
-			$s = substr(base64_encode(md5(microtime())), 0, 5);
-			return $s.base64_encode($s.$str);
-		}
-		return '';
-	}
-
-	public function unfusc($str)
-	{
-		if ($str) {
-			$s = base64_decode(substr($str, 5));
-			return substr($s, 5);
-		}
-		return '';
 	}
 }
