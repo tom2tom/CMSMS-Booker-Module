@@ -283,7 +283,7 @@ bookers table schema:
  addwhen: UTC timestamp when this record added NB NULL if unused, to enable COALESCE
  type: combination of 10 generic types and permission-flags - see class.Userops
  displayclass: display-stying enum 1..Booker::USERSTYLES
- active: whether currently enabled
+ active: enum: 0 no; 1 yes; -1 deletion pending while historical data needed
 */
 $fields = '
 booker_id I(4) KEY,
