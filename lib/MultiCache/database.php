@@ -64,7 +64,7 @@ class Cache_database extends CacheBase implements CacheInterface
 			$sql = 'INSERT INTO '.$this->table.' (keyword,value,savetime,lifetime) VALUES (?,?,?,?)';
 			$ret = $db->Execute($sql,array($keyword,$value,time(),$lifetime));
 		}
-		return ($ret != FALSE);
+		return ($db->Affected_Rows() > 0); //racy??
 	}
 
 	public function _get($keyword)
