@@ -457,10 +457,12 @@ $this->SetPreference('domains',''); //for initial check
 $this->SetPreference('subdomains',''); //for secondary check
 $this->SetPreference('topdomains','biz,co,com,edu,gov,info,mil,name,net,org'); //for final check
 
+$t = 'nQCeESKBr99A';
+$this->SetPreference($t, hash('sha256', $t.microtime()));
 //$t = some random string;
 //$t = sprintf(base64_decode('U3VjayAlcyB1cCwgY3JhY2tlcnM='),$t);
-$funcs = new Booker\Crypter();
-$funcs->encrypt_preference($this,'masterpass',base64_decode('U3VjayBpdCB1cCwgY3JhY2tlcnMh'));
+$cfuncs = new Booker\Crypter($this);
+$cfuncs->encrypt_preference('masterpass',base64_decode('U3VjayBpdCB1cCwgY3JhY2tlcnMh'));
 
 $format = get_site_preference('defaultdateformat');
 if ($format) {
