@@ -23,6 +23,10 @@ if (isset($params['cancel'])) {
 	 	$funcs = new Booker\Userops($this);
 		$funcs->DeleteUser($this,$params['booker_id']);
 		break;
+	 case 'toggle':
+	 	$funcs = new Booker\Userops($this);
+		$funcs->SetActive($this,$params['booker_id'],!$params['active']);
+		break;
 	 case 'export';
 		$funcs = new Booker\Bookingops();
 		$sql = 'SELECT bkg_id FROM '.$this->DataTable.' WHERE booker_id=?';
@@ -31,12 +35,11 @@ if (isset($params['cancel'])) {
 		if ($res)
 			exit;
 		$this->Redirect($id,'defaultadmin','',array(
-		 'active_tab'=>$params['active_tab'],
+		 'active_tab'=>'people',
 		 'message'=>$this->_PrettyMessage($msg,FALSE,FALSE)));
 		break;
 	}
-	$this->Redirect($id,'defaultadmin','',array(
-		'active_tab'=>$params['active_tab']));
+	$this->Redirect($id,'defaultadmin','',array('active_tab'=>'people'));
 } elseif (isset($params['delete'])) {
 	if (!isset($params['selbkr']))
 		$this->Redirect($id,'defaultadmin','',array(
