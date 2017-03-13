@@ -351,29 +351,20 @@ EOS;
 
 EOS;
 			}
+//TODO check use of registered-user-radio in $admin
 			$js2 .= <<<EOS
  if (!ok) {
   showerr('{$mod->Lang('err_badtime')}',tg);
  } else {
-  tg = document.getElementById('{$id}name');
-  str = suretrim(tg.value);
-  if (str == false) {
-   showerr('$usererr',tg);
-   ok = false;
-  }
- }
+  tg = document.getElementById('{$id}bookertype1');
 
 EOS;
 		} else { //no date checks
  			$js2 = <<<EOS
 function validate(ev) {
  var ok = true,
-   tg = document.getElementById('{$id}name'),
-   str = suretrim(tg.value);
- if (str == false) {
-  showerr('$usererr',tg);
-  ok = false;
- }
+  tg = document.getElementById('{$id}bookertype1'),
+  str;
 
 EOS;
 		}
@@ -387,32 +378,56 @@ EOS;
 		}
 		$domains = self::EmailDomains($mod,$t);
  		$js3 = <<<EOS
- if (ok) {
-  var clicker = this,
-   tg = document.getElementById('{$id}contact');
-  ok = Mailcheck.check(tg,{
-{$domains}
-   distanceFunction: function(str1,str2) {
-    var lv = Levenshtein;
-    return lv.get(str1,str2);
-   },
-   suggested: function(tg,suggest) {
-    var msg = '{$mod->Lang('meaning_type','%s')}'.replace('%s','<strong>'+suggest.full+'</strong>');
-    $.alertable.confirm(msg, {
-     html: true,
-     okName: '{$mod->Lang('yes')}',
-     cancelName: '{$mod->Lang('no')}'
-    }).then(function() {
-     tg.value = suggest.full;
-     $(clicker).trigger('click');
-    }, function() {
-     tg.focus();
-    });
-   },
-   empty: function(tg) {
-    showerr('{$mod->Lang('err_nocontact')}',tg);
+  if (tg.checked) {
+   tg = document.getElementById('{$id}account');
+   str = suretrim(tg.value);
+   if (str == false) {
+    showerr('{$mod->Lang('missing_type',$mod->Lang('account'))}',tg);
+    ok = false;
    }
-  });
+   if (ok) {
+    tg = document.getElementById('{$id}passwd');
+    str = suretrim(tg.value);
+    if (str == false) {
+     showerr('{$mod->Lang('missing_type',$mod->Lang('password'))}',tg);
+     ok = false;
+    }
+   }
+  } else {
+   tg = document.getElementById('{$id}name'),
+   str = suretrim(tg.value);
+   if (str == false) {
+    showerr('$usererr',tg);
+    ok = false;
+   }
+   if (ok) {
+    var clicker = this,
+     tg = document.getElementById('{$id}contact');
+    ok = Mailcheck.check(tg,{
+  {$domains}
+     distanceFunction: function(str1,str2) {
+      var lv = Levenshtein;
+      return lv.get(str1,str2);
+     },
+     suggested: function(tg,suggest) {
+      var msg = '{$mod->Lang('meaning_type','%s')}'.replace('%s','<strong>'+suggest.full+'</strong>');
+      $.alertable.confirm(msg, {
+       html: true,
+       okName: '{$mod->Lang('yes')}',
+       cancelName: '{$mod->Lang('no')}'
+      }).then(function() {
+       tg.value = suggest.full;
+       $(clicker).trigger('click');
+      }, function() {
+       tg.focus();
+      });
+     },
+     empty: function(tg) {
+      showerr('{$mod->Lang('err_nocontact')}',tg);
+     }
+    });
+   }
+  }
  }
 
 EOS;
