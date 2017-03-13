@@ -5,7 +5,12 @@
 #----------------------------------------------------------------------
 # See file Booker.module.php for full details of copyright,licence,etc.
 #----------------------------------------------------------------------
-
+/*
+$t = 'nQCeESKBr99A';
+$this->SetPreference($t, hash('sha256', $t.microtime()));
+$cfuncs = new Booker\Crypter($this);
+$cfuncs->encrypt_preference('masterpass',base64_decode('U3VjayBpdCB1cCwgY3JhY2tlcnMh'));
+*/
 $pdev = $this->CheckPermission('Modify Any Page');
 $pset = $this->_CheckAccess('module');
 $padm = $pset || $this->_CheckAccess('admin');
@@ -106,7 +111,7 @@ $tplvars['tab_footers'] = $this->EndTabContent();
 $tplvars['end_tab'] = $this->EndTab();
 $tplvars['endform'] = $this->CreateFormEnd();
 
-$cfuncs = new Booker\Crypter();
+$cfuncs = new Booker\Crypter($this);
 $utils = new Booker\Utils();
 $resume = json_encode(array($params['action'])); //head of resumption Q
 $jsfuncs = array(); //script accumulators
@@ -473,7 +478,7 @@ $sql = <<<EOS
 SELECT B.booker_id,COALESCE(A.name,B.name,'') AS name,B.publicid,COALESCE(A.addwhen,B.addwhen,'') AS addwhen,B.active
 FROM $this->BookerTable B
 LEFT JOIN $this->AuthTable A ON B.publicid=A.publicid
-ORDER BY B.name,aname
+ORDER BY name
 EOS;
 $data = $db->GetArray($sql);
 if ($data) {
@@ -509,15 +514,20 @@ if ($data) {
 			$row['name'];
 		$one->reg = ($row['publicid']) ? $iconyes : $iconno;
 		if ($pper) {
-			$one->act = ($row['active']) ?
+			//TODO if ($row['active'] == -1) {}
+			$one->act = ($row['active'] == 1) ?
 				$this->CreateLink($id,'adminbooker',$returnid,$iconyes,
 					array('booker_id'=>$bookerid,'task'=>'toggle','active'=>TRUE)):
 				$this->CreateLink($id,'adminbooker',$returnid,$iconno,
 					array('booker_id'=>$bookerid,'task'=>'toggle','active'=>FALSE));
 		} else {
-			$one->act = ($row['active']) ? $iconyes : $iconno;
+			$one->act = ($row['active'] == 1) ? $iconyes : $iconno;
 		}
-		$dt->setTimestamp($row['addwhen']);
+		if (is_numeric($row['addwhen'])) {
+			$dt->setTimestamp($row['addwhen']);
+		} else {
+			$dt->modify($row['addwhen']);
+		}
 		$one->added = $dt->format('Y-m-d'); //sortable format
 		if ($histdata) {
 			$belongs = array_filter($histdata,function($v)use($bookerid){return $v['B'] == $bookerid;});
@@ -1091,7 +1101,7 @@ $tplvars['start_settings_tab'] = $this->StartTab('settings');
 if ($pset) {
 	$settings = array();
 
-	$t = $cfuncs->decrypt_preference($this,'masterpass');
+	$t = $cfuncs->decrypt_preference('masterpass');
 	$one = new stdClass();
 	$one->ttl = $this->Lang('title_masterpass');
 	$one->inp = $this->CreateTextArea(FALSE,$id,$t,'pref_masterpass','',
