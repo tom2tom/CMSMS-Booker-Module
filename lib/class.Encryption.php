@@ -29,7 +29,7 @@
  */
 namespace Booker;
 
-final class Encryption
+class Encryption
 {
 	/*
 	Maximum value of $rounds which will be exponentiated to 2**$rounds
