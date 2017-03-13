@@ -1,12 +1,12 @@
 <?php
 #------------------------------------------------------------------------
 # Module: Booker - a resource booking module for CMS Made Simple
-# Mostly copyright (C) 2015-2016 Tom Phane <@>
+# Mostly copyright (C) 2015-2017 Tom Phane <@>
 # This project's forge-page is: http://dev.cmsmadesimple.org/projects/booker
 #
-# This module is free software; you can redistribute it and/or modify it under
+# This module is free software. You can redistribute and/or modify it under
 # the terms of the GNU Affero General Public License as published by the Free
-# Software Foundation; either version 3 of the License, or (at your option)
+# Software Foundation, either version 3 of that License, or (at your option)
 # any later version.
 #
 # This module is distributed in the hope that it will be useful, but
@@ -182,9 +182,8 @@ class Booker extends CMSModule
 
 		if (($p = strrpos($relative_class,'\\',-1)) !== FALSE) {
 			$relative_dir = strtr ($relative_class, '\\', DIRECTORY_SEPARATOR);
-			$base = substr($relative_dir,$p+1);
-			$relative_dir = substr($relative_dir, 0, $p);
-			$bp .= $relative_dir.DIRECTORY_SEPARATOR;
+			$bp .= substr($relative_dir, 0, $p+1);
+			$base = substr($relative_dir, $p+1);
 		} else {
 			$base = $relative_class;
 		}
