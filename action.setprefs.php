@@ -38,15 +38,31 @@ foreach ($updates as $k) {
 	$k = substr($k,5);
 	switch ($k) {
 	 case 'masterpass':
+		$cfuncs = new Booker\Crypter($this);
+		$oldpw = $cfuncs->decrypt_preference($k);
 		$val = trim($val);
-		if ($val) {
-			$funcs = new Booker\Crypter();
-			$oldpw = $funcs->decrypt_preference($this,$k);
-			if ($oldpw != $val) {
-	//TODO re-hash all relevant data
+		if ($oldpw != $val) {
+/* TODO re-hash all relevant data
+			$pref = cms_db_prefix();
+			$sql = 'SELECT , FROM '.$pref.'module_';
+			$rst = $db->Execute($sql);
+			if ($rst) {
+				$sql = 'UPDATE '.$pref.'module_ SET =? WHERE =?';
+				while (!$rst->EOF) {
+					$t = $cfuncs->decrypt_value($rst->fields[''], $oldpw);
+					if ($newpw) {
+						$t = $cfuncs->encrypt_value($t,$newpw);
+					}
+					$db->Execute($sql,[$t,$rst->fields['']]);
+					if (!$rst->MoveNext()) {
+						break;
+					}
+				}
+				$rst->Close();
 			}
-			$funcs->encrypt_preference($this,$k,$val);
+*/
 		}
+		$cfuncs->encrypt_preference($k,$val);
 	 	break;
 	 case 'cleargroup':
 		$this->SetPreference($k,(int)$val);
