@@ -9,6 +9,8 @@ namespace Booker;
 
 class Import
 {
+	const DEFAULTPASS = 'change2468ASAP!'; //this exceeds complexity 3, but not 4
+
 	private function ToChr($match)
 	{
 		$st = ($match[0][0] == '&') ? 2:1;
@@ -25,8 +27,9 @@ class Import
 	{
 		do {
 			$fields = fgetcsv($fh,4096);
-			if (is_null($fields) || $fields == FALSE)
+			if (is_null($fields) || $fields == FALSE) {
 				return FALSE;
+			}
 		} while (!isset($fields[1]) && is_null($fields[0])); //blank line
 		$some = FALSE;
 		//convert any separator supported by exporter
@@ -38,8 +41,9 @@ class Import
 			}
 		}
 		unset($one);
-		if ($some)
+		if ($some) {
 			return $fields;
+		}
 		return FALSE; //ignore lines with all fields empty
 	}
 
@@ -65,12 +69,14 @@ class Import
 				return array(FALSE,'err_file');
 			}
 			$fh = fopen($file_data['tmp_name'],'r');
-			if (!$fh)
+			if (!$fh) {
 				return array(FALSE,'err_perm');
+			}
 			//basic validation of file-content
 			$firstline = self::GetSplitLine($fh);
-			if ($firstline == FALSE)
+			if ($firstline == FALSE) {
 				return array(FALSE,'err_file');
+			}
 			//file-column-name to fieldname translation
 			$translates = array(
 			 '#Isgroup'=>'isgroup', //not a real field
@@ -111,6 +117,7 @@ class Import
 			 'Owner'=>'owner',
 			 'Cleargroup'=>'cleargroup',
 			 'Allocategroup'=>'subgrpalloc',
+			 'Notice'=>'bulletin',
 			 'Ingroups'=>'ingroups', //not a real field
  			 'Update'=>'update' //not a real field
 			);
@@ -130,9 +137,9 @@ class Import
 			$offers = array(); //column-index to fieldname translator
 			foreach ($translates as $pub=>$priv) {
 				$col = array_search($pub,$firstline);
-				if ($col !== FALSE)
+				if ($col !== FALSE) {
 					$offers[$col] = $priv;
-				elseif ($pub[0] == '#') {
+				} elseif ($pub[0] == '#') {
 					//name of compulsory fields has '#' prefix
 					return array(FALSE,'err_file');
 				}
@@ -177,6 +184,7 @@ class Import
  							 case 'formiface':
 							 case 'smsprefix':
 							 case 'smspattern':
+							 case 'bulletin':
 								$data[$k] = trim($one);
 								$save = TRUE;
 								break;
@@ -358,8 +366,9 @@ class Import
 				}
 			}
 			fclose($fh);
-			if ($icount)
+			if ($icount) {
 				return array(TRUE,$icount);
+			}
 			return array(FALSE,'none');
 		}
 		return array(FALSE,'error');
@@ -386,8 +395,9 @@ class Import
 				return array(FALSE,'err_file');
 			}
 			$fh = fopen($file_data['tmp_name'],'r');
-			if (!$fh)
+			if (!$fh) {
 				return array(FALSE,'err_perm');
+			}
 			//basic validation of file-content
 			$firstline = self::GetSplitLine($fh);
 			if ($firstline == FALSE) {
@@ -417,9 +427,9 @@ class Import
 			$offers = array(); //column-index to fieldname translator
 			foreach ($translates as $pub=>$priv) {
 				$col = array_search($pub,$firstline);
-				if ($col !== FALSE)
+				if ($col !== FALSE) {
 					$offers[$col] = $priv;
-				elseif ($pub[0] == '#') {
+				} elseif ($pub[0] == '#') {
 					//name of compulsory fields has '#' prefix
 					return array(FALSE,'err_file');
 				}
@@ -456,8 +466,9 @@ class Import
 								break;
 							 case 'fee':
 							 	$t = (float)number_format((float)$one,2,'.','');
-								if ($t < 1.0) //TODO support selectable min. payment
+								if ($t < 1.0) { //TODO support selectable min. payment
 									$t = 0.0;
+								}
 								$data[$k] = $t;
 								$save = TRUE;
 							 	break;
@@ -471,7 +482,7 @@ class Import
 								$save = TRUE;
 								break;
 							 case 'slotcount':
-							if (isset($data['slottype']) && $data['slottype'] < 0) {
+								if (isset($data['slottype']) && $data['slottype'] < 0) {
 									$data[$k] = NULL;
 								} else {
 									$data[$k] = (int)$one;
@@ -556,11 +567,68 @@ class Import
 				}
 			}
 			fclose($fh);
-			if ($icount)
+			if ($icount) {
 				return array(TRUE,$icount);
+			}
 			return array(FALSE,'none');
 		}
 		return array(FALSE,'err_system');
+	}
+
+	/*
+	 * Store some registered-booker data in Booker and Auther user-table(s)
+	 * Doesn't record property - active
+	 * @mod: reference to Booker-module class object
+	 * @utils: reference to Utils-class object
+	 * @ufuncs: Userops-class object
+	 * @data: array of parameters
+	 * @password: plaintext password for the user, or FALSE
+	 * @passhash: H-unpacked (sorta raw) previous password for the user, or FALSE
+	 * @update: boolean whether to process data as a update (as opposed to an addition)
+	 * Returns: for an update - boolean, for an addition bookerid or FALSE
+	 */
+	protected function RecordRegisteredBooker(&$mod, &$utils, $ufuncs, $data, $password, $passhash, $update)
+	{
+		$name = $data['name'];
+		$address = $data['address'];
+ 		$phone = $data['phone'];
+		$login = $data['publicid'];
+		if ($passhash) {
+			//generate a validation-ready (sufficiently-tough) interim password
+			$t = str_shuffle(uniqid(self::DEFAULTPASS, TRUE));
+			$password = substr($t,0,32);
+		}
+		if ($update) {
+			$bookerid = $data['bookerid'];
+			$oldname = funcTODO($login,$name,$bookerid); //$bookerid -> lookup current 'publicid' -> get $oldname from Auther
+			$oldlogin = funcTODO($login,$name,$bookerid); //$bookerid -> lookup current 'publicid' == $oldlogin
+//			$utils->GetUserProperties($mod, ['publicid'=>$oldlogin,'name'=>????]);
+			$ret = $ufuncs->ChangeUser($mod,$bookerid,$name,$address,$phone,FALSE,$login,$oldlogin,$password); //$ret = boolean
+		} else {
+			$bookerid = $ufuncs->AddUser($mod,$name,$address,$phone,1,$login,$password); //$bookerid = enum or FALSE
+			$ret = $bookerid;
+		}
+		if ($ret && $passhash) {
+			//no Auther-API for changing raw passhash ...
+			$cid = $mod->GetPreference('authcontext',0); //OR $afuncs->GetContext();
+			$pref = \cms_db_prefix();
+			$mod->dbHandle->Execute('UPDATE '.$pref.'module_auth_users SET privhash=? WHERE publicid=? AND context_id=?',
+				array(pack('H*',$passhash),$login,$cid));
+		}
+		if ($ret) {
+			//possible non-Auther properties to be recorded locally
+			$namers = array();
+			foreach (array('phone','type','displayclass') as $key) {
+				if (isset($data[$key]) && $data[$key] != NULL) {
+					$namers[$key]= $data[$key];
+				}
+			}
+			if ($namers) {
+				$utils->SetUserProperties($mod,$bookerid,$namers);
+				//TODO OR just $sql & execute
+			}
+		}
+		return $ret;
 	}
 
 	/**
@@ -584,8 +652,9 @@ class Import
 				return array(FALSE,'err_file');
 			}
 			$fh = fopen($file_data['tmp_name'],'r');
-			if (!$fh)
+			if (!$fh) {
 				return array(FALSE,'err_perm');
+			}
 			//basic validation of file-content
 			$firstline = self::GetSplitLine($fh);
 			if ($firstline == FALSE) {
@@ -595,13 +664,13 @@ class Import
 			$translates = array(
 			 '#Name'=>'name',
 			 'Login'=>'publicid',
-			 'Password'=>'passhash', //interpreted
-			 'Passhash'=>'passhash',
+			 'Password'=>'password', //not a real field
+			 'Passhash'=>'passhash', //ditto
 			 '#Email'=>'address',
 			 'Phone'=>'phone',
-			 'Postpayer'=>'type', //interpreted
-			 'Recorder'=>'type',
-			 'Usertype'=>'type',
+			 'Postpayer'=>'type1', //interpreted
+			 'Recorder'=>'type2', //ditto
+			 'Usertype'=>'type3', //ditto
 			 'Displaytype'=>'displayclass',
 			 'Update'=>'update' //not a real field
 			);
@@ -618,18 +687,20 @@ class Import
 			$offers = array(); //column-index to fieldname translator
 			foreach ($translates as $pub=>$priv) {
 				$col = array_search($pub,$firstline);
-				if ($col !== FALSE)
+				if ($col !== FALSE) {
 					$offers[$col] = $priv;
-				elseif ($pub[0] == '#') {
+				} elseif ($pub[0] == '#') {
 					//name of compulsory fields has '#' prefix
 					return array(FALSE,'err_file');
 				}
 			}
 			$utils = new Utils();
-			//for update checks
-			$exist = $utils->SafeGet('SELECT booker_id,name,publicid FROM '.$mod->BookerTable.' ORDER BY booker_id',FALSE);
+			//for update checks (name is encrypted or NULL)
+//			$exist = $utils->SafeGet('SELECT booker_id,publicid,name FROM '.$mod->BookerTable.' ORDER BY booker_id',FALSE);
 
-			$funcs = new Userops();
+			$afuncs = NULL;
+			$cfuncs = new Crypter($mod);
+			$ufuncs = new Userops($mod);
 			$dt = new \DateTime('now',new \DateTimeZone('UTC'));
 			$st = $dt->getTimestamp();
 //			$skip = FALSE;
@@ -639,6 +710,8 @@ class Import
 				$imports = self::GetSplitLine($fh);
 				if ($imports) {
 					$data = array();
+					$password = FALSE; //if set, store via Auther module;
+					$passhash = FALSE; //if set, store unpack('H*',$passhash) via Auther module
 					$save = FALSE;
 					$update = FALSE;
 					foreach ($imports as $i=>$one) {
@@ -646,57 +719,68 @@ class Import
 						if ($one) {
 							switch ($k) {
 							 case 'name':
+								$data[$k] = $ufuncs->SanitizeName($one);
+								$save = TRUE;
+								break;
 							 case 'publicid':
 								$data[$k] = trim($one);
 								$save = TRUE;
 								break;
 							 case 'passhash':
- 								$t = trim($one);
-								if ($translates[$i] == 'Password') {
-									$data[$k] = $funcs->HashPassword($t);
-									$save = TRUE;
-								} elseif (empty($data[$k])) { //Passhash but no prior Password
-									$data[$k] = ($t) ? $t : $funcs->HashPassword($t);
-									$save = TRUE;
-								}
+							 case 'password':
+								$$k = trim($one); //park, pending store in Auther
+								$save = TRUE;
 								break;
 							 case 'address':
  								$t = trim($one);
-								if (!preg_match('/\w+@\w+\.\w+/',$t)) {
+								if (!preg_match(\Booker::PATNADDRESS,$t)) {
 									return array(FALSE,'err_file');
 								}
-								$data[$k] = $t;
+								$data[$k] = $t; //encrypt later, if relevant
 								$save = TRUE;
 								break;
 							 case 'phone':
  								$t = trim($one);
-						 		if (!preg_match('/^(\+\d{1,4} *)?[\d ]{5,15}$/',$t)) {
+						 		if (!preg_match(\Booker::PATNPHONE,$t)) {
 									return array(FALSE,'err_file');
 								}
-								$data[$k] = $t;
+								$data[$k] = $t; //encrypt later, if relevant
 								$save = TRUE;
 								break;
-							 case 'type':
-								switch ($translates[$i]) {
-							 	 case 'Postpayer':
-								 	$t = ($one == 'no' || $one == 'NO') ? 0:10; //permission-flag
-									break;
-								 case 'Recorder':
-								 	$t = ($one == 'no' || $one == 'NO') ? 0:20; //ditto
-									break;
-								 case 'Usertype':
-									if (!is_numeric($one)) {
-										return array(FALSE,'err_file');
-									}
-									$t = (int)$one;
-									if ($t < 0 || $t > 9) //base-types 0..9
-										$t = 0;
-									break;
-								}
-								if (isset($data[$k]))
+							 case 'type1':
+							 	$t = ($one == 'no' || $one == 'NO') ? 0:10; //permission-flag
+								$k = 'type';
+								if (isset($data[$k])) {
 									$data[$k] += $t;
-								else
+								} else {
 									$data[$k] = $t;
+								}
+								$save = TRUE;
+								break;
+							 case 'type2':
+								$t = ($one == 'no' || $one == 'NO') ? 0:20; //ditto
+								$k = 'type';
+								if (isset($data[$k])) {
+									$data[$k] += $t;
+								} else {
+									$data[$k] = $t;
+								}
+								$save = TRUE;
+								break;
+							 case 'type3':
+								if (!is_numeric($one)) {
+									return array(FALSE,'err_file');
+								}
+								$t = (int)$one;
+								if ($t < 0 || $t > 9) { //base-types 0..9
+									$t = 0;
+								}
+								$k = 'type';
+								if (isset($data[$k])) {
+									$data[$k] += $t;
+								} else {
+									$data[$k] = $t;
+								}
 								$save = TRUE;
 								break;
 							 case 'displayclass':
@@ -704,8 +788,9 @@ class Import
 									return array(FALSE,'err_file');
 								}
 								$t = (int)$one;
-								if ($t < 1 || $t > \Booker::USERSTYLES)
+								if ($t < 1 || $t > \Booker::USERSTYLES) {
 									$t = 1;
+								}
 								$data[$k] = $t;
 								$save = TRUE;
 								break;
@@ -721,15 +806,17 @@ class Import
 							}
 						} else {
 							switch ($k) {
-							 case 'type':
-								if (!isset($data[$k])) {
-									if ($translates[$i] == 'Usertype')
-										$data[$k] = 0;
-								}
-								break;
 							 case 'displayclass':
 								$data[$k] = 1;
-							 case 'update': //ignore this
+								//no break here
+							 case 'passhash':
+								//no break here
+							 case 'password':
+								$save = TRUE;
+							 case 'type1': //ignore these
+							 case 'type2':
+							 case 'type3':
+							 case 'update':
 								break;
 							 default:
  								$data[$k] = NULL;
@@ -739,6 +826,21 @@ class Import
 					}
 					if ($save) {
 						$done = FALSE;
+						if (!($password || $passhash)) {
+							if (!$afuncs) {
+								$amod = \cms_utils::get_module('Auther');
+								if ($amod) {
+									$afuncs = new \Auther\Auth($amod, $mod->GetPreference('authcontext', 0));
+									unset($amod);
+								}
+							}
+							if ($afuncs) {
+								$password = $afuncs->GetConfig('default_password');
+							}
+							if (!$password) {
+								$password = self::DEFAULTPASS;
+							}
+						}
 						if ($update) { //TODO robust UPSERT
 							if (is_numeric($update)) {
 								$sql = 'SELECT booker_id FROM '.$mod->BookerTable.' WHERE booker_id=?';
@@ -761,42 +863,69 @@ class Import
 								}
 							}
 							if ($bookerid) {
-								//TODO cache $bookerid=>$data['name'].$data['publicid']
-								$namers = implode('=?,',array_keys($data));
-								$sql = 'UPDATE '.$mod->BookerTable.' SET '.$namers.'=? WHERE booker_id=?';
-								$args = array_values($data);
-								$args[] = $bookerid;
-								if ($utils->SafeExec($sql,$args)) {
-									$icount++;
-									$done = TRUE;
+								if ($data['publicid']) {
+									$data['bookerid'] = $bookerid;
+									if ($this->RecordRegisteredBooker($mod,$utils,$ufuncs,$data,$password,$passhash,TRUE)) {
+										$icount++;
+										$done = TRUE;
+									}
+								} else {
+									if($data['address']) {
+										$data['address'] = $cfuncs->encrypt_value($data['address']);
+									}
+									if($data['phone']) {
+										$data['phone'] = $cfuncs->encrypt_value($data['phone']);
+									}
+									$namers = implode('=?,',array_keys($data));
+									$sql = 'UPDATE '.$mod->BookerTable.' SET '.$namers.'=? WHERE booker_id=?';
+									$args = array_values($data);
+									$args[] = $bookerid;
+									if ($utils->SafeExec($sql,$args)) {
+										$icount++;
+										$done = TRUE;
+									}
 								}
 							}
 						}
 						if (!$done) {
-							$namers = implode(',',array_keys($data));
-							$fillers = str_repeat('?,',count($data)-1);
-							$sql = 'INSERT INTO '.$mod->BookerTable.' (booker_id,'.$namers.',addwhen) VALUES (?,'.$fillers.'?,?)';
-							$args = array_values($data);
-							$bookerid = $mod->dbHandle->GenID($mod->BookerTable.'_seq');
-							array_unshift($args,$bookerid);
-							$args[] = $st;
-							if ($utils->SafeExec($sql,$args)) {
-								$icount++;
+							if ($data['publicid']) {
+								if ($this->RecordRegisteredBooker($mod,$utils,$ufuncs,$data,$password,$passhash,FALSE)) {
+									$icount++;
+								}
 							} else {
-								return array(FALSE,'err_system');
+								if($data['address']) {
+									$data['address'] = $cfuncs->encrypt_value($data['address']);
+								}
+								if($data['phone']) {
+									$data['phone'] = $cfuncs->encrypt_value($data['phone']);
+								}
+								$namers = implode(',',array_keys($data));
+								$fillers = str_repeat('?,',count($data)-1);
+								$sql = 'INSERT INTO '.$mod->BookerTable.' (booker_id,'.$namers.',addwhen) VALUES (?,'.$fillers.'?,?)';
+								$args = array_values($data);
+								$bookerid = $mod->dbHandle->GenID($mod->BookerTable.'_seq');
+								array_unshift($args,$bookerid);
+								$args[] = $st;
+								if ($utils->SafeExec($sql,$args)) {
+									$icount++;
+								} else {
+									return array(FALSE,'err_system');
+								}
 							}
 						}
 //					} else {
 //						$skip = TRUE;
 					}
+//TODO if ($done) cache $bookerid=>$data['name'].$data['publicid'] to ignore repetition ?
 				}
 			}
 			fclose($fh);
 //			if ($skip)
 //				return array(FALSE,'warn_duplicate');
 //			else
-			if ($icount)
+			if ($icount) {
 				return array(TRUE,$icount);
+			}
 			return array(FALSE,'none');
 		}
 		return array(FALSE,'err_system');
@@ -824,8 +953,9 @@ class Import
 				return array(FALSE,'err_file');
 			}
 			$fh = fopen($file_data['tmp_name'],'r');
-			if (!$fh)
+			if (!$fh) {
 				return array(FALSE,'err_perm');
+			}
 			//basic validation of file-content
 			$firstline = self::GetSplitLine($fh);
 			if ($firstline == FALSE) {
@@ -854,9 +984,9 @@ class Import
 			$offers = array(); //column-index to fieldname translator
 			foreach ($translates as $pub=>$priv) {
 				$col = array_search($pub,$firstline);
-				if ($col !== FALSE)
+				if ($col !== FALSE) {
 					$offers[$col] = $priv;
-				elseif ($pub[0] == '#') {
+				} elseif ($pub[0] == '#') {
 					//name of compulsory fields has '#' prefix
 					return array(FALSE,'err_file');
 				}
@@ -921,7 +1051,7 @@ class Import
 								if (array_key_exists($one,$bookers)) {
 									$data[$k] = $bookers[$one];
 								} else {
-									$sql = 'SELECT booker_id FROM '.$mod->BookerTable.' WHERE name=? OR publicid=?';
+									$sql = 'SELECT booker_id FROM '.$mod->BookerTable.' WHERE name=? OR publicid=?'; //no Auther role here
 									$t = $mod->dbHandle->GetOne($sql,array($one,$one));
 									if ($t) {
 										$t = (int)$t;
@@ -972,10 +1102,10 @@ class Import
 						$data['slotstart'] = $bs;
 						unset($data['slotend']);
 						$data['slotlen'] = $be-$bs;
-						$funcs2 = new Schedule();
+						$funcs = new Schedule();
 						//any booker
-						$save = $funcs2->ItemVacantCount($mod,$item_id,$bs,$be)
-							&& $funcs2->ItemAvailable($mod,$utils,$item_id,0,$bs,$be);
+						$save = $funcs->ItemVacantCount($mod,$item_id,$bs,$be)
+							&& $funcs->ItemAvailable($mod,$utils,$item_id,0,$bs,$be);
 					} else {
 						return array(FALSE,'err_badtime');
 					}
@@ -1055,10 +1185,11 @@ class Import
 				}
 			}
 			fclose($fh);
-			if ($skip)
+			if ($skip) {
 				return array(FALSE,'warn_duplicate');
-			elseif ($icount)
+			} elseif ($icount) {
 				return array(TRUE,$icount);
+			}
 			return array(FALSE,'none');
 		}
 		return array(FALSE,'err_system');
@@ -1085,8 +1216,9 @@ class Import
 				return array(FALSE,'err_file');
 			}
 			$fh = fopen($file_data['tmp_name'],'r');
-			if (!$fh)
+			if (!$fh) {
 				return array(FALSE,'err_perm');
+			}
 			//basic validation of file-content
 			$firstline = self::GetSplitLine($fh);
 			if ($firstline == FALSE) {
@@ -1122,15 +1254,15 @@ class Import
 			$offers = array(); //column-index to fieldname translator
 			foreach ($translates as $pub=>$priv) {
 				$col = array_search($pub,$firstline);
-				if ($col !== FALSE)
+				if ($col !== FALSE) {
 					$offers[$col] = $priv;
-				elseif ($pub[0] == '#') {
+				} elseif ($pub[0] == '#') {
 					//name of compulsory fields has '#' prefix
 					return array(FALSE,'err_file');
 				}
 			}
 			$utils = new Utils();
-			//for update checks
+			//for update checks (name is encrypted or NULL)
 //			$exist = $utils->SafeGet('SELECT booker_id,name,publicid FROM '.$mod->BookerTable.' ORDER BY booker_id',FALSE);
 
 			$dtw = new \DateTime('@0',NULL);
@@ -1293,8 +1425,9 @@ class Import
 				}
 			}
 			fclose($fh);
-			if ($icount)
+			if ($icount) {
 				return array(TRUE,$icount);
+			}
 			return array(FALSE,'none');
 		}
 		return array(FALSE,'err_system');
