@@ -9,8 +9,6 @@ namespace Booker;
 
 class bkr_itemname_cmp
 {
-	protected $afuncs = NULL;
-	protected $cfuncs = NULL;
 	private $coll;
 
 	public function __construct(&$collator)
@@ -37,6 +35,9 @@ class bkr_itemname_cmp
 
 class Utils
 {
+	protected $afuncs = NULL;
+	protected $cfuncs = NULL;
+
 	/**
 	 * ProcessTemplate:
 	 *
@@ -190,10 +191,14 @@ EOS;
 			if (is_array($sql)) {
 				$res = TRUE;
 				foreach ($sql as $i => $cmd) {
-					$res = $res && $db->Execute($cmd, $args[$i]);
+					$db->Execute($cmd, $args[$i]);
+					if ($db->Affected_Rows() == 0) { //TODO might be ok sometimes
+						$res = FALSE;
+					}
 				}
 			} else {
-				$res = ($db->Execute($sql, $args) != FALSE);
+				$db->Execute($sql, $args);
+				$res = ($db->Affected_Rows() > 0);
 			}
 			if ($db->CompleteTrans()) {
 				return $res;
@@ -926,18 +931,20 @@ EOS;
 			} else {
 				$this->afuncs = NULL;
 			}
-			$this->cfuncs = new Crypter();
+			if (!$this->cfuncs) {
+				$this->cfuncs = new Crypter($mod);
+			}
 
 			$regs = array();
 			$nonregs = array();
 
 			foreach ($data as &$row) {
-				$fld = $row['publicid'];
-				if ($fld) {
+				if (!empty($row['publicid'])) {
+					$fld = $row['publicid'];
 					if ($this->afuncs) {
 						if (!array_key_exists($fld, $regs)) {
-							$this->afuncs->GetPlainGetUserProperties($row);
-							if ($row['address']) {
+							$this->afuncs->GetPlainUserProperties($row);
+							if (!empty($row['address'])) {
 								if (preg_match(\Booker::PATNPHONE, $row['address'])) {
 									$row['phone'] = $row['address'];
 									$row['address'] = '';
@@ -947,24 +954,34 @@ EOS;
 							}
 							$regs[$fld] = $row;
 						}
-						$row['address'] = $regs[$fld]['address'];
-						$row['phone'] = $regs[$fld]['phone'];
+						if (isset($row['address'])) {
+							$row['address'] = $regs[$fld]['address'];
+							$row['phone'] = $regs[$fld]['phone'];
+						}
 					}
 				} else {
-					$fld = $row['name'];
-					if ($fld) {
+					if (isset($row['name'])) {
+						$fld = $row['name'];
 						if (!array_key_exists($fld, $nonregs)) {
-							$row['address'] = $this->cfuncs->decrypt_value($mod, $row['address']);
-							$row['phone'] = $this->cfuncs->decrypt_value($mod, $row['phone']);
+							if (isset($row['address'])) {
+								$row['address'] = $this->cfuncs->decrypt_value($row['address']);
+							}
+							if (isset($row['phone'])) {
+								$row['phone'] = $this->cfuncs->decrypt_value($row['phone']);
+							}
 							$nonregs[$fld] = $row;
 						}
-						$row['address'] = $nonregs[$fld]['address'];
-						$row['phone'] = $nonregs[$fld]['phone'];
+						if (isset($row['address'])) {
+							$row['address'] = $nonregs[$fld]['address'];
+						}
+						if (isset($row['phone'])) {
+							$row['phone'] = $nonregs[$fld]['phone'];
+						}
 					}
 				}
 			}
 			unset($row);
-		} elseif ($data['publicid']) { //single-row
+		} elseif (!empty($data['publicid'])) { //single-row
 			if (!$this->afuncs) {
 				$amod = \cms_utils::get_module('Auther');
 				if ($amod) {
@@ -974,24 +991,27 @@ EOS;
 					return;
 				}
 			}
-			$this->afuncs->GetPlainGetUserProperties($data);
-			if ($data['address']) {
+			$this->afuncs->GetPlainUserProperties($data);
+			if (!empty($data['address'])) {
 				if (preg_match(\Booker::PATNPHONE, $data['address'])) {
 					$data['phone'] = $data['address'];
 					$data['address'] = '';
-				} else {
-					$data['phone'] = '';
+				} elseif ($data['phone']) {
+					if (!$this->cfuncs) {
+						$this->cfuncs = new Crypter($mod);
+					}
+					$data['phone'] = $this->cfuncs->decrypt_value($data['phone']);
 				}
 			}
 		} else {
 			if (!$this->cfuncs) {
-				$this->cfuncs = new Crypter();
+				$this->cfuncs = new Crypter($mod);
 			}
-			if ($data['address']) {
-				$data['address'] = $this->cfuncs->decrypt_value($mod, $data['address']);
+			if (!empty($data['address'])) {
+				$data['address'] = $this->cfuncs->decrypt_value($data['address']);
 			}
-			if ($data['phone']) {
-				$data['phone'] = $this->cfuncs->decrypt_value($mod, $data['phone']);
+			if (!empty($data['phone'])) {
+				$data['phone'] = $this->cfuncs->decrypt_value($data['phone']);
 			}
 		}
 	}
@@ -1017,7 +1037,7 @@ EOS;
 			}
 		}
 		if (!$this->cfuncs) {
-			$this->cfuncs = new Crypter();
+			$this->cfuncs = new Crypter($mod);
 		}
 		//each row here has: [0]table(s)-field name,[1]enum 1..3 for booker,auther,both,[2]bool 0/1 for string field
 		$fields = array(
@@ -1042,7 +1062,7 @@ EOS;
 			$bookfields = array();
 			$bookargs = array();
 
-			if ($row['publicid'] && $this->afuncs) {
+			if (!empty($row['publicid']) && $this->afuncs) {
 				$authfields = array();
 				for ($i=0; $i<$fc; $i+=3) {
 					$one = $fields[$i];
@@ -1050,7 +1070,7 @@ EOS;
 						$val = $row[$one];
 						if ($val !== FALSE) {
 							if ($fields[$i+1] > 1) { //auther field
-								if ($fields[$i+1] > 0) { //string field
+								if ($fields[$i+2] > 0) { //string field
 									if ($val) {
 									} elseif ($one == 'address') {
 										$val = !empty($row['phone']) ? $row['phone'] : NULL;
@@ -1070,10 +1090,10 @@ EOS;
 								}
 							} elseif ($fields[$i+1] != 2) { //booker field
 								$bookfields[] = $one;
-								if ($fields[$i+1] > 0) { //string field
+								if ($fields[$i+2] > 0) { //string field
 									if ($val) {
 										if ($one == 'address' || $one == 'phone') {
-											$val = $this->cfuncs->encrypt_value($mod,$val);
+											$val = $this->cfuncs->encrypt_value($val);
 										}
 									} else {
 										$val = NULL;
@@ -1130,10 +1150,10 @@ EOS;
 						if ($val !== FALSE) {
 							if ($fields[$i+1] != 2) { //booker field
 								$bookfields[] = $one;
-								if ($fields[$i+1] > 1) { //string field
+								if ($fields[$i+2] > 0) { //string field
 									if ($val) {
 										if ($one == 'address' || $one == 'phone') {
-											$val = $this->cfuncs->encrypt_value($mod,$val);
+											$val = $this->cfuncs->encrypt_value($val);
 										}
 									} else {
 										$val = NULL;
@@ -1169,7 +1189,7 @@ EOS;
 				$bookargs[] = $booker_id;
 				$mod->dbHandle->Execute($sql,$bookargs);
 				$sql = 'INSERT INTO '.$mod->BookerTable.' ('.implode(',',$bookfields).
-				') SELECT '.str_repeat('?,', $count($bookfields)-1).
+				') SELECT '.str_repeat('?,', count($bookfields)-1).
 				'? FROM (SELECT 1 AS dmy) Z WHERE NOT EXISTS (SELECT 1 FROM '.
 				$mod->BookerTable.' WHERE booker_id=?)';
 				$mod->dbHandle->Execute($sql,$bookargs);
