@@ -695,7 +695,9 @@ function confirm_saved(btn) {
   cancelName: '{$this->Lang('no')}'
  }).then(function() {
   current_tab();
-  $(btn).trigger('click.deferred');
+  \$frm = $(btn).closest('form');
+  \$frm.append($('<input type="hidden" name="{$id}modfee" value="1"/>'));
+  \$frm.trigger('submit');
  })
 }
 EOS;
