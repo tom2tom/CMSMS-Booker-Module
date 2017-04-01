@@ -7,6 +7,7 @@
 //NOTE Any ' inside these strings which is js-processed must be double-escaped
 $lang['accessdenied'] = 'Access denied. You don\'t have %s permission.';
 $lang['accessdenied3'] = 'You don\'t have permission.';
+$lang['account'] = 'account/login';
 $lang['activate'] = 'Activate';
 $lang['activatesel'] = 'toggle activation of selected %s';
 $lang['addbooker'] = 'Add new booker';
@@ -80,6 +81,7 @@ $lang['each'] = 'each';
 $lang['edit'] = 'Edit';
 $lang['end'] = 'End';
 
+$lang['err_account'] = 'Unrecognised user';
 $lang['err_badend'] = 'Cannot use the end-time';
 $lang['err_badstart'] = 'Missing or unusable start-time';
 $lang['err_badtime'] = 'Something is wrong with booking time(s)';
@@ -91,7 +93,8 @@ $lang['err_file'] = 'Inappropriate file specified';
 $lang['err_na'] = 'Resource not available at specified time';
 $lang['err_late'] = 'Backdating not allowed';
 $lang['err_nocaptcha'] = 'You must provide the captcha text';
-$lang['err_nocontact'] = 'Without a valid phone or email contact, the booking cannot be confirmed';
+$lang['err_nocontact'] = 'Without a valid email or phone contact, the booking cannot be confirmed';
+$lang['err_nocontact2'] = 'You must provide a valid email and/or phone contact';
 $lang['err_nosender'] = 'You must provide a name';
 $lang['err_perm'] = 'No permission';
 $lang['err_parm'] = 'Parameter error';
@@ -164,7 +167,7 @@ Fees are per period as entered, or fixed if the corresponding period is 'anythin
 EOS;
 $lang['help_feecondition'] = 'See advice for available days and times. If blank, applies <strong>always</strong>';
 $lang['help_feugroup'] = 'Front-end users group whose members may commit and change bookings directly, instead of via request.';
-$lang['help_focus'] = 'Click/tap any table-cell, then one of the buttons +/- or Book<br />double-click/tap to initiate a booking request/change';
+$lang['help_focus'] = '<br />click/tap any timeslot, then one of the buttons +/- or Book<br />double-click/tap any timeslot to initiate a booking request/change for that<br />hover the pointer over a booked timeslot, to see more detail';
 $lang['help_formiface'] = 'TODO';
 $lang['help_groups'] = <<<'EOS'
 This %s may be in one or more groups, or none.<br />
@@ -293,7 +296,7 @@ $lang['help_memcount'] = 'There are %d %s in the group.';
 $lang['help_passnew'] = 'Replace existing password';
 $lang['help_passwd'] = 'A password must be provided for a registered booker';
 $lang['help_paymentiface'] = 'CMSMS module to be used for making online payments';
-$lang['help_phone'] = 'Phone number for messaging';
+$lang['help_phone'] = 'Phone number for messaging.<br />For a non-registered booker, address and/or phone must must be provided.';
 $lang['help_pickname'] = 'Label for this item in dropdown item-selectors';
 $lang['help_postpay'] = 'No need to pre-pay';
 $lang['help_publicid'] = 'Must be provided for a registered booker';
@@ -571,7 +574,7 @@ $lang['tip_zoomout'] = 'show less detail';
 //$lang['tip_viewbooking'] = 'inspect booking';
 $lang['tip_viewtype'] = 'view %s';
 
-$lang['title_account'] = 'Account/login';
+$lang['title_account'] = 'Account/login name';
 $lang['title_address'] = 'Contact';
 $lang['title_active'] = 'Activated';
 $lang['title_alias'] = 'Alias';
@@ -679,7 +682,6 @@ $lang['title_pickmembers'] = 'Include resource-members of this group in item-sel
 $lang['title_pickthis'] = 'Include this item in item-selectors';
 $lang['title_postpay'] = 'Authorised to post-pay';
 $lang['title_prompt'] = 'Replacement for square-bracketed text';
-$lang['title_publicid'] = 'Login/account name';
 $lang['title_range'] = 'Timespan of booking displays';
 $lang['title_range2'] = 'Display';
 $lang['title_ration'] = 'Maximum pending bookings per user';
