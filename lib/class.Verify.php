@@ -35,7 +35,8 @@ class Verify
 		'conformstyle' 'contact' 'conformcontact' 'paid'
 TODO support 'past' data without both date/time $params[]
 */
-		//always want these $params[] keys: 'name','contact'
+		//for a registered user, want $params[] keys: 'account','passwd'
+		//else want 'name','contact'
 		//maybe-present keys
 		//'subgrpcount','when','until'(maybe empty),
 		if (isset($params['when'])) {
@@ -115,25 +116,35 @@ $this->Crash();
 			}
 		}
 
-		$fv = trim($params['name']);
-		if(!$fv) {
-			$msg[] = ($admin) ?
-				$mod->Lang('missing_type',$mod->Lang('name')):
-				$mod->Lang('err_nosender');
-		}
+		if (isset($params['bookertype']) && $params['bookertype'] == 1) {
+			$ufuncs = new Userops($mod);
+			$fv = trim($params[ 'account']);
+			$pw = trim($params[ 'passwd']);
+			if (!$ufuncs->IsKnown($mod,$fv,$pw)) {
+				//not registered
+				$msg[] = $mod->Lang('err_account');
+			}
+		} else {
+			$fv = trim($params['name']);
+			if(!$fv) {
+				$msg[] = ($admin) ?
+					$mod->Lang('missing_type',$mod->Lang('name')):
+					$mod->Lang('err_nosender');
+			}
 
-		if (isset($params['contact'])) {
-			$fv = trim($params['contact']);
-			if($fv) {
-				if (!(preg_match(\Booker::PATNADDRESS,$fv)
-				   || preg_match(\Booker::PATNPHONE,$fv)))
-				$msg[] = ($admin) ?
-					$mod->Lang('invalid_type',$mod->Lang('contact')):
-					$mod->Lang('err_nocontact');
-			} else {
-				$msg[] = ($admin) ?
-					$mod->Lang('missing_type',$mod->Lang('contact')):
-					$mod->Lang('err_nocontact');
+			if (isset($params['contact'])) {
+				$fv = trim($params['contact']);
+				if($fv) {
+					if (!(preg_match(\Booker::PATNADDRESS,$fv)
+					   || preg_match(\Booker::PATNPHONE,$fv)))
+					$msg[] = ($admin) ?
+						$mod->Lang('invalid_type',$mod->Lang('contact')):
+						$mod->Lang('err_nocontact');
+				} else {
+					$msg[] = ($admin) ?
+						$mod->Lang('missing_type',$mod->Lang('contact')):
+						$mod->Lang('err_nocontact');
+				}
 			}
 		}
 
