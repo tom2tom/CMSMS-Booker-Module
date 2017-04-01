@@ -49,9 +49,13 @@ class Utils
 	 */
 	public static function ProcessTemplate(&$mod, $tplname, $tplvars, $cache = TRUE)
 	{
-		global $smarty;
 		if ($mod->before20) {
-			$smarty->assign($tplvars);
+			global $smarty;
+		} else {
+			$smarty = $mod->GetActionTemplateObject();
+		}
+		$smarty->assign($tplvars);
+		if ($mod->oldtemplates) {
 			return $mod->ProcessTemplate($tplname);
 		} else {
 			if ($cache) {
@@ -80,9 +84,13 @@ class Utils
 	 */
 	public static function ProcessTemplateFromData(&$mod, $data, $tplvars)
 	{
-		global $smarty;
 		if ($mod->before20) {
-			$smarty->assign($tplvars);
+			global $smarty;
+		} else {
+			$smarty = $mod->GetActionTemplateObject();
+		}
+		$smarty->assign($tplvars);
+		if ($mod->oldtemplates) {
 			return $mod->ProcessTemplateFromData($data);
 		} else {
 			$tpl = $smarty->CreateTemplate('eval:'.$data, NULL, NULL, $smarty, $tplvars);
@@ -953,6 +961,8 @@ EOS;
 								}
 							}
 							$regs[$fld] = $row;
+						} else {
+							$row = $regs[$fld];
 						}
 						if (isset($row['address'])) {
 							$row['address'] = $regs[$fld]['address'];
@@ -970,6 +980,8 @@ EOS;
 								$row['phone'] = $this->cfuncs->decrypt_value($row['phone']);
 							}
 							$nonregs[$fld] = $row;
+						} else {
+							$row = $nonregs[$fld];
 						}
 						if (isset($row['address'])) {
 							$row['address'] = $nonregs[$fld]['address'];
@@ -2329,23 +2341,12 @@ EOS;
 			foreach ($include as $k) {
 				if (isset($params[$k])) {
 					$v = $params[$k];
-					if (!is_array($v)) {
-						if (is_string($v) && $v) {
-							if (is_numeric($v)) {
-								$params[$k] = $v + 0;
-							} else {
-								if (strpos($v, '&') !== FALSE) {
-									$v = html_entity_decode($v, ENT_QUOTES | ENT_HTML401);
-								}
-								$v = str_replace('`', '', $v);
-								$v = preg_replace($patn, '_', $v);
-								$params[$k] = $v;
-							}
-						}
-					} else {
+					if (is_array($v)) {
 						foreach ($v as $i => &$one) {
 							if (is_string($one) && $one) {
-								if (is_numeric($one)) {
+								if ($k == 'phone' || ($k == 'contact' && is_numeric($one))) {
+									$params[$k][$i] = str_replace(' ','',$one);
+								} elseif (is_numeric($one)) {
 									$params[$k][$i] = $one + 0;
 								} else {
 									if (strpos($one, '&') !== FALSE) {
@@ -2358,6 +2359,21 @@ EOS;
 							}
 						}
 						unset($one);
+					} else {
+						if (is_string($v) && $v) {
+							if ($k == 'phone' || ($k == 'contact' && is_numeric($v))) {
+								$params[$k] = str_replace(' ','',$v);
+							} elseif (is_numeric($v)) {
+								$params[$k] = $v + 0;
+							} else {
+								if (strpos($v, '&') !== FALSE) {
+									$v = html_entity_decode($v, ENT_QUOTES | ENT_HTML401);
+								}
+								$v = str_replace('`', '',$v);
+								$v = preg_replace($patn, '_', $v);
+								$params[$k] = $v;
+							}
+						}
 					}
 				}
 			}
