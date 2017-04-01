@@ -109,6 +109,7 @@ class Booker extends CMSModule
 //	public $CacheTable; //cached bookings-data
 	public $UserTable; //admin users (who may 'own' resource/group)
 	public $before20;
+	public $oldtemplates;
 	public $havenotifier;
 
 	protected $PermStructName = 'Booker Module Admin';
@@ -141,6 +142,7 @@ class Booker extends CMSModule
 		$this->UserTable = $pre.'users';
 		global $CMS_VERSION;
 		$this->before20 = (version_compare($CMS_VERSION,'2.0') < 0);
+		$this->oldtemplates = $this->before20 || 1; //TODO
 		$ob = cms_utils::get_module('Notifier');
 		if ($ob) {
 			unset($ob);
