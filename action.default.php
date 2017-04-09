@@ -6,7 +6,6 @@
 #----------------------------------------------------------------------
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
-
 //parameter keys filtered out before redirect etc
 $localparams = array(
 	'action',
@@ -398,7 +397,7 @@ function col_focus() {
 }
 EOS;
 	$jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/include/tableHeadFixer.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/tableHeadFixer.min.js"></script>
 EOS;
  	$jsloads[] = <<<EOS
  var \$table = $('#scroller');
@@ -409,9 +408,9 @@ EOS;
 }
 
 $jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/include/pikaday.min.js"></script>
-<script type="text/javascript" src="{$baseurl}/include/pikaday.jquery.min.js"></script>
-<script type="text/javascript" src="{$baseurl}/include/php-date-formatter.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/pikaday.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/pikaday.jquery.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/php-date-formatter.min.js"></script>
 EOS;
 
 $nextm = $this->Lang('nextm');
