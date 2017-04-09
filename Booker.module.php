@@ -237,7 +237,7 @@ class Booker extends CMSModule
 		} else {
 			$example = $this->Lang('missing');
 		}
-		$fn = cms_join_path(__DIR__,'include','modhelp.html');
+		$fn = cms_join_path(__DIR__,'lib','doc','modhelp.htm');
 		$cont = @file_get_contents($fn);
 		return sprintf($cont,$example);
 	}
@@ -259,7 +259,7 @@ class Booker extends CMSModule
 
 	public function GetChangeLog()
 	{
-		$fn = cms_join_path(__DIR__,'include','changelog.html');
+		$fn = cms_join_path(__DIR__,'lib','doc','changelog.htm');
 		return @file_get_contents($fn);
 	}
 
@@ -338,12 +338,12 @@ EOS;
 
 	public function MinimumCMSVersion()
 	{
-		return '1.10'; //CHECKME
+		return '1.11'; //smarty3 needed CHECKME
 	}
 
 /*public function MaximumCMSVersion()
 	{
-		return '1.12.99';
+		return '2.2.99';
 	}
 */
 	public function InstallPostMessage()
