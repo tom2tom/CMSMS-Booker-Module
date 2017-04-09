@@ -5,12 +5,7 @@
 #----------------------------------------------------------------------
 # See file Booker.module.php for full details of copyright,licence,etc.
 #----------------------------------------------------------------------
-/*
-$t = 'nQCeESKBr99A';
-$this->SetPreference($t, hash('sha256', $t.microtime()));
-$cfuncs = new Booker\Crypter($this);
-$cfuncs->encrypt_preference('masterpass',base64_decode('U3VjayBpdCB1cCwgY3JhY2tlcnMh'));
-*/
+
 $pdev = $this->CheckPermission('Modify Any Page');
 $pset = $this->_CheckAccess('module');
 $padm = $pset || $this->_CheckAccess('admin');
@@ -47,16 +42,18 @@ $tplvars = array(
 	'tell' => $tell
 );
 
+$baseurl = $this->GetModuleURLPath();
+
 $si = $this->Lang('item');
 $sg = $this->Lang('group');
 $theme = ($this->before20) ? cmsms()->get_variable('admintheme'):
 	cms_utils::get_theme_object();
 $iconyes = $theme->DisplayImage('icons/system/true.gif',$this->Lang('true'),'','','systemicon');
 $iconno = $theme->DisplayImage('icons/system/false.gif',$this->Lang('false'),'','','systemicon');
+$icongone = '<img src="'.$baseurl.'/images/delete.gif" alt="'.$this->Lang('title_deletemarked').'" title="'.$this->Lang('stat_gone').'" border="0" />';
 $yes = $this->Lang('yes');
 $no = $this->Lang('no');
 
-$baseurl = $this->GetModuleURLPath();
 $bseetip = $this->Lang('tip_seetype','%s');
 $iconbsee = '<img src="'.$baseurl.'/images/booking.png" alt="%s" title="%s" border="0" />';
 if ($bmod) {
@@ -107,9 +104,9 @@ $tplvars['tab_headers'] = $this->StartTabHeaders().
 	$this->SetTabHeader('settings',$this->Lang('settings'),$seetab5).
 	$this->EndTabHeaders().
 	$this->StartTabContent();
+//workaround CMSMS2 crap 'auto-end', EndTab() & EndTabContent() before [1st] StartTab()
+$tplvars['end_tab'] = $this->EndTab(); //CMSMS2 workaraound: End() after every Start()
 $tplvars['tab_footers'] = $this->EndTabContent();
-$tplvars['end_tab'] = $this->EndTab();
-$tplvars['endform'] = $this->CreateFormEnd();
 
 $cfuncs = new Booker\Crypter($this);
 $utils = new Booker\Utils();
@@ -119,13 +116,14 @@ $jsloads = array();
 $jsincs = array();
 
 $jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/include/jquery.alertable.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/jquery.alertable.min.js"></script>
 EOS;
 $tablerows = array();
 
 //BOOKINGS TAB (& FORM)
 $tplvars['startform1'] = $this->CreateFormStart($id,'processrequest',$returnid,
 	'POST','','','',array('active_tab'=>'data','resume'=>$resume,'custmsg'=>''));
+$tplvars['endform'] = $this->CreateFormEnd();
 $tplvars['start_data_tab'] = $this->StartTab('data');
 
 $tablerows[1] = 0;
@@ -515,13 +513,32 @@ if ($data) {
 		$one->reg = ($row['publicid']) ? $iconyes : $iconno;
 		if ($pper) {
 			//TODO if ($row['active'] == -1) {}
-			$one->act = ($row['active'] == 1) ?
-				$this->CreateLink($id,'adminbooker',$returnid,$iconyes,
-					array('booker_id'=>$bookerid,'task'=>'toggle','active'=>TRUE)):
-				$this->CreateLink($id,'adminbooker',$returnid,$iconno,
+			switch ($row['active']) {
+			 case 1:
+				$one->act = $this->CreateLink($id,'adminbooker',$returnid,$iconyes,
+					array('booker_id'=>$bookerid,'task'=>'toggle','active'=>TRUE));
+				break;
+			 case 0:
+				$one->act = $this->CreateLink($id,'adminbooker',$returnid,$iconno,
 					array('booker_id'=>$bookerid,'task'=>'toggle','active'=>FALSE));
+				break;
+			 case -1:
+				$one->act = $this->CreateLink($id,'adminbooker',$returnid,$icongone,
+					array('booker_id'=>$bookerid,'task'=>'toggle','active'=>FALSE));
+				break;
+			}
 		} else {
-			$one->act = ($row['active'] == 1) ? $iconyes : $iconno;
+			switch ($row['active']) {
+			 case 1:
+				$one->act = $iconyes;
+				break;
+			 case 0:
+				$one->act = $iconno;
+				break;
+			 case -1:
+				$one->act = $icongone;
+				break;
+			}
 		}
 		if (is_numeric($row['addwhen'])) {
 			$dt->setTimestamp($row['addwhen']);
@@ -678,7 +695,7 @@ if ($relations)
 	$relkeys = array_keys($relations);
 $memcounts = $db->GetAssoc('SELECT parent,COUNT(gid) AS num FROM '.$this->GroupTable.' GROUP BY parent');
 $grpnames = $db->GetAssoc('SELECT item_id,name FROM '.$this->ItemTable.' WHERE item_id>='.Booker::MINGRPID.' ORDER BY item_id');
-$owned = $db->GetOne('SELECT FIRST(item_id) AS own FROM '.$this->ItemTable.' WHERE owner > 0'); //something has an owner
+$owned = $db->SelectLimit('SELECT item_id AS own FROM '.$this->ItemTable.' WHERE owner > 0',1); //something has an owner
 
 $sql = <<<EOS
 SELECT I.item_id,I.alias,I.name,I.owner,I.active,U.first_name,U.last_name
@@ -1080,6 +1097,7 @@ $cells[] = $column;
 
 $tplvars['reportcells'] = $cells;
 $tplvars['reportrows'] = 4;
+$tplvars['reportcols'] = 4;
 $tplvars['displaybtn'] = '[BTNDISPLAY]';
 $tplvars['exportbtn5'] = '[BTNEXPORT]';
 
@@ -1521,8 +1539,8 @@ foreach ($tablerows as $i=>$rc) {
 
 if ($include) {
 	$jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/include/jquery.metadata.min.js"></script>
-<script type="text/javascript" src="{$baseurl}/include/jquery.SSsort.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/jquery.metadata.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/jquery.SSsort.min.js"></script>
 EOS;
 
 $initbls = '';
@@ -1607,7 +1625,7 @@ EOS;
 }
 
 $jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/include/jquery-inputCloak.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/jquery-inputCloak.min.js"></script>
 EOS;
 
 $jsloads[] = <<<'EOS'
