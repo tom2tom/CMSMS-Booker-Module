@@ -15,22 +15,22 @@
 <div style="margin:2px 2px 12px 2px;height:30em;width:100%;">
 <table id="scroller" class="booker {$tableclass}">
  <thead><tr>
-{section name=c loop=$columns}
-{if !empty($columns[c])}<th {$columns[c][0]->style} iso="{$columns[c][0]->iso}">{$columns[c][0]->data}{else}<th>{/if}</th>{/section}
+{for $c=0 to $colcount-1}
+{if !empty($columns[$c])}<th {$columns[$c][0]->style} iso="{$columns[$c][0]->iso}">{$columns[$c][0]->data}{else}<th>{/if}</th>
+{/for}
  </tr></thead>
  <tbody>
-{section name=rows start=1 loop=$rowcount}{*smarty3 for $r=1 to $rowcount*}
-{assign var='r' value=$smarty.section.rows.index}
+{for $r=1 to $rowcount-1}
  <tr>
-{section name=c loop=$columns}
-{if !empty($columns[c])}<td{if !empty($columns[c][$r]->bkgid)} id="{$columns[c][$r]->bkgid}"{/if}
-{if !empty($columns[c][$r]->style)} {$columns[c][$r]->style}{/if}
-{if !empty($columns[c][$r]->tip)} title="{$columns[c][$r]->tip}"{/if}
-{if !empty($columns[c][$r]->iso)} iso="{$columns[c][$r]->iso}"{/if}>{$columns[c][$r]->data}
+{for $c=0 to $colcount-1}
+{if !empty($columns[$c])}<td{if !empty($columns[$c][$r]->bkgid)} id="{$columns[$c][$r]->bkgid}"{/if}
+{if !empty($columns[$c][$r]->style)} {$columns[$c][$r]->style}{/if}
+{if !empty($columns[$c][$r]->tip)} title="{$columns[$c][$r]->tip}"{/if}
+{if !empty($columns[$c][$r]->iso)} iso="{$columns[$c][$r]->iso}"{/if}>{$columns[$c][$r]->data}
 {else}<td>{/if}</td>
-{/section}
+{/for}
  </tr>
-{/section}{*smarty3 /for*}
+{/for}
  </tbody>
 </table>
 </div>
@@ -40,8 +40,8 @@
 {/if}
 <div>
 <table id="bookactions" style="display:inline-block;border:0;overflow:auto;">
-<tr>{section name=c loop=$actions1}<td>{$actions1[c]}</td>{/section}</tr>
-<tr>{section name=c loop=$actions2}<td>{$actions2[c]}</td>{/section}</tr>
+<tr>{foreach from=$actions1 item=inc}<td>{$inc}</td>{/foreach}</tr>
+<tr>{foreach from=$actions2 item=inc}<td>{$inc}</td>{/foreach}</tr>
 </table>
 </div>
 {$endform}

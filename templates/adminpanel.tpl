@@ -270,15 +270,14 @@
 {$startform5}
 <div style="overflow:auto;">
  <table id="reportstable" class="leftwards pagetable">
-  <thead>
-   <tr>{section name=c loop=$reportcells}<th>{$reportcells[c][0]}</th>{/section}</tr>
-  </thead>
+  <thead><tr>
+   {foreach $reportcells as $col}<th>{$col[0]}</th>{/foreach}
+  </tr></thead>
   <tbody>
-{section name=rows start=1 loop=$reportrows}{*smarty3 for $r=1 to $reportrows*}
-{assign var='r' value=$smarty.section.rows.index}
-   <tr>{section name=c loop=$reportcells}{assign var='col' value=$smarty.section.c.index}
-       <td {if $col==0}style="font-weight:bold;"{else}class="check"{/if}>{$reportcells[$col][$r]}</td>{/section}</tr>
-{/section}{*smarty3 /for*}
+{for $r=1 to $reportrows-1}
+   <tr>{for $col=0 to $reportcols-1}
+       <td {if $col==0}style="font-weight:bold;"{else}class="check"{/if}>{$reportcells[$col][$r]}</td>{/for}</tr>
+{/for}
   </tbody>
  </table>
 </div>

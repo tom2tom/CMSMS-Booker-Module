@@ -15,7 +15,7 @@
 <div class="bkglist" style="oveflow:auto;">
  <table class="booker">
   <tbody>
-{foreach from=$sections item=block}{cycle values="2,1,0" assign=nc}
+{foreach $sections as $block}{cycle values="2,1,0" assign=nc}
 {if $nc==2}<tr>{/if}
  <td class="list">
 {if !empty($block->ttl)}<h5>{$block->ttl}</h5>{/if}
@@ -23,7 +23,7 @@
  </td>
 {if !$nc}</tr>{/if}
 {/foreach}
-{if $nc>0}{section foo $nc}<td class="list"></td>{/section}</tr>{/if}
+{if $nc>0}{for $foo=1 to $nc}<td class="list"></td>{/for}</tr>{/if}
   </tbody>
  </table>
 </div>
@@ -33,8 +33,8 @@
 <br />
 <div>
 <table id="bookactions" style="display:inline-block;border:0;">
-<tr>{section name=c loop=$actions1}<td>{$actions1[c]}</td>{/section}</tr>
-<tr>{section name=c loop=$actions2}<td>{$actions2[c]}</td>{/section}</tr>
+<tr>{foreach $actions1 as $inc}<td>{$actions1[c]}</td>{/foreach}</tr>
+<tr>{foreach $actions2 as $inc}<td>{$actions2[c]}</td>{/foreach}</tr>
 </table>
 </div>
 {$endform}
