@@ -100,7 +100,7 @@ $lang['err_perm'] = 'No permission';
 $lang['err_parm'] = 'Parameter error';
 $lang['err_server'] = 'Server error';
 $lang['err_system'] = 'System error';
-//$lang['err_text'] = 'TODO';
+//$lang['err_text']='Invalid SMS content';
 $lang['err_upload'] = 'Failed to upload styling file: %s';
 $lang['error'] = 'Error!';
 
@@ -167,7 +167,7 @@ Fees are per period as entered, or fixed if the corresponding period is 'anythin
 EOS;
 $lang['help_feecondition'] = 'See advice for available days and times. If blank, applies <strong>always</strong>';
 $lang['help_feugroup'] = 'Front-end users group whose members may commit and change bookings directly, instead of via request.';
-$lang['help_focus'] = '<br />click/tap any timeslot, then one of the buttons +/- or Book<br />double-click/tap any timeslot to initiate a booking request/change for that<br />hover the pointer over a booked timeslot, to see more detail';
+$lang['help_focus'] = 'click/tap any timeslot, then one of the buttons +/- or Book<br />double-click/tap any timeslot to initiate a booking request/change for that<br />hover the pointer over a booked timeslot, to see more detail';
 $lang['help_formiface'] = 'TODO';
 $lang['help_groups'] = <<<'EOS'
 This %s may be in one or more groups, or none.<br />
@@ -609,6 +609,7 @@ $lang['title_dateformat'] = 'Template for formatting displayed dates';
 $lang['title_days'] = 'Days';
 $lang['title_deletemarked'] = 'Flagged for deletion';
 $lang['title_description'] = 'Booking descriptor';
+$lang['title_display'] = 'Display';
 $lang['title_displayclass'] = 'Display category';
 $lang['title_email_domains'] = 'Email-address-check domains';
 $lang['title_email_subdomains'] = 'Email-address-check sub-domains';
@@ -643,7 +644,6 @@ $lang['title_groups'] = 'Groups';
 $lang['title_groups2'] = 'Groups which include this %s';
 $lang['title_hours'] = 'Hours';
 $lang['title_howmany'] = 'How many of the %s?';
-$lang['title_id'] = 'ID';
 $lang['title_image'] = 'Descriptive image(s)';
 $lang['title_importbookers'] = 'Import bookers';
 $lang['title_importbooks'] = 'Import bookings';
@@ -686,7 +686,7 @@ $lang['title_range'] = 'Timespan of booking displays';
 $lang['title_range2'] = 'Display';
 $lang['title_ration'] = 'Maximum pending bookings per user';
 $lang['title_record'] = 'Authorised to record';
-$lang['title_recover'] = 'Recover your password for use in the bookings system';
+$lang['title_recover'] = 'Reinstate your password for the bookings system';
 $lang['title_register'] = 'Register your details for use in the bookings system';
 $lang['title_registered'] = 'Registered-user details';
 $lang['title_repeats'] = 'Repeat bookings';
