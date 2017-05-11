@@ -257,6 +257,7 @@ if ($t)
 $intrvl = $publicperiods[$range];
 $mintrvl = $utils->RangeNames($this,$range,TRUE); //plural variant
 
+$tplvars['actionstitle'] = $this->Lang('title_display');
 $actions1 = array();
 $actions1[] = $this->CreateInputSubmit($id,'slide','+1','title="'.$this->Lang('tip_forw1',$intrvl).'"');
 if ($range == Booker::RANGEDAY)
@@ -298,11 +299,6 @@ EOS;
 
 $actions1[] = $this->CreateInputSubmit($id,'toggle',$t,
 	'title="'.$this->Lang('tip_otherview').'"');
-
-$xtra = ($cart->seemsEmpty()) ?
-	'disabled="disabled" title="'.$this->Lang('tip_cartempty').'"':
-	'title="'.$this->Lang('tip_cartshow').'"';
-$actions1[] = $this->CreateInputSubmit($id,'cart',$this->Lang('cart'),$xtra);
 $tplvars['actions1'] = $actions1;
 
 $actions2 = array();
@@ -350,10 +346,14 @@ EOS;
 //	$actions2[] = ''; //alignment padding
 $actions2[] = $this->CreateInputSubmit($id,'find',$this->Lang('find'),
 	'title="'.$this->Lang('tip_find').'"');
-$actions2[] = $this->CreateInputSubmit($id,'request',$this->Lang('book'),
-	'title="'.$this->Lang('tip_book').'"');
-
 $tplvars['actions2'] = $actions2;
+
+$tplvars['book'] = $this->CreateInputSubmit($id,'request',$this->Lang('book'),
+	'title="'.$this->Lang('tip_book').'"');
+$xtra = ($cart->seemsEmpty()) ?
+	'disabled="disabled" title="'.$this->Lang('tip_cartempty').'"':
+	'title="'.$this->Lang('tip_cartshow').'"';
+$tplvars['cart'] = $this->CreateInputSubmit($id,'cart',$this->Lang('cart'),$xtra);
 
 $funcs2 = new Booker\Display($this);
 if ($showtable) {
@@ -385,8 +385,20 @@ function slot_record(el) {
  dt += table.rows[idx+1].cells[0].getAttribute('iso');
  $('#{$id}clickat').val(dt);
 }
+var focus = null;
 function slot_focus() {
+ if (focus != null) {
+  $(focus).removeClass('slotfocus');
+ }
+ focus = this;
+ $(this).addClass('slotfocus');
  slot_record(this);
+ var btn = $('#{$id}request');
+ btn.addClass('btnfocus');
+ setTimeout(function() {
+  btn.removeClass('btnfocus');
+  btn[0].focus();
+ },4000);
 }
 function col_focus() {
  var idx = $(this).index(),
