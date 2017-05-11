@@ -34,14 +34,18 @@
  </tbody>
 </table>
 </div>
-<p>{$focushelp}</p>
+<p style="text-indent:-26px;margin-left:26px;">{$focushelp}</p>
 {else}
 <p>{$nobookings}</p>
 {/if}
 <div>
+<fieldset>
+<legend>{$actionstitle}</legend>
 <table id="bookactions" style="display:inline-block;border:0;overflow:auto;">
 <tr>{foreach from=$actions1 item=inc}<td>{$inc}</td>{/foreach}</tr>
 <tr>{foreach from=$actions2 item=inc}<td>{$inc}</td>{/foreach}</tr>
 </table>
+</fieldset>
+<p style="margin-left:5px;">{$book} {$cart}</p>
 </div>
 {$endform}
