@@ -90,7 +90,10 @@ if (isset($params['bkr_resume'])) { //first-time here
 $item_id = (int)$params['item_id'];
 
 $baseurl = $this->GetModuleURLPath();
+$baseurl2 = str_replace($this->GetName(), 'Auther', $baseurl);
+
 $stylers = <<<EOS
+<link rel="stylesheet" type="text/css" href="{$baseurl2}/css/authpanel.css" />
 <link rel="stylesheet" type="text/css" href="{$baseurl}/css/public.css" />
 EOS;
 $customcss = $utils->GetStylesURL($this, $item_id);
