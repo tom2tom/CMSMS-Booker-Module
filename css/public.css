@@ -69,6 +69,13 @@ table.booker td.vacant {
  background-color:#FFF; /*white*/
 }
 
+/* slot focussed */
+table.booker td.slotfocus{
+ border-color:#F00;
+ border-width:2px;
+ border-style:double;
+}
+
 /*slot requested*/
 table.booker td.request {
  color:#F2F2F2; /* light grey */
@@ -141,6 +148,12 @@ table.booker td.part5 {
  border:0;
  padding:5px 5px 0 5px;
 }
+/* focussed action-button */
+.btnfocus {
+ color:#F00;
+ font-weight:bold;
+}
+
 /*booking-request-page table */
 table.shrink {
  border:0;
@@ -166,59 +179,77 @@ input.captcha {
  vertical-align:28px;
 }
 
+fieldset {
+ margin-top: 0.5em;
+ margin-bottom: 0.5em;
+/*padding-top:10px;*/
+ border:1px solid #AAA;
+ border-radius:8px;
+/*box-shadow:0 0 10px #AAA;*/
+}
+legend {
+ margin-left:1em;
+ padding:0 5px;
+}
+/*legend {
+ float:left;
+ margin-left:1em;
+ margin-top:-20px;
+}
+legend + * {
+ clear:both;
+}
+*/
+
 /* sorted tables */
-table.table_sort thead tr th
-{
-	margin: 0 20px;
-	padding: 5px 5px 5px 10px;
-/*	color: #000; */
-/* 	background: #E5B400; / *gold*/
-	text-align: left;
-	cursor: default;
+table.table_sort thead tr th {
+ margin: 0 20px;
+ padding: 5px 5px 5px 10px;
+/* color: #000; */
+/* background: #E5B400; / *gold*/
+ text-align: left;
+ cursor: default;
 }
 
 table.table_sort thead tr th.ord, table.table_sort thead tr th.\{sss\:false\}
 {
-	margin-left: 0;
-	padding-left: 2px;
+ margin-left: 0;
+ padding-left: 2px;
 }
 
 table.table_sort thead tr th.checkbox
 {
-	margin-left: 20px;
-	padding-left: 10px;
+ margin-left: 20px;
+ padding-left: 10px;
 }
 
-table.table_sort thead tr .SortAble
-{
-	background-image: url(../images/bgdark.gif);
-	background-repeat: no-repeat;
-	background-position: center left;
-	cursor: pointer;
+table.table_sort thead tr .SortAble {
+ background-image: url(../images/bgdark.gif);
+ background-repeat: no-repeat;
+ background-position: center left;
+ cursor: pointer;
 }
 
-table.table_sort thead tr .SortUp
-{
-	background-image: url(../images/ascdark.gif);
-	background-repeat: no-repeat;
-	background-position: center left;
-	cursor: pointer;
+table.table_sort thead tr .SortUp {
+ background-image: url(../images/ascdark.gif);
+ background-repeat: no-repeat;
+ background-position: center left;
+ cursor: pointer;
 }
 
-table.table_sort thead tr .SortDown
-{
-	background-image: url(../images/descdark.gif);
-	background-repeat: no-repeat;
-	background-position: center left;
-	cursor: pointer;
+table.table_sort thead tr .SortDown {
+ background-image: url(../images/descdark.gif);
+ background-repeat: no-repeat;
+ background-position: center left;
+ cursor: pointer;
 }
 
 table.table_sort tbody td.row1s {
-	background-color: #E9E9E9;
+ background-color: #E9E9E9;
 }
 
 table.table_sort tbody td.row2s {
-	background: #D9D9D9;
+ background: #D9D9D9;
 }
 
 table.bkr_collapse {
@@ -228,28 +259,29 @@ table.bkr_collapse {
 }
 
 input.fakelink {
-	margin:0;
-	padding:0;
-	border:none;
-    border:0;
-	outline:none;
-	background:none;
-	text-align:left;
-	text-decoration:underline;
-    font-family:inherit;
-/*	font-size:inherit;*/
+ margin:0;
+ padding:0;
+ border:none;
+ border:0;
+ outline:none;
+ background:none;
+ text-align:left;
+ text-decoration:underline;
+ font-family:inherit;
+/*font-size:inherit;*/
 }
 
 input.fakelink:hover {
-	text-decoration:none;
-	background:none;
+ text-decoration:none;
+ background:none;
 }
 
 input.fakelink:focus {
-  outline: none;
+ outline: none;
 }
 
 /* registration panel */
 div#authactions {
-	margin-top: 1em;
+ margin-top: 1em;
 }
+
