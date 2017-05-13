@@ -153,8 +153,10 @@ class Schedule
 				if ($utils->SafeExec($sql,$args)) {
 					if ($reqdata['subgrpcount'] == 1) { //if we're doing a 1-item group, revert to specific resource
 						$reqdata['item_id'] = $item_id;
+						$idata = $utils->GetItemProperty($mod,$item_id,array('item_id','name','timezone'),FALSE);
+						$reqdata['item_name'] = $utils->GetItemName($mod,$idata);
+						$reqdata['approved'] = $utils->GetZoneTime($idata['timezone']);
 					}
-					$reqdata['approved'] = $utils->GetZoneTime($idata['timezone']);
 					$reqdata['slotstart'] = $bs;
 					$reqdata['slotlen'] = $be-$bs;
 					$reqdata['status'] = $stat;
@@ -561,8 +563,9 @@ class Schedule
 						}
 					} else {
 						$reqdata = array($reqdata);
-						if (!self::ScheduleMulti($mod,$utils,$reqdata,$item_id,$bkgid,$session_id,TRUE))
+						if (!self::ScheduleMulti($mod,$utils,$reqdata,$item_id,$bkgid,$session_id,TRUE)) {
 							$ret = FALSE;
+						}
 					}
 					//TODO modify stuff to reflect status values in $reqdata[]
 				}
@@ -719,7 +722,7 @@ class Schedule
 				return ($b['paid'] - $a['paid']); //paid-first
 			});
 
-			$sql = 'UPDATE '.$mod->RepeatsTable.' SET checkedfrom=?,checkedto=? WHERE bkg_id=?';
+			$sql = 'UPDATE '.$mod->RepeatTable.' SET checkedfrom=?,checkedto=? WHERE bkg_id=?';
 
 			list($bs,$be) = $utils->BlockWholeDays($bs,$be);
 			$reps = new WhenRules($mod);
@@ -738,8 +741,8 @@ class Schedule
 					$nd = $st;
 					$st = $bs;
 				} elseif ($be > $nd && $bs >= $st) {
-					$nd = $be;
 					$st = $nd;
+					$nd = $be;
 				} else { //extend both earlier and later
 					$st = $bs;
 					$nd = $be;
@@ -747,17 +750,20 @@ class Schedule
 				}
 
 				if ($force) {
-$this->Crash();//TODO overwrite/replace/supplement existing bookings
+$adbg = 1;
+//$this->Crash();//TODO overwrite/replace/supplement existing bookings
 				}
-
-				if (self::RecordRepeats($mod,$utils,$reps,$blocks,$all,$st,$nd)) {
+				$res = self::RecordRepeats($mod,$utils,$reps,$blocks,$all,$st,$nd);
+				if ($res) {
 					//log earliest- and last-interpreted dates
-					$st = min($st,$one['checkedfrom']);
+					if ($one['checkedfrom'] != 0) {
+						$st = min($st,$one['checkedfrom']);
+					}
 					$nd = max($nd,$one['checkedto']);
 					$utils->SafeExec($sql,array($st,$nd,$bkg_id));
 				} else {
-//$this->Crash();
-					//TODO handle failure other than nothing-to-do
+$adbg = 1;
+//$this->Crash(); //TODO handle failure other than nothing-to-do
 				}
 			}
 		}
