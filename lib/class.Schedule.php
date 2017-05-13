@@ -511,64 +511,58 @@ class Schedule
 	@utils: reference to Utils object
 	@reps: reference to WhenRules-class object
 	@blocks: reference to Blocks-class object
-	@rows: priority-ordered associative array of RepeatTable data, for an item and all its ancestors
+	@row: array, a row of RepeatTable data
 	@bs: UTC timestamp for beginning of 1st day of period to be processed
 	@be: stamp for end of last day of period
 	Returns: boolean indicating complete success, TRUE if nothing found
 	*/
-	private function RecordRepeats(&$mod, &$utils, &$reps, &$blocks, $rows, $bs, $be)
+	private function RecordRepeats(&$mod, &$utils, &$reps, &$blocks, $row, $bs, $be)
 	{
-		$ret = TRUE;
-		$parmstore = array();
+		$item_id = (int)$row['item_id'];
+		//get enough data for TimeParms()
+		$idata = $utils->GetItemProperty($mod,$item_id,array('slottype','slotcount'),TRUE);
+		$idata = $idata + $utils->GetItemProperty($mod,$item_id,array('timezone','latitude','longitude'));
+		$timeparms = $reps->TimeParms($idata);
 
-		foreach ($rows as $bkgid=>$row) {
-			$item_id = (int)$row['item_id'];
-			if (!isset($parmstore[$item_id])) {
-				//get enough data for TimeParms()
-				$idata = $utils->GetItemProperty($mod,$item_id,array('slottype','slotcount'),TRUE);
-				$idata = $idata + $utils->GetItemProperty($mod,$item_id,array('timezone','latitude','longitude'));
-				$parmstore[$item_id] = $reps->TimeParms($idata);
-				$parmstore[$item_id]['slottype'] = $idata['slottype'];
-				$parmstore[$item_id]['slotcount'] = $idata['slotcount'];
-			}
-			$timeparms = $parmstore[$item_id];
+		$ret = TRUE;
+		$res = $reps->AllIntervals($row['formula'],$bs,$be,$timeparms);
+		if ($res) {
+			list($starts,$ends) = $res;
+			//TODO support forced update of all data in interval
+			//TODO diff against slots already processed
+			$blocks->MergeBlocks($starts,$ends);
+			$bkgid = (int)$row['bkg_id'];
 			if (!$row['subgrpcount']) {
 				if ($item_id < \Booker::MINGRPID)
 					$row['subgrpcount'] = 1;
 				else
 					$row['subgrpcount'] = count($utils->GetGroupItems($mod,$item_id));
 			}
-			$res = $reps->AllIntervals($row['formula'],$bs,$be,$timeparms);
-			if ($res) {
-				list($starts,$ends) = $res;
-				//TODO diff against slots already processed
-				$blocks->MergeBlocks($starts,$ends);
-				$session_id = Cache::GetKey(\Booker::SESSIONKEY);//identifier for cached slotstatus data
-				foreach ($starts as $i=>$st) {
-					//data to mimic a request, some HistoryTable fields
-					//recreate whole data array cuz downstream messes with it
-					//CHECKME ok to bundle all requests at different times?
-					list($st,$nd) = $utils->TuneBlock($parmstore[$item_id]['slottype'],$parmstore[$item_id]['slotcount'],$st,$ends[$i]);
-					$ps = ($row['paid']) ? \Booker::STATPAID : \Booker::STATNOTPAID; //TODO if free-to-use
-					$reqdata = array(
-					 'subgrpcount'=>(int)$row['subgrpcount'],
-					 'booker_id'=>(int)$row['booker_id'],
-					 'slotstart'=>$st,
-					 'slotlen'=>$nd-$st,
-					 'payment'=>$ps
-					);
-					if ($reqdata['subgrpcount'] < 2) {
-						if (!self::ScheduleOne($mod,$utils,$reqdata,$item_id,$bkgid,$session_id,TRUE)) {
-							$ret = FALSE;
-						}
-					} else {
-						$reqdata = array($reqdata);
-						if (!self::ScheduleMulti($mod,$utils,$reqdata,$item_id,$bkgid,$session_id,TRUE)) {
-							$ret = FALSE;
-						}
+			$session_id = Cache::GetKey(\Booker::SESSIONKEY);//identifier for cached slotstatus data
+			foreach ($starts as $i=>$st) {
+				//data to mimic a request, some HistoryTable fields
+				//recreate whole data array cuz downstream messes with it
+				//CHECKME ok to bundle all requests at different times?
+				list($st,$nd) = $utils->TuneBlock($idata['slottype'],$idata['slotcount'],$st,$ends[$i]);
+				$ps = ($row['paid']) ? \Booker::STATPAID : \Booker::STATNOTPAID; //TODO if free-to-use
+				$reqdata = array(
+				 'subgrpcount'=>(int)$row['subgrpcount'],
+				 'booker_id'=>(int)$row['booker_id'],
+				 'slotstart'=>$st,
+				 'slotlen'=>$nd-$st,
+				 'payment'=>$ps
+				);
+				if ($reqdata['subgrpcount'] < 2) {
+					if (!self::ScheduleOne($mod,$utils,$reqdata,$item_id,$bkgid,$session_id,TRUE)) {
+						$ret = FALSE;
 					}
-					//TODO modify stuff to reflect status values in $reqdata[]
+				} else {
+					$reqdata = array($reqdata);
+					if (!self::ScheduleMulti($mod,$utils,$reqdata,$item_id,$bkgid,$session_id,TRUE)) {
+						$ret = FALSE;
+					}
 				}
+				//TODO modify stuff to reflect status values in $reqdata[]
 			}
 		}
 		return $ret;
@@ -686,87 +680,122 @@ class Schedule
 	 specific bookings in bookings table, and do consequential stuff
 	@mod: reference to current Booker module
 	@utils: reference to Utils-class object
-	@item_id: resource or group identifier
+	@item: resource or group identifier (a.k.a. item_id), or array of them
 	@bs: UTC timestamp for block start, not necesssarily a day-start
 	@be: ditto for block end
+	@force: optional boolean whether to ignore (hence refresh) existing bookings in @bs..@be, default FALSE
 	Returns: nothing
 	*/
-	public function UpdateRepeats(&$mod, &$utils, $item_id, $bs, $be)
+	public function UpdateRepeats(&$mod, &$utils, $item, $bs, $be, $force=FALSE)
 	{
-		$args = $utils->GetItemGroups($mod,$item_id);
-		array_unshift($args, $item_id); //proximity-ordered for checking
-		$fillers = str_repeat('?,',count($args)-1);
-		//downstream uses bkg_id,formula,booker_id,subgrpcount,paid
-		$sql = 'SELECT * FROM '.$mod->RepeatTable.
-		' WHERE item_id IN ('.$fillers.'?) AND active=1 ORDER BY item_id,bkg_id DESC';
 		$db = $mod->dbHandle;
+		//downstream uses bkg_id,formula,booker_id,subgrpcount,paid
+		$sql = 'SELECT * FROM '.$mod->RepeatTable.' WHERE active=1 ORDER BY item_id,bkg_id DESC';
 		//TODO $utils->SafeGet()
-		$all = $db->GetAssoc($sql,$args);
-/*TODO	if ($item_id >= \Booker::MINGRPID)
-			$all = self::MembersLike($mod,$item_id);
-		else
-			$all = array($item_id);
-*/
-		if ($all) {
-			uasort($all,function($a, $b) use ($args)
-			{
-				$ta = $a['item_id'];
-				$tb = $b['item_id'];
-				if ($ta != $tb) {
-					$ka = array_search($ta,$args);
-					$kb = array_search($tb,$args);
-					if ($ka != $kb) {
-						return ($ka-$kb);
-					}
-				}
-				return ($b['paid'] - $a['paid']); //paid-first
-			});
+		$all = $db->GetArray($sql);
+		if (!$all) {
+			return;
+		}
 
-			$sql = 'UPDATE '.$mod->RepeatTable.' SET checkedfrom=?,checkedto=? WHERE bkg_id=?';
+		if (!is_array($item)) {
+			$item = array($item);
+		}
+		$processed = array();
+		list($bs,$be) = $utils->BlockWholeDays($bs,$be);
+		$whens = new WhenRules($mod);
+		$blocks = new Blocks();
 
-			list($bs,$be) = $utils->BlockWholeDays($bs,$be);
-			$reps = new WhenRules($mod);
-			$blocks = new Blocks();
-//TODO proper handling of inherited repeat-descriptors c.f. Payment::WhenRuledBlocks()
-			foreach ($all as $bkg_id=>$one) { //TODO unnecessary repetition?
-				$st = $one['checkedfrom'];
-				$nd = $one['checkedto'];
-				$force = FALSE;
-				if ($st <= 0) { //nothing processed
-					$st = $bs;
-					$nd = $be;
-				} elseif ($bs >= $st && $be <= $nd) { //whole interval already processed
+		foreach ($item as $item_id) {
+			if (in_array($item_id,$processed)) {
+				continue;
+			}
+			$ancestors = $utils->GetItemGroups($mod,$item_id);
+			array_unshift($ancestors,$item_id); //proximity-ordered for checking
+			foreach ($ancestors as $a_id) {
+				if (in_array($a_id,$processed)) {
 					continue;
-				} elseif ($bs < $st && $be <= $nd) { //extend the interval already processed
-					$nd = $st;
-					$st = $bs;
-				} elseif ($be > $nd && $bs >= $st) {
-					$st = $nd;
-					$nd = $be;
-				} else { //extend both earlier and later
-					$st = $bs;
-					$nd = $be;
-					$force = TRUE;
 				}
-
-				if ($force) {
-$adbg = 1;
-//$this->Crash();//TODO overwrite/replace/supplement existing bookings
-				}
-				$res = self::RecordRepeats($mod,$utils,$reps,$blocks,$all,$st,$nd);
-				if ($res) {
-					//log earliest- and last-interpreted dates
-					if ($one['checkedfrom'] != 0) {
-						$st = min($st,$one['checkedfrom']);
+				usort($all,function($a, $b) use ($ancestors)
+				{
+					$ta = $a['item_id'];
+					$tb = $b['item_id'];
+					if ($ta != $tb) {
+						$ka = array_search($ta,$ancestors);
+						$kb = array_search($tb,$ancestors);
+						if ($ka != $kb) {
+							return ($ka-$kb);
+						}
 					}
-					$nd = max($nd,$one['checkedto']);
-					$utils->SafeExec($sql,array($st,$nd,$bkg_id));
-				} else {
-$adbg = 1;
-//$this->Crash(); //TODO handle failure other than nothing-to-do
+					return ($b['paid'] - $a['paid']); //paid-first
+				});
+
+				foreach ($all as &$row) {
+					if (!in_array($row['item_id'],$ancestors)) {
+						continue;
+					}
+					if ($row['item_id'] == $a_id) {
+						//TODO handle $force == TRUE
+						$force1 = $force;
+						$st = $row['checkedfrom'];
+						$nd = $row['checkedto'];
+						if ($st == 0 || $st > $bs || $nd < $be) {
+							//record extra slots in $bs..$be for $a_id and descendants
+							if ($st <= 0) { //nothing processed
+								$stc = $bs;
+								$ndc = $be;
+							} elseif ($bs >= $st && $be <= $nd) { //whole interval already processed
+								continue;
+							} elseif ($bs < $st && $be <= $nd) { //extend the interval already processed
+								$ndc = $st;
+								$stc = $bs;
+							} elseif ($be > $nd && $bs >= $st) {
+								$stc = $nd;
+								$ndc = $be;
+							} else { //extend both earlier and later
+								$stc = $bs;
+								$ndc = $be;
+								$force1 = TRUE;
+							}
+							//TODO handle $force1 == TRUE
+							$res = self::RecordRepeats($mod,$utils,$whens,$blocks,$row,$stc,$ndc);
+							if ($res) {
+								if ($st > 0) {
+									$row['checkedfrom'] = min($st,$bs);
+								} else {
+									$row['checkedfrom'] = $bs;
+								}
+								$row['checkedto'] = max($nd,$be);
+								$row['update'] = TRUE; //flag to update tabled checked* values later
+/*								if (0) { //TODO all of $bs..$be now booked for $item_id
+									unset ($row);
+									$processed[] = $a_id;
+									break 2;
+								}
+*/
+							}
+						}
+					}
 				}
+				unset ($row);
+				$processed[] = $a_id;
+/*				if (0) { //TODO all of $bs..$be now booked for $item_id
+					break;
+				}
+*/
 			}
 		}
+
+		$sql = '';
+		foreach ($all as &$row) {
+			if (isset($row['update'])) {
+				if ($sql == '') {
+					$sql = 'UPDATE '.$mod->RepeatTable.' SET checkedfrom=?,checkedto=? WHERE bkg_id=?';
+				}
+				$db->Execute($sql,array($row['checkedfrom'],$row['checkedto'],$row['bkg_id']));
+				//TODO $utils->SafeExec()
+			}
+		}
+		unset($row);
 	}
 
 	/**
