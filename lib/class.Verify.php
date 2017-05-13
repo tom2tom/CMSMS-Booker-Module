@@ -389,59 +389,64 @@ EOS;
 		}
 		$domains = self::EmailDomains($mod,$t);
  		$js3 = <<<EOS
-  if (tg.checked) {
-   tg = document.getElementById('{$id}account');
+ if (tg.checked) {
+  tg = document.getElementById('{$id}account');
+  str = suretrim(tg.value);
+  if (str == false) {
+   showerr('{$mod->Lang('missing_type',$mod->Lang('account'))}',tg);
+   ok = false;
+  }
+  if (ok) {
+   tg = document.getElementById('{$id}passwd');
    str = suretrim(tg.value);
    if (str == false) {
-    showerr('{$mod->Lang('missing_type',$mod->Lang('account'))}',tg);
+    showerr('{$mod->Lang('missing_type',$mod->Lang('password'))}',tg);
     ok = false;
    }
-   if (ok) {
-    tg = document.getElementById('{$id}passwd');
-    str = suretrim(tg.value);
-    if (str == false) {
-     showerr('{$mod->Lang('missing_type',$mod->Lang('password'))}',tg);
-     ok = false;
+  }
+ } else {
+  tg = document.getElementById('{$id}name'),
+  str = suretrim(tg.value);
+  if (str == false) {
+   showerr('$usererr',tg);
+   ok = false;
+  }
+  if (ok) {
+   var clicker = this,
+    tg = document.getElementById('{$id}contact');
+   ok = Mailcheck.check(tg,{
+ {$domains}
+    distanceFunction: function(str1,str2) {
+     var lv = Levenshtein;
+     return lv.get(str1,str2);
+    },
+    suggested: function(tg,suggest) {
+     var msg = '{$mod->Lang('meaning_type','%s')}'.replace('%s','<strong>'+suggest.full+'</strong>');
+     $.alertable.confirm(msg, {
+      html: true,
+      okName: '{$mod->Lang('yes')}',
+      cancelName: '{$mod->Lang('no')}'
+     }).then(function() {
+      tg.value = suggest.full;
+      $(clicker).trigger('click');
+     }, function() {
+      tg.focus();
+     });
+    },
+    empty: function(tg) {
+     showerr('{$mod->Lang('err_nocontact')}',tg);
     }
-   }
-  } else {
-   tg = document.getElementById('{$id}name'),
-   str = suretrim(tg.value);
-   if (str == false) {
-    showerr('$usererr',tg);
-    ok = false;
-   }
-   if (ok) {
-    var clicker = this,
-     tg = document.getElementById('{$id}contact');
-    ok = Mailcheck.check(tg,{
-  {$domains}
-     distanceFunction: function(str1,str2) {
-      var lv = Levenshtein;
-      return lv.get(str1,str2);
-     },
-     suggested: function(tg,suggest) {
-      var msg = '{$mod->Lang('meaning_type','%s')}'.replace('%s','<strong>'+suggest.full+'</strong>');
-      $.alertable.confirm(msg, {
-       html: true,
-       okName: '{$mod->Lang('yes')}',
-       cancelName: '{$mod->Lang('no')}'
-      }).then(function() {
-       tg.value = suggest.full;
-       $(clicker).trigger('click');
-      }, function() {
-       tg.focus();
-      });
-     },
-     empty: function(tg) {
-      showerr('{$mod->Lang('err_nocontact')}',tg);
-     }
-    });
-   }
+   });
   }
  }
 
 EOS;
+		if ($withdates) {
+			$js4 = '}
+';
+		} else {
+			$js4 = '';
+		}
 		if ($admin)
 			$js6 = '';
 		else {
@@ -466,6 +471,6 @@ EOS;
  return false;
 }
 EOS;
-		return $js1.$js2.$js3.$js6.$js7;
+		return $js1.$js2.$js3.$js4.$js6.$js7;
 	}
 }
