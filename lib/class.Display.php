@@ -512,18 +512,17 @@ class Display
 		$item_id = (int)$idata['item_id'];
 		$is_group = ($item_id >= \Booker::MINGRPID);
 		if ($is_group) {
-			$allresource = $this->utils->GetGroupItems($this->mod,$item_id);
+			$all = $this->utils->GetGroupItems($this->mod,$item_id);
 		} else {
-			$allresource = array($item_id);
+			$all = $item_id;
 		}
 
 		//update respective last-processed-repeats dates, if relevant
 		$funcs = new Schedule();
 		$bs = $dts->getTimestamp();
 		$be = $dte->getTimestamp()-1;
-		foreach ($allresource as $one) {
-			$funcs->UpdateRepeats($this->mod,$this->utils,$one,$bs,$be);
-		}
+		$funcs->UpdateRepeats($this->mod,$this->utils,$all,$bs,$be);
+
 		//get availability-blocks
 		$rules = $this->utils->GetOneHeritableProperty($this->mod,$item_id,'available');
 		$rules = array_filter($rules); //omit empties
@@ -574,14 +573,14 @@ class Display
 		$cc = count($titles);
 
 		$funcs = new Bookingops();
-		$booked = $funcs->GetTableBooked($this->mod,$allresource,$bs,$be);
+		$booked = $funcs->GetTableBooked($this->mod,$all,$bs,$be);
 		if ($booked) {
 			$iter = new \ArrayIterator($booked);
 			$position = 0; //init array-iterator-position
 		} else {
 			$iter = FALSE;
 		}
-		$countall = count($allresource);
+		$countall = ($is_group) ? count($all):1;
 		$funcs = new Userops($this->mod);
 		$blocks = new Blocks();
 
@@ -679,17 +678,16 @@ class Display
 		list($dts,$dte) = $this->utils->GetRangeLimits($start,$range);
 		$item_id = (int)$idata['item_id'];
 		$is_group = ($item_id >= \Booker::MINGRPID);
-		if ($is_group)
-			$allresource = $this->utils->GetGroupItems($this->mod,$item_id);
-		else
-			$allresource = array($item_id);
+		if ($is_group) {
+			$all = $this->utils->GetGroupItems($this->mod,$item_id);
+		} else {
+			$all = $item_id;
+		}
 		//update respective last-processed-repeats dates, if relevant
 		$funcs = new Schedule();
 		$bs = $dts->getTimestamp();
 		$be = $dte->getTimestamp()-1;
-		foreach ($allresource as $one) {
-			$funcs->UpdateRepeats($this->mod,$this->utils,$one,$bs,$be);
-		}
+		$funcs->UpdateRepeats($this->mod,$this->utils,$all,$bs,$be);
 		$funcs = new Bookingops();
 		$lfmt = (int)$idata['listformat'];
 		$booked = $funcs->GetListBooked($this->mod,$is_group,$allresource,$lfmt,$bs,$be-1);
