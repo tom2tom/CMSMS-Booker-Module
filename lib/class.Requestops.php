@@ -32,7 +32,7 @@ EOS;
 		}
 		if ($data) {
 			$utils = new Utils();
-			$utils->GetUserProperties($this,$data);
+			$utils->GetUserProperties($mod,$data);
 		}
 		return $data;
 	}
@@ -532,7 +532,8 @@ OR
 			$sql = 'UPDATE '.$mod->HistoryTable.' SET '.$fillers.' WHERE history_id=?';
 		}
 //		return $utils->SafeExec($sql,$args);
-		return ($db->Execute($sql,$args)) != FALSE;
+		$db->Execute($sql,$args);
+		return ($db->Affected_Rows() > 0); //racy??
 	}
 
 	/**
