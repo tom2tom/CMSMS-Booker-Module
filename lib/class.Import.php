@@ -740,7 +740,7 @@ class Import
 								$save = TRUE;
 								break;
 							 case 'phone':
- 								$t = trim($one);
+ 								$t = str_replace(' ','',$one);
 						 		if (!preg_match(\Booker::PATNPHONE,$t)) {
 									return array(FALSE,'err_file');
 								}
@@ -992,6 +992,8 @@ class Import
 				}
 			}
 
+			$afuncs = NULL;
+			$regusers = NULL;
 			$utils = new Utils();
 			$dts = new \DateTime('@0',NULL);
 			$dte = clone $dts;
@@ -1051,13 +1053,37 @@ class Import
 								if (array_key_exists($one,$bookers)) {
 									$data[$k] = $bookers[$one];
 								} else {
-									$sql = 'SELECT booker_id FROM '.$mod->BookerTable.' WHERE name=? OR publicid=?'; //no Auther role here
+									$sql = 'SELECT booker_id FROM '.$mod->BookerTable.' WHERE name=? OR publicid=?';
 									$t = $mod->dbHandle->GetOne($sql,array($one,$one));
 									if ($t) {
 										$t = (int)$t;
 										$bookers[$one] = $t;
 										$data[$k] = $t;
 									} else {
+										//check for registered user named $one
+										if (!$afuncs) {
+											$amod = \cms_utils::get_module('Auther');
+											if ($amod) {
+												$afuncs = new \Auther\Auth($amod,$mod->GetPreference('authcontext',0));
+												unset($amod);
+											}
+										}
+										if ($afuncs && !$regusers) {
+											$regusers = $afuncs->GetPublicUsers(FALSE);
+										}
+										if ($regusers) {
+											foreach ($regusers as $row) {
+												if ($row['name'] == $one) {
+													$t = $mod->dbHandle->GetOne($sql,array($one,$row['publicid']));
+													if ($t) {
+														$bookers[$one] = (int)$t;
+														$data[$k] = (int)$t;
+														$save = TRUE;
+														break 2;
+													}
+												}
+											}
+										}
 										return array(FALSE,'err_baduser');
 									}
 								}
