@@ -195,7 +195,7 @@ class Payment
 	@item_id: resource identifier
 	@bookerid: booker identifier
 	@bs: UTC timestamp representing start of interval to be processed
-	@be: correponding 1-past-end
+	@be: corresponding interval-end, NOT 1-past
 	@search: optional boolean, whether to interrogate ancestor-rules, default TRUE
 	Returns: 2-member array:
 	 [0] gross fee payable for use of @item_id by @bookerid over @bs..@be
@@ -264,9 +264,9 @@ class Payment
 							if (!isset($one['feelen'])) {
 								$one['feelen'] = $utils->GetCurrentSlotlen($bs,$one['slottype'],$one['slotcount']);
 							}
-							$bl = $ends[$i] - $starts[$i];
+							$bl = ceil(($ends[$i] - $starts[$i])/$one['feelen']) * $one['feelen']; //whole slot(s)
 							$amt = $bl*$one['fee']/$one['feelen'];
-							//round in accord with the rule TODO also in accord with whole slot(s)
+							//round in accord with the rule
 							$t = strrpos($one['fee'],'.');
 							if ($t !== FALSE) {
 								$p = strlen($one['fee'])-$t-1;
