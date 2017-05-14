@@ -11,7 +11,8 @@ class Display
 {
 	private $mod; //Booker module-object reference
 	private $utils; //Utils-class object
-	private $rangefmt; //cache for translated string used in cell-tips
+	protected $Langcache = array(); //translated-strings cache
+	protected $Usercache = array(); //user-names cache
 
 	public function __construct(&$mod)
 	{
@@ -358,7 +359,10 @@ class Display
 				//log distinct users until count users > 1, so we can report as 'multiple'
 				if (!isset($users[1])) {
 					$t = $row['booker_id'];
-					$n = $ufuncs->GetName($this->mod,$t); //TODO $row['user']
+					if (!array_key_exists($t,$this->Usercache)) {
+						$this->Usercache[$t] = $ufuncs->GetName($this->mod,$t); //TODO $row['user']
+					}
+					$n = $this->Usercache[$t];
 					if (!in_array($n,$users)) {
 						$users[] = $n;
 						//log first-found displayclass
@@ -394,11 +398,11 @@ class Display
 				$one->data = reset($users);
 				$multi = FALSE;
 			} else {
-				$one->data = $this->mod->Lang('title_various');
+				$one->data = $this->Langcache['various'];
 				$multi = TRUE;
 			}
 			if (count($resources) < $countall) {
-				$one->data .= ' + '.$this->mod->Lang('title_vacancies');
+				$one->data .= ' + '.$this->Langcache['vacancies'];
 				$whole = FALSE;
 			} else {
 				$blocks->MergeBlocks($starts,$ends);
@@ -409,7 +413,7 @@ class Display
 				)) {
 					$whole = TRUE;
 				} else {
-					$one->data .= ' + '.$this->mod->Lang('title_vacancies');
+					$one->data .= ' + '.$this->Langcache['vacancies'];
 					$whole = FALSE;
 				}
 			}
@@ -435,7 +439,7 @@ class Display
 				$t1 = $dtw->format($fmt);
 				$dtw->setTimestamp(end($ends));
 				$t2 = $dtw->format($fmt);
-				$one->tip .= '&#013;'.$d.'&#013;'.sprintf($this->rangefmt,$t1,$t2);
+				$one->tip .= '&#013;'.$d.'&#013;'.sprintf($this->Langcache['rangefmt'],$t1,$t2);
 
 				$type = ($whole) ? 'full':'part';
 				if ($displayclass)
@@ -584,7 +588,13 @@ class Display
 		$funcs = new Userops($this->mod);
 		$blocks = new Blocks();
 
-		$this->rangefmt = $this->mod->Lang('showrange'); //cache for FillCell()
+		if (!array_key_exists('rangefmt',$this->Langcache)) {
+			//cached lookups for FillCell()
+			$this->Langcache['rangefmt'] = $this->mod->Lang('showrange');
+			$this->Langcache['vacancies'] = $this->mod->Lang('title_vacancies');
+			$this->Langcache['various'] = $this->mod->Lang('title_various');
+		}
+
 		$rels = array('+1 day','+7 days','+1 month','+1 year');
 		$offs = $rels[$seglen]; //column-adjuster
 
