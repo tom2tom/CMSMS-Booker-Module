@@ -60,12 +60,15 @@ class Display
 				list($chks,$chke) = $blocks->DiffBlocks($segs,$sege,$starts,$ends);
 				if ($segs != $chks || $sege != $chke || !($chks || $chke)) {
 					$d = reset($chke) - $ss;
-					if ($d < $ob)
+					$d = (int)($d/$slen) * $slen;
+					if ($d < $ob) {
 						$ob = $d;
+					}
 					$oa = end($chks);
-					$d =  $oa - $ss;
-					if ($d > $oe)
+					$d = (int)(ceil(($oa - $ss) / $slen) * $slen);
+					if ($d > $oe) {
 						$oe = $d;
+					}
 				} else {
 					$skips[] = $si;
 				}
