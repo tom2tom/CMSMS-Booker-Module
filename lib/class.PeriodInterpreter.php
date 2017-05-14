@@ -546,7 +546,7 @@ class PeriodInterpreter
 	*/
 	private function DaysinYear($year, $months, $weeks, $days, $dtw)
 	{
-		if ($months[0] != '-') { //numeric
+		if (reset($months) != '-') { //numeric
 			$doy = array();
 			foreach ($months as $mn) {
 				$dtw->setDate($year,$mn,1);
