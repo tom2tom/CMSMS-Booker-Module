@@ -12,9 +12,9 @@ class Blocks
 	/**
 	DiffBlocks:
 	@starts1: array of first-block start-stamps, sorted ascending
-	@ends1: array of corresponding end-stamps
+	@ends1: array of corresponding end-stamps (NOT 1-past)
 	@starts2: array of other-block start-stamps, sorted ascending
-	@ends2: array of corresponding end-stamps
+	@ends2: array of corresponding end-stamps (NOT 1-past)
 	Returns: 2-member array,
 	 [0] = array of start-stamps for subblocks in first-block and not in other-block
 	 [1] = array of corresponding end-stamps
@@ -40,16 +40,16 @@ class Blocks
 					continue;
 				} elseif ($a < $c && $d < $b) {
 					$t = array_search($i,array_keys($starts1)); //current array-offset
-					array_splice($ends1,$t,0,$c-1); //insert before $ends1[$i]
+					array_splice($ends1,$t,0,$c); //insert before $ends1[$i]
 					$t++;
-					array_splice($starts1,$t,0,$d+1); //insert after $starts1[$i]
+					array_splice($starts1,$t,0,$d); //insert after $starts1[$i]
 					$i = $t; //arrays have been re-keyed
 					$ic++;
 					continue;
 				} elseif ($d < $b) {
-					$starts1[$i] = $d+1;
+					$starts1[$i] = $d;
 				} elseif ($c > $a) {
-					$ends1[$i] = $c-1;
+					$ends1[$i] = $c;
 				}
 			}
 			$t = $j;
