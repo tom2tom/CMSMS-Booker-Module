@@ -40,7 +40,7 @@ class WhenRules extends WhenRuleLexer
 					foreach ($one as $t) {
 						if (strpos($t,'RS') !== FALSE || strpos($t,'SS') !== FALSE) {
 							$sunny = TRUE;
-							break;
+							break 2;
 						}
 					}
 				} elseif (strpos($one,'RS') !== FALSE || strpos($one,'SS') !== FALSE) {
@@ -223,10 +223,10 @@ class WhenRules extends WhenRuleLexer
 
 	/*
 	RelTime:
-	Adjust @dtbase per @timestr
+	Adjust @dtw per @timestr
 	@dtw: DateTime object representing 'base' datetime
-	@timestr: relative time descriptor like [+-\d][H]H:[M]M
-	Returns: nothing, but @dtbase is probably changed
+	@timestr: relative time descriptor like [+-][H]H[:[M]M[:[S]S]], or FALSE
+	Returns: nothing
 	*/
 	private function RelTime($dtw, $timestr)
 	{
@@ -239,6 +239,11 @@ class WhenRules extends WhenRuleLexer
 				if ($str)
 					$str .= ' ';
 				$str .= $nums[1].' minutes';
+			}
+			if (!empty($nums[2]) && is_numeric($nums[2]) && $nums[2] != '00') {
+				if ($str)
+					$str .= ' ';
+				$str .= $nums[2].' seconds';
 			}
 			if ($str) {
 				if (!($str[0] == '+' || $str[0] == '-'))
@@ -316,7 +321,7 @@ class WhenRules extends WhenRuleLexer
 			$tbase = date_sunset($bs,SUNFUNCS_RET_TIMESTAMP,$timeparms['lat'],$timeparms['long'],96.0,0) +
 				$timeparms['gmtoff'];
 			$parts[1] = str_replace('SS','',$parts[1]);
-		} else { //no sun
+		} else { //not sunny
 			$tbase = $bs;
 		}
 		$dtw->setTimestamp($tbase);
