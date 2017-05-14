@@ -221,12 +221,12 @@ $dtw->setTimestamp($propstore[$item_id]); //DEBUG
 	Get data for bookings which cover any part of the interval
 	 @startstamp to @endstamp inclusive
 	@mod: reference to current Booker module
-	@item_id: item identifier, or array or them
+	@item: item identifier (a.k.a. item_id), or array or them
 	@startstamp: timestamp representing start of period to check
 	@endstamp: ditto for end of period
 	Returns: array, maybe empty
 	*/
-	public function GetBooked(&$mod, $item_id, $startstamp, $endstamp)
+	public function GetBooked(&$mod, $item, $startstamp, $endstamp)
 	{
 		$sql = <<<EOS
 SELECT D.*,COALESCE(A.name,B.name,'') AS name,B.publicid,I.name AS what
@@ -236,20 +236,20 @@ LEFT JOIN $mod->AuthTable A ON B.publicid=A.publicid
 LEFT JOIN $mod->ItemTable I ON D.item_id=I.item_id
 WHERE D.item_id
 EOS;
-		if (is_array($item_id)) {
-			$args = $item_id;
+		if (is_array($item)) {
+			$args = $item;
 			$fillers = str_repeat('?,',count($args)-1);
 			$sql .= ' IN('.$fillers.'?)';
-		} elseif ($item_id >= \Booker::MINGRPID) {
+		} elseif ($item >= \Booker::MINGRPID) {
 			$utils = new Utils();
-			$args = $utils->GetGroupItems($mod,$item_id);
+			$args = $utils->GetGroupItems($mod,$item);
 			if (!$args)
 				return array();
 			unset($utils);
 			$fillers = str_repeat('?,',count($args)-1);
 			$sql .= ' IN('.$fillers.'?)';
 		} else {
-			$args = array($item_id);
+			$args = array($item);
 			$sql .= '=?';
 		}
 		$args[] = $endstamp;
@@ -268,17 +268,18 @@ EOS;
 	Get data for bookings which cover any part of the interval
 	 @startstamp to @endstamp inclusive, to suit tabular display (no booker info)
 	@mod: reference to current Booker module
-	@item_id: item_identifier, or array of them
+	@item: item_identifier (a.k.a item_id), or array of them
 	@startstamp: timestamp representing start of period to check
 	@endstamp: ditto for end of period
 	Returns: array or FALSE
 	*/
-	public function GetTableBooked(&$mod, $item_id, $startstamp, $endstamp)
+	public function GetTableBooked(&$mod, $item, $startstamp, $endstamp)
 	{
-		if (!is_array($item_id))
-			$args = array($item_id);
-		else
-			$args = $item_id;
+		if (is_array($item)) {
+			$args = $item;
+		} else {
+			$args = array($item);
+		}
 		$fillers = str_repeat('?,',count($args)-1);
 		$sql = <<<EOS
 SELECT D.bkg_id,D.item_id,D.slotstart,D.slotlen,D.booker_id,I.name FROM $mod->DataTable D
@@ -298,18 +299,19 @@ EOS;
 	 @startstamp to @endstamp inclusive, arranged to suit textform display
 	@mod: reference to current Booker module
 	@is_group: boolean, whether processing a resource-group
-	@item_id: item_identifier, or array of them
+	@item: item_identifier (a.k.a. item_id), or array of them
 	@lfmt: a LIST* constant
 	@startstamp: timestamp representing start of period to check
 	@endstamp: ditto for end of period
 	Returns: array or FALSE
 	*/
-	public function GetListBooked(&$mod, $is_group, $item_id, $lfmt, $startstamp, $endstamp)
+	public function GetListBooked(&$mod, $is_group, $item, $lfmt, $startstamp, $endstamp)
 	{
-		if (!is_array($item_id))
-			$args = array($item_id);
-		else
-			$args = $item_id;
+		if (is_array($item)) {
+			$args = $item;
+		} else {
+			$args = array($item);
+		}
 		$fillers = str_repeat('?,',count($args)-1);
 		$sql = <<<EOS
 SELECT D.item_id,D.slotstart,D.slotlen,D.booker_id,COALESCE(A.name,B.name,'') AS name,B.publicid,I.name AS what
