@@ -100,9 +100,20 @@ class Messager
 			}
 		}
 
-		$what = $utils->GetItemName($mod,$idata);
-		if ($idata['item_id'] >= \Booker::MINGRPID)
-			$what = $mod->Lang('countof2',$reqdata['subgrpcount'],$what);
+		if ($idata['item_id'] >= \Booker::MINGRPID) {
+			if ($reqdata['subgrpcount'] < 5 && !empty($reqdata['item_name'])) { //TODO limit length for SMS
+				if (is_array($reqdata['item_name'])) {
+					$what = implode(',',$reqdata['item_name']);
+				} else {
+					$what = $reqdata['item_name'];
+				}
+			} else {
+				$what = $utils->GetItemName($mod,$idata);
+				$what = $mod->Lang('countof2',$reqdata['subgrpcount'],$what);
+			}
+		} else {
+			$what = $utils->GetItemName($mod,$idata);
+		}
 		$dts = new \DateTime('@'.$reqdata['slotstart'],NULL);
 		$on = $utils->IntervalFormat($mod,$dts,'D j M');
 		if ($utils->GetInterval($mod,$idata['item_id'],'slot') >= 84600) {
