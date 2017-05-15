@@ -143,7 +143,7 @@ class Schedule
 					$bulk_id,
 					$item_id,
 					$bs, //slotstart
-					$be-$bs, //slotlen
+					$be-$bs-1, //slotlen, 'used interval'
 					$bookerid,
 					$stat,
 					$pay
@@ -466,7 +466,7 @@ class Schedule
 							$bulk_id,
 							$memberid,
 							$bs, //slotstart
-							$be-$bs+1, //slotlen
+							$be-$bs-1, //slotlen, 'used interval'
 							$bookerid,
 							$stat,
 							$pay
