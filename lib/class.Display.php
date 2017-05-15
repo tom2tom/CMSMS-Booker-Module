@@ -22,6 +22,7 @@ class Display
 
 	/*
 	DisplayTimes:
+	Determine earliest & latest rows to be used in booking-table columns
 	@dtw: DateTime worker-object for local manipulations
 	@bs: timestamp for start of 1st day of report period
 	@be: stamp for end of last day of report period
@@ -45,7 +46,7 @@ class Display
 		if ($starts) {
 			$ob = PHP_INT_MAX;
 			$oe = 0;
-			$oa = $bs+1;
+			$oa = $bs;
 			$si = 0;
 			$skips = array();
 			$blocks = new Blocks();
@@ -74,11 +75,9 @@ class Display
 				}
 				$si++;
 			}
-			if ($ob < PHP_INT_MAX)
-				$ob++;
 			if ($oe > 0)
 				$oe--;
-			$oa -= $bs - 1;
+			$oa -= $bs;
 		} else { //whole period is available
 			$ob = 0;
 			$dtw->modify($offs);
@@ -91,6 +90,7 @@ class Display
 
 	/*
 	GetSlotNames:
+	Populate array of slot-times
 	@idata: reference to data array for item being processed
 	@dtw: DateTime worker-object for local manipulations
 	@bs: timestamp for start of 1st day of total report period
@@ -616,12 +616,12 @@ class Display
 					$dts->modify($offs);
 				}
 			}
-			$bs = $dts->getTimestamp(); //start-stamp for current segment
-			$bs += $segoffst; //start-stamp for 1st displayed slot in segment
+			$bs = $dts->getTimestamp() //start-stamp for current segment
+					+ $segoffst; //hence start-stamp for 1st displayed slot in segment
 			//iterate slots for this segment
 			for ($r = 1; $r < $rc; $r++) {
-				$be = $bs + $slotlen - 1; //end-stamp of current slot, maybe < end-of-cell
 				$dtw->setTimestamp($bs);
+				$be = $bs + $slotlen - 1; //end-stamp of current slot, maybe < end-of-cell
 				if ($iter && $iter->valid()) {
 					list($one,$position) = self::DocumentCell(
 						$idata,$dtw,$bs,$be,$celloff,$countall,$position,$iter,$funcs,$blocks);
@@ -640,6 +640,21 @@ class Display
 				}
 			}
 			$columns[] = $cells;
+			//iter to next segment start
+			$bs = $dts->getTimestamp();
+			$dtw->setTimestamp($bs);
+			$dtw->modify($offs);
+			$be = $dtw->getTimestamp(); //1-past-end of current segment
+			while ($iter->valid()) {
+				$row = $iter->current();
+				$bs = (int)$row['slotstart'];
+				if ($bs < $be) {
+					$iter->next();
+					$position++;
+				} else {
+					break;
+				}
+			}
 		}
 		return $columns;
 	}
