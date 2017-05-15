@@ -20,7 +20,6 @@
 {/foreach}
 </tbody></table>
 </div>
-<br />
 {$cartmsg}<br />
 {$submit}{if isset($cart)} {$cart}{/if} {$cancel} {if isset($choose)} {$choose}{/if} {$register} {$change}
 {$endform}
