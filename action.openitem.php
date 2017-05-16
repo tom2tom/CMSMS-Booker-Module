@@ -471,16 +471,16 @@ $resume = json_encode($params['resume']);
 $tplvars['startform'] = $this->CreateFormStart($id,'openitem',$returnid,'POST','multipart/form-data','','',
 	array('item_id'=>$item_id,'task'=>$task,'resume'=>$resume,'active_tab'=>''));
 $tplvars['endform'] = $this->CreateFormEnd();
-$tplvars['tab_headers'] =  $this->StartTabHeaders().
+$tplvars['tab_headers'] = $this->StartTabHeaders().
 	$this->SetTabHeader('basic',$this->Lang('basic'),($seetab=='basic')).
 	$this->SetTabHeader('advanced',$this->Lang('advanced'),($seetab=='advanced')).
 	$this->SetTabHeader('formats',$this->Lang('formats'),($seetab=='formats')).
 	$this->EndTabHeaders().
 	$this->StartTabContent();
-
+//workaround CMSMS2 crap 'auto-end', EndTab() & EndTabContent() before [1st] StartTab()
 $tplvars += array(
-	'tab_footers' => $this->EndTabContent(),
 	'end_tab' => $this->EndTab(),
+	'tab_footers' => $this->EndTabContent(),
 	'start_basic_tab' => $this->StartTab('basic'),
 	'start_adv_tab' => $this->StartTab('advanced'),
 	'start_fmt_tab' => $this->StartTab('formats')
@@ -685,7 +685,7 @@ if ($sel) {
 }
 if ($pmod) {
 	$jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/include/jquery.alertable.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/jquery.alertable.min.js"></script>
 EOS;
 
 	$jsfuncs[] = <<<EOS
@@ -1044,10 +1044,10 @@ EOS;
 } //$allgrps
 //------- members and/or groups table js
 $jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/include/jquery.tablednd.min.js"></script>
-<script type="text/javascript" src="{$baseurl}/include/jquery.metadata.min.js"></script>
-<script type="text/javascript" src="{$baseurl}/include/jquery.SSsort.min.js"></script>
-<script type="text/javascript" src="{$baseurl}/include/tableHeadFixer.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/jquery.tablednd.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/jquery.metadata.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/jquery.SSsort.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/tableHeadFixer.min.js"></script>
 EOS;
 $jsloads[] = <<<EOS
  $('.dndhelp').css('display','block');
@@ -1232,7 +1232,7 @@ if ($pmod) {
 	$i = $allusers[$idata->owner];
 else
 	$i = $none;
-$advanced[] = array('ttl'=>$cascade.$this->Lang('title_owner2'),
+$advanced[] = array('ttl'=>$cascade.$this->Lang('title_owner'),
 'inp'=>$i,
 'hlp'=>NULL
 );
