@@ -61,12 +61,12 @@ class Display
 				list($chks,$chke) = $blocks->DiffBlocks($segs,$sege,$starts,$ends);
 				if ($segs != $chks || $sege != $chke || !($chks || $chke)) {
 					$d = reset($chke) - $ss;
-					$d = (int)($d/$slen) * $slen;
+					$d = (int)(ceil($d/$slen) * $slen);
 					if ($d < $ob) {
 						$ob = $d;
 					}
 					$oa = end($chks);
-					$d = (int)(ceil(($oa - $ss) / $slen) * $slen);
+					$d = (int)(($oa - $ss) / $slen) * $slen; //floor
 					if ($d > $oe) {
 						$oe = $d;
 					}
@@ -645,7 +645,7 @@ class Display
 			$dtw->setTimestamp($bs);
 			$dtw->modify($offs);
 			$be = $dtw->getTimestamp(); //1-past-end of current segment
-			while ($iter->valid()) {
+			while ($iter && $iter->valid()) {
 				$row = $iter->current();
 				$bs = (int)$row['slotstart'];
 				if ($bs < $be) {
