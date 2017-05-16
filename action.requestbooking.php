@@ -163,7 +163,7 @@ if (isset($params['cart'])) {
 	list($res,$errmsg) = $funcs->VerifyData($this,$utils,$params,$item_id,$is_new,FALSE);
 	if ($res) {
 		$bs = $params['slotstart'];
-		$be = $bs + $params['slotlen'] + 1; //1-past-end
+		$be = $bs + $params['slotlen']; //NOT 1-past-end
 		if (!$is_new || $be > $now) { //$bs > $now - 300 //some slop
 			$funcs = new Booker\Userops($this);
 			list($bookerid,$newbooker) = $funcs->GetParamsID($this,$params); //TODO conform $params
@@ -173,6 +173,7 @@ if (isset($params['cart'])) {
 				//determine how much to be paid (ignoring tax)
 				$amounts = $funcs->Amounts($this,$utils,$item_id,$bookerid,$bs,$be);
 				//ignore $amounts[1] i.e. total credit now, cuz' maybe we're doing multiple items
+				//ignore $params['subgrpcount'] cuz it's processed in the cart
 				$params['fee'] = $amounts[0];
 
 				$cache = Booker\Cache::GetCache($this);
@@ -212,8 +213,8 @@ if (isset($params['cart'])) {
 	list($res,$errmsg) = $funcs->VerifyData($this,$utils,$params,$item_id,$is_new,FALSE);
 	if ($res) {
 		$bs = $params['slotstart'];
-		$be = $bs + $params['slotlen'] + 1; //1-past-end
-		if (!$is_new || $be > $now) { // $bs > $now - 300 some slop
+		$be = $bs + $params['slotlen']; //NOT 1-past-end
+		if (!$is_new || $be > $now) { // $bs > $now - 300 some slop ?
 			$funcs = new Booker\Userops($this);
 			list($bookerid,$newbooker) = $funcs->GetParamsID($this,$params); //TODO conform $params
 			if ($bookerid !== FALSE) {
@@ -223,7 +224,7 @@ if (isset($params['cart'])) {
 				//determine how much to be paid (ignoring tax)
 				$amounts = $funcs->Amounts($this,$utils,$item_id,$bookerid,$bs,$be);
 				$payable = $amounts[0]; //ignore $amounts[1] i.e. total credit now, cuz' maybe we're doing multiple items
-				$params['fee'] = $payable;
+				$params['fee'] = $payable; //ignore $params['subgrpcount'] cuz it's handled in the cart
 
 				$cache = Booker\Cache::GetCache($this);
 				$cart = $utils->RetrieveCart($cache,$params);
@@ -235,7 +236,7 @@ if (isset($params['cart'])) {
 					$utils->SaveCart($cart,$cache,$params);
 					$minpay = 1.0; //TODO support selectable min. payment
 					if (!$cartwasempty) { //cart now has >1 item
-						$params['resume'][] = $params['action']; //cancel-back-to-here
+						$params['resume'][] = 'announce';
 						$params['task'] = 'finish'; //button-labels will be 'cancel','continue'
 						$newparms = $utils->FilterParameters($params,$localparams);
 						//divert to cart display then probably to payment form
@@ -243,7 +244,7 @@ if (isset($params['cart'])) {
 						exit;
 					} else //cart now has 1 item
 						if ($payable >= $minpay
-							&& $rights && !empty($rights['postpay'])) { //booker must pre-pay
+							&& $rights && empty($rights['postpay'])) { //booker must pre-pay
 						$params['resume'][] = $params['action'];
 						$newparms = $utils->FilterParameters($params,$localparams);
 						//divert to payment form if possible, and from there, FinishReq()
@@ -587,7 +588,7 @@ $oneset->class = 'hide1';
 $oneset->ttl = $this->Lang('title_passwd');
 $oneset->mst = !$rec;
 $t = (!empty($params['passwd'])) ? $params['passwd']:'';
-$oneset->inp = $this->CreateInputText($id,'passwd',$t,15,20);
+$oneset->inp = $this->CreateInputText($id,'passwd',$t,20,40);
 $items[] = $oneset;
 $oneset = new stdClass();
 $oneset->class = 'hide1';
@@ -597,7 +598,7 @@ $oneset->inp = ($rec) ?
  $this->_CreateInputLinks($id,'bkr_recover',FALSE,TRUE,$this->Lang('recover_lost')):
  $this->Lang('reregister');
 $items[] = $oneset;
-$jsincs[] = '<script type="text/javascript" src="'.$baseurl.'/include/jquery-inputCloak.min.js"></script>';
+$jsincs[] = '<script type="text/javascript" src="'.$baseurl.'/lib/js/jquery-inputCloak.min.js"></script>';
 $jsloads[] = <<<EOS
  $('#{$id}passwd').inputCloak({
   type:'see4',
@@ -670,10 +671,10 @@ $tplvars['cartmsg'] = '<img src="'.$baseurl.'/images/information.png" alt="icon"
 $this->Lang('help_cart');
 
 $jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/include/pikaday.min.js"></script>
-<script type="text/javascript" src="{$baseurl}/include/pikaday.jquery.min.js"></script>
-<script type="text/javascript" src="{$baseurl}/include/php-date-formatter.min.js"></script>
-<script type="text/javascript" src="{$baseurl}/include/jquery.watermark.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/pikaday.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/pikaday.jquery.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/php-date-formatter.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/jquery.watermark.min.js"></script>
 EOS;
 
 $datetimefmt = $utils->DateTimeFormat(FALSE,FALSE,TRUE,!$overday,$idata['dateformat'],$idata['timeformat']);
@@ -744,9 +745,9 @@ $checkdates = !($past || (isset($params['bkgid']) && !$groupextra)); //$bcount?
 $jsfuncs[] = $funcs->VerifyScript($this,$utils,$id,$item_id,$checkdates,FALSE,$idata['timezone'],FALSE);
 //for email-validator & alerter
 $jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/include/mailcheck.min.js"></script>
-<script type="text/javascript" src="{$baseurl}/include/levenshtein.min.js"></script>
-<script type="text/javascript" src="{$baseurl}/include/jquery.alertable.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/mailcheck.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/levenshtein.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/jquery.alertable.min.js"></script>
 EOS;
 
 $tplvars['submit'] = $this->CreateInputSubmit($id,'submit',$this->Lang('submit'));
