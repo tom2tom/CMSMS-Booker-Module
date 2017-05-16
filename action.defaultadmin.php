@@ -718,7 +718,7 @@ if ($data) {
 'first_name' => null
 'last_name' => null
 */
-		//omit some choices when editing, but current user hasn't admin permission and doesn't own the item
+		//omit some choices when editing, if current user hasn't admin permission and doesn't own the item
 		$skip = $owned && $mod && !$padm && $row['owner'] > 0 && $row['owner'] != $uid;
 		$item_id	= (int)$row['item_id'];
 		$isitem = ($item_id < Booker::MINGRPID && $item_id != -Booker::MINGRPID);
@@ -767,7 +767,7 @@ if ($data) {
 				$one->ownername = '';
 		}
 		if ($histdata) {
-			//TODO CHECK ok to ignore group bookings? i.e. HistoryTable has group-derived entries ?
+			//TODO if a group, get item-bookings derived from group-booking(s) for this item NOT all bookings for this item
 			$belongs = array_filter($histdata,function($v)use($item_id){return $v['I'] == $item_id;});
 			if ($belongs) {
 				$count = count($belongs);
@@ -895,7 +895,7 @@ if ($icount > 0 || $gcount > 0) {
 	if ($pdev)
 		$tplvars['title_tag'] = $this->Lang('title_pagetag');
 	$tplvars['title_grp'] = $this->Lang('title_groups');
-	$tplvars['title_owner'] = $this->Lang('title_owner');
+	$tplvars['title_owner'] = $this->Lang('title_owner2');
 	$tplvars['title_active'] = $this->Lang('title_active');
 }
 
