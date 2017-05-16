@@ -60,8 +60,9 @@ if (isset($params['delete1'])) {
 	if (isset($params['sel'])) {
 		$funcs = new Booker\Bookingops();
 		list($res,$msg) = $funcs->ExportBkg($this,$params['sel']);
-		if ($res)
+		if ($res) {
 			exit;
+		}
 	} else {
 		$msg = $this->Lang('notypesel',$this->Lang('booking_multi'));
 	}
@@ -70,15 +71,18 @@ if (isset($params['delete1'])) {
 if ($params['task'] == 'see') {
 	if ($this->_CheckAccess('view')) {
 		$pmod = FALSE;
-	} else
+	} else {
 		exit;
+	}
 } elseif ($params['task'] == 'edit' || $params['task'] == 'add') {
 	if ($this->_CheckAccess('admin') || $this->_CheckAccess('book')) {
 		$pmod = TRUE;
-	} else
+	} else {
 		exit;
-} else
+	}
+} else {
 	exit;
+}
 
 $tplvars = array();
 $tplvars['pmod'] = (($pmod)?1:0);
@@ -89,8 +93,9 @@ if (!empty($msg)) {
 
 if ($this->havenotifier) {
 	$tell = $pmod; //messages here are about changing a booking
-} else
+} else {
 	$tell = FALSE;
+}
 $tplvars['tell'] = $tell;
 
 $item_id = (int)$params['item_id'];
@@ -131,8 +136,9 @@ if (!empty($idata['name'])) {
 	$t = $this->Lang('title_noname',$typename,$item_id);
 	$tplvars['item_title'] = $this->Lang('title_booksfor',$t,'');
 }
-if (!empty($idata['description']))
+if ($is_group && !empty($idata['description'])) {
 	$tplvars['desc'] = Booker\Utils::ProcessTemplateFromData($this,$idata['description'],$tplvars);
+}
 //in this context, ignore $idata['image']
 
 $yes = $this->Lang('yes');
@@ -174,7 +180,7 @@ $data = $utils->SafeGet($sql,array($item_id));
 if ($data) {
 	$utils->GetUserProperties($this,$data);
 }
-
+/* NO PROCESSING OF ANCESTOR-GROUP NON-REPEATS HERE ?
 $groups = $utils->GetItemGroups($this,$item_id);
 if ($groups) {
 	$fillers = str_repeat('?,',count($groups)-1).'?';
@@ -196,7 +202,7 @@ EOS;
 		});
 	}
 }
-
+*/
 if ($tell) {
 	$what = '{'.$this->Lang('item').'}';
 	$on = '{'.$this->Lang('date').'}';
@@ -477,17 +483,6 @@ EOS;
 EOS;
 		}
 	} //$pmod
-
-	$jsfuncs[] = <<<EOS
-function confirmclick(tg,msg) {
- $.alertable.confirm(msg,{
-  okName: '{$this->Lang('yes')}',
-  cancelName: '{$this->Lang('no')}'
- }).then(function() {
-  $(tg).trigger('click.deferred');
- });
-}
-EOS;
 } else {
 	$tplvars['norecords'] = $this->Lang('nodata');
 }
@@ -523,7 +518,7 @@ $data = $db->GetArray($sql,array($item_id));
 if ($data) {
 	$utils->GetUserProperties($this,$data);
 }
-
+/* NO PROCESSING OF ANCESTOR-GROUP REPEATS HERE ?
 if ($groups) {
 	$sql = <<<EOS
 SELECT R.bkg_id,R.item_id,R.booker_id,R.formula,R.subgrpcount,R.paid,COALESCE(A.name,B.name,'') AS name,B.publicid
@@ -538,7 +533,7 @@ EOS;
 		$data = array_merge($data,$data2);
 	}
 }
-
+*/
 $linkparms['repeat'] = 1; //rest of links are for repeat bookings
 $rows = array();
 if ($data) {
@@ -675,17 +670,33 @@ if ($pmod) {
 	$tplvars['textlinkadd2'] = $this->CreateLink($id,'openbooking','',$t,$linkparms);
 }
 
-if ($from_group)
+if ($from_group) {
 	$tplvars['help_group'] = $this->Lang('help_groupbooking');
+}
 
-$jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/include/jquery.metadata.min.js"></script>
-<script type="text/javascript" src="{$baseurl}/include/jquery.SSsort.min.js"></script>
+$have = $tplvars['ocount'] > 0 || $tplvars['rcount'] > 0;
+if ($have && $pmod)
+	$jsfuncs[] = <<<EOS
+function confirmclick(tg,msg) {
+ $.alertable.confirm(msg,{
+  okName: '{$this->Lang('yes')}',
+  cancelName: '{$this->Lang('no')}'
+ }).then(function() {
+  $(tg).trigger('click.deferred');
+ });
+}
 EOS;
-if ($pmod) //TODO or can send messages
+
+if ($have) {
 	$jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/include/jquery.alertable.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/jquery.metadata.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/jquery.SSsort.min.js"></script>
 EOS;
+	if ($pmod || $tell)
+		$jsincs[] = <<<EOS
+<script type="text/javascript" src="{$baseurl}/lib/js/jquery.alertable.min.js"></script>
+EOS;
+}
 
 $jsall = $utils->MergeJS($jsincs,$jsfuncs,$jsloads);
 unset($jsincs);
