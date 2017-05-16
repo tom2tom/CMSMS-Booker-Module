@@ -331,9 +331,9 @@ EOS;
 	*/
 	public function FinishReq(&$mod, &$utils, &$params, $success)
 	{
+		$cache = Cache::GetCache($mod);
+		$cart = $utils->RetrieveCart($cache,$params);
 		if ($success) { //successful to now
-			$cache = Cache::GetCache($mod);
-			$cart = $utils->RetrieveCart($cache,$params);
 			if (!$cart || !($pending = $cart->getItems())) {
 				return array(FALSE,$mod->Lang('err_data'));
 			}
@@ -398,7 +398,14 @@ EOS;
 				$cart->removeItem($item->id);
 			} //end cartitems loop
 			$utils->SaveCart($cart,$cache,$params);
-		} else { //just continue the 'failed' status
+		} elseif (isset($params['cancel'])) {
+			if ($cart) {
+				$cart->clear();
+				$utils->SaveCart($cart,$cache,$params);
+				$key = 'email_cancelled_title'; //lazy
+			}
+		} else {
+			//just continue the 'failed' status
 			$key = 'error';
 		}
 		if (!$key) {
