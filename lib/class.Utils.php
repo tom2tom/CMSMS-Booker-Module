@@ -860,6 +860,7 @@ EOS;
 	 * @mod: reference to current Booker module object
 	 * @item_id: identifier of resource or group for which property/ies is/are sought
 	 * @propname: ItemTable field-name for property sought
+	 * Returns:
 	 */
 	public function GetOneHeritableProperty(&$mod, $item_id, $propname)
 	{
@@ -878,6 +879,7 @@ EOS;
 	 * Get name for an item, with fallback.
 	 *
 	 * @idata: reference to array of item-parameters
+	 * Returns: string
 	 */
 	public function GetItemName(&$mod, &$idata)
 	{
@@ -923,12 +925,41 @@ EOS;
 	 *
 	 * @mod: reference to current Booker module object
 	 * @item_id: identifier of resource or group whose name is wanted
+	 * Returns: string
 	 */
 	public function GetItemNameForID(&$mod, $item_id)
 	{
 		$name = $this->GetNamedItems($mod, array($item_id));
 		if ($name) {
 			return reset($name);
+		}
+		return '';
+	}
+
+	/**
+	 * GetUserName:
+	 * Get recorded identifier (name or login) for @booker_id
+	 *
+	 * @mod: reference to current Booker module object
+	 * @booker_id: identifier of booker whose name is wanted
+	 * Returns: string, maybe ''
+	 */
+	public function GetUserName(&$mod, $booker_id)
+	{
+		$sql = <<<EOS
+SELECT COALESCE(A.name,B.name,'') AS name,B.publicid
+FROM $mod->BookerTable B
+LEFT JOIN $mod->AuthTable A ON B.publicid = A.publicid
+WHERE B.booker_id=?
+EOS;
+		$data = $mod->dbHandle->GetArray($sql,array($booker_id));
+		if ($data) {
+			$this->GetUserProperties($mod,$data);
+			if ($data[0]['name']) {
+				return $data[0]['name'];
+			} else {
+				return $data[0]['publicid'];
+			}
 		}
 		return '';
 	}
@@ -2483,23 +2514,7 @@ EOS;
 				array($mod->GetName(), 'method.requestfinish'),
 				array($id, 'announce', $returnid)
 			)) {
-				$sql = <<<EOS
-SELECT COALESCE(A.name,B.name,'') AS name,B.publicid
-FROM $mod->BookerTable B
-LEFT JOIN $mod->AuthTable A ON B.publicid = A.publicid
-WHERE B.booker_id=?
-EOS;
-				$data = $mod->dbHandle->GetArray($sql,array($params['bkr_booker_id']));
-				if ($data) {
-					$this->GetUserProperties($mod,$data);
-					if ($data[0]['name']) {
-						$name = $data[0]['name'];
-					} else {
-						$name = $data[0]['publicid'];
-					}
-				} else {
-					$name = '';
-				}
+				$name = $this->GetUserName($mod, $params['bkr_booker_id']);
 				$dtw = new \DateTime ('@'.$params['bkr_slotstart'],NULL);
 				$when = $dtw->format('D j M, G:i');
 				$num = $cart->countItems(); //TODO count only the payable items
