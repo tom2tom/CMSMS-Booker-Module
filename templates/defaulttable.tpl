@@ -12,7 +12,7 @@
 {foreach from=$hidden item=inc}{$inc}{/foreach}
 {if isset($actions)}{foreach from=$actions key=k item=btn}{if $k>0}&nbsp;&nbsp;{/if}{$btn}{/foreach}<br /><br />{/if}
 {if $columns}
-<div style="margin:2px 2px 12px 2px;height:30em;width:100%;">
+<div style="margin:2px 2px 12px 2px;max-height:30em;width:100%;">
 <table id="scroller" class="booker {$tableclass}">
  <thead><tr>
 {for $c=0 to $colcount-1}
