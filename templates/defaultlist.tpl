@@ -30,11 +30,14 @@
 {else}
 <p>{$nobookings}</p>
 {/if}
-<br />
 <div>
-<table id="bookactions" style="display:inline-block;border:0;">
-<tr>{foreach $actions1 as $inc}<td>{$actions1[c]}</td>{/foreach}</tr>
-<tr>{foreach $actions2 as $inc}<td>{$actions2[c]}</td>{/foreach}</tr>
+<fieldset>
+<legend>{$actionstitle}</legend>
+<table id="bookactions" style="display:inline-block;border:0;overflow:auto;">
+<tr>{foreach from=$actions1 item=inc}<td>{$inc}</td>{/foreach}</tr>
+<tr>{foreach from=$actions2 item=inc}<td>{$inc}</td>{/foreach}</tr>
 </table>
+</fieldset>
+<p style="margin-left:5px;">{$book} {$cart}</p>
 </div>
 {$endform}
