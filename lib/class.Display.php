@@ -316,6 +316,53 @@ class Display
 		return array($titles,$isos);
 	}
 
+	//'naturally' compare strings $a, $b which may include numbers
+	private function cmp_nat($a, $b)
+	{
+		$patn = '/([^\d]+)?([\d]+)?([^\d]+)?([\d]+)?([^\d]+)?([\d]+)?(.*)/';
+		preg_match($patn, $a, $ma);
+		preg_match($patn, $b, $mb);
+
+		for ($i = 1; $i < 8; $i++) {
+			if ($ma[$i] && $mb[$i]) {
+				if ($i == 2 || $i == 4) {
+					$isn = TRUE;
+					if (is_numeric($ma[$i])) {
+						$n1 = $ma[$i] + 0;
+					} else {
+						$isn = FALSE;
+					}
+					if ($isn && is_numeric($mb[$i])) {
+						$n2 = $mb[$i] + 0;
+					} else {
+						$isn = FALSE;
+					}
+					if ($isn) {
+						$r = $n1 - $n2;
+						if ($r != 0) {
+							if ($r < 0.0000001)
+								$r = -1;
+							else
+								$r = 1;
+						}
+					} else {
+						$r = strcmp($ma[$i],$mb[$i]);
+					}
+				} else {
+					$r = strcmp($ma[$i],$mb[$i]);
+				}
+				if ($r != 0) {
+					return $r;
+				}
+			} elseif ($ma[$i]) {
+				return 1;
+			} elseif ($mb[$i]) {
+				return -1;
+			}
+		}
+		return 0;
+	}
+
 	/*
 	DocumentCell:
 	Get object populated with data for a table-cell.
@@ -421,7 +468,9 @@ class Display
 				}
 			}
 
-			$one->tip = implode(',',array_keys($resources));
+			$what = array_keys($resources);
+			usort ($what, array($this,'cmp_nat'));
+			$one->tip = implode(',',$what);
 
 			if ($multi) {
 //TODO	$one->bkgid = which one ?
@@ -718,7 +767,7 @@ class Display
 		$funcs->UpdateRepeats($this->mod,$this->utils,$all,$bs,$be);
 		$funcs = new Bookingops();
 		$lfmt = (int)$idata['listformat'];
-		$booked = $funcs->GetListBooked($this->mod,$is_group,$allresource,$lfmt,$bs,$be-1);
+		$booked = $funcs->GetListBooked($this->mod,$is_group,$all,$lfmt,$bs,$be);
 		if ($booked) {
 			$majr_fmt = $idata['dateformat']; //part of report  //c.f. Utils::IntervalFormat($mod,$format,$dts)
 			$minr_fmt = $idata['timeformat']; //other part
