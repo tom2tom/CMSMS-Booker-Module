@@ -48,6 +48,7 @@ $lang['bookertell'] = 'Send confirmation message to booker after request or save
 $lang['booking'] = 'booking';
 $lang['booking_feedback'] = 'Booking request lodged';
 $lang['booking_feedback2'] = 'Booking recorded';
+$lang['booking_feedback3'] = 'You will need to pay %s for the booking.';
 $lang['booking_multi'] = 'booking(s)';
 $lang['bookings_deleted'] = '%d bookings deleted'; //count
 $lang['calendar'] = 'Calendar';
