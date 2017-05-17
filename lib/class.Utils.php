@@ -280,33 +280,40 @@ EOS;
 	public function GetItemPicker(&$mod, $id, $name, $alwayspick, $currentpick)
 	{
 		$groups = array();
+		//TODO name fallback when pickname is FALSE/NULL
 		$sql = <<<EOS
-SELECT DISTINCT G.parent,I.item_id,I.pickmembers FROM $mod->GroupTable G
-JOIN $mod->ItemTable I ON G.parent=I.item_id
+SELECT DISTINCT I.item_id,I.pickmembers FROM $mod->ItemTable I
+JOIN $mod->GroupTable G ON I.item_id=G.parent
 WHERE G.child=? AND I.pickthis>0 ORDER BY G.proximity,G.likeorder
 EOS;
 		$rows = $mod->dbHandle->GetArray($sql, array($currentpick));
 
 		if ($rows) {
 			$sql = <<<EOS
-SELECT DISTINCT G.parent,I.item_id,I.pickname FROM $mod->GroupTable G
-JOIN $mod->ItemTable I ON G.parent=I.item_id
+SELECT DISTINCT I.item_id,I.pickmembers FROM $mod->ItemTable I
+JOIN $mod->GroupTable G ON I.item_id=G.parent
 WHERE G.child IN(%s) AND I.pickthis>0 ORDER BY G.proximity,G.likeorder
 EOS;
 			do {
 				$groups = array_merge($groups, $rows);
-				$fillers = implode(',', array_column($rows, 'parent'));
+				$checks = array_column($groups, 'item_id');
+				$fillers = implode(',', array_column($rows, 'item_id'));
 				$sql1 = sprintf($sql, $fillers);
 				$rows = $mod->dbHandle->GetArray($sql1);
 				if ($rows) {
-					$rows = array_diff($rows, $groups);
+					//TODO if all $rows are already recorded, but more ancestor(s) exist
+					foreach ($rows as $i=>$one) {
+						if (in_array($one['item_id'],$checks)) {
+							unset ($rows[$i]);
+						}
+					}
 				}
 			} while ($rows);
 		}
 
 		if ($currentpick >= \Booker::MINGRPID) {
 			$sql = <<<EOS
-SELECT 0 AS parent,{$currentpick} AS item_id,pickmembers FROM $mod->ItemTable
+SELECT {$currentpick} AS item_id,pickmembers FROM $mod->ItemTable
 WHERE item_id=?
 EOS;
 			$groups += $mod->dbHandle->GetArray($sql, array($currentpick));
@@ -2445,10 +2452,10 @@ EOS;
 	 * OpenPaymentForm:
 	 * Arrange for and display payment-gateway form.
 	 *
-	 * @mod: reference to current module-object
+	 * @mod: reference to current Booker-module object
 	 * @id: session identifier
 	 * @returnid:
-	 * @params: array of parameters for the action
+	 * @params: array of parameters for the callback-action
 	 * @idata: array of data for the resource being booked
 	 * Returns: only if something goes wrong - normally redirects
 	 * @cart: cart-object containing the item(s) to be paid for
@@ -2456,40 +2463,63 @@ EOS;
 	public function OpenPaymentForm(&$mod, $id, $returnid, $params, $idata, $cart)
 	{
 		$t = $idata['paymentiface'];
-		if ($t) {
-			$ob = \cms_utils::get_module($t);
-			$handlerclass = $ob->GetPayer();
-			$ifuncs = new $handlerclass($mod, $ob);
+		if ($t != -1) {
+			$imod = \cms_utils::get_module($t);
+			$handlerclass = $imod->GetPayer();
+			$ifuncs = new $handlerclass($mod, $imod);
 			if ($ifuncs->Furnish(
-				array(
+				array( //these are handlerkey=>callerkey members of $params[]
 				 'amount' => TRUE,
 				 'cancel' => TRUE,
 				 'payer' => 'who',
 				 'payfor' => 'what',
-//				 'surcharge'=>TRUE,
-				 'errmsg' => 'msg',
+//				 'surcharge' => TRUE,
+				 'errmsg' => 'message',
+				 'successmsg' => 'message',
 				 'success' => 'result',
 				 'transactid' => 'identifier',
 				 'passthru' => 'paramskey'
 				),
 				array($mod->GetName(), 'method.requestfinish'),
-				array($id, 'default', $returnid)
+				array($id, 'announce', $returnid)
 			)) {
+				$sql = <<<EOS
+SELECT COALESCE(A.name,B.name,'') AS name,B.publicid
+FROM $mod->BookerTable B
+LEFT JOIN $mod->AuthTable A ON B.publicid = A.publicid
+WHERE B.booker_id=?
+EOS;
+				$data = $mod->dbHandle->GetArray($sql,array($params['bkr_booker_id']));
+				if ($data) {
+					$this->GetUserProperties($mod,$data);
+					if ($data[0]['name']) {
+						$name = $data[0]['name'];
+					} else {
+						$name = $data[0]['publicid'];
+					}
+				} else {
+					$name = '';
+				}
+				$dtw = new \DateTime ('@'.$params['bkr_slotstart'],NULL);
+				$when = $dtw->format('D j M, G:i');
 				$num = $cart->countItems(); //TODO count only the payable items
 				if ($num < 2) {
 					$t = $this->GetItemName($mod, $idata);
-					$desc = trim($mod->Lang('title_bookfor', $t, ''));
+					$desc = trim($mod->Lang('title_bookfor', $t, $when));
 				} else {
-					$desc = $mod->Lang('title_booksfor', $num, $idata['membersname']);
+					$desc = $mod->Lang('title_booksfor', $num, $idata['membersname'].' '.$when);
 				}
-				$args = array_merge($params, array(
+				$preserve = json_encode($params);
+
+				$newparms = array(
 				 'amount' => $cart->getTotal(),
 				 'cancel' => TRUE,
-//				 'surcharge'=>'3%' TODO UI & API for setting this
-				 'who' => $params['name'],
-				 'what' => $desc
-				));
-				$ifuncs->ShowForm($id, $returnid, $args); //redirects
+//				 'surcharge'=>'3%' TODO UI & API for customizing this
+				 'who' => $name,
+				 'what' => $desc,
+				 'paramskey' => $preserve
+				);
+				$ifuncs->ShowForm($id, $returnid, $newparms); //redirects
 				exit;
 			}
 		}
