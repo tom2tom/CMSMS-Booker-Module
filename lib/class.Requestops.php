@@ -387,6 +387,7 @@ EOS;
 					}
 					$idata = $propstore[$item_id];
 */
+					//TODO if (!$paid) $msg += $mod->Lang('booking_feedback3', formatted($total-amount));
 					$status = ($recorded) ? Messager::MSGRECORD : Messager::MSGSUBMIT;
 					list($res,$msg1) = $mfuncs->StatusMessage($mod,$utils,(array)$data->itemdata,$reqdata,$status,'',$sndr);
 					if ($res) {
@@ -402,8 +403,8 @@ EOS;
 			if ($cart) {
 				$cart->clear();
 				$utils->SaveCart($cart,$cache,$params);
-				$key = 'email_cancelled_title'; //lazy
 			}
+			$key = 'email_cancelled_title'; //lazy
 		} else {
 			//just continue the 'failed' status
 			$key = 'error';
