@@ -75,7 +75,12 @@ class Messager
 	@etitlekey: lang key for email title or FALSE
 	@ebodykey: lang key for email body or FALSE if sending @custommsg
 	@tbodykey: lang key for text/tweet body or FALSE if sending @custommsg
-	Returns: array
+	Returns: 5-member array:
+		[0] = FALSE i.e. default sender
+		[1] = array of destination addresses
+		[2] = array of parameters for SMS message(s)
+		[3] = array of parameters for email message(s)
+		[4] = array of parameters for tweet(s)
 	*/
 	private function MsgParms(&$mod, &$utils, &$idata, &$reqdata, $custommsg, $etitlekey, $ebodykey, $tbodykey)
 	{
@@ -90,14 +95,6 @@ class Messager
 			}
 		} else {
 			$to[] = ($reqdata['address']) ? array($reqdata['name']=>$reqdata['address']):$reqdata['phone'];
-		}
-		if (!empty($idata['approvertell'])) {
-			$val = trim($idata['approvercontact']);
-			if ($val && preg_match(\Booker::PATNADDRESS,$val)) {
-				$to[] = array($idata['approver']=>$val);
-			} elseif ($val) {
-				$to[] = $val;
-			}
 		}
 
 		if ($idata['item_id'] >= \Booker::MINGRPID) {
@@ -141,6 +138,22 @@ class Messager
 				'pattern'=>$idata['smspattern'],'body'=>$msg);
 			$tweetparms = array('body'=>$msg);
 		}
+
+		if (!empty($idata['approvertell'])) {
+			$val = trim($idata['approvercontact']);
+			if ($val && preg_match(\Booker::PATNADDRESS,$val)) {
+				if ($to) {
+					$cc = array(array($idata['approver']=>$val));
+					//NOTE setting a 'bcc' address seems to prevent the bcc being sent! (mailer bug)
+					$mailparms['cc'] = $cc;
+				} else {
+					$to[] = array($idata['approver']=>$val);
+				}
+			} elseif ($val) {
+				$to[] = $val;
+			}
+		}
+
 		return array($from,$to,$textparms,$mailparms,$tweetparms);
 	}
 
