@@ -406,49 +406,49 @@ class Display
 		}
 		if (!$iter || !$iter->valid()) {
 			$position = -1;
-		}
-		//interrogate all bookings-data for the cell
-		while ($iter->valid()) {
-			$row = $iter->current();
-			$bs = (int)$row['slotstart'];
-			$be = $bs + $row['slotlen'];
-			if ($bs <= $se - 20 && $be >= $ss + 20) {
-				//log relevant booking-slots
-				$starts[] = $bs;
-				$ends[] = $be;
-				//log distinct users until count users > 1, so we can report as 'multiple'
-				if (!isset($users[1])) {
-					$t = $row['booker_id'];
-					if (!array_key_exists($t,$this->Usercache)) {
-						$this->Usercache[$t] = $ufuncs->GetName($this->mod,$t); //TODO $row['user']
+		} else {
+			//interrogate all bookings-data for the cell
+			while ($iter->valid()) {
+				$row = $iter->current();
+				$bs = (int)$row['slotstart'];
+				$be = $bs + $row['slotlen'];
+				if ($bs <= $se - 20 && $be >= $ss + 20) {
+					//log relevant booking-slots
+					$starts[] = $bs;
+					$ends[] = $be;
+					//log distinct users until count users > 1, so we can report as 'multiple'
+					if (!isset($users[1])) {
+						$t = $row['booker_id'];
+						if (!array_key_exists($t,$this->Usercache)) {
+							$this->Usercache[$t] = $ufuncs->GetName($this->mod,$t); //TODO $row['user']
+						}
+						$n = $this->Usercache[$t];
+						if (!in_array($n,$users)) {
+							$users[] = $n;
+							//log first-found displayclass
+							if(!$displayclass)
+								$displayclass = $ufuncs->GetDisplayClass($this->mod,$t); //TODO row['userclass']
+						}
 					}
-					$n = $this->Usercache[$t];
-					if (!in_array($n,$users)) {
-						$users[] = $n;
-						//log first-found displayclass
-						if(!$displayclass)
-							$displayclass = $ufuncs->GetDisplayClass($this->mod,$t); //TODO row['userclass']
+					//log resource-name(s)
+					if ($row['name'])
+						$resources[$row['name']] = 1;
+					if ($be > $se + 20) { //20-second slop
+						//log first-used position
+						if ($spos == -1) {
+							$spos = $position;
+						}
 					}
-				}
-				//log resource-name(s)
-				if ($row['name'])
-					$resources[$row['name']] = 1;
-				if ($be > $se + 20) { //20-second slop
-					//log first-used position
-					if ($spos == -1) {
-						$spos = $position;
+					if ($bs > $ss + 20) {
+						break;
 					}
-				}
-				if ($bs > $ss + 20) {
+					$iter->next();
+					$position++;
+				} else {
 					break;
 				}
-				$iter->next();
-				$position++;
-			} else {
-				break;
 			}
 		}
-
 		$one = new \stdClass();
 		if ($starts) { //found booking(s)
 			if (count($users) == 1) {
@@ -642,10 +642,10 @@ class Display
 		$booked = $funcs->GetTableBooked($this->mod,$all,$bs,$be);
 		if ($booked) {
 			$iter = new \ArrayIterator($booked);
-			$spos = 0; //init array-iterator-position
 		} else {
 			$iter = FALSE;
 		}
+		$spos = 0; //init array-iterator-position
 		$countall = ($is_group) ? count($all):1;
 		$funcs = new Userops($this->mod);
 		$blocks = new Blocks();
