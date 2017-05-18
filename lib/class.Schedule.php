@@ -184,7 +184,7 @@ class Schedule
 
 	/*
 	MembersLike:
-	Get array of id's of resources in group @gid, sorted on 'likeness'
+	Get array of id's of resources in group @gid, sorted on recorded 'likeness'
 	@mod: reference to current module-object
 	@gid: identifier of group to be interrogated (non-groups are ignored)
 	Returns: array of item-ids from breadth-first scan, likeness-ordered
@@ -360,8 +360,9 @@ class Schedule
 	private function ScheduleMulti(&$mod, &$utils, &$reqdata, $item_id, $bulk_id, $session_id, $is_repeat)
 	{
 		$likes = self::MembersLike($mod,$item_id);
-		if (!$likes)
+		if (!$likes) {
 			return FALSE;
+		}
 
 		$idata = $utils->GetItemProperty($mod,$item_id,array('leadtype','leadcount'),TRUE);
 		$idata = $idata + $utils->GetItemProperty($mod,$item_id,array('slottype','slotcount'),TRUE);
