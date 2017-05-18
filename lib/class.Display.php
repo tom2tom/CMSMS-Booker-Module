@@ -374,14 +374,15 @@ class Display
 	@celloff: string representing cell coverage: '' for slotlength,
 		otherwise DateTime modifier '+1 X'
 	@countall: no. of usable resources for this cell
-	@position: @iter's offset in the data array
-	@iter: reference to valid ArrayIterator for whole data array whose
-		contents are sorted (first) by booking-start ASC
+	@position: initial offset in the data array for @iter
+	@iter: reference to ArrayIterator for whole data array whose
+		contents are sorted (first) by booking-start ASC, OR FALSE
 	@ufuncs: reference to Userops-class object
 	@blocks: reference to Blocks-class object
-	Returns: 2-member array:
+	Returns: 3-member array:
 		[0] = object with properties for the cell
-		[1] = value of @position to use in next call
+		[1] = 'first-used' array offset for the cell, or -1
+		[2] = array offset, 1-past last-used for the cell, or -1, or @position if cell is vacant
 	*/
 	private function DocumentCell(&$idata, $dt, $ss, $se, $celloff, $countall, $position, &$iter, &$ufuncs, &$blocks)
 	{
@@ -396,7 +397,16 @@ class Display
 		$resources = array(); //id(s) actually booked
 		$starts = array(); //booking-starts (automatically) sorted by increasing $bs
 		$ends = array();
-		$ipos = -1;
+		$spos = -1;
+		if ($iter && $position != -1) {
+			try {
+				$iter->seek($position);
+			} catch (\Exception $e) {
+			}
+		}
+		if (!$iter || !$iter->valid()) {
+			$position = -1;
+		}
 		//interrogate all bookings-data for the cell
 		while ($iter->valid()) {
 			$row = $iter->current();
@@ -424,9 +434,9 @@ class Display
 				if ($row['name'])
 					$resources[$row['name']] = 1;
 				if ($be > $se + 20) { //20-second slop
-					//log back-seek position
-					if ($ipos == -1) {
-						$ipos = $position;
+					//log first-used position
+					if ($spos == -1) {
+						$spos = $position;
 					}
 				}
 				if ($bs > $ss + 20) {
@@ -438,10 +448,7 @@ class Display
 				break;
 			}
 		}
-		if ($ipos != -1) {
-			$iter->seek($ipos);
-			$position = $ipos;
-		}
+
 		$one = new \stdClass();
 		if ($starts) { //found booking(s)
 			if (count($users) == 1) {
@@ -503,7 +510,10 @@ class Display
 			$one->data = NULL;
 			$one->style = 'class="vacant"';
 		}
-		return array($one,$position);
+		if ($spos == -1 && $position != -1) {
+			$spos = $position;
+		}
+		return array($one,$spos,$position);
 	}
 
 	/*
@@ -632,7 +642,7 @@ class Display
 		$booked = $funcs->GetTableBooked($this->mod,$all,$bs,$be);
 		if ($booked) {
 			$iter = new \ArrayIterator($booked);
-			$position = 0; //init array-iterator-position
+			$spos = 0; //init array-iterator-position
 		} else {
 			$iter = FALSE;
 		}
@@ -671,9 +681,9 @@ class Display
 			for ($r = 1; $r < $rc; $r++) {
 				$dtw->setTimestamp($bs);
 				$be = $bs + $slotlen - 1; //end-stamp of current slot, maybe < end-of-cell
-				if ($iter && $iter->valid()) {
-					list($one,$position) = self::DocumentCell(
-						$idata,$dtw,$bs,$be,$celloff,$countall,$position,$iter,$funcs,$blocks);
+				if ($spos != -1) {
+					list($one,$spos,$epos) = self::DocumentCell(
+						$idata,$dtw,$bs,$be,$celloff,$countall,$spos,$iter,$funcs,$blocks);
 				} else {
 					$one = new \stdClass();
 					$one->data = NULL;
@@ -689,21 +699,7 @@ class Display
 				}
 			}
 			$columns[] = $cells;
-			//iter to next segment start
-			$bs = $dts->getTimestamp();
-			$dtw->setTimestamp($bs);
-			$dtw->modify($offs);
-			$be = $dtw->getTimestamp(); //1-past-end of current segment
-			while ($iter && $iter->valid()) {
-				$row = $iter->current();
-				$bs = (int)$row['slotstart'];
-				if ($bs < $be) {
-					$iter->next();
-					$position++;
-				} else {
-					break;
-				}
-			}
+			$spos = $epos;
 		}
 		return $columns;
 	}
