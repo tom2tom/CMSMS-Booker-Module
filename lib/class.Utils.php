@@ -1006,7 +1006,9 @@ EOS;
 							}
 							$regs[$fld] = $row;
 						} else {
-							$row = $regs[$fld];
+							if (isset($regs[$fld]['name'])) {
+								$row['name'] = $regs[$fld]['name'];
+							}
 						}
 						if (isset($row['address'])) {
 							$row['address'] = $regs[$fld]['address'];
@@ -1025,7 +1027,7 @@ EOS;
 							}
 							$nonregs[$fld] = $row;
 						} else {
-							$row = $nonregs[$fld];
+							$row['name'] = $nonregs[$fld]['name'];
 						}
 						if (isset($row['address'])) {
 							$row['address'] = $nonregs[$fld]['address'];
