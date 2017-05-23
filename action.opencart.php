@@ -202,7 +202,7 @@ if (!$cart->seemsEmpty()) {
 		break;
 	}
 
-	$tplvars = $tplvars + array(
+	$tplvars += array(
 		'items' => $items,
 		'count' => count($items),
 		'payable' => $pay,
@@ -241,7 +241,7 @@ EOS;
 EOS;
 
 $jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/include/jquery.alertable.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/jquery.alertable.min.js"></script>
 EOS;
 
 } else { //empty cart

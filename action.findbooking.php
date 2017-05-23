@@ -272,8 +272,8 @@ EOS;
 
 		if ($count > 1) {
 			$jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/include/jquery.metadata.min.js"></script>
-<script type="text/javascript" src="{$baseurl}/include/jquery.SSsort.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/jquery.metadata.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/jquery.SSsort.min.js"></script>
 EOS;
 			//TODO make page-rows count window-size-responsive
 			$pagerows = $this->GetPreference('pagerows',10);
@@ -378,7 +378,7 @@ if ($admin)  { //admin search
 EOS;
 
 $jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/include/jquery.alertable.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/jquery.alertable.min.js"></script>
 EOS;
 
 //TODO adjust dialog styling for error
@@ -463,10 +463,10 @@ $stylers .= <<<EOS
 EOS;
 
 $jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/include/pikaday.min.js"></script>
-<script type="text/javascript" src="{$baseurl}/include/pikaday.jquery.min.js"></script>
-<script type="text/javascript" src="{$baseurl}/include/php-date-formatter.min.js"></script>
-<script type="text/javascript" src="{$baseurl}/include/jquery.watermark.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/pikaday.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/pikaday.jquery.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/php-date-formatter.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/jquery.watermark.min.js"></script>
 EOS;
 
 $nextm = $this->Lang('nextm');
