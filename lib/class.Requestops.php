@@ -562,8 +562,6 @@ OR
 		$item = new Cart\BookingCartItem($idata['name'],$item_id,$params['fee'],$idata['taxrate']); //$item_id will be the item 'type'
 		$data = $item->getPackage();
 
-		$t = ($params['name']) ? $params['name'] : $params['account'];
-		$name = trim($t);
 		$ob = \cms_utils::get_module('FrontEndUsers');
 		if ($ob) {
 			$data->uid = $ob->LoggedInID();
@@ -571,9 +569,15 @@ OR
 		} else {
 			$data->uid = FALSE;
 		}
-		if (isset($params['publicid'])) {
+
+		//TODO get real maxlen from table-field size
+		$data->maxlen = 0; //max comment length or 0 for unlimited
+
+		if ($params['bookertype'] == 1) {
+			//registered user
+			$name = trim($params['account']);
 			if ($params['contactnew']) {
-				$t = $params['contactnew'];
+				$t = trim($params['contactnew']);
 			} else {
 				$funcs = new Userops($mod);
 				$row = $funcs->GetContact($mod,$params['booker_id']); //get current contact for account
@@ -583,16 +587,15 @@ OR
 					$t = $mod->Lang('err_data');
 				}
 			}
-		} elseif (isset($params['contact'])) {
-			$t = $params['contact'];
 		} else {
-$this->Crash();
-			$t = $mod->Lang('err_data');
+			$name = trim($params['name']);
+			if (isset($params['contact'])) {
+				$t = trim($params['contact']);
+			} else {
+				$t = $mod->Lang('err_data');
+			}
 		}
 		$contact = $t;
-
-		//TODO get real maxlen from table-field size
-		$data->maxlen = 0; //max comment length or 0 for unlimited
 
 		$quantity = (!empty($params['subgrpcount'])) ? (int)$params['subgrpcount'] : 1;
 		if (isset($params['slotstart'])) {
