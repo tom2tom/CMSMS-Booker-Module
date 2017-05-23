@@ -21,5 +21,9 @@
 </tbody></table>
 </div>
 {$cartmsg}<br />
-{$submit}{if isset($cart)} {$cart}{/if} {$cancel} {if isset($choose)} {$choose}{/if} {$register} {$change}
+<div style="margin-top:0.5em;">
+{$submit}{if isset($cart)}&nbsp;{$cart}{/if}&nbsp;{$cancel}{if isset($choose)}&nbsp;{$choose}{/if}
+<div style="float:right;">{$register}&nbsp;{$change}</div>
+<div style="clear:both;"></div>
+</div>
 {$endform}
