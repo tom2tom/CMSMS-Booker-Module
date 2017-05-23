@@ -67,13 +67,55 @@ if (isset($params['bkr_resume'])) { //first-time here
 	$_SESSION['parmkey'] = SaveParms($cache, FALSE, $params);
 	$utils->DecodeParameters($params); //ditto
 } elseif (isset($params['success']) || isset($params['cancel'])) {
-	if (isset($params['success'])) {
-	//TODO deal with stuff e.g. maybe a feedback message?
-	}
 	$cache = Booker\Cache::GetCache($this);
 	$saved = RetrieveParms($cache, $_SESSION['parmkey']);
 	unset($_SESSION['parmkey']);
 	$utils->DecodeParameters($saved);
+
+	if (isset($params['success'])) {
+		if (isset($params['authdata'])) {
+			$data = json_decode(base64_decode($params['authdata']));
+			if ($data) { //stdClass
+	//TODO deal with stuff e.g. maybe a feedback message?
+				switch ($saved['task']) {
+				 case 'change':
+/*
+captcha	string	""
+contact	string	""
+login	string	"cookphil"
+loginnew	string	"cookph"
+name	string	""
+password	string	"RESTRICTED"
+passwordnew	string	"RESTRICTED"
+task	string	"change"
+*/
+					$ufuncs = new Booker\Userops($this);
+					$bookerid = $ufuncs->IsKnown($this, $data->login, FALSE);
+					if ($bookerid) {
+						$name = $data->name ? $data->name : FALSE;
+						$phone = ($data->contact && preg_match(Booker::PATNPHONE,$data->contact)) ? $data->contact : FALSE;
+						$address = ($data->contact && !$phone) ? $data->contact : FALSE;
+						$ufuncs->ChangeUser($this, $bookerid, $name, $address, $phone, FALSE, $data->login, $data->loginnew, FALSE, TRUE);
+					} else {
+$this->Crash();
+//TODO
+					}
+					break;
+				 case 'recover':
+					break;
+				 case 'register':
+					$ufuncs = new Booker\Userops($this);
+$this->Crash();
+					$ufuncs->AddUser($this, $name, $address, $phone, $active, $login, $passwd);
+					break;
+				 default:
+$this->Crash();
+					break;
+				}
+			}
+		}
+	}
+
 	$resume = array_pop($saved['resume']);
 	$returnid = $saved['returnid'];
 	$saved = $utils->FilterParameters($saved, $localparams);
