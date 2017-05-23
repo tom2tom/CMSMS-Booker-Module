@@ -159,7 +159,7 @@ $params = array
 	$item_id = array_shift($params['selitm']); //use 1st-selected for editing
 	$sel = $params['selitm']; //maybe empty now
 } elseif (isset($params['selgrp'])) {
-	$item_id = array_unshift($params['selgrp']);
+	$item_id = array_shift($params['selgrp']);
 	$sel = $params['selgrp'];
 } elseif (!empty($params['sel'])) {
 	//TODO came back
@@ -191,11 +191,11 @@ if (isset($params['submit'])) {
    missing member(s) whose condition is inactive AND missing whole $param if
    none is active
 */
-	$sql0 = 'DELETE FROM '.$mod->FeeTable.' WHERE item_id IN(';
+	$sql0 = 'DELETE FROM '.$this->FeeTable.' WHERE item_id IN(';
 
 	$pdata = mergefeedata($params,$item_id);
 	if ($pdata) {
-		$sql1 = 'INSERT INTO '.$mod->FeeTable.' (
+		$sql1 = 'INSERT INTO '.$this->FeeTable.' (
 condition_id,
 item_id,
 signature,
@@ -208,8 +208,8 @@ usercondition,
 condorder,
 active
 ) VALUES (?,?,?,?,?,?,?,?,?,?,?)';
-		$sql2 = 'UPDATE '.$mod->FeeTable.' SET
-signature=?
+		$sql2 = 'UPDATE '.$this->FeeTable.' SET
+signature=?,
 description=?,
 slottype=?,
 slotcount=?,
@@ -228,7 +228,7 @@ WHERE condition_id=?';
 				$allids[] = (int)$one;
 		}
 		//remove non-continuing conditions for $item_id
-		$t = 'DELETE FROM '.$mod->FeeTable.' WHERE item_id=?';
+		$t = 'DELETE FROM '.$this->FeeTable.' WHERE item_id=?';
 		$args = array($item_id);
 		if ($allids) {
 			$fillers = str_repeat('?,',count($allids)-1);
@@ -490,7 +490,7 @@ if ($pdata) {
 
 	if ($pmod) {
 		$jsincs[] =
-'<script type="text/javascript" src="'.$baseurl.'/include/jquery.alertable.min.js"></script>';
+'<script type="text/javascript" src="'.$baseurl.'/lib/js/jquery.alertable.min.js"></script>';
 /*	$t = ($one['description']) ? $one['description'] : $one['fee'].
 		(($one['feecondition']) ? '::'.$one['feecondition']:'');
 	if ($t)
@@ -522,8 +522,8 @@ EOS;
 EOS;
 	}
 
-	$tplvars = $tplvars + array(
-	//'intro' => $this->Lang('feeintro'),
+	$tplvars += array(
+//	'intro' => $this->Lang('feeintro'),
 	'intro' => $this->Lang('help_fees').'<br />'.$this->Lang('help_feeconditions'),
 	'items' => $items,
 	'desctext' => $this->Lang('description'),
@@ -588,7 +588,7 @@ function select_all_itm(b) {
 EOS;
 			$tplvars['dndhelp'] = $this->Lang('help_dnd');
 			$jsincs[] =
-'<script type="text/javascript" src="'.$baseurl.'/include/jquery.tablednd.min.js"></script>';
+'<script type="text/javascript" src="'.$baseurl.'/lib/js/jquery.tablednd.min.js"></script>';
 
 			$jsloads[] = <<<EOS
  $('.dndhelp').css('display','block');
