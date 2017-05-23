@@ -603,7 +603,7 @@ class Import
 			$oldname = funcTODO($login,$name,$bookerid); //$bookerid -> lookup current 'publicid' -> get $oldname from Auther
 			$oldlogin = funcTODO($login,$name,$bookerid); //$bookerid -> lookup current 'publicid' == $oldlogin
 //			$utils->GetUserProperties($mod, ['publicid'=>$oldlogin,'name'=>????]);
-			$ret = $ufuncs->ChangeUser($mod,$bookerid,$name,$address,$phone,FALSE,$login,$oldlogin,$password); //$ret = boolean
+			$ret = $ufuncs->ChangeUser($mod,$bookerid,$name,$address,$phone,FALSE,$oldlogin,$login,$password); //$ret = boolean
 		} else {
 			$bookerid = $ufuncs->AddUser($mod,$name,$address,$phone,1,$login,$password); //$bookerid = enum or FALSE
 			$ret = $bookerid;
