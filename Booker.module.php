@@ -379,6 +379,7 @@ EOS;
 		//TODO parameter types
 		$this->SetParameterType('account',CLEAN_STRING);
 		$this->SetParameterType('apply',CLEAN_STRING); //change view enum
+		$this->SetParameterType('authdata',CLEAN_STRING); //data from authpanel
 		$this->SetParameterType('bookat',CLEAN_INT);
 		$this->SetParameterType('bookertype',CLEAN_INT);
 		$this->SetParameterType('bkgid',CLEAN_INT);
