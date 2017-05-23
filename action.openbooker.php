@@ -53,8 +53,17 @@ if (isset($params['cancel'])) {
 
 $is_new = ($bookerid == -1);
 
+$amod = cms_utils::get_module('Auther');
+if ($amod) {
+	$afuncs = new Auther\Auth($amod,$this->GetPreference('authcontext',0));
+	unset($amod);
+} else {
+	echo $this->Lang('err_system');
+	return;
+}
+$cfuncs = new Booker\Crypter($this);
 $utils = new Booker\Utils();
-$utils->DecodeParameters($params,array('name','publicid','address','phone'));
+//$utils->DecodeParameters($params,array('name','publicid','address','phone')); //TODO Auther password
 
 if (isset($params['submit']) || isset($params['apply'])) {
 	if (!$pmod) exit;
@@ -63,7 +72,7 @@ if (isset($params['submit']) || isset($params['apply'])) {
 	'address'
 	'displayclass'
 	'name'
-	'passhash'
+	'password'
 	'publicid'
 	'type_postpay'
 	'type_record'
@@ -72,58 +81,111 @@ if (isset($params['submit']) || isset($params['apply'])) {
 	//validation
 	$msg = array();
 	$t = trim($params['name']);
-	if ($t)
-		$params['name'] = $t;
-	else
-		$msg[] = $this->Lang('missing_type',$this->Lang('user'));
-	$t = trim($params['address']);
-	if ($t)
-		$params['address'] = $t;
-	else
-		$msg[] = $this->Lang('missing_type',$this->Lang('contact'));
-	$t = trim($params['phone']);
 	if ($t) {
-		if (!preg_match('/^(\+\d{1,4} *)?[\d ]{5,15}$/',$t)) {
-			$msg[] = $this->Lang('invalid_type',$this->Lang('phone'));
-		} else {
+		$params['name'] = $t;
+	} elseif (!$afuncs->GetConfig('name_required')) {
+		$params['name'] = NULL;
+	} else {
+		$msg[] = $this->Lang('missing_type',$this->Lang('user'));
+	}
+	$t = trim($params['address']);
+	if ($t) {
+		$params['address'] = $t;
+	} else {
+		$params['address'] = NULL;
+	}
+	$t = str_replace(' ','',$params['phone']);
+	if ($t) {
+		if (preg_match(\Booker::PATNPHONE,$t)) {
 			$params['phone'] = $t;
+		} else {
+			$params['phone'] = NULL;
+			$msg[] = $this->Lang('invalid_type',$this->Lang('phone'));
 		}
+	} else {
+		$params['phone'] = NULL;
 	}
 
-	$pw = trim($params['passhash']);
-
+	$pw = trim($params['password']);
+	$oldlogin = $params['oldlogin'];
 	$t = trim($params['publicid']);
 	if ($t) {
-		$params['publicid'] = $t; //no duplication check - allow multi-users per account
+		$params['publicid'] = $t;
 		if ($is_new && !$pw) {
 			$msg[] = $this->Lang('missing_type',$this->Lang('password'));
+		} else {
+			$checks = array('publicid'=>$t);
+			if ($pw) {
+				$checks['password'] = $pw;
+			}
+			if ($params['name']) {
+				$checks['name'] = $params['name'];
+			}
+			$address = ($params['address']) ? $params['address'] : $params['phone'];
+			if ($address) {
+				$checks['address'] = $address;
+			}
+			$except = ($is_new) ? FALSE : $t;
+			$res = $afuncs->ValidateAll($checks,$except,TRUE); //explicit
+			if (!$res[0]) {
+				$msg[] = $res[1];
+			}
 		}
 	} else {
 		$params['publicid'] = NULL;
 		$pw = FALSE;
+		if ($oldlogin) {  //newly-deregistered
+			$data = $afuncs->GetUserProperties($oldlogin,'address',FALSE);
+			if ($data) {
+				$t = $data[0]['address'];
+				if ($t) {
+					if (!$params['phone'] && preg_match(Booker::PATNPHONE,$t)) {
+						$params['phone'] = $t;
+					} elseif (!$params['address']) {
+						$params['address'] = $t; //anything will do
+					}
+				}
+			}
+		}
+	}
+
+	if ($afuncs->GetConfig('address_required')) {
+		if (!($params['address'] || $params['phone'])) {
+			$msg[] = $this->Lang('err_nocontact2');
+		}
 	}
 
 	if (!$msg) {
-		$funcs = new Booker\Userops();
+		//$params[] are updated for storage in BookersTable, related variables are for Auther users
+		$ufuncs = new Booker\Userops($this);
+		if ($params['name']) {
+			//cleanup registered names
+			$name = ($oldlogin || $params['publicid']) ?
+				$ufuncs->SanitizeName($params['name']):$params['name'];
+		} else {
+			$name = FALSE;
+		}
+		$address = ($params['address']) ? $params['address'] : FALSE;
+		$phone = ($params['phone']) ? $params['phone'] : FALSE;
+		$active = empty($params['active']) ? 0:1;
+		$login = ($params['publicid']) ? trim($params['publicid']) : FALSE;
+
+		if ($is_new) {
+			$bookerid = $ufuncs->AddUser($this,$name,$address,$phone,$active,$login,$pw);
+		} else {
+			$ufuncs->ChangeUser($this,$bookerid,$name,$address,$phone,$active,$params['oldlogin'],$login,$pw);
+		}
+		//update local table-values not handled in $ufuncs::*User()
 		$type = (int)$params['type_type'];
 		$t = !empty($params['active']);
-		if ($is_new) {
-			$bookerid = $funcs->AddUser($this,$params['name'],$params['publicid'],$pw);
-			$sql = 'UPDATE '.$this->BookerTable.' SET address=?,phone=?type=?,displayclass=?,active=? WHERE booker_id=?';
-			//TODO $utils->SafeExec()
-			$db->Execute($sql,array($params['address'],$params['phone'],$type,(int)$params['displayclass'],$t,$bookerid));
-		} else {
-			$sql = 'UPDATE '.$this->BookerTable.' SET name=?,publicid=?,address=?,phone=?,type=?,displayclass=?,active=? WHERE booker_id=?';
-			//TODO $utils->SafeExec()
-			$db->Execute($sql,array($params['name'],$params['publicid'],$params['address'],$params['phone'],$type,(int)$params['displayclass'],$t,$bookerid));
-			if ($pw)
-				$funcs->SetPassword($this,$bookerid,'FORCE',$pw);
-		}
+		$sql = 'UPDATE '.$this->BookerTable.' SET type=?,displayclass=?,active=? WHERE booker_id=?';
+		//TODO $utils->SafeExec()
+		$db->Execute($sql,array($type,(int)$params['displayclass'],$t,$bookerid));
 		$rights = array(
 			'record' => !empty($params['type_record']),
 			'postpay' => !empty($params['type_postpay'])
 		);
-		$funcs->SetRights($this,$bookerid,$rights,$type);
+		$ufuncs->SetRights($this,$bookerid,$rights,$type);
 
 		if (isset($params['submit'])) {
 			$resume = array_pop($params['resume']);
@@ -150,7 +212,7 @@ $tplvars['pagenav'] = $utils->BuildNav($this,$id,$returnid,$params['action'],$pa
 $resume = json_encode($params['resume']);
 $hidden = array('booker_id'=>$bookerid,'resume'=>$resume,'task'=>$params['task']);
 
-$tplvars['startform'] = $this->CreateFormStart($id,'openbooker',$returnid,'POST','','','',$hidden);
+//DEFER $tplvars['startform'] = $this->CreateFormStart($id,'openbooker',$returnid,'POST','','','',$hidden);
 $tplvars['endform'] = $this->CreateFormEnd();
 if (!empty($params['message']))
 	$tplvars['message'] = $params['message'];
@@ -168,7 +230,7 @@ $jsfuncs = array();
 $jsloads = array();
 $baseurl = $this->GetModuleURLPath();
 
-$funcs = new Booker\Userops();
+$ufuncs = new Booker\Userops($this);
 
 if ($is_new) {
 	$bdata = array(
@@ -181,9 +243,16 @@ if ($is_new) {
 	 'active'=>1
 	);
 } else {
-	$sql = 'SELECT name,publicid,address,phone,type,displayclass,active FROM '.$this->BookerTable.' WHERE booker_id=?';
+	$sql = <<<EOS
+SELECT COALESCE(A.name,B.name,'') AS name,COALESCE(A.address,B.address,'') AS address,B.publicid,B.phone,B.type,B.displayclass,B.active
+FROM $this->BookerTable B
+LEFT JOIN $this->AuthTable A ON B.publicid=A.publicid
+WHERE B.booker_id=?
+EOS;
 	$bdata = $db->GetRow($sql,array($bookerid));
-	if (!$bdata) {
+	if ($bdata) {
+		$utils->GetUserProperties($this,$bdata);
+	} else {
 		$nav = $tplvars['pagenav'];
 		$tplvars = array(
 		 'title_error'=>$this->Lang('error'),
@@ -195,48 +264,59 @@ if ($is_new) {
 	}
 }
 
+//$hidden['oldname'] = $bdata['name'];
+$hidden['oldlogin'] = $bdata['publicid'];
+$tplvars['startform'] = $this->CreateFormStart($id,'openbooker',$returnid,'POST','','','',$hidden);
+
 $yes = $this->Lang('yes');
 $no = $this->Lang('no');
 
 $vars = array();
 // active
 $oneset = new stdClass();
-$oneset->ttl = $this->Lang('title_active');
 $state = (int)$bdata['active'];
+if ($state == -1) {
+	$val = -1;
+	$oneset->ttl = $this->Lang('title_deletemarked');
+} else {
+	$val = 1;
+	$oneset->ttl = $this->Lang('title_active');
+}
 $oneset->inp = ($pmod) ?
-	$this->CreateInputCheckbox($id,'active',1,$state):
+	$this->CreateInputCheckbox($id,'active',$val,$state):
 	(($state)?$yes:$no);
 $vars[] = $oneset;
 // name C(64)
 $oneset = new stdClass();
 $oneset->ttl = $this->Lang('title_name');
-$oneset->mst = $pmod; //show in edit-mode
+$oneset->mst = $pmod && $afuncs->GetConfig('name_required'); //show in edit-mode
 $oneset->inp = ($pmod) ?
 	$this->CreateInputText($id,'name',$bdata['name'],40,64):
 	(($bdata['name'])?$bdata['name']:$missing);
 $vars[] = $oneset;
-// publicid C(32), aka account
+// login/publicid
 $oneset = new stdClass();
-$oneset->ttl = $this->Lang('title_publicid');
+$oneset->ttl = $this->Lang('title_account');
 $oneset->inp = ($pmod) ?
 	$this->CreateInputText($id,'publicid',$bdata['publicid'],20,32):
 	(($bdata['publicid'])?$bdata['publicid']:$missing);
 $oneset->hlp = $this->Lang('help_publicid');
 $vars[] = $oneset;
-// passhash C(48),
+// password
 if ($pmod) {
 	$oneset = new stdClass();
 	$oneset->ttl = $this->Lang('title_passnew');
-	$t = ($is_new) ? 'changethis':'';
-	$oneset->inp = $this->CreateInputText($id,'passhash',$t,18,18);
+//TODO $t = ($is_new) ? $afuncs->GetConfig('default_password') : '';
+	$t = ($is_new) ? /*Booker\Userops::DEFAULTPASS*/'' : ''; //TODO
+	$oneset->inp = $this->CreateInputText($id,'password',$t,20,32);
 	$oneset->hlp = $this->Lang('help_passnew').'. '.$this->Lang('help_passwd');
 	$vars[] = $oneset;
 
 	$jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/include/jquery-inputCloak.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/jquery-inputCloak.min.js"></script>
 EOS;
 	$jsloads[] = <<<EOS
- $('#{$id}passhash').inputCloak({
+ $('#{$id}password').inputCloak({
   type:'see4',
   symbol:'\u25CF'
  });
@@ -245,7 +325,7 @@ EOS;
 // address C(96)
 $oneset = new stdClass();
 $oneset->ttl = $this->Lang('title_address');
-$oneset->mst = $pmod; //show in edit-mode
+$oneset->mst = $pmod && $afuncs->GetConfig('address_required'); //show in edit-mode
 $oneset->inp = ($pmod) ?
 	$this->CreateInputText($id,'address',$bdata['address'],40,96):
 	(($bdata['address'])?$bdata['address']:$missing);
@@ -262,7 +342,7 @@ $vars[] = $oneset;
 // basetype func(type)
 $oneset = new stdClass();
 $oneset->ttl = $this->Lang('title_bookertype');
-$state = $funcs->GetBaseType($this,$bookerid,$bdata['type']);
+$state = $ufuncs->GetBaseType($this,$bookerid,$bdata['type']);
 if ($pmod) {
 	$choices = array_fill(0,10,0);
 	foreach ($choices as $k=>&$t) {
@@ -278,7 +358,7 @@ $vars[] = $oneset;
 // record func(type),
 $oneset = new stdClass();
 $oneset->ttl = $this->Lang('title_record');
-$state = $funcs->HasRight($this,$bookerid,'record',$bdata['type']);
+$state = $ufuncs->HasRight($this,$bookerid,'record',$bdata['type']);
 if ($pmod) {
 	$oneset->inp = $this->CreateInputCheckbox($id,'type_record',1,$state);
 } else {
@@ -289,7 +369,7 @@ $vars[] = $oneset;
 // postpay func(type),
 $oneset = new stdClass();
 $oneset->ttl = $this->Lang('title_postpay');
-$state = $funcs->HasRight($this,$bookerid,'postpay',$bdata['type']);
+$state = $ufuncs->HasRight($this,$bookerid,'postpay',$bdata['type']);
 if ($pmod) {
 	$oneset->inp = $this->CreateInputCheckbox($id,'type_postpay',1,$state);
 } else {
@@ -308,7 +388,7 @@ if ($pmod) {
 	unset($t);
 	$oneset->inp = $this->CreateInputDropdown($id,'displayclass',$choices,-1,(int)$bdata['displayclass']);
 } else {
-	$oneset->inp = $state;
+	$oneset->inp = $bdata['displayclass'];
 }
 $oneset->hlp = $this->Lang('help_displayclass');
 $vars[] = $oneset;
@@ -324,13 +404,12 @@ if ($pmod) {
 	$tplvars['cancel'] = $this->CreateInputSubmit($id,'cancel',$this->Lang('close'));
 }
 
-$jsall = NULL;
-$utils->MergeJS($jsincs,$jsfuncs,$jsloads,$jsall);
+$jsall = $utils->MergeJS($jsincs,$jsfuncs,$jsloads);
 unset($jsincs);
 unset($jsfuncs);
 unset($jsloads);
 
 echo Booker\Utils::ProcessTemplate($this,'openbooker.tpl',$tplvars);
-//inject constructed js after other content (pity we can't get to </body> or </html> from here)
-if ($jsall)
-	echo $jsall;
+if ($jsall) {
+	echo $jsall; //inject constructed js after other content
+}
