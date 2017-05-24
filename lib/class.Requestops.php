@@ -436,6 +436,7 @@ EOS;
 'booker_id' => int
 'item_id' => int
 'subgrpcount' => int
+'lodged' => int
 'slotstart' => int
 'slotlen' => int
 'comment' => string
@@ -470,27 +471,31 @@ OR
 			$hid = $db->GenID($mod->HistoryTable.'_seq');
 			$bookerid = $params['booker_id'];
 			$idata = $utils->GetItemProperty($mod,$params['item_id'],'timezone');
-			$now = $utils->GetZoneTime($idata['timezone']);
 			$args = array(
 				'history_id'=>$hid,
 				'booker_id'=>$bookerid,
 				'item_id'=>$params['item_id'],
-				'lodged'=>$now
 			);
 			//$params[] key to table-field translates
 			foreach (array(
 			 'subgrpcount'=>TRUE,
+			 'lodged'=>TRUE,
 			 'slotstart'=>TRUE,
 			 'slotlen'=>TRUE,
 			 'comment'=>TRUE,
 			 'fee'=>TRUE, //TODO upstream - func(resource(s),times,user)
-			 'requesttype'=>'status',
+			 'requesttype'=>'status', //before 'status'! CHECKME relevance
+			 'status'=>TRUE,
+			 'payment'=>TRUE,
 			) as $k=>$field) {
 				if (!empty($params[$k])) {
 					switch ($k) {
 					 case 'subgrpcount':
+					 case 'lodged':
 					 case 'slotstart':
 					 case 'slotlen':
+					 case 'status':
+					 case 'payment':
 						$args[$k] = (int)$params[$k];
 						break;
 					 case 'requesttype':
@@ -502,6 +507,12 @@ OR
 					}
 				} else {
 					switch ($k) {
+					 case 'subgrpcount':
+						$args[$k] = 1;
+						break;
+					 case 'lodged':
+						$args[$k] = $utils->GetZoneTime($idata['timezone']);
+						break;
 					 case 'requesttype':
 						$args[$field] = \Booker::STATNEW;
 						break;
