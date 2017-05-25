@@ -464,6 +464,8 @@ $tplvars['title_first'] = $this->Lang('first');
 $tplvars['title_last'] = $this->Lang('last');
 $tplvars['title_future'] = $this->Lang('future');
 
+$now = $utils->GetZoneTime('UTC'); //timestamp with same zone as booking data
+
 //BOOKERS TAB (& FORM)
 $tplvars['startform2'] = $this->CreateFormStart($id,'adminbooker',$returnid,
 	'POST','','','',array('active_tab'=>'people','resume'=>$resume,'custmsg'=>''));
@@ -482,7 +484,6 @@ $data = $db->GetArray($sql);
 if ($data) {
 	$utils->GetUserProperties($this,$data);
 	$sb = $this->Lang('booker');
-	$st = $utils->GetZoneTime('UTC'); //'now' timestamp with same zone as booking data
 	$dt = new DateTime('@0',NULL);
 	$sql = 'SELECT booker_id AS B,slotstart AS S,item_id AS I FROM '.$this->HistoryTable.' ORDER BY booker_id,slotstart';
 	$histdata = $db->GetArray($sql);
@@ -555,7 +556,7 @@ if ($data) {
 				$first = $dt->format('Y-m-d');
 				$i = 0;
 				foreach ($belongs as $v) {
-					if ($v['S'] <= $st)
+					if ($v['S'] <= $now)
 						$i++;
 					else
 						break;
@@ -689,6 +690,7 @@ $items = array();
 $icount = 0;
 $groups = array();
 $gcount	= 0;
+$mingrp = Booker::MINGRPID;
 
 $relations = $db->GetAssoc('SELECT * FROM '.$this->GroupTable.' ORDER BY child,proximity');
 if ($relations)
@@ -705,7 +707,23 @@ ORDER BY I.name
 EOS;
 //TODO $utils->SafeExec()
 $data = $db->GetArray($sql);
+
 if ($data) {
+	$sql = <<<EOS
+SELECT item_id AS I,checkedfrom AS S FROM $this->RepeatTable
+WHERE item_id>=$mingrp
+UNION
+SELECT item_id AS I,slotstart AS S FROM $this->DataTable
+WHERE item_id>=$mingrp
+ORDER BY I,S
+EOS;
+	$gbdata = $db->GetArray($sql);
+	if ($gbdata) {
+		$gbooked = array_unique(array_column($gbdata,'I'), SORT_NUMERIC);
+	} else {
+		$gbooked = FALSE;
+	}
+
 	$uid = ($owned) ? get_userid(FALSE) : 0; //current user
 	foreach ($data as $row) {
 /*$data = array
@@ -720,8 +738,8 @@ if ($data) {
 */
 		//omit some choices when editing, if current user hasn't admin permission and doesn't own the item
 		$skip = $owned && $mod && !$padm && $row['owner'] > 0 && $row['owner'] != $uid;
-		$item_id	= (int)$row['item_id'];
-		$isitem = ($item_id < Booker::MINGRPID && $item_id != -Booker::MINGRPID);
+		$item_id = (int)$row['item_id'];
+		$isitem = ($item_id < $mingrp && $item_id != -$mingrp);
 
 		$one = new stdClass();
 		//TODO make this sortable
@@ -766,49 +784,54 @@ if ($data) {
 			} else
 				$one->ownername = '';
 		}
-		if ($histdata) {
-			//TODO if a group, get item-bookings derived from group-booking(s) for this item NOT all bookings for this item
+
+		if ($isitem && $histdata) {
 			$belongs = array_filter($histdata,function($v)use($item_id){return $v['I'] == $item_id;});
-			if ($belongs) {
-				$count = count($belongs);
-//TODO array ordered by booker_id,slotstart, not item_id, not worth resorting?
-				$future = 0;
-				$min = PHP_INT_MAX;
-				$max = ~PHP_INT_MAX;
-				foreach ($belongs as $v) {
-					$t = $v['S'];
-					if ($t >= $st)
-						$future++;
-					if ($t > $max)
-						$max = $t;
-					if ($t < $min)
-						$min = $t;
-				}
-				$dt->setTimestamp($min);
-				$first = $dt->format('Y-m-d');
-				$dt->setTimestamp($max);
-				$last = $dt->format('Y-m-d');
-			}
+		} elseif (!$isitem && $gbdata && in_array($item_id,$gbooked)) {
+			$belongs = array_filter($gbdata,function($v)use($item_id){return $v['I'] == $item_id;});
 		} else {
 			$belongs = FALSE;
 		}
 
 		if ($belongs) {
-			$t = sprintf($bseetip,$si); //($isitem)?$si:$sg);
+			$count = count($belongs);
+//TODO array ordered by booker_id,slotstart, not item_id, not worth resorting?
+			$future = 0;
+			$min = PHP_INT_MAX;
+			$max = ~PHP_INT_MAX;
+			foreach ($belongs as $v) {
+				$t = $v['S'];
+				if ($t >= $now)
+					$future++;
+				if ($t > $max)
+					$max = $t;
+				if ($t < $min)
+					$min = $t;
+			}
+			$dt->setTimestamp($min);
+			$first = $dt->format('Y-m-d');
+			$dt->setTimestamp($max);
+			$last = $dt->format('Y-m-d');
+
+			$t = sprintf($bseetip,($isitem)?$si:$sg);
 			$t = sprintf($iconbsee,$t,$t);
 			$one->bsee = $this->CreateLink($id,'itembookings','',$t,array('item_id'=>$item_id,'task'=>'see'));
 
-//			if ($isitem && $bmod && !$skip)
 			if ($mod && !$skip) {
-				$t = sprintf($bedittip,$si); //($isitem)?$si:$sg);
+				$t = sprintf($bedittip,($isitem)?$si:$sg);
 				$t = sprintf($iconbedit,$t,$t);
 				$one->bedit = $this->CreateLink($id,'itembookings','',$t,array('item_id'=>$item_id,'task'=>'edit'));
-			} else
+			} else {
 				$one->bedit = '';
+			}
 
-			$t = sprintf($exporttip,$si); //($isitem)?$si:$sg);
-			$t = sprintf($iconexport,$t,$t);
-			$one->export = $this->CreateLink($id,'processitem',$returnid,$t,array('item_id'=>$item_id,'task'=>'export'));
+			if ($isitem) {
+				$t = sprintf($exporttip,$si); //($isitem)?$si:$sg);
+				$t = sprintf($iconexport,$t,$t);
+				$one->export = $this->CreateLink($id,'processitem',$returnid,$t,array('item_id'=>$item_id,'task'=>'export'));
+			} else {
+				$one->export = '';
+			}
 		} else {
 			$count = 0;
 			$first = '';
@@ -1050,10 +1073,10 @@ EOS;
 if ($mod) {
 	$tplvars['addgrp'] = $this->CreateLink($id,'processitem',$returnid,
 		 $theme->DisplayImage('icons/system/newobject.gif',$this->Lang('addgroup'),'','','systemicon'),
-		 array('item_id'=>-Booker::MINGRPID,'task'=>'add'),'',FALSE,FALSE,'')
+		 array('item_id'=>-$mingrp,'task'=>'add'),'',FALSE,FALSE,'')
 	 .' '.$this->CreateLink($id,'processitem',$returnid,
 		 $this->Lang('addgroup'),
-		 array('item_id'=>-Booker::MINGRPID,'task'=>'add'),'',FALSE,FALSE,'class="pageoptions"');
+		 array('item_id'=>-$mingrp,'task'=>'add'),'',FALSE,FALSE,'class="pageoptions"');
 	$tplvars['importbtn4'] = $tplvars['importbtn3'];
 	$tplvars['fimportbtn4'] = $tplvars['fimportbtn3'];
 }
@@ -1098,8 +1121,8 @@ $cells[] = $column;
 $tplvars['reportcells'] = $cells;
 $tplvars['reportrows'] = 4;
 $tplvars['reportcols'] = 4;
-$tplvars['displaybtn'] = '[BTNDISPLAY]';
-$tplvars['exportbtn5'] = '[BTNEXPORT]';
+$tplvars['displaybtn'] = $this->CreateInputSubmit($id,'displayreport',$this->Lang('display'));
+$tplvars['exportbtn5'] = $this->CreateInputSubmit($id,'exportreport',$this->Lang('export'));
 
 $jsloads[] = <<<EOS
  $('#reportstable').find('input.reportcheck').click(function(ev) {
@@ -1634,7 +1657,6 @@ $jsloads[] = <<<'EOS'
   symbol:'\u25CF'
  });
 EOS;
-
 
 //hacky js here to work around tab-specific forms, i.e. no single page-tab object
 /*$jsloads[] = <<<EOS
