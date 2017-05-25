@@ -257,7 +257,7 @@ if ($t)
 $intrvl = $publicperiods[$range];
 $mintrvl = $utils->RangeNames($this,$range,TRUE); //plural variant
 
-$tplvars['actionstitle'] = $this->Lang('title_display');
+$tplvars['actionstitle'] = $this->Lang('display');
 $actions1 = array();
 $actions1[] = $this->CreateInputSubmit($id,'slide','+1','title="'.$this->Lang('tip_forw1',$intrvl).'"');
 if ($range == Booker::RANGEDAY)
