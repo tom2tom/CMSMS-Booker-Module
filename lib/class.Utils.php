@@ -284,21 +284,21 @@ EOS;
 		$sql = <<<EOS
 SELECT DISTINCT I.item_id,I.pickmembers FROM $mod->ItemTable I
 JOIN $mod->GroupTable G ON I.item_id=G.parent
-WHERE G.child=? AND I.pickthis>0 ORDER BY G.proximity,G.likeorder
+WHERE G.child=? AND I.pickthis>0 AND I.active>0 ORDER BY G.proximity,G.likeorder
 EOS;
 		$rows = $mod->dbHandle->GetArray($sql, array($currentpick));
 
 		if ($rows) {
-			$sql = <<<EOS
+			$sql1 = <<<EOS
 SELECT DISTINCT I.item_id,I.pickmembers FROM $mod->ItemTable I
 JOIN $mod->GroupTable G ON I.item_id=G.parent
-WHERE G.child IN(%s) AND I.pickthis>0 ORDER BY G.proximity,G.likeorder
+WHERE G.child IN(%s) AND I.pickthis>0 AND I.active>0 ORDER BY G.proximity,G.likeorder
 EOS;
 			do {
 				$groups = array_merge($groups, $rows);
 				$checks = array_column($groups, 'item_id');
 				$fillers = implode(',', array_column($rows, 'item_id'));
-				$sql1 = sprintf($sql, $fillers);
+				$sql = sprintf($sql1, $fillers);
 				$rows = $mod->dbHandle->GetArray($sql1);
 				if ($rows) {
 					//TODO if all $rows are already recorded, but more ancestor(s) exist
@@ -343,7 +343,7 @@ EOS;
 		$choices = array_unique($choices, SORT_NUMERIC);
 		$fillers = implode(',', $choices);
 		$sql = <<<EOS
-SELECT item_id,name,pickname FROM $mod->ItemTable WHERE item_id IN({$fillers})
+SELECT item_id,name,pickname FROM $mod->ItemTable WHERE item_id IN({$fillers}) AND active>0
 EOS;
 		$rows = $mod->dbHandle->GetAssoc($sql);
 		$picknames = array();
@@ -455,6 +455,7 @@ EOS;
 	/**
 	 * GetItemGroups:
 	 * Get proximity-sorted array of 'ancestors' of @item_id i.e. closest-ancestor-first.
+	 * Active-status is ignored
 	 *
 	 * @mod: reference to Booker module object
 	 * @item_id: identifier of item whose ancestors are wanted
@@ -481,6 +482,7 @@ EOS;
 	/**
 	 * GetGroupItems:
 	 * Get reverse-proximity-ordered array of 'descendants' of @gid.
+	 * Active-status is ignored
 	 *
 	 * @mod: reference to current module-object
 	 * @gid: identifier of group to be interrogated (non-groups are ignored)
@@ -538,6 +540,7 @@ EOS;
 	* GetGroups(&$mod, $id=0, $returnid=0, $full=FALSE, $anyowner=TRUE)
 	* Create associative array of group-data, sorted by field 'likeorder',
 	* each array member's key is the group id, value is an object
+	* Active-status is ignored
 	*
 	* @id: session identifier used in link, when $full is TRUE
 	* @returnid: ditto
