@@ -65,11 +65,11 @@ if (!function_exists('groupstable')) {
 
 if (!function_exists('groupsupdate')) {
 /*
- Update relevant data in GroupTable
+ Upsert relevant data in GroupTable
 
  $mod reference to current module object
  $db reference to current database-connection-object
- $item_id resource/group identifier as per ItemTable
+ $item_id resource/group identifier as per ItemTable, maybe newly-allocated
  $parent TRUE if $item_id is for a parent group (for which we're processing member(s))
   or FALSE if is child (for which we're processing group(s))
  $sel array of id's of group members (if $parent TRUE) or else groups in which $item_is placed
@@ -203,6 +203,12 @@ $this->Crash();
 	$this->Redirect($id, $resume, '', $newparms);
 }
 
+if ($item_id == -1) {
+	$new_id = $db->GenID($this->ItemTable.'_seq');
+}  elseif ($item_id == -Booker::MINGRPID) {
+	$new_id = $db->GenID($this->ItemTable.'_gseq');
+}
+
 $task = $params['task'];
 //feedback-message-accumulator
 $msg = (isset($params['message'])) ? $params['message'] : '';
@@ -229,6 +235,13 @@ if (isset($params['submit']) || isset($params['apply'])) {
 	if (!isset($fields['active'])) {
 		$fields['active'] = 0;
 	}
+	//radios, prevent NULL'd values
+	foreach (array('bookertell','grossfees','pickthis','pickmembers','cleargroup','approvertell')
+		as $t) {
+		if ($fields[$t] == '') {
+			$fields[$t] = 0;
+		}
+	}
 	//group members
 	//if present, is ordered array of strings, each value being a member's item_id
 	//like $fields['members'] = array(0 => string '21', 1 => string '1')
@@ -239,10 +252,11 @@ if (isset($params['submit']) || isset($params['apply'])) {
 	} else {
 		$members = FALSE; //option not in use, or no member selected
 	}
-	if ($item_id >= Booker::MINGRPID) {
+	if ($is_group) {
 		if ($members) {
-			groupsupdate($this, $db, $item_id, TRUE, $members);
-		} else {
+			$c = ($item_id >= Booker::MINGRPID) ? $item_id : $new_id;
+			groupsupdate($this, $db, $c, TRUE, $members);
+		} elseif ($item_id >= Booker::MINGRPID) {
 			$sql = 'DELETE FROM '.$this->GroupTable.' WHERE parent=?';
 			//TODO $utils->SafeExec()
 			$db->Execute($sql, array($item_id));
@@ -257,14 +271,15 @@ if (isset($params['submit']) || isset($params['apply'])) {
 	}
 	if ($groups) {
 		if ($members) {
-			$groups = array_diff($groups, $members);
-		}//filter out any common values
+			$groups = array_diff($groups, $members);	//filter out any common values
+		}
 		if ($groups) {
-			groupsupdate($this, $db, $item_id, FALSE, $groups);
+			$c = ($item_id > 0) ? $item_id : $new_id;
+			groupsupdate($this, $db, $c, FALSE, $groups);
 		}
 	} elseif ($item_id > 0 && $item_id < Booker::MINGRPID) {
 		$sql = 'DELETE FROM '.$this->GroupTable.' WHERE child=?';
-			//TODO $utils->SafeExec()
+		//TODO $utils->SafeExec()
 		$db->Execute($sql, array($item_id));
 	}
 	//stylesfile
@@ -373,21 +388,21 @@ if (isset($params['submit']) || isset($params['apply'])) {
 	unset($fields['imgsel']);
 
 	if ($item_id == -1) {
-		$fields['item_id'] = $db->GenID($this->ItemTable.'_seq');
+		$params['item_id'] = $new_id;
+		$fields['item_id'] = $new_id;
 		$data = array_keys($fields);
 		$namers = implode(',', $data);
 		$data = array_values($fields);
 		$fillers = str_repeat('?,', count($data) - 1);
 		$sql = 'INSERT INTO '.$this->ItemTable." ($namers) VALUES ($fillers?)";
-		$params['item_id'] = $fields['item_id'];
 	} elseif ($item_id == -Booker::MINGRPID) {
-		$fields['item_id'] = $db->GenID($this->ItemTable.'_gseq');
+		$params['item_id'] = $new_id;
+		$fields['item_id'] = $new_id;
 		$data = array_keys($fields);
 		$namers = implode(',', $data);
 		$data = array_values($fields);
 		$fillers = str_repeat('?,', count($data) - 1);
 		$sql = 'INSERT INTO '.$this->ItemTable." ($namers) VALUES ($fillers?)";
-		$params['item_id'] = $fields['item_id'];
 	} else {
 		unset($fields['item_id']);
 		$data = array_keys($fields);
@@ -400,8 +415,7 @@ if (isset($params['submit']) || isset($params['apply'])) {
 	foreach ($data as &$val) {
 		if (is_numeric($val)) {
 			$val = $val + 0; //cast to number
-		}
-		elseif ($val == '') {
+		} elseif ($val === '') {
 			$val = NULL;
 		}
 	}
