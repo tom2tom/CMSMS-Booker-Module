@@ -183,8 +183,9 @@ if (!empty($params['slide'])) {
 		$range += 1;
 }
 
-if (!empty($params['newlist']))
+if (!empty($params['newlist'])) {
 	$idata['listformat'] = $params['listformat'];
+}
 
 $jsfuncs = array(); //script accumulator
 $jsloads = array(); //document-ready funcs
@@ -279,15 +280,25 @@ $jsloads[] = <<<EOS
  });
 EOS;
 
+$chooser = $utils->GetItemPicker($this,$id,'itempick',$params['firstpick'],$item_id);
+
 if ($showtable) {
-	$t = '<img src="'.$baseurl.'/images/information.png" alt="icon" border="0" /> '.
-		$this->Lang('help_focus');
+	$tplvars['focusicon'] = '<img src="'.$baseurl.'/images/information.png" alt="icon" border="0" />';
+	$t = $this->Lang('help_focus', $this->Lang('book'));
+	if ($chooser) {
+		if ($idata['membersname']) {
+			$s = $idata['membersname'];
+		} else {
+			$s = $this->Lang('TODO');
+		}
+		$t .= '<br />'.$this->Lang('help_focus2', $s);
+	}
 	$tplvars['focushelp'] = $t;
 	$t = $this->Lang('list');
-} else
+} else {
 	$t = $this->Lang('table');
+}
 
-$chooser = $utils->GetItemPicker($this,$id,'itempick',$params['firstpick'],$item_id);
 if ($chooser) {
 	$actions1[] = $chooser;
 	$jsloads[] = <<<EOS

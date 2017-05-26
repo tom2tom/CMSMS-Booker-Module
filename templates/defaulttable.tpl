@@ -34,7 +34,8 @@
  </tbody>
 </table>
 </div>
-<p style="text-indent:-26px;margin-left:26px;">{$focushelp}</p>
+<div style="float:left;">{$focusicon}</div>
+<div style="margin-left:28px;">{$focushelp}</div>
 {else}
 <p>{$nobookings}</p>
 {/if}
