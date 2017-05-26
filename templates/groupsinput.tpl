@@ -1,8 +1,7 @@
 {strip}
 <div style="display:inline-block;max-height:15em;">
 <table {if $identifier}id="{$identifier}" {/if}
-class="{if $drag}table_drag {/if}{if $sort}table_sort {/if}{if $rc > 3}scrollable {/if}pagetable"
-style="margin-left:0;width:auto;border-collapse:collapse;">
+class="{if $drag}table_drag {/if}{if $sort}table_sort {/if}{if $rc > 3}scrollable {/if}pagetable" style="margin-left:0;width:auto;border-collapse:collapse;">
 {if $sort && $rc > 1}
  <thead><tr style="height:0.5em;"><th style="height:0.5em;"></th><th class="updown nosort" style="height:0.5em;"></th><th class="checkbox" style="height:0.5em;">{$selectall}</th></tr></thead>
 {/if}
