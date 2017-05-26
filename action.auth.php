@@ -30,8 +30,9 @@ later from authpanel some of the following all prefixed like [A-Za-z][A-Za-z0-9]
 'cancel'
 */
 
-function SaveParms(&$cache, $key, $params)
-{
+if (!function_exists('SaveBookerParms')) {
+ function SaveBookerParms(&$cache, $key, $params)
+ {
 	if (!$key) {
 		$key = Booker\Cache::GetKey(\Booker::PARMKEY);
 	}
@@ -39,24 +40,26 @@ function SaveParms(&$cache, $key, $params)
 	return $key;
 }
 
-function RetrieveParms(&$cache, $key)
-{
+ function RetrieveBookerParms(&$cache, $key)
+ {
 	return $cache->get($key);
+ }
 }
 
 //parameter keys filtered out before redirect etc
 $localparams = array(
+	'authdata',
 	'cancel',
 	'change',
 	'focus',
 	'html',
-	'message',
-	'recover',
-	'repeat',
-	'success',
-	'task',
-	'token',
-	'user_id' //etc as per authpanel feedback, above
+//	'message',
+//	'recover',
+//	'repeat',
+//	'success',
+//	'task',
+//	'token',
+//	'user_id' //etc as per authpanel feedback, above
 );
 
 $utils = new Booker\Utils();
@@ -64,69 +67,76 @@ $utils = new Booker\Utils();
 if (isset($params['bkr_resume'])) { //first-time here
 	$cache = Booker\Cache::GetCache($this);
 	$utils->UnFilterParameters($params);
-	$_SESSION['parmkey'] = SaveParms($cache, FALSE, $params);
-	$utils->DecodeParameters($params); //ditto
-} elseif (isset($params['success']) || isset($params['cancel'])) {
+	$_SESSION['parmkey'] = SaveBookerParms($cache, FALSE, $params);
+	$utils->DecodeParameters($params);
+} elseif (isset($params['authdata'])) {
 	$cache = Booker\Cache::GetCache($this);
-	$saved = RetrieveParms($cache, $_SESSION['parmkey']);
-	unset($_SESSION['parmkey']);
+	$saved = RetrieveBookerParms($cache, $_SESSION['parmkey']);
 	$utils->DecodeParameters($saved);
+	$finish = TRUE;
 
-	if (isset($params['success'])) {
-		if (isset($params['authdata'])) {
-			$data = json_decode(base64_decode($params['authdata']));
-			if ($data) { //stdClass
-	//TODO deal with stuff e.g. maybe a feedback message?
-				switch ($saved['task']) {
-				 case 'change':
-/*
-captcha	string	""
-contact	string	""
-login	string	"cookphil"
-loginnew	string	"cookph"
-name	string	""
-password	string	"RESTRICTED"
-passwordnew	string	"RESTRICTED"
-task	string	"change"
-*/
-					$ufuncs = new Booker\Userops($this);
-					$bookerid = $ufuncs->IsKnown($this, $data->login, FALSE);
-					if ($bookerid) {
-						$name = $data->name ? $data->name : FALSE;
-						$phone = ($data->contact && preg_match(Booker::PATNPHONE,$data->contact)) ? $data->contact : FALSE;
-						$address = ($data->contact && !$phone) ? $data->contact : FALSE;
-						$ufuncs->ChangeUser($this, $bookerid, $name, $address, $phone, FALSE, $data->login, $data->loginnew, FALSE, TRUE);
-					} else {
-$this->Crash();
-//TODO
-					}
-					break;
-				 case 'recover':
-					break;
-				 case 'register':
-					$ufuncs = new Booker\Userops($this);
-$this->Crash();
-					$ufuncs->AddUser($this, $name, $address, $phone, $active, $login, $passwd);
-					break;
-				 default:
-$this->Crash();
-					break;
+	$data = json_decode(base64_decode($params['authdata']));
+	if ($data) { //stdClass
+		if (isset($data->success)) {
+			//TODO deal with stuff e.g. $data->message
+			$ufuncs = new Booker\Userops($this);
+			switch ($data->task) {
+			 case 'register':
+				$name = $data->name ? $data->name : FALSE;
+				$phone = ($data->contact && preg_match(Booker::PATNPHONE,$data->contact)) ? $data->contact : FALSE;
+				$address = ($data->contact && !$phone) ? $data->contact : FALSE;
+				$ufuncs->AddUser($this, $name, $address, $phone, TRUE, $data->login, FALSE, TRUE);
+				break;
+			 case 'change':
+				$bookerid = $ufuncs->IsKnown($this, $data->login, FALSE);
+				if ($bookerid) {
+					$name = $data->name ? $data->name : FALSE;
+					$phone = ($data->contact && preg_match(Booker::PATNPHONE,$data->contact)) ? $data->contact : FALSE;
+					$address = ($data->contact && !$phone) ? $data->contact : FALSE;
+					$ufuncs->ChangeUser($this, $bookerid, $name, $address, $phone, FALSE, $data->login, $data->loginnew, FALSE, TRUE);
+				} else {
+					$saved['message'] = $this->Lang('err_system');
 				}
+				break;
+			 case 'delete':
+				$bookerid = $ufuncs->IsKnown($this, $data->login, FALSE);
+				if ($bookerid) {
+					$ufuncs->DeleteUser($this, $bookerid, TRUE);
+				} else {
+					$saved['message'] = $this->Lang('err_system');
+				}
+				break;
+			 case 'login':
+			 case 'recover':
+			 case 'reset':
+				break;
+			 default:
+				break;
 			}
+			unset($_SESSION['parmkey']); //TODO iff ok
+		} elseif (isset($data->cancel)) {
+			//TODO deal with stuff e.g. $data->message
+			unset($saved['task']);
+			unset($_SESSION['parmkey']);
+		} elseif (isset($data->repeat)) {
+			//re-run notice from authpanel
+			$saved += (array)$data;
+			$saved['task'] = $data->task; //force this
+			unset($saved['repeat']);
+			$newparms = $utils->FilterParameters($saved, $localparams);
+			//self-redirect to generate a foramtted page
+			$this->Redirect($id, $saved['action'], $saved['returnid'], $newparms);
+			exit;
 		}
+	} else { //data error
+		$saved['message'] = $this->Lang('err_system');
 	}
-
-	$resume = array_pop($saved['resume']);
-	$returnid = $saved['returnid'];
-	$saved = $utils->FilterParameters($saved, $localparams);
-	$this->Redirect($id, $resume, $returnid, $saved);
-} elseif (0) {
-	//back from authpanel with instruction to re-create
-	//TODO handle stuff e.g.
-	//$task =
-	//$token =
-	//$message = ;
-	//$html = ;
+	if ($finish) {
+		$resume = array_pop($saved['resume']);
+		$returnid = $saved['returnid'];
+		$saved = $utils->FilterParameters($saved, $localparams);
+		$this->Redirect($id, $resume, $returnid, $saved);
+	}
 }
 
 $item_id = (int)$params['item_id'];
@@ -186,11 +196,18 @@ switch ($task) {
  case 'change':
 	$key = 'title_change';
 	break;
+ case 'delete':
+	$key = 'title_delete';
+	break;
+ case 'login':
+	$key = FALSE;
+	break;
+ case 'reset':
+	$key = 'title_reset';
+	break;
 }
-$tplvars['title'] = $this->Lang($key);
-
-$t = FALSE; //$utils->GetItemProperty($this, $item_id, 'bulletin'); //TODO
-$tplvars['bulletin'] = ($t) ? $t : NULL;
+$tplvars['title'] = ($key) ? $this->Lang($key) : NULL;
+//$tplvars['bulletin'] = NULL; //resource-specific message not useful in the displayed panel
 if (isset($params['message'])) {
 	$tplvars['message'] = $params['message'];
 }
