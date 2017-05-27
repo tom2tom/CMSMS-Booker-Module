@@ -37,7 +37,7 @@ for all form-inputs here:
 $localparams = array(
 	'account',
 	'action',
-	'bookat',
+//	'bookat', used after cancellation
 	'bookertype',
 	'cancel',
 	'captcha',
@@ -92,7 +92,7 @@ if (isset($params['register']) || isset($params['recover']) || isset($params['ch
 	} else { //isset($params['change'])
 		$newparms['task'] = 'change';
 	}
-	$this->Redirect($id, 'auth', $params['returnid'], $newparms);
+	$this->Redirect($id,'auth',$params['returnid'],$newparms);
 }
 
 if (isset($params['item_id'])) {
@@ -220,6 +220,8 @@ if (isset($params['cart'])) {
 			if ($bookerid !== FALSE) {
 				$params['booker_id'] = $bookerid;
 				$rights = $funcs->GetRights($this,$bookerid); //before we change $funcs
+				$passreset = !empty($params['account']) &&
+					$funcs->GetForced($this,$params['account']);
 				$funcs = new Booker\Payment();
 				//determine how much to be paid (ignoring tax)
 				$amounts = $funcs->Amounts($this,$utils,$item_id,$bookerid,$bs,$be);
@@ -234,6 +236,12 @@ if (isset($params['cart'])) {
 				list($res,$errmsg) = $funcs->CartReq($this,$utils,$params,$idata,$cart);
 				if ($res) {
 					$utils->SaveCart($cart,$cache,$params);
+					if ($passreset) {
+						$params['resume'][] = $params['action']; //cancellation comes back here
+						$newparms = $utils->FilterParameters($params,$localparams);
+						$newparms['task'] = 'reset';
+						$this->Redirect($id,'auth',$params['returnid'],$newparms);
+					}
 					$minpay = 1.0; //TODO support selectable min. payment
 					if (!$cartwasempty) { //cart now has >1 item
 						$params['resume'][] = 'announce';
@@ -245,17 +253,21 @@ if (isset($params['cart'])) {
 					} else //cart now has 1 item
 						if ($payable >= $minpay
 							&& $rights && empty($rights['postpay'])) { //booker must pre-pay
-						$params['resume'][] = $params['action'];
+						$params['resume'][] = 'announce';
 						$newparms = $utils->FilterParameters($params,$localparams);
 						//divert to payment form if possible, and from there, FinishReq()
 						$utils->OpenPaymentForm($this,$id,$returnid,$newparms,$idata,$cart);
 						//if we're back here, there's a problem
+						array_pop($params['resume']);
 						$tplvars['message'] = $this->Lang('err_system');
 					} else { //the cart item is non-[pre-]payable
 						list($res,$msg) = $funcs->FinishReq($this,$utils,$params,TRUE);
 						if ($res && !$msg) {
 							$key = ($rights && !empty($rights['record'])) ? 'booking_feedback2':'booking_feedback';
 							$msg = $this->Lang($key);
+						}
+						if ($res && $payable >= $minpay) {
+							$msg .= '<br />'.$this->Lang('booking_feedback3',$payable); //TODO currency-formatted($payable)
 						}
 						$params['message'] = $msg;
 						$newparms = $utils->FilterParameters($params,$localparams);
