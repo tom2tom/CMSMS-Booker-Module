@@ -88,7 +88,7 @@ if (isset($params['bkr_resume'])) { //first-time here
 				$ufuncs->AddUser($this, $name, $address, $phone, TRUE, $data->login, FALSE, TRUE);
 				break;
 			 case 'change':
-				$bookerid = $ufuncs->IsKnown($this, $data->login, FALSE);
+				$bookerid = $ufuncs->GetKnown($this, $data->login, FALSE);
 				if ($bookerid) {
 					$name = $data->name ? $data->name : FALSE;
 					$phone = ($data->contact && preg_match(Booker::PATNPHONE,$data->contact)) ? $data->contact : FALSE;
@@ -99,7 +99,7 @@ if (isset($params['bkr_resume'])) { //first-time here
 				}
 				break;
 			 case 'delete':
-				$bookerid = $ufuncs->IsKnown($this, $data->login, FALSE);
+				$bookerid = $ufuncs->GetKnown($this, $data->login, FALSE);
 				if ($bookerid) {
 					$ufuncs->DeleteUser($this, $bookerid, TRUE);
 				} else {
