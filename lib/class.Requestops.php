@@ -54,7 +54,7 @@ EOS;
 		if ($rows) {
 			$db = $mod->dbHandle;
 			$utils = new Utils();
-			$sched = new Schedule();
+			$sfuncs = new Schedule();
 			//cluster the requests by id, for specific processing
 			krsort($rows,SORT_NUMERIC); //reverse, so groups-first
 			$m = -900; //unmatchable
@@ -63,10 +63,10 @@ EOS;
 				switch ($one['status']) {
 				 case \Booker::STATDEL:
 				 case \Booker::STATCHG: //TODO setup replacement
-					 $sql = 'DELETE FROM '.$mod->HistoryTable.' WHERE history_id=?';
+					$sql = 'DELETE FROM '.$mod->HistoryTable.' WHERE history_id=?';
 			//TODO $utils->SafeExec()
-					 $db->Execute($sql,array($history_id));
-					 break;
+					$db->Execute($sql,array($history_id));
+					break;
 				 case \Booker::STATCANCEL:
 //				 case \Booker::STATTELL:
 //				 case \Booker::STATASK:
@@ -81,9 +81,9 @@ EOS;
 					if ($one['item_id'] != $m) {
 						if ($collect) {
 							if ($m < \Booker::MINGRPID) {
-								$res = $sched->ScheduleResource($mod,$utils,$m,$collect);
+								$res = $sfuncs->ScheduleResource($mod,$utils,$m,$collect);
 							} else {
-								$res = $sched->ScheduleGroup($mod,$utils,$m,$collect);
+								$res = $sfuncs->ScheduleGroup($mod,$utils,$m,$collect);
 							}
 							$collect = array();
 						}
@@ -96,9 +96,9 @@ EOS;
 			unset($one);
 			if ($collect) {
 				if ($m < \Booker::MINGRPID) {
-					$res = $sched->ScheduleResource($mod,$utils,$m,$collect);
+					$res = $sfuncs->ScheduleResource($mod,$utils,$m,$collect);
 				} else {
-					$res = $sched->ScheduleGroup($mod,$utils,$m,$collect);
+					$res = $sfuncs->ScheduleGroup($mod,$utils,$m,$collect);
 				}
 			}
 			if ($res) { //TODO handle collection members

@@ -137,8 +137,8 @@ $idata = $utils->GetItemProperty($this,$item_id,array(
 ));
 if ($idata) {
 	$idata['item_id'] = $item_id;
-	$idata = $idata + $utils->GetItemProperty($this,$item_id,array('slottype','slotcount'),TRUE);
-	$idata = $idata + $utils->GetItemProperty($this,$item_id,array('leadtype','leadcount'),TRUE);
+	$idata += $utils->GetItemProperty($this,$item_id,array('slottype','slotcount'),TRUE); //paired-values
+	$idata += $utils->GetItemProperty($this,$item_id,array('leadtype','leadcount'),TRUE); //ditto
 } else {
 	$tplvars = array(
 		'title_error' => $this->Lang('error'),
@@ -238,8 +238,10 @@ if (isset($params['cart'])) {
 					$utils->SaveCart($cart,$cache,$params);
 					if ($passreset) {
 						$params['resume'][] = $params['action']; //cancellation comes back here
+						$params['task'] = 'reset';
+						$params['bulletin'] = htmlspecialchars(
+							'<p style="color:#F00">'.$this->Lang('reset_subtitle').'</p>', ENT_XHTML);
 						$newparms = $utils->FilterParameters($params,$localparams);
-						$newparms['task'] = 'reset';
 						$this->Redirect($id,'auth',$params['returnid'],$newparms);
 					}
 					$minpay = 1.0; //TODO support selectable min. payment
