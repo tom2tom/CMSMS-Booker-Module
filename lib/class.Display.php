@@ -677,6 +677,18 @@ class Display
 			}
 			$bs = $dts->getTimestamp() //start-stamp for current segment
 					+ $segoffst; //hence start-stamp for 1st displayed slot in segment
+			if ($c > 0) {
+				//forward to next displayed-segment start
+				while ($iter->valid()) {
+					$row = $iter->current();
+					if ($row['slotstart'] < $bs) {
+						$iter->next();
+						$spos++;
+					} else {
+						break;
+					}
+				}
+			}
 			//iterate slots for this segment
 			for ($r = 1; $r < $rc; $r++) {
 				$dtw->setTimestamp($bs);
