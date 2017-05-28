@@ -714,7 +714,7 @@ EOS;
 	 * @mod: reference to current Booker module object
 	 * @item_id: identifier of resource or group for which property/ies is/are sought
 	 * @wantedprops: ItemTable field-name for property sought or ','-separated series
-	 *  	of such names or array of such names (no checks here!) or '*'
+	 *   of such names or array of such names (no checks here!) or '*'
 	 * @same: optional boolean, whether all requested properties must come from the
 	 * 	same database record, default FALSE
 	 * @search: optional boolean, whether to check for missing values in ancestor
@@ -725,6 +725,8 @@ EOS;
 	 */
 	public function GetItemProperty(&$mod, $item_id, $wantedprops, $same = FALSE, $search = TRUE)
 	{
+		//TODO separate out, for processing as if $same = TRUE, related-property pair(s):
+		//'slottype'+'slotcount' 'leadtype'+'leadcount' 'keeptype'+'keepcount' c.f. GetInterval()
 		if ($search) {
 			$found = $this->GetHeritableProperty($mod, $item_id, $wantedprops);
 			if (!$found) {
@@ -1776,7 +1778,7 @@ EOS;
 		$t = ($be - $st) % $slen;
 		if ($t < $slop) {
 			$be = $be - $t - 1;
-		} elseif ($t > $slen - $slop) {
+		} elseif ($t >= $slen - $slop) {
 			$be = $be + $slen - $t - 1;
 		} else {
 			$be = floor($be / $rounder) * $rounder;
