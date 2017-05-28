@@ -49,6 +49,7 @@ if (!function_exists('SaveBookerParms')) {
 //parameter keys filtered out before redirect etc
 $localparams = array(
 	'authdata',
+	'bulletin',
 	'cancel',
 	'change',
 	'focus',
@@ -207,8 +208,14 @@ switch ($task) {
 	break;
 }
 $tplvars['title'] = ($key) ? $this->Lang($key) : NULL;
-//$tplvars['bulletin'] = NULL; //resource-specific message not useful in the displayed panel
-if (isset($params['message'])) {
+if (!empty($params['bulletin'])) {
+	$t = htmlspecialchars_decode($params['bulletin'], ENT_XHTML);
+	if (!preg_match('/\/[a-z]*>/i', $t)) {
+		$t = '<p>'.$t.'</p>';
+	}
+	$tplvars['bulletin'] = $t;
+}
+if (!empty($params['message'])) {
 	$tplvars['message'] = $params['message'];
 }
 
