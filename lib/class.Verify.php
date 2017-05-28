@@ -27,7 +27,7 @@ class Verify
 	public function VerifyData(&$mod, &$utils, &$params, $item_id, $is_new, $admin)
 	{
 		$msg = array();
-		$dtw = new \DateTime('@0',NULL);
+		$dtw = new \DateTime('@0', NULL);
 		$bs = 0;
 		$be = 0;
 /*supplied $params keys
@@ -50,14 +50,15 @@ TODO support 'past' data without both date/time $params[]
 				} else {
 					$msg[] = $mod->Lang('err_badstart');
 				}
-			} elseif ($is_new) //must be provided for new booking
+			} elseif ($is_new) { //must be provided for new booking
 				$msg[] = $mod->Lang('err_badstart');
+			}
 		} else {
-$this->Crash();
+			$this->Crash();
 		}
 
-		$idata = $utils->GetItemProperty($mod,$item_id,array('slottype','slotcount'),TRUE);
-		$idata = $idata + $utils->GetItemProperty($mod,$item_id,'timezone');
+		$idata = $utils->GetItemProperty($mod, $item_id, 'timezone');
+		$idata += $utils->GetItemProperty($mod, $item_id, array('slottype', 'slotcount'), TRUE);
 		if (isset($params['until'])) {
 			$fv = $params['until'];
 			if ($fv) {
@@ -71,18 +72,24 @@ $this->Crash();
 				}
 			} elseif ($bs > 0) {
 				//set default
-				$be = $bs + $utils->GetCurrentSlotlen($bs,$idata['slottype'],$idata['slotcount']);
-			} else
+				$be = $bs + $utils->GetCurrentSlotlen($bs, $idata['slottype'], $idata['slotcount']);
+			} else {
 				$msg[] = $mod->Lang('err_badend');
+			}
 		}
 
 		if ($bs > 0 && $be > 0) {
 			if ($be > $bs) {
 				//rationalise specified times relative to slot length
-				list($bs,$be) = $utils->TuneBlock($idata['slottype'],$idata['slotcount'],$bs,$be);
-				$params['slotstart'] = $bs;
-				$params['slotlen'] = $be - $bs;
-				$timely = ($be > $bs);
+				list($bs, $be) = $utils->TuneBlock($idata['slottype'], $idata['slotcount'], $bs, $be);
+				//check $bs..$be all valid for $item_id (any user)
+				$funcs = new Schedule();
+				if ($funcs->ItemAvailable($mod, $utils, $item_id, 0, $bs, $be)) {
+					$timely = ($be > $bs);
+				} else {
+					$timely = FALSE;
+					$msg[] = $mod->Lang('err_na');
+				}
 				if ($timely && !$admin) {
 					if ($idata['timezone']) {
 						$t = $utils->GetZoneTime($idata['timezone']);
@@ -92,23 +99,18 @@ $this->Crash();
 					}
 				}
 				if ($timely) {
-					$funcs = new Schedule();
 					if ($is_new || !isset($params['bkg_id'])) {
 						$excl = FALSE;
 					} else {
 						$excl = $params['bkg_id'];
 					}
-					if ($funcs->ItemVacantCount($mod,$item_id,$bs,$be,$excl) == 0) {
+					if ($funcs->ItemVacantCount($mod, $item_id, $bs, $be, $excl) == 0) {
 						$msg[] = $mod->Lang('err_dup');
-					} else {
-						$dts = new \DateTime('@'.$bs,NULL);
-						$dte = new \DateTime('@'.$be,NULL);
-						//any booker
-						if (!$funcs->ItemAvailable($mod,$utils,$item_id,0,$bs,$be)) {
-							$msg[] = $mod->Lang('err_na');
-						}
+					} else { //all checks passed
+						$params['slotstart'] = $bs;
+						$params['slotlen'] = $be - $bs;
 					}
-				} else {
+				} elseif (!$msg) {
 					$msg[] = $mod->Lang('err_badtime');
 				}
 			} else {
@@ -120,29 +122,30 @@ $this->Crash();
 			$ufuncs = new Userops($mod);
 			$fv = trim($params[ 'account']);
 			$pw = trim($params[ 'passwd']);
-			if (!$ufuncs->IsKnown($mod,$fv,$pw)) {
+			if (!$ufuncs->GetKnown($mod, $fv, $pw)) {
 				//not registered
 				$msg[] = $mod->Lang('err_account');
 			}
 		} else {
 			$fv = trim($params['name']);
-			if(!$fv) {
+			if (!$fv) {
 				$msg[] = ($admin) ?
-					$mod->Lang('missing_type',$mod->Lang('name')):
+					$mod->Lang('missing_type', $mod->Lang('name')) :
 					$mod->Lang('err_nosender');
 			}
 
 			if (isset($params['contact'])) {
 				$fv = trim($params['contact']);
-				if($fv) {
-					if (!(preg_match(\Booker::PATNADDRESS,$fv)
-					   || preg_match(\Booker::PATNPHONE,$fv)))
-					$msg[] = ($admin) ?
-						$mod->Lang('invalid_type',$mod->Lang('contact')):
+				if ($fv) {
+					if (!(preg_match(\Booker::PATNADDRESS, $fv)
+					   || preg_match(\Booker::PATNPHONE, $fv))) {
+						$msg[] = ($admin) ?
+						$mod->Lang('invalid_type', $mod->Lang('contact')) :
 						$mod->Lang('err_nocontact');
+					}
 				} else {
 					$msg[] = ($admin) ?
-						$mod->Lang('missing_type',$mod->Lang('contact')):
+						$mod->Lang('missing_type', $mod->Lang('contact')) :
 						$mod->Lang('err_nocontact');
 				}
 			}
@@ -150,13 +153,15 @@ $this->Crash();
 
 		if (isset($params['subgrpcount'])) {
 			$fv = $params['subgrpcount'];
-			if (!$fv) //TODO or too big
+			if (!$fv) { //TODO or too big
 				$msg[] = $mod->Lang('err_parm');
+			}
 		}
 
 		if (isset($params['requesttype'])) {
-			if (!$params['requesttype'])
+			if (!$params['requesttype']) {
 				$msg[] = $mod->Lang('err_system'); //radio-group value shouldn't be missing
+			}
 		}
 
 		if (isset($params['captcha'])) {
@@ -164,13 +169,15 @@ $this->Crash();
 			if ($ob) {
 				$valid = $ob->checkCaptcha($params['captcha']);
 				unset($ob);
-				if (!$valid)
+				if (!$valid) {
 					$msg[] = $mod->Lang('err_captcha');
+				}
 			}
 		}
 
-		if (!$msg)
+		if (!$msg) {
 			return array(TRUE,'');
+		}
 		return array(FALSE,$msg);
 	}
 
@@ -202,9 +209,10 @@ $this->Crash();
 
 	private function ConvertDomains($pref)
 	{
-		if (!$pref)
+		if (!$pref) {
 			return '';
-		$parts = explode(',',$pref);
+		}
+		$parts = explode(',', $pref);
 		foreach ($parts as &$one) {
 			$one = '\''.trim($one).'\'';
 		}
@@ -213,7 +221,7 @@ $this->Crash();
 			$parts = array_unique($parts);
 			sort($parts, SORT_STRING);
 		}
-		return implode(',',$parts);
+		return implode(',', $parts);
 	}
 
 	/*
@@ -224,30 +232,35 @@ $this->Crash();
 	Returns: js string for inclusion in mailcheck.js code, potentially including:
 		topLevelDomains,domains,secondLevelDomains
 	*/
-	private function EmailDomains(&$mod, $countrycode='')
+	private function EmailDomains(&$mod, $countrycode = '')
 	{
-		$pref = $mod->GetPreference('topdomains','co,com,net,org');
+		$pref = $mod->GetPreference('topdomains', 'co,com,net,org');
 		$tops = self::LocalDomains($countrycode);
-		if ($pref)
+		if ($pref) {
 			$pref .= ','.$tops;
-		else
+		} else {
 			$pref = $tops;
+		}
 		$parts = array();
 		$topdomains = self::ConvertDomains($pref);
 		//mailcheck requires domain-arrays, even if single-membered
-		if ($topdomains)
+		if ($topdomains) {
 			$parts[] = "   topLevelDomains: [$topdomains]";
+		}
 		$pref = $mod->GetPreference('domains');
 		$domains = self::ConvertDomains($pref);
-		if ($domains)
+		if ($domains) {
 			$parts[] = "   domains: [$domains]";
+		}
 		$pref = $mod->GetPreference('subdomains');
 		$subdomains = self::ConvertDomains($pref);
-		if ($subdomains)
+		if ($subdomains) {
 			$parts[] = "   secondLevelDomains: [$subdomains]";
+		}
 
-		if ($parts)
-			return implode(",\n",$parts).",";
+		if ($parts) {
+			return implode(",\n", $parts).",";
+		}
 		return '';
 	}
 
@@ -278,31 +291,31 @@ function showerr(msg,tg) {
 }
 
 EOS;
-		$usererr = ($admin)?
-		 $mod->Lang('missing_type',$mod->Lang('name')):
+		$usererr = ($admin) ?
+		 $mod->Lang('missing_type', $mod->Lang('name')) :
 		 $mod->Lang('err_nosender');
 
 		if ($withdates) {
-			$overday = ($utils->GetInterval($mod,$item_id,'slot') >= 84600);
+			$overday = ($utils->GetInterval($mod, $item_id, 'slot') >= 84600);
 			if ($admin) {
-				$dayfmt='';
-				$timefmt='';
+				$dayfmt = '';
+				$timefmt = '';
 			} else {
-				$idata = $utils->GetItemProperty($mod,$item_id,array('dateformat','timeformat'));
+				$idata = $utils->GetItemProperty($mod, $item_id, array('dateformat', 'timeformat'));
 				$dayfmt = $idata['dateformat'];
 				$timefmt = $idata['timeformat'];
 			}
-			$datetimefmt = $utils->DateTimeFormat(FALSE,$admin,TRUE,!$overday,$dayfmt,$timefmt);
+			$datetimefmt = $utils->DateTimeFormat(FALSE, $admin, TRUE, !$overday, $dayfmt, $timefmt);
 			$t = $mod->Lang('longdays');
-			$dnames = "'".str_replace(",","','",$t)."'";
+			$dnames = "'".str_replace(",", "','", $t)."'";
 			$t = $mod->Lang('shortdays');
-			$sdnames = "'".str_replace(",","','",$t)."'";
+			$sdnames = "'".str_replace(",", "','", $t)."'";
 			$t = $mod->Lang('longmonths');
-			$mnames = "'".str_replace(",","','",$t)."'";
+			$mnames = "'".str_replace(",", "','", $t)."'";
 			$t = $mod->Lang('shortmonths');
-			$smnames = "'".str_replace(",","','",$t)."'";
+			$smnames = "'".str_replace(",", "','", $t)."'";
 			$t = $mod->Lang('meridiem');
-			$meridiem = "'".str_replace(",","','",$t)."'";
+			$meridiem = "'".str_replace(",", "','", $t)."'";
 
 			$js2 = <<<EOS
 function suretrim(str) {
@@ -371,7 +384,7 @@ EOS;
 
 EOS;
 		} else { //no date checks
- 			$js2 = <<<EOS
+			$js2 = <<<EOS
 function validate(ev) {
  var ok = true,
   tg = document.getElementById('{$id}bookertype1'),
@@ -387,20 +400,20 @@ EOS;
 		} catch (\Exception $e) {
 			$t = '';
 		}
-		$domains = self::EmailDomains($mod,$t);
- 		$js3 = <<<EOS
+		$domains = self::EmailDomains($mod, $t);
+		$js3 = <<<EOS
  if (tg.checked) {
   tg = document.getElementById('{$id}account');
   str = suretrim(tg.value);
   if (str == false) {
-   showerr('{$mod->Lang('missing_type',$mod->Lang('account'))}',tg);
+   showerr('{$mod->Lang('missing_type', $mod->Lang('account'))}',tg);
    ok = false;
   }
   if (ok) {
    tg = document.getElementById('{$id}passwd');
    str = suretrim(tg.value);
    if (str == false) {
-    showerr('{$mod->Lang('missing_type',$mod->Lang('password'))}',tg);
+    showerr('{$mod->Lang('missing_type', $mod->Lang('password'))}',tg);
     ok = false;
    }
   }
@@ -421,7 +434,7 @@ EOS;
      return lv.get(str1,str2);
     },
     suggested: function(tg,suggest) {
-     var msg = '{$mod->Lang('meaning_type','%s')}'.replace('%s','<strong>'+suggest.full+'</strong>');
+     var msg = '{$mod->Lang('meaning_type', '%s')}'.replace('%s','<strong>'+suggest.full+'</strong>');
      $.alertable.confirm(msg, {
       html: true,
       okName: '{$mod->Lang('yes')}',
@@ -447,9 +460,9 @@ EOS;
 		} else {
 			$js4 = '';
 		}
-		if ($admin)
+		if ($admin) {
 			$js6 = '';
-		else {
+		} else {
 			$js6 = <<<EOS
  if (ok) {
   tg = document.getElementById('{$id}captcha');
