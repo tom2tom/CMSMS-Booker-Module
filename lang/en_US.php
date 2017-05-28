@@ -472,6 +472,7 @@ $lang['reqnotice'] = 'supply extra information';
 $lang['request'] = 'request';
 $lang['request_multi'] = 'request(s)';
 //$lang['reset'] = 'Reset';
+$lang['reset_subtitle'] = 'You must do this before proceeding';
 
 $lang['scrolldown'] = 'scroll down';
 $lang['scrollleft'] = 'scroll left';
@@ -563,7 +564,7 @@ $lang['tip_notify_selected_records'] = 'send notice to user of each selected ite
 $lang['tip_notifylodger'] = 'send notice to lodger';
 $lang['tip_notifyuser'] = 'send notice to user';
 $lang['tip_otherview'] = 'show other format';
-$lang['tip_register'] = 'submit request to become a registered user';
+$lang['tip_register'] = 'become a registered user';
 $lang['tip_reject'] = 'reject request';
 $lang['tip_reject_sel'] = 'reject selected request(s)';
 $lang['tip_reject2'] = 'disallow booking';
