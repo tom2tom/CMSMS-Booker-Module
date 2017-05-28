@@ -431,8 +431,9 @@ class Display
 						}
 					}
 					//log resource-name(s)
-					if ($row['name'])
-						$resources[$row['name']] = 1;
+					if ($row['name']) {
+						$resources[$row['name']] = $n;
+					}
 					if ($be > $se + 20) { //20-second slop
 						//log first-used position
 						if ($spos == -1) {
@@ -475,37 +476,54 @@ class Display
 				}
 			}
 
-			$what = array_keys($resources);
-			usort ($what, array($this,'cmp_nat'));
-			$one->tip = implode(',',$what);
-
 			if ($multi) {
-//TODO	$one->bkgid = which one ?
-				if ($whole)
+				if ($whole) {
 					$one->style = 'class="fullm"';
-				else
+				} else {
 					$one->style = 'class="partm"';
+				}
+				$t = '';
+				$who = array_count_values($resources);
+				foreach ($who as $n=>$i) {
+					$filtered = array_filter($resources, function ($value) use ($n) {
+						return ($value == $n);
+					});
+					$what = array_keys($filtered);
+					usort ($what, array($this,'cmp_nat'));
+					if ($t) {
+						$t .= '&#013;';
+					}
+					$t .= $n.' '.implode(',',$what);
+				}
 			} else { //single-user
 				$one->bkgid = (int)$row['bkg_id'];
-				if (!$celloff) {
-					$dtw = clone $dt; //preserve $dt
-				}
-				$dtw->setTimestamp($starts[0]);
-				$d = $this->utils->IntervalFormat($this->mod,$dtw,$idata['dateformat']);
-				$fmt = $idata['timeformat'];
-				if (!$fmt)
-					$fmt = 'G:i';
-				$t1 = $dtw->format($fmt);
-				$dtw->setTimestamp(end($ends));
-				$t2 = $dtw->format($fmt);
-				$one->tip .= '&#013;'.$d.'&#013;'.sprintf($this->Langcache['rangefmt'],$t1,$t2);
-
 				$type = ($whole) ? 'full':'part';
-				if ($displayclass)
+				if ($displayclass) {
 					$one->style = 'class="'.$type.$displayclass.'"';
-				else
+				} else {
 					$one->style = 'class="'.$type.'"';
+				}
+				$what = array_keys($resources);
+				usort ($what, array($this,'cmp_nat'));
+				$t = implode(',',$what);
 			}
+
+			if (!$celloff) {
+				$dtw = clone $dt; //preserve $dt
+			}
+			$dtw->setTimestamp($starts[0]);
+			$d = $this->utils->IntervalFormat($this->mod,$dtw,$idata['dateformat']);
+			$fmt = $idata['timeformat'];
+			if (!$fmt)
+				$fmt = 'G:i';
+			$t1 = $dtw->format($fmt);
+			if ($multi) {
+				$dtw->setTimestamp(min($ends));
+			} else {
+				$dtw->setTimestamp(end($ends));
+			}
+			$t2 = $dtw->format($fmt);
+			$one->tip = $t.'&#013;'.$d.'&#013;'.sprintf($this->Langcache['rangefmt'],$t1,$t2);
 		} else { //all vacant
 			$one->data = NULL;
 			$one->style = 'class="vacant"';
