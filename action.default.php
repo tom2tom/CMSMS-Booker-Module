@@ -283,18 +283,36 @@ EOS;
 $chooser = $utils->GetItemPicker($this,$id,'itempick',$params['firstpick'],$item_id);
 
 if ($showtable) {
-	$tplvars['focusicon'] = '<img src="'.$baseurl.'/images/information.png" alt="icon" border="0" />';
-	$t = $this->Lang('help_focus', $this->Lang('book'));
+	$tplvars['focusicon'] = '<a href="" onclick="return helptogl(this);"><img src="'
+		.$baseurl.'/images/info-small.png" alt="info-toggle icon" title="toggle display" border="0" /></a>';
 	if ($chooser) {
 		if ($idata['membersname']) {
 			$s = $idata['membersname'];
 		} else {
-			$s = $this->Lang('TODO');
+			$s = $this->Lang('itemv_multi');
 		}
-		$t .= '<br />'.$this->Lang('help_focus2', $s);
+		$t = $this->Lang('help_focus2', $s).'<br />';
+	} else {
+		$t = '';
 	}
+	$t .= $this->Lang('help_focus').$this->Lang('help_focus3', $this->Lang('book'));
 	$tplvars['focushelp'] = $t;
 	$t = $this->Lang('list');
+
+	$jsfuncs[] = <<<EOS
+function helptogl(el) {
+ var \$cd = $(el).closest('div'),
+  \$hd = \$cd.next()
+ if (\$hd[0].style.display != 'none') {
+  \$cd.css('float','');
+  \$hd.slideUp(200);
+ } else {
+  \$cd.css('float','left');
+  \$hd.slideDown(200);
+ }
+ return false;
+}
+EOS;
 } else {
 	$t = $this->Lang('table');
 }
