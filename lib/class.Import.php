@@ -1024,7 +1024,7 @@ class Import
 								$data[$k] = $t;
 								$save = TRUE;
 								if (!array_key_exists($t,$propstore)) {
-									$propstore[$t] = $utils->GetItemProperty($mod,$t,array('slottype','slotcount'),TRUE);
+									$propstore[$t] = $utils->GetItemProperties($mod,$t,array('slottype','slotcount'),TRUE);
 									if (!$propstore[$t])
 										return array(FALSE,'err_system');
 								}

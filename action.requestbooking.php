@@ -108,12 +108,14 @@ if (isset($params['item_id'])) {
 }
 
 //get item parameters for here or carting and/or scheduling and/or requesting
-$idata = $utils->GetItemProperty($this,$item_id,array(
+$idata = $utils->GetItemProperties($this,$item_id,array(
 'name',
 'description',
 'image',
 'membersname',
 'available',
+'slottype','slotcount',
+'leadtype','leadcount',
 'rationcount',
 'bookcount',
 'grossfees',
@@ -134,11 +136,9 @@ $idata = $utils->GetItemProperty($this,$item_id,array(
 'subgrpalloc',
 'subgrpdata',
 'bulletin'
-));
+),TRUE);
 if ($idata) {
 	$idata['item_id'] = $item_id;
-	$idata += $utils->GetItemProperty($this,$item_id,array('slottype','slotcount'),TRUE); //paired-values
-	$idata += $utils->GetItemProperty($this,$item_id,array('leadtype','leadcount'),TRUE); //ditto
 } else {
 	$tplvars = array(
 		'title_error' => $this->Lang('error'),

@@ -57,8 +57,7 @@ TODO support 'past' data without both date/time $params[]
 			$this->Crash();
 		}
 
-		$idata = $utils->GetItemProperty($mod, $item_id, 'timezone');
-		$idata += $utils->GetItemProperty($mod, $item_id, array('slottype', 'slotcount'), TRUE);
+		$idata = $utils->GetItemProperties($mod, $item_id, array('slottype', 'slotcount', 'timezone'), TRUE);
 		if (isset($params['until'])) {
 			$fv = $params['until'];
 			if ($fv) {
@@ -301,7 +300,7 @@ EOS;
 				$dayfmt = '';
 				$timefmt = '';
 			} else {
-				$idata = $utils->GetItemProperty($mod, $item_id, array('dateformat', 'timeformat'));
+				$idata = $utils->GetItemProperties($mod, $item_id, array('dateformat', 'timeformat'));
 				$dayfmt = $idata['dateformat'];
 				$timefmt = $idata['timeformat'];
 			}

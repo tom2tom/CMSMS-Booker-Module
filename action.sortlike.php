@@ -111,7 +111,7 @@ if ($members) {
 	if (count($members) > 1) {
 		$data = array();
 		foreach ($members as $i) {
-			$data[$i] = $utils->GetItemProperty($this,$i,array('name','description','keywords'));
+			$data[$i] = $utils->GetItemProperties($this,$i,array('name','description','keywords'));
 			if (empty($data[$i]['name']))
 				$data[$i]['name'] = $utils->GetItemNameForID($this,$i);
 			if ($i >= Booker::MINGRPID)

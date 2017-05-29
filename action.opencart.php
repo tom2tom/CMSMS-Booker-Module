@@ -65,7 +65,7 @@ if (isset($params['submit'])) {
 			//no addition to $params['resume']
 			$utils->SaveCart($cart,$cache,$params);
 			$newparms = $utils->FilterParameters($params,$localparams);
-			$idata = $utils->GetItemProperty($this,$params['item_id'],'*');
+			$idata = $utils->GetItemProperties($this,$params['item_id'],'*');
 			//divert to payment form, if possible, and from there, run method.requestfinish
 			$utils->OpenPaymentForm($this,$id,$returnid,$newparms,$idata,$cart);
 			//if we're back here, there's a problem

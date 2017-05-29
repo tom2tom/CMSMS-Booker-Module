@@ -376,7 +376,7 @@ class Messager
 				foreach ($rows as $bid=>$one) {
 					$item_id = $one['item_id'];
 					if (!isset($propstore[$item_id])) {
-						$propstore[$item_id] = $utils->GetItemProperty($mod,$item_id,
+						$propstore[$item_id] = $utils->GetItemProperties($mod,$item_id,
 							array('item_id','name','membersname','smspattern','smsprefix'));
 					}
 					$idata = $propstore[$item_id];

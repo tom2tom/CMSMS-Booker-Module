@@ -19,7 +19,7 @@ class Itemops
 	{
 		$db = $mod->dbHandle;
 		//resource-localize 'now'
-		$idata = $utils->GetItemProperty($mod,$item_id,'timezone');
+		$idata = $utils->GetItemProperties($mod,$item_id,'timezone');
 		$limit = $utils->GetZoneTime($idata['timezone']);
 		$sql = 'SELECT * FROM '.$mod->DataTable.' WHERE item_id=? AND slotstart>=?';
 		$rows = $utils->SafeGet($sql,array($item_id,$limit));
@@ -65,7 +65,7 @@ class Itemops
 		if ($members) {
 			foreach ($members as $mid) {
 				if ($mid >= \Booker::MINGRPID) {
-					$idata = $utils->GetItemProperty($mod,$mid,'cleargroup');
+					$idata = $utils->GetItemProperties($mod,$mid,'cleargroup');
 					if (!empty($idata['cleargroup']))
 						self::ClearRecursive($mod,$utils,$mid); //recurse
 					else
@@ -92,7 +92,7 @@ class Itemops
 		$utils = new Utils();
 		foreach ($item_id as $one) {
 			if ($one >= \Booker::MINGRPID) {
-				$idata = $utils->GetItemProperty($mod,$one,'cleargroup');
+				$idata = $utils->GetItemProperties($mod,$one,'cleargroup');
 				if (!empty($idata['cleargroup']))
 					self::ClearRecursive($mod,$utils,$one);
 				else

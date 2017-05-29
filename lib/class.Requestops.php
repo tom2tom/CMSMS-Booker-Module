@@ -131,7 +131,7 @@ EOS;
 					foreach ($rows as $one) {
 						$item_id = $one['item_id'];
 						if (!isset($propstore[$item_id])) {
-							$propstore[$item_id] = $utils->GetItemProperty($mod,$item_id,
+							$propstore[$item_id] = $utils->GetItemProperties($mod,$item_id,
 								array('item_id','name','membersname','smspattern','smsprefix'));
 							$propstore[$item_id]['approvertell'] = FALSE; //no message to sender
 						}
@@ -186,7 +186,7 @@ EOS;
 				foreach ($rows as $history_id=>$one) {
 					$item_id = $one['item_id'];
 					if (!isset($propstore[$item_id])) {
-						$propstore[$item_id] = $utils->GetItemProperty($mod,$item_id,
+						$propstore[$item_id] = $utils->GetItemProperties($mod,$item_id,
 							array('item_id','name','membersname','smspattern','smsprefix'));
 						$propstore[$item_id]['approvertell'] = FALSE; //no message to sender
 					}
@@ -238,7 +238,7 @@ EOS;
 				foreach ($rows as $history_id=>$one) {
 					$item_id = $one['item_id'];
 					if (!isset($propstore[$item_id])) {
-						$propstore[$item_id] = $utils->GetItemProperty($mod,$item_id,
+						$propstore[$item_id] = $utils->GetItemProperties($mod,$item_id,
 							array('item_id','name','membersname','smspattern','smsprefix'));
 						$propstore[$item_id]['approvertell'] = FALSE; //no message to sender
 					}
@@ -297,7 +297,7 @@ EOS;
 						//notify lodger
 						$item_id = $one['item_id'];
 						if (!isset($propstore[$item_id])) {
-							$propstore[$item_id] = $utils->GetItemProperty($mod,$item_id,
+							$propstore[$item_id] = $utils->GetItemProperties($mod,$item_id,
 								array('item_id','name','membersname','smspattern','smsprefix'));
 							$propstore[$item_id]['approvertell'] = FALSE; //no message to sender
 						}
@@ -382,7 +382,7 @@ EOS;
 				}
 				if ($mfuncs) {
 /*					if (!isset($propstore[$item_id])) {
-						$propstore[$item_id] = $utils->GetItemProperty($mod,$item_id,
+						$propstore[$item_id] = $utils->GetItemProperties($mod,$item_id,
 						array('item_id','name','approver','approvercontact','approvertell','membersname','smspattern','smsprefix'));
 					}
 					$idata = $propstore[$item_id];
@@ -470,7 +470,7 @@ OR
 		if ($is_new) {
 			$hid = $db->GenID($mod->HistoryTable.'_seq');
 			$bookerid = $params['booker_id'];
-			$idata = $utils->GetItemProperty($mod,$params['item_id'],'timezone');
+			$idata = $utils->GetItemProperties($mod,$params['item_id'],'timezone');
 			$args = array(
 				'history_id'=>$hid,
 				'booker_id'=>$bookerid,

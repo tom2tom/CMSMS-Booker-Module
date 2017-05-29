@@ -62,7 +62,7 @@ if (!$item_id) {
 $params['item_id'] = $item_id;
 
 // get all data for the resource/group
-$idata = $utils->GetItemProperty($this,$item_id,'*');
+$idata = $utils->GetItemProperties($this,$item_id,'*');
 // get/setup cart for bookings
 $cache = Booker\Cache::GetCache($this);
 

@@ -124,7 +124,7 @@ $tplvars['endform'] = $this->CreateFormEnd();
 if (!empty($params['message']))
 	$tplvars['message'] = $params['message'];
 
-$idata = $utils->GetItemProperty($this,$item_id,array('name','description'),FALSE);
+$idata = $utils->GetItemProperties($this,$item_id,array('name','description'));
 
 $typename = ($is_group) ? $this->Lang('group'):$this->Lang('item');
 if (!empty($idata['name'])) {

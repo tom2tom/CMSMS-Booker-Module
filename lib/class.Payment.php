@@ -92,8 +92,8 @@ class Payment
 				if ($funcs2->ParseDescriptor($one['feecondition'])) {
 					$item_id = $one['item_id'];
 					if (!isset($propstore[$item_id])) {
-						$idata = $utils->GetItemProperty($mod,$item_id,array('slottype','slotcount'),TRUE);
-						$idata = $idata + $utils->GetItemProperty($mod,$item_id,array('timezone','latitude','longitude'));
+						$idata = $utils->GetItemProperties($mod,$item_id,
+							array('slottype','slotcount','timezone','latitude','longitude'),TRUE);
 						$propstore[$item_id] = $funcs2->TimeParms($idata);
 					}
 					$timeparms = $propstore[$item_id];

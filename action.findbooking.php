@@ -103,7 +103,7 @@ if (isset($params['submit'])) {
 }
 
 $overday = ($utils->GetInterval($this,$params['item_id'],'slot') >= 84600);
-$idata = $utils->GetItemProperty($this,$params['item_id'],array('dateformat','timeformat','timezone'));
+$idata = $utils->GetItemProperties($this,$params['item_id'],array('dateformat','timeformat','timezone'));
 $now = $utils->GetZoneTime($idata['timezone']);
 $dts = new DateTime('@'.$now,NULL);
 if ($admin) {

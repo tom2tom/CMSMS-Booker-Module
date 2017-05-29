@@ -87,7 +87,7 @@ EOS;
 						$item_id = $one['item_id'];
 						if (!isset($propstore[$item_id])) {
 							$propstore[$item_id] = array('item_id'=>$item_id,'approvertell'=>FALSE) //no message to sender
-								+ $utils->GetItemProperty($mod,$item_id,
+								+ $utils->GetItemProperties($mod,$item_id,
 									array('name','membersname','smspattern','smsprefix'));
 						}
 						$idata = $propstore[$item_id];
@@ -138,7 +138,7 @@ $dtw = new \DateTime('@0',NULL); //DEBUG
 			foreach ($rows as $bid=>$one) {
 				$item_id = (int)$one;
 				if (!isset($propstore[$item_id])) {
-					$idata = $utils->GetItemProperty($mod,$item_id,'timezone');
+					$idata = $utils->GetItemProperties($mod,$item_id,'timezone');
 					$propstore[$item_id] = $utils->GetZoneTime($idata['timezone']);
 				}
 $dtw->setTimestamp($propstore[$item_id]); //DEBUG

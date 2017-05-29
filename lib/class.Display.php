@@ -608,7 +608,7 @@ class Display
 		$funcs->UpdateRepeats($this->mod,$this->utils,$all,$bs,$be);
 
 		//get availability-blocks
-		$rules = $this->utils->GetOneHeritableProperty($this->mod,$item_id,'available');
+		$rules = $this->utils->GetHeritableProperty($this->mod,$item_id,'available');
 		$rules = array_filter($rules); //omit empties
 		if ($rules) {
 			$funcs = new WhenRules($this->mod);

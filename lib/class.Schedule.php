@@ -100,9 +100,8 @@ class Schedule
 	*/
 	private function ScheduleOne(&$mod, &$utils, &$reqdata, $item_id, $bulk_id, $session_id, $is_repeat)
 	{
-		$idata = $utils->GetItemProperty($mod,$item_id,array('bookcount','timezone'));
-		$idata += $utils->GetItemProperty($mod,$item_id,array('leadtype','leadcount'),TRUE);
-		$idata += $utils->GetItemProperty($mod,$item_id,array('slottype','slotcount'),TRUE);
+		$idata = $utils->GetItemProperties($mod,$item_id,
+			array('slottype','slotcount','leadtype','leadcount','bookcount','timezone'),TRUE);
 		$bs = $reqdata['slotstart'];
 		$slen = $utils->GetInterval($mod,$item_id,'slot');
 		if (empty($reqdata['slotlen']))
@@ -153,7 +152,7 @@ class Schedule
 				if ($utils->SafeExec($sql,$args)) {
 					if ($reqdata['subgrpcount'] == 1) { //if we're doing a 1-item group, revert to specific resource
 						$reqdata['item_id'] = $item_id;
-						$idata = $utils->GetItemProperty($mod,$item_id,array('item_id','name','timezone'),FALSE);
+						$idata = $utils->GetItemProperties($mod,$item_id,array('item_id','name','timezone'));
 						$reqdata['item_name'] = $utils->GetItemName($mod,$idata);
 						$reqdata['approved'] = $utils->GetZoneTime($idata['timezone']);
 					}
@@ -455,9 +454,8 @@ class Schedule
 			return FALSE;
 		}
 
-		$idata = $utils->GetItemProperty($mod,$item_id,array('bookcount','timezone','subgrpalloc','subgrpdata'));
-		$idata += $utils->GetItemProperty($mod,$item_id,array('leadtype','leadcount'),TRUE);
-		$idata += $utils->GetItemProperty($mod,$item_id,array('slottype','slotcount'),TRUE);
+		$idata = $utils->GetItemProperties($mod,$item_id,
+			array('slottype','slotcount','leadtype','leadcount','bookcount','timezone','subgrpalloc','subgrpdata'),TRUE);
 		$slen = $utils->GetInterval($mod,$item_id,'slot');
 		$maxlen = $idata['bookcount'] * $slen;
 		if (!$is_repeat) {
@@ -626,8 +624,8 @@ class Schedule
 	{
 		$item_id = (int)$row['item_id'];
 		//get enough data for TimeParms()
-		$idata = $utils->GetItemProperty($mod,$item_id,array('timezone','latitude','longitude'));
-		$idata += $utils->GetItemProperty($mod,$item_id,array('slottype','slotcount'),TRUE);
+		$idata = $utils->GetItemProperties($mod,$item_id,
+			array('slottype','slotcount','timezone','latitude','longitude'),TRUE);
 		$timeparms = $reps->TimeParms($idata);
 
 		$ret = TRUE;
@@ -929,10 +927,9 @@ class Schedule
 			$args = $all;
 */
 		}
-		$idata = $utils->GetItemProperty($mod,$item_id,array('available','timezone','latitude','longitude'));
+		$idata = $utils->GetItemProperties($mod,$item_id,
+			array('available','slottype','slotcount','timezone','latitude','longitude'),TRUE);
 		if ($idata['available']) {
-			//rest of data for TimeParms()
-			$idata += $utils->GetItemProperty($mod,$item_id,array('slottype','slotcount'),TRUE);
 			$funcs = new WhenRules($mod);
 			$timeparms = $funcs->TimeParms($idata);
 			list($starts,$ends) = $funcs->AllIntervals($idata['available'],$bs,$be,$timeparms); //proximal-rule-only, no ancestor-merging
