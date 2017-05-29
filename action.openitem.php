@@ -437,7 +437,7 @@ $utils = new Booker\Utils();
 $sql = 'SELECT * FROM '.$this->ItemTable.' WHERE item_id=?';
 $row = $db->GetRow($sql, array($item_id));
 if ($row) {
-	$idata = (object) $row;
+	$idata = (object) $row; //TODO CHECKME need matched pairs like 'slottype'+'slotcount' ?
 	//cleanups
 	$idata->item_id = (int)$item_id;
 	if ($idata->stylesfile && !$utils->GetStylesURL($this, $idata->item_id, FALSE)) { //styles file must be there
