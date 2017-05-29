@@ -725,8 +725,6 @@ EOS;
 	 */
 	public function GetItemProperty(&$mod, $item_id, $wantedprops, $same = FALSE, $search = TRUE)
 	{
-		//TODO separate out, for processing as if $same = TRUE, related-property pair(s):
-		//'slottype'+'slotcount' 'leadtype'+'leadcount' 'keeptype'+'keepcount' c.f. GetInterval()
 		if ($search) {
 			$found = $this->GetHeritableProperty($mod, $item_id, $wantedprops);
 			if (!$found) {
@@ -750,12 +748,32 @@ EOS;
 				$got[$k] = (int) $item_id;
 				unset($gets[$k]);
 			}
+/*			$pairs = array(
+				array('slottype','slotcount'),
+				array('leadtype','leadcount'),
+				array('keeptype','keepcount'));
+*/
 			foreach ($found as $row) {
 				foreach ($gets as $k => $val) {
 					if (!isset($got[$k]) && !($row[$k] === NULL || $row[$k] === '')) {
 						$got[$k] = $row[$k];
 					}
 				}
+
+/*				$paired = TRUE;
+				foreach ($pairs as $one) {
+					if (isset($got[$one[0]])) {
+						if (isset($got[$one[1]])) {
+							$adbg=1; //TODO remember this pair, even if otherwise not got all
+						} else {
+							$paired = FALSE;
+						}
+					}
+				}
+				if (!$paired) { //$got has field-pair(s) and those are not all present
+					$adbg=1; //TODO keep looking for missing pair(s) even if otherwise got all
+				}
+*/
 				if ($same) {
 					if (count($got) < $rc) {
 						$got = array(); //keep looking
@@ -787,16 +805,14 @@ EOS;
 	 * @mod: reference to current Booker module object
 	 * @item_id: identifier of resource or group for which property/ies is/are sought
 	 * @wantedprops: ItemTable field-name for property sought or ','-separated series
-	 * 	of such names or array of such names (no checks here!) or '*'
+	 *  of such names or array of such names (no checks here!) or '*'
 	 * Returns: proximity-ordered array with member(s) = property-value(s) for @item_id
-	 * 	and all its ancestors and corresponding module-preference values
+	 *  and all its ancestors and corresponding module-preference values
 	 */
 	public function GetHeritableProperty(&$mod, $item_id, $wantedprops)
 	{
 		if (!is_array($wantedprops)) {
-			$adbg = $wantedprops;
 			$wantedprops = explode(',', $wantedprops);
-			$adbg2 = $wantedprops;
 		}
 		$getcols = implode(',', array_filter($wantedprops)); //no name-validation, only presence-checks
 		$getids = array($item_id);
@@ -815,6 +831,21 @@ EOS;
 
 		if ($getcols != '*') {
 			$getcols = 'item_id,'.$getcols;
+/*			//ensure related-property pair(s)
+			foreach (array(
+				array('slottype','slotcount'),
+				array('leadtype','leadcount'),
+				array('keeptype','keepcount')) as $pair) {
+				$p1 = $pair[0];
+				$p2 = $pair[1];
+				if (strpos($getcols,$p1) !== FALSE && strpos($getcols,$p2) === FALSE) {
+					$getcols .= ','.$p2;
+				}
+				if (strpos($getcols,$p2) !== FALSE && strpos($getcols,$p1) === FALSE) {
+					$getcols .= ','.$p1;
+				}
+			}
+*/
 		}
 
 		$sql = 'SELECT '.$getcols.' FROM '.$mod->ItemTable.' WHERE item_id IN('.implode(',', $getids).')';
