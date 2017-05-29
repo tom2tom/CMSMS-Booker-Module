@@ -170,12 +170,12 @@ Fees are per period as entered, or fixed if the corresponding period is 'anythin
 EOS;
 $lang['help_feecondition'] = 'See advice for available days and times. If blank, applies <strong>always</strong>';
 $lang['help_feugroup'] = 'Front-end users group whose members may commit and change bookings directly, instead of via request.';
-$lang['help_focus'] = <<<'EOS'
-Initiate a booking request/change for a timeslot by<ul><li>clicking the slot and then the "%s" button below, or</li><li>double-clicking the slot</li></ul>
-See more detail for a booked timeslot by hovering the pointer over the slot<br />
-Change the displayed timeslots by clicking one of the other buttons below
-EOS;
+$lang['help_focus'] = 'Change the displayed timeslots by<ul><li>clicking one of the +/- buttons below, or</li><li>clicking a timeslot and then such button</li></ul>';
 $lang['help_focus2'] = 'Change the displayed %s by selecting some other group from the selector below';
+$lang['help_focus3'] = <<<'EOS'
+See more detail for a booked timeslot by hovering the pointer over the slot<br />
+Initiate a booking request/change for a timeslot by<ul><li>clicking the slot and then the "%s" button below, or</li><li>double-clicking the slot</li></ul>
+EOS;
 $lang['help_formiface'] = 'TODO';
 $lang['help_groups'] = <<<'EOS'
 This %s may be in one or more groups, or none.<br />
