@@ -708,108 +708,18 @@ EOS;
 		return $path;
 	}
 
-	/**
-	 * GetItemProperty:
-	 *
-	 * @mod: reference to current Booker module object
-	 * @item_id: identifier of resource or group for which property/ies is/are sought
-	 * @wantedprops: ItemTable field-name for property sought or ','-separated series
-	 *   of such names or array of such names (no checks here!) or '*'
-	 * @same: optional boolean, whether all requested properties must come from the
-	 * 	same database record, default FALSE
-	 * @search: optional boolean, whether to check for missing values in ancestor
-	 * 	groups (if any), default TRUE
-	 * Returns: array with key(s) = field name(s), value(s) = corresponding value(s)
-	 * 	if available or NULL if not, or empty array upon error
-	 * Flavours of FALSE other than NULL,'' are assumed to be actual parameter values.
-	 */
-	public function GetItemProperty(&$mod, $item_id, $wantedprops, $same = FALSE, $search = TRUE)
-	{
-		if ($search) {
-			$found = $this->GetHeritableProperty($mod, $item_id, $wantedprops);
-			if (!$found) {
-				return array();
-			}
-			if (!is_array($wantedprops)) {
-				$wantedprops = explode(',', $wantedprops);
-			}
-
-			if ($wantedprops[0] == '*') {
-				$gets = array_fill_keys(array_keys(reset($found)), NULL);
-			} else {
-				$gets = array_fill_keys(array_filter($wantedprops), NULL); //no name-validation, only presence-checks
-			}
-			if ($same) {
-				$rc = count($gets);
-			}
-			$got = array();
-			$k = 'item_id';
-			if (array_key_exists($k, $gets)) {
-				$got[$k] = (int) $item_id;
-				unset($gets[$k]);
-			}
-/*			$pairs = array(
-				array('slottype','slotcount'),
-				array('leadtype','leadcount'),
-				array('keeptype','keepcount'));
-*/
-			foreach ($found as $row) {
-				foreach ($gets as $k => $val) {
-					if (!isset($got[$k]) && !($row[$k] === NULL || $row[$k] === '')) {
-						$got[$k] = $row[$k];
-					}
-				}
-
-/*				$paired = TRUE;
-				foreach ($pairs as $one) {
-					if (isset($got[$one[0]])) {
-						if (isset($got[$one[1]])) {
-							$adbg=1; //TODO remember this pair, even if otherwise not got all
-						} else {
-							$paired = FALSE;
-						}
-					}
-				}
-				if (!$paired) { //$got has field-pair(s) and those are not all present
-					$adbg=1; //TODO keep looking for missing pair(s) even if otherwise got all
-				}
-*/
-				if ($same) {
-					if (count($got) < $rc) {
-						$got = array(); //keep looking
-					} else {
-						return $got;
-					}
-				}
-			}
-			return $got + $gets; //infill NULL's
-		} else { //no search
-			if (!is_array($wantedprops)) {
-				$wantedprops = explode(',', $wantedprops);
-			}
-			$getcols = implode(',', array_filter($wantedprops)); //no name-validation, only presence-checks
-
-			$db = $mod->dbHandle;
-			$sql = 'SELECT '.$getcols.' FROM '.$mod->ItemTable.' WHERE item_id=?';
-			$found = $db->GetRow($sql, array($item_id));
-			if ($found) {
-				return $found;
-			}
-			return array();
-		}
-	}
-
-	/**
-	 * GetHeritableProperty:
+	/*
+	 * GetHeritableProps:
 	 *
 	 * @mod: reference to current Booker module object
 	 * @item_id: identifier of resource or group for which property/ies is/are sought
 	 * @wantedprops: ItemTable field-name for property sought or ','-separated series
 	 *  of such names or array of such names (no checks here!) or '*'
+	 * @paired: optional boolean, whether requested properties include pair(s), default FALSE
 	 * Returns: proximity-ordered array with member(s) = property-value(s) for @item_id
 	 *  and all its ancestors and corresponding module-preference values
 	 */
-	public function GetHeritableProperty(&$mod, $item_id, $wantedprops)
+	private function GetHeritableProps(&$mod, $item_id, $wantedprops, $paired = FALSE)
 	{
 		if (!is_array($wantedprops)) {
 			$wantedprops = explode(',', $wantedprops);
@@ -830,22 +740,23 @@ EOS;
 		}
 
 		if ($getcols != '*') {
-			$getcols = 'item_id,'.$getcols;
-/*			//ensure related-property pair(s)
-			foreach (array(
-				array('slottype','slotcount'),
-				array('leadtype','leadcount'),
-				array('keeptype','keepcount')) as $pair) {
-				$p1 = $pair[0];
-				$p2 = $pair[1];
-				if (strpos($getcols,$p1) !== FALSE && strpos($getcols,$p2) === FALSE) {
-					$getcols .= ','.$p2;
-				}
-				if (strpos($getcols,$p2) !== FALSE && strpos($getcols,$p1) === FALSE) {
-					$getcols .= ','.$p1;
+			$getcols = 'item_id,'.$getcols; //ensure that GetAssoc will work as needed
+			if ($paired) {
+				//ensure related-property pair(s)
+				foreach (array(
+					array('slottype','slotcount'),
+					array('leadtype','leadcount'),
+					array('keeptype','keepcount')) as $pair) {
+					$k = $pair[0];
+					$p = $pair[1];
+					if (strpos($getcols,$k) !== FALSE && strpos($getcols,$p) === FALSE) {
+						$getcols .= ','.$p;
+					}
+					if (strpos($getcols,$p) !== FALSE && strpos($getcols,$k) === FALSE) {
+						$getcols .= ','.$k;
+					}
 				}
 			}
-*/
 		}
 
 		$sql = 'SELECT '.$getcols.' FROM '.$mod->ItemTable.' WHERE item_id IN('.implode(',', $getids).')';
@@ -889,18 +800,98 @@ EOS;
 	}
 
 	/**
-	 * GetOneHeritableProperty:
-	 * Wrapper for GetHeritableProperty() which collapses results for @propname
+	 * GetItemProperties:
+	 *
+	 * @mod: reference to current Booker module object
+	 * @item_id: identifier of resource or group for which property/ies is/are sought
+	 * @wantedprops: ItemTable field-name for property sought or ','-separated series
+	 *   of such names or array of such names (no checks here!) or '*'
+	 * @paired: optional boolean, whether requested properties include pair(s)
+	 *  each of which must come from the same database record, default FALSE
+	 *  or TRUE if @wantedprops = "*"
+	 * @search: optional boolean, whether to check for missing values in ancestor
+	 * 	groups (if any), default TRUE
+	 * Returns: array with key(s) = field name(s), value(s) = corresponding value(s)
+	 * 	if available or NULL if not, or empty array upon error
+	 * Flavours of FALSE other than NULL,'' are assumed to be actual parameter values.
+	 */
+	public function GetItemProperties(&$mod, $item_id, $wantedprops, $paired = FALSE, $search = TRUE)
+	{
+		if ($search) {
+			$found = $this->GetHeritableProps($mod, $item_id, $wantedprops, $paired);
+			if (!$found) {
+				return array();
+			}
+			if (!is_array($wantedprops)) {
+				$wantedprops = explode(',', $wantedprops);
+			}
+
+			if ($wantedprops[0] == '*') {
+				$gets = array_fill_keys(array_keys(reset($found)), NULL);
+				$paired = TRUE;
+			} else {
+				$gets = array_fill_keys(array_filter($wantedprops), NULL); //no name-validation, only presence-checks
+			}
+			if ($paired) {
+				$pairs = array(
+				array('slottype','slotcount'),
+				array('leadtype','leadcount'),
+				array('keeptype','keepcount'));
+			}
+			$got = array();
+			$k = 'item_id';
+			if (array_key_exists($k, $gets)) {
+				$got[$k] = (int) $item_id;
+				unset($gets[$k]);
+			}
+			foreach ($found as $row) {
+				foreach ($gets as $k => $val) {
+					if (!isset($got[$k]) && !($row[$k] === NULL || $row[$k] === '')) {
+						$got[$k] = $row[$k];
+					}
+				}
+				if ($paired) {
+					foreach ($pairs as $row) {
+						$k = $row[0];
+						$p = $row[1];
+						if (isset($got[$k]) && !isset($got[$p])) {
+							unset($got[$k]);
+						} elseif (isset($got[$p]) && !isset($got[$k])) {
+							unset($got[$p]);
+						}
+					}
+				}
+			}
+			return $got + $gets; //infill NULL's
+		} else { //no search
+			if (!is_array($wantedprops)) {
+				$wantedprops = explode(',', $wantedprops);
+			}
+			$getcols = implode(',', array_filter($wantedprops)); //no name-validation, only presence-checks
+
+			$db = $mod->dbHandle;
+			$sql = 'SELECT '.$getcols.' FROM '.$mod->ItemTable.' WHERE item_id=?';
+			$found = $db->GetRow($sql, array($item_id));
+			if ($found) {
+				return $found;
+			}
+			return array();
+		}
+	}
+
+	/**
+	 * GetHeritableProperty:
+	 * Wrapper for GetHeritableProps() which collapses results for @propname
 	 * (including FALSE/NULL results) into a non-associative array.
 	 *
 	 * @mod: reference to current Booker module object
 	 * @item_id: identifier of resource or group for which property/ies is/are sought
 	 * @propname: ItemTable field-name for property sought
-	 * Returns:
+	 * Returns: proximity-ordered array with member(s) = all value(s) of @propname for @item_id
 	 */
-	public function GetOneHeritableProperty(&$mod, $item_id, $propname)
+	public function GetHeritableProperty(&$mod, $item_id, $propname)
 	{
-		$propdata = $this->GetHeritableProperty($mod, $item_id, $propname);
+		$propdata = $this->GetHeritableProps($mod, $item_id, $propname);
 		$ret = array();
 		if ($propdata) {
 			foreach ($propdata as $one) {
@@ -1507,7 +1498,7 @@ EOS;
 	{
 		$fp = self::GetUploadsPath($mod);
 		if ($fp) {
-			$idata = self::GetItemProperty($mod, $item_id, 'stylesfile', TRUE, $search);
+			$idata = self::GetItemProperties($mod, $item_id, 'stylesfile', FALSE, $search);
 			if ($idata && !empty($idata['stylesfile'])) {
 				$fp = $fp.DIRECTORY_SEPARATOR.$idata['stylesfile'];
 				if (file_exists($fp)) {
@@ -1680,7 +1671,7 @@ EOS;
 	 */
 	public function GetDefaultRange(&$mod, $item_id)
 	{
-		$idata = self::GetItemProperty($mod, $item_id, array('leadtype', 'leadcount'), TRUE);
+		$idata = self::GetItemProperties($mod, $item_id, array('leadtype', 'leadcount'), TRUE);
 		if ($idata && !is_null($idata['leadtype']) && !is_null($idata['leadcount'])) {
 			$c = (int) $idata['leadcount'];
 			switch ($idata['leadtype']) { //enum 0..5 consistent with TimeIntervals()
@@ -1909,7 +1900,7 @@ EOS;
 	 */
 	public function GetInterval(&$mod, $item_id, $prefix, $default = 3600)
 	{
-		$idata = self::GetItemProperty($mod, $item_id, array($prefix.'type', $prefix.'count'), TRUE);
+		$idata = self::GetItemProperties($mod, $item_id, array($prefix.'type', $prefix.'count'), TRUE);
 		if ($idata && isset($idata[$prefix.'type']) && !is_null($idata[$prefix.'type'])
 		 && isset($idata[$prefix.'count']) && !is_null($idata[$prefix.'count'])) {
 			$c = (int) $idata[$prefix.'count'];
