@@ -100,9 +100,9 @@ class Schedule
 	*/
 	private function ScheduleOne(&$mod, &$utils, &$reqdata, $item_id, $bulk_id, $session_id, $is_repeat)
 	{
-		$idata = $utils->GetItemProperty($mod,$item_id,array('leadtype','leadcount'),TRUE);
-		$idata = $idata + $utils->GetItemProperty($mod,$item_id,array('slottype','slotcount'),TRUE);
-		$idata = $idata + $utils->GetItemProperty($mod,$item_id,array('bookcount','timezone'));
+		$idata = $utils->GetItemProperty($mod,$item_id,array('bookcount','timezone'));
+		$idata += $utils->GetItemProperty($mod,$item_id,array('leadtype','leadcount'),TRUE);
+		$idata += $utils->GetItemProperty($mod,$item_id,array('slottype','slotcount'),TRUE);
 		$bs = $reqdata['slotstart'];
 		$slen = $utils->GetInterval($mod,$item_id,'slot');
 		if (empty($reqdata['slotlen']))
@@ -217,41 +217,107 @@ class Schedule
 	}
 
 	/*
-	If possible, select @num adjacent bookable items from @likes (which has @lcount
-	members), scanning from index @first, with rollaround to start if optional @roll = TRUE
+	Get indices in @imin..@imax in @likes, for at least @mincount and at most @prefcount
+	adjacent bookable items 
+	Returns: indices array or FALSE
 	*/
-	private function FindCluster(&$mod, &$utils, $session_id, $likes, $lcount, $num, $first, $bs, $be, $roll=FALSE)
+	private function BigCluster(&$mod, &$utils, $session_id, $likes, $imin, $imax, $mincount, $prefcount, &$ret, $bs, $be)
 	{
-//		$cache = Booker\Cache::GetCache($mod);
-		$c = $num;
-		$i = $first;
+		for ($i=$imin; $i<=$imax; $i++) {
+			$c = 0;
+			$found = array();
+			while ($i<=$imax) {
+				$item_id = $likes[$i];
+				$status = self::GetSlotStatus($mod,$utils,$session_id,$item_id,$bs,$be);
+				if (($status & 7) == 0) { //slot not busy, and available, and not booked
+					$found[] = $i;
+					if (++$c == $prefcount) {
+						$ret = $found;
+						return TRUE;
+					}
+					$i++;
+				} else {
+					$c = count($found);
+					if ($c >= $mincount && $c > count($ret)) {
+						$ret = $found;
+					}
+					break; //start again
+				}
+			}
+		}
+		return FALSE;
+	}
+
+	/*
+	Get indices in @likes (which has @lcount members) for at least @mincount and
+	at most @prefcount adjacent bookable items
+	Returns: indices array or FALSE
+	*/
+	private function SizedCluster(&$mod, &$utils, $session_id, $likes, $lcount, $mincount, $prefcount, $up, $down, $bs, $be)
+	{
+		$e = $lcount - 1;
+		$upfirst = ($e - $up) >= $down;
+		if ($upfirst) {
+			$imin = $up;
+			$imax = $e;
+		} else {
+			$imin = 0;
+			$imax = $down;
+		}
+		$ret = array(); //best-found
+		if (self::BigCluster($mod,$utils,$session_id,$likes,$imin,$imax,$mincount,$prefcount,$ret,$bs,$be)) {
+			return $ret;
+		}
+		if ($upfirst) {
+			$imin = 0;
+			$imax = $down;
+		} else {
+			$imin = $up;
+			$imax = $e;
+		}
+		if (self::BigCluster($mod,$utils,$session_id,$likes,$imin,$imax,$mincount,$prefcount,$ret,$bs,$be)) {
+			return $ret;
+		}
+		return FALSE;
+	}
+
+	/*
+	Select up to @num bookable items from @likes (which has @lcount members),
+	which items are proximal to indices @up and @down (which are 0..count($likes)-1)
+	Returns: array of item id's (maybe with < $num members), or FALSE
+	*/
+	private function NearCluster(&$mod, &$utils, $session_id, $likes, $lcount, $num, $up, $down, $gapped, $bs, $be)
+	{
+		$e = $lcount - 1;
+		$upnext = ($down == 0 || ($up < $e && mt_rand(0, 3) > 1));
 		$ret = array();
 		while (1) {
+			$i = ($upnext) ? $up : $down;
 			$item_id = $likes[$i];
 			$status = self::GetSlotStatus($mod,$utils,$session_id,$item_id,$bs,$be);
-//TODO support forced update of repeats
 			if (($status & 7) == 0) { //slot not busy, and available, and not booked
-/*				$cache->
-				TODO set cache-flag busy and/or booked?
-*/
 				$ret[] = $item_id;
-				if (--$c == 0)
+				if (--$num == 0) {
 					return $ret;
-			} elseif (isset($ret[0])) { //>0 array-members
-				 //fresh start
-				$c = $num;
-				$ret = array();
+				}
+			} elseif (!$gapped) {
+				return $ret;
 			}
-
-			if (++$i == $lcount) {
-				if ($roll)
-					$i = 0;
-				else
-					return FALSE;
+			if ($upnext) {
+				if (--$down >= 0) {
+					$upnext = FALSE;
+				} elseif (++$up > $e) {
+					return $ret;
+				}
+			} else {
+				if (++$up < $e) {
+					$upnext = TRUE;
+				} elseif (--$down < 0) {
+					return $ret;
+				}
 			}
-			if ($i == $first)
-				return FALSE;
 		}
+		return FALSE;
 	}
 
 	/*
@@ -260,7 +326,7 @@ class Schedule
 	@utils: reference to Booker\Utils object
 	@session_id: identifier for cache-interrogation
 	@likes: likeness-sorted array of resource identifiers, from which specific
-		resources are to be selected
+	 resources are to be selected
 	@bs: UTC timestamp for booking start
 	@be: ditto for booking end (NOT 1-past)
 	@rescount: no. of individual resources to be booked
@@ -315,21 +381,46 @@ class Schedule
 			$F = 0;
 			break;
 		}
-		$first = $F;
 
+		$first = TRUE;
 		while (1) {
-			$ret = self::FindCluster($mod,$utils,$session_id,$likes,$lcount,$rescount,$first,$bs,$be,TRUE);
-			if ($ret) {
-				if ($alloctype == \Booker::ALLOCROTE)
-					$allocdata += $rescount; //CHECKME or ++?
+			$found = self::NearCluster($mod,$utils,$session_id,$likes,$lcount,$rescount,$F,$F,FALSE,$bs,$be);
+			$fc = count($found);
+			if ($fc < $rescount) {
+				if ($fc > 0) {
+					$up = min($lcount-1,end($found)+1);
+					$down = max(0,reset($found)-1);
+				} else {
+					$up = min($lcount-1,$F+1);
+					$down = max(0,$F-1);
+				}
+				if ($first) {
+					//try for another cluster larger than $fc
+					$xf = self::SizedCluster($mod,$utils,$session_id,$likes,$lcount,$fc+1,$rescount,$up,$down,$bs,$be);
+					if ($xf) {
+						$F = (int)((reset($xf) + end($xf)) / 2);
+						$first = FALSE;
+						continue; //start again
+					}
+				}
+				$mc = $rescount - $fc;
+				$xf = self::NearCluster($mod,$utils,$session_id,$likes,$lcount,$mc,$up,$down,TRUE,$bs,$be);
+				if ($xf) {
+					$found = array_merge($found,$xf); //duplicates filtered during sort
+				}
+			}
+			if ($found) {
+				//sort like $likes
+				$ret = array();
+				foreach ($found as $item_id) {
+					$k = array_search($item_id,$likes);
+					$ret[$k] = $item_id;
+				}
+				ksort($ret,SORT_NUMERIC);
 				return $ret;
 			}
-			$first += $rescount;
-			if ($first >= $lcount)
-				$first -= $lcount;
-			if ($first >= $F && $first < $F+$rescount) //slop
-				return FALSE;
 		}
+		return FALSE;
 	}
 
 	/*
@@ -364,9 +455,9 @@ class Schedule
 			return FALSE;
 		}
 
-		$idata = $utils->GetItemProperty($mod,$item_id,array('leadtype','leadcount'),TRUE);
-		$idata = $idata + $utils->GetItemProperty($mod,$item_id,array('slottype','slotcount'),TRUE);
-		$idata = $idata + $utils->GetItemProperty($mod,$item_id,array('bookcount','timezone','subgrpalloc','subgrpdata'));
+		$idata = $utils->GetItemProperty($mod,$item_id,array('bookcount','timezone','subgrpalloc','subgrpdata'));
+		$idata += $utils->GetItemProperty($mod,$item_id,array('leadtype','leadcount'),TRUE);
+		$idata += $utils->GetItemProperty($mod,$item_id,array('slottype','slotcount'),TRUE);
 		$slen = $utils->GetInterval($mod,$item_id,'slot');
 		$maxlen = $idata['bookcount'] * $slen;
 		if (!$is_repeat) {
@@ -456,6 +547,20 @@ class Schedule
 					$bookerid = (int)$one['booker_id'];
 					$pay = !empty($one['paid']);
 					$stat = \Booker::STATOK; //TODO or STATNOTPAID etc
+					if (!$is_repeat) {
+						$allsql[] = $sql;
+						$bkgid = $mod->dbHandle->GenID($mod->DataTable.'_seq');
+						$allargs[] = array(
+							$bkgid,
+							$bulk_id,
+							$item_id,
+							$bs, //slotstart
+							$be-$bs-1, //slotlen, 'used interval'
+							$bookerid,
+							$stat,
+							$pay
+						);
+					}
 					foreach ($items as $memberid) {
 						//signature = string form of long numbers
 						$this->slotsdone[] = $memberid.$bs.$be;
@@ -521,8 +626,8 @@ class Schedule
 	{
 		$item_id = (int)$row['item_id'];
 		//get enough data for TimeParms()
-		$idata = $utils->GetItemProperty($mod,$item_id,array('slottype','slotcount'),TRUE);
-		$idata = $idata + $utils->GetItemProperty($mod,$item_id,array('timezone','latitude','longitude'));
+		$idata = $utils->GetItemProperty($mod,$item_id,array('timezone','latitude','longitude'));
+		$idata += $utils->GetItemProperty($mod,$item_id,array('slottype','slotcount'),TRUE);
 		$timeparms = $reps->TimeParms($idata);
 
 		$ret = TRUE;
@@ -668,8 +773,9 @@ class Schedule
 
 		self::UpdateRepeats($mod,$utils,$item_id,$bs,$be);
 
+		$bulk_id = $mod->dbHandle->GenID($mod->DataTable.'_seq');
 		$session_id = Cache::GetKey(\Booker::SESSIONKEY); //identifier for cached slotstatus data
-		$res = self::ScheduleMulti($mod,$utils,$reqdata,$item_id,$item_id,$session_id,FALSE);
+		$res = self::ScheduleMulti($mod,$utils,$reqdata,$item_id,$bulk_id,$session_id,FALSE);
 		if ($unarray)
 			$reqdata = $reqdata[0];
 		return $res;
@@ -801,7 +907,7 @@ class Schedule
 
 	/**
 	ItemAvailable:
-	Determine whether the item represented by @item_id is available for	use	over
+	Determine whether the item represented by @item_id is available for use over
 	all of @bs..@be inclusive. If there's no relevant availability-condition,
 	the item is regarded as available.
 	@mod reference to current module-object
@@ -826,7 +932,7 @@ class Schedule
 		$idata = $utils->GetItemProperty($mod,$item_id,array('available','timezone','latitude','longitude'));
 		if ($idata['available']) {
 			//rest of data for TimeParms()
-			$idata = $idata + $utils->GetItemProperty($mod,$item_id,array('slottype','slotcount'),TRUE);
+			$idata += $utils->GetItemProperty($mod,$item_id,array('slottype','slotcount'),TRUE);
 			$funcs = new WhenRules($mod);
 			$timeparms = $funcs->TimeParms($idata);
 			list($starts,$ends) = $funcs->AllIntervals($idata['available'],$bs,$be,$timeparms); //proximal-rule-only, no ancestor-merging
@@ -839,8 +945,12 @@ class Schedule
 			//TODO decide how to report on results
 		}
 		if ($starts) {
-			if (0) //TODO anything left over
+			//check for mismatch
+			if (count($starts) > 1 //some intermediate exclusion
+			 || $bs != $starts[0]
+			 || $be != $ends[0]) {
 				return FALSE;
+			}
 		}
 		if ($bookerid > 0) {
 			if (0) //TODO $bookerid is permitted to use the item
