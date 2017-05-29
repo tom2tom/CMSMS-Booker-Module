@@ -420,7 +420,7 @@ if (!$past) {
 	}
 }
 
-$tplvars['mustmsg'] = '<img src="'.$baseurl.'/images/information.png" alt="icon" border="0" /> '.
+$tplvars['mustmsg'] = '<img src="'.$baseurl.'/images/info-small.png" alt="info icon" border="0" /> '.
 	$this->Lang('title_must');
 
 $choosend = ($idata['bookcount'] != 1);
@@ -681,8 +681,24 @@ if ($ob) {
 $tplvars['tablerows'] = $items;
 $tplvars['hidden'] = implode($hidden);
 
-$tplvars['cartmsg'] = '<img src="'.$baseurl.'/images/information.png" alt="icon" border="0" /> '.
-$this->Lang('help_cart');
+$tplvars['carticon'] = '<a href="" onclick="return helptogl(this);"><img src="'
+	.$baseurl.'/images/info-small.png" alt="info-toggle icon" title="toggle display" border="0" /></a>';
+$tplvars['carthelp'] = $this->Lang('help_cart');
+
+$jsfuncs[] = <<<EOS
+function helptogl(el) {
+ var \$cd = $(el).closest('div'),
+  \$hd = \$cd.next()
+ if (\$hd[0].style.display != 'none') {
+  \$cd.css('float','');
+  \$hd.slideUp(200);
+ } else {
+  \$cd.css('float','left');
+  \$hd.slideDown(200);
+ }
+ return false;
+}
+EOS;
 
 $jsincs[] = <<<EOS
 <script type="text/javascript" src="{$baseurl}/lib/js/pikaday.min.js"></script>
