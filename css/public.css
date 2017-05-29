@@ -15,6 +15,10 @@
 /* div containing item image(s) */
 .bkgimg{
 }
+/* [un]displayable div containing help */
+div.helptoggle {
+ margin-left:28px;
+}
 /* bookings-data list */
 .bkglist{
 }
@@ -284,4 +288,3 @@ input.fakelink:focus {
 div#authactions {
  margin-top: 1em;
 }
-

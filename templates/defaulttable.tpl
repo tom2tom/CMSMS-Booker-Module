@@ -35,7 +35,7 @@
 </table>
 </div>
 <div style="float:left;">{$focusicon}</div>
-<div style="margin-left:28px;">{$focushelp}</div>
+<div class="helptoggle">{$focushelp}</div>
 {else}
 <p>{$nobookings}</p>
 {/if}
