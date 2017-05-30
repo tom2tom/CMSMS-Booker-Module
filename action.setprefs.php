@@ -93,6 +93,16 @@ foreach ($updates as $k) {
 		$this->SetPreference($k,trim($val));
 		break;
 */
+	 case 'authcontext':
+		$oldval = $this->GetPreference($k,0);
+		$val += 0;
+		if ($val != $oldval) {
+			$all = array(); //TODO get auther-id's of all registered users
+			$funcs = new Auther\Utils();
+			$funcs->MoveContextUsers($all,$oldval,$val);
+			$this->SetPreference($k,$val);
+		}
+		break;
 	 default:
 		$this->SetPreference($k,trim($val));
 	}
