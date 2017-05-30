@@ -122,11 +122,8 @@ class Cache_database extends CacheBase implements CacheInterface
 	public function _delete($keyword)
 	{
 		$db = \cmsms()->GetDb();
-		if ($db->Execute('DELETE FROM '.$this->table.' WHERE keyword=?',array($keyword))) {
-			return TRUE;
-		} else {
-			return FALSE;
-		}
+		$db->Execute('DELETE FROM '.$this->table.' WHERE keyword=?',array($keyword));
+		return ($db->Affected_Rows() > 0);
 	}
 
 	public function _clean($filter)
@@ -140,7 +137,8 @@ class Cache_database extends CacheBase implements CacheInterface
 				$keyword = $row['keyword'];
 				$value = (!is_null($row['value'])) ? unserialize($row['value']) : NULL;
 				if ($this->filterItem($filter,$keyword,$value)) {
-					$ret = $ret && $db->Execute($sql,array($row['cache_id']));
+					$db->Execute($sql,array($row['cache_id']));
+					$ret = $ret && ($db->Affected_Rows() > 0);
 				}
 			}
 		}
