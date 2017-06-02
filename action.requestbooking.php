@@ -681,8 +681,9 @@ if ($ob) {
 $tplvars['tablerows'] = $items;
 $tplvars['hidden'] = implode($hidden);
 
+$t = $this->Lang('tip_info');
 $tplvars['carticon'] = '<a href="" onclick="return helptogl(this);"><img src="'
-	.$baseurl.'/images/info-small.png" alt="info-toggle icon" title="toggle display" border="0" /></a>';
+	.$baseurl.'/images/info-small.png" alt="info-toggle icon" title="'.$t.'" border="0" /></a>';
 $tplvars['carthelp'] = $this->Lang('help_cart');
 
 $jsfuncs[] = <<<EOS

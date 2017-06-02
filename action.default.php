@@ -283,8 +283,9 @@ EOS;
 $chooser = $utils->GetItemPicker($this,$id,'itempick',$params['firstpick'],$item_id);
 
 if ($showtable) {
+	$t = $this->Lang('tip_info');
 	$tplvars['focusicon'] = '<a href="" onclick="return helptogl(this);"><img src="'
-		.$baseurl.'/images/info-small.png" alt="info-toggle icon" title="toggle display" border="0" /></a>';
+		.$baseurl.'/images/info-small.png" alt="info-toggle icon" title="'.$t.'" border="0" /></a>';
 	if ($chooser) {
 		if ($idata['membersname']) {
 			$s = $idata['membersname'];
