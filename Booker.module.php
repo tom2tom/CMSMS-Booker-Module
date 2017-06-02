@@ -49,7 +49,7 @@ class Booker extends CMSModule
 	const RANGEWEEK = 1;
 	const RANGEMTH = 2;
 	const RANGEYR = 3;
-	//HistoryTable status codes
+	//XdataTable status codes
 	const STATNONE = 0;//unknown/normal/default
 	//request-stage
 	const STATNEW = 1;//new, approver consideration pending
@@ -59,11 +59,11 @@ class Booker extends CMSModule
 	const STATASK = 5;//booker queried, waiting for response
  	const STATCANCEL = 6;//abandoned by user or admin on user's behalf
 	const STATMAXREQ = 9;//last-recognised request-status value
-	//later status
+	//later status AND ALSO DataTable status-field
 	const STATOK = 10;//aka APPROVED done/processed
 	const STATADMINREC = 11;//booking recorded by admin
 	const STATSELFREC = 12;//recorded by approved user (i.e. no request)
-	const STATTEMP = 18;//user-recorded, pending admin confirmation
+	const STATTEMP = 18;//user-recorded, pending admin confirmation, or at least 'nfa' flag
 	const STATDEFERRED = 19;//booking to be re-scheduled, per user request or admin imposition
  	const STATGONE = 20;//deletion pending, while its historical data needed
 	const STATMAXOK = 20;//last-recognised request-done-ok value
@@ -78,13 +78,14 @@ class Booker extends CMSModule
  	const STATRETRY = 28;//some temporary problem, try again later
 	const STATFAILED = 29;//generic request-failure
 	const STATMAXBAD = 35;//last-recognised request-bad value
-	//HistoryTable payment codes
+	//payment-field codes
 	const STATFREE = 40;//no fee for use
-	const STATPAYABLE = 41;//fee applies, not yet paid
+	const STATPAYABLE = 41;//fee applies, none yet paid
 	const STATPAID = 42;//fee pre- or post-paid
-	const STATCREDITED = 43;//fee to be paid upon request
- 	const STATNOTPAID = 44;//payable but unpaid for some non-credit-related reason
-	const STATOVRDUE = 45;//payment overdue
+	const STATPARTPAID = 43;//fee not yet fully paid
+	const STATCREDITED = 44;//fee to be paid upon request
+ 	const STATNOTPAID = 45;//payable but unpaid for some non-credit-related reason
+	const STATOVRDUE = 46;//payment overdue
 	const STATCREDITUSED = 50;//past credit offset against other use
 	const STATCREDITEXPIRED = 51;//past credit timed out
 	const STATCREDITADDED = 52;//prepayment amount
@@ -97,17 +98,15 @@ class Booker extends CMSModule
 	const PATNPHONE = '/^(\+\d{1,4} *)?[\d ]{5,15}$/';
 
 	public $dbHandle; //cached connection to adodb
-//	public $AvailTable; //resource-availabilty cache
 	public $AuthTable; //authenticated-users data
 	public $BookerTable; //booker details
 	public $DataTable; //non-repeated bookings-data
 	public $FeeTable; //payment amounts/rates and associated conditions
 	public $GroupTable; //group-relationships
-	public $HistoryTable; //bookings history
 	public $ItemTable; //resources and resource-groups
 	public $RepeatTable; //repeated bookings-data
-//	public $CacheTable; //cached bookings-data
 	public $UserTable; //admin users (who may 'own' resource/group)
+	public $XdataTable; //extra bookings data, much of it common to Data and Repeats
 	public $before20;
 	public $oldtemplates;
 	public $havenotifier;
@@ -129,17 +128,15 @@ class Booker extends CMSModule
 
 		$this->dbHandle = cmsms()->GetDb();
 		$pre = cms_db_prefix();
-//		$this->AvailTable = $pre.'module_bkr_avail';
 		$this->AuthTable = $pre.'module_auth_users'; //table belongs to Auther module
 		$this->BookerTable = $pre.'module_bkr_bookers';
 		$this->DataTable = $pre.'module_bkr_data';
 		$this->FeeTable = $pre.'module_bkr_fees';
 		$this->GroupTable = $pre.'module_bkr_groups';
-		$this->HistoryTable = $pre.'module_bkr_history';
 		$this->ItemTable = $pre.'module_bkr_items';
 		$this->RepeatTable = $pre.'module_bkr_repeats';
-//		$this->CacheTable = $pre.'module_bkr_cache';
 		$this->UserTable = $pre.'users';
+		$this->XdataTable = $pre.'module_bkr_xdata';
 		global $CMS_VERSION;
 		$this->before20 = (version_compare($CMS_VERSION,'2.0') < 0);
 		$this->oldtemplates = $this->before20 || 1; //TODO
@@ -378,6 +375,7 @@ EOS;
 		$this->RestrictUnknownParams();
 		//TODO parameter types
 		$this->SetParameterType('account',CLEAN_STRING);
+		$this->SetParameterType('amount',CLEAN_STRING);
 		$this->SetParameterType('apply',CLEAN_STRING); //change view enum
 		$this->SetParameterType('authdata',CLEAN_STRING); //data from authpanel
 		$this->SetParameterType('bookat',CLEAN_INT);
