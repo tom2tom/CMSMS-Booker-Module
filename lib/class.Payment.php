@@ -311,6 +311,42 @@ class Payment
 	}
 
 	/**
+	PayUpdate:
+	@mod: reference to Booker module object
+	@mod: reference to Booker module object
+	@bookerid: booker identifier
+	@postpayable: boolean
+	@grossdue: amount that should have been paid
+	@grosspaid: amount actually paid
+	Returns: relevant Booker::STAT* enum
+	*/
+	public function PayUpdate(&$mod, $bookerid, $postpayable, $grossdue, $grosspaid)
+	{
+		$minpay = 1.0; //TODO support selectable min. payment
+		if ($grosspaid >= $minpay) {
+			if ($grosspaid >= $grossdue) {
+				if ($grosspaid - $grossdue > $minpay) {
+					$this->AddCredit($mod,$bookerid,$grosspaid - $grossdue);
+				}
+				return \Booker::STATPAID;
+			}
+			$tc = $this->TotalCredit($mod,$bookerid);
+			if ($tc + $grosspaid >= $grossdue) {
+				$this->UseCredit($mod,$bookerid,$tc + $grosspaid - $grossdue); //TODO
+				return \Booker::STATPAID;
+			} elseif ($tc + $grosspaid > 0.0) {
+				$this->UseCredit($mod,$bookerid,$tc); //TODO
+				return \Booker::STATPARTPAID;
+			} elseif ($postpayable) {
+				return \Booker::STATCREDITED; //aka \Booker::STATPAYABLE;
+			}
+			return \Booker::STATNOTPAID;
+		} else {
+			return \Booker::STATFREE;
+		}
+	}
+
+	/**
 	GetFeeSignature:
 	Get identifier usable for cross-resource fee-comparisons
 	@row: array of fee-data including members: slottype,slotcount,fee,feecondition
@@ -334,11 +370,11 @@ class Payment
 	public function TotalCredit(&$mod, $bookerid)
 	{
 		$amount = 0.0;
-		$sql = 'SELECT netfee FROM '.$mod->HistoryTable.
+		$sql = 'SELECT netfee FROM '.$mod->XdataTable.
 		' WHERE booker_id=? AND status='.\Booker::STATCREDITADDED;
 		$rows = $mod->dbHandle->GetCol($sql,array($bookerid));
 		foreach ($rows as $one) {
-			$amount .= (float)$one;
+			$amount += (float)$one;
 		}
 		return $amount;
 	}
@@ -353,13 +389,13 @@ class Payment
 	{
 		if ($amount > 0.0) {
 			//the 'fee' field retains original credit, 'netfee' field will be used for adjustments
-			$sql = 'INSERT INTO '.$mod->HistoryTable.
-' (history_id,booker_id,lodged,fee,netfee,status) VALUES (?,?,?,?,?,?)';
-			$hid = $mod->dbHandle->GenID($mod->HistoryTable.'_seq');
+			$sql = 'INSERT INTO '.$mod->XdataTable.
+' (xtra_id,booker_id,lodged,fee,netfee,status) VALUES (?,?,?,?,?,?)';
+			$xid = $mod->dbHandle->GenID($mod->XdataTable.'_seq');
 			$dt = new \DateTime('now',new \DateTimeZone('UTC'));
 			$st = $dt->getTimestamp();
 			$args = array(
-				$hid,
+				$xid,
 				$bookerid,
 				$st,
 				$amount,
@@ -380,11 +416,11 @@ class Payment
 	*/
 	public function UseCredit(&$mod, $bookerid, $amount)
 	{
-		$sql = 'SELECT history_id,netfee FROM '.$mod->HistoryTable.
+		$sql = 'SELECT xtra_id,netfee FROM '.$mod->XdataTable.
 		' WHERE booker_id=? AND status='.\Booker::STATCREDITADDED.' ORDER BY lodged';
 		$data = $mod->dbHandle->GetArray($sql,array($bookerid));
 		if ($data) {
-			$sql = 'UPDATE '.$mod->HistoryTable.' SET netfee=? WHERE history_id=?';
+			$sql = 'UPDATE '.$mod->XdataTable.' SET netfee=? WHERE xtra_id=?';
 			foreach ($data as $row) {
 				$now = (float)$row['netfee'];
 				$amount -= $now;
@@ -396,7 +432,7 @@ class Payment
 					$stop = TRUE;
 				}
 				//TODO build arrays, then $utils->SafeExec($sql[],$args[]);
-				$mod->dbHandle->Execute($sql,array($now,$row['history_id']));
+				$mod->dbHandle->Execute($sql,array($now,$row['xtra_id']));
 				if ($stop) {
 					break;
 				}
@@ -415,7 +451,7 @@ class Payment
 	*/
 	public function ExpireCredit(&$mod, $bookerid, $before)
 	{
-		$sql = 'UPDATE '.$mod->HistoryTable.' SET status='.\Booker::STATCREDITEXPIRED.
+		$sql = 'UPDATE '.$mod->XdataTable.' SET status='.\Booker::STATCREDITEXPIRED.
 		' WHERE booker_id=? AND status='.\Booker::STATCREDITADDED.' AND lodged<?';
 		//TODO $utils->SafeExec()
 		$mod->dbHandle->Execute($sql,array($bookerid,$limit));
