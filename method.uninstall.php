@@ -27,17 +27,16 @@ function delTree($dir)
 $pre = cms_db_prefix();
 $dict = NewDataDictionary($db);
 // remove table indices
-//$sql = $dict->DropIndexSQL('idx_'.$this->AvailTable,$this->AvailTable);
-//$dict->ExecuteSQLArray($sql);
 $sql = $dict->DropIndexSQL('idx_'.$this->DataTable,$this->DataTable);
 $dict->ExecuteSQLArray($sql);
 $sql = $dict->DropIndexSQL('idx_'.$this->GroupTable,$this->GroupTable);
 $dict->ExecuteSQLArray($sql);
-$sql = $dict->DropIndexSQL('idx_'.$this->HistoryTable,$this->HistoryTable);
+$sql = $dict->DropIndexSQL('idx_'.$this->XdataTable,$this->XdataTable);
 $dict->ExecuteSQLArray($sql);
+$sql = $dict->DropIndexSQL('idx_2'.$this->XdataTable,$this->XdataTable);
+$dict->ExecuteSQLArray($sql);
+
 // remove database tables
-//$sql = $dict->DropTableSQL($this->AvailTable);
-//$dict->ExecuteSQLArray($sql);
 $sql = $dict->DropTableSQL($this->BookerTable);
 $dict->ExecuteSQLArray($sql);
 $sql = $dict->DropTableSQL($this->DataTable);
@@ -46,26 +45,21 @@ $sql = $dict->DropTableSQL($this->FeeTable);
 $dict->ExecuteSQLArray($sql);
 $sql = $dict->DropTableSQL($this->GroupTable);
 $dict->ExecuteSQLArray($sql);
-$sql = $dict->DropTableSQL($this->HistoryTable);
-$dict->ExecuteSQLArray($sql);
 $sql = $dict->DropTableSQL($this->ItemTable);
 $dict->ExecuteSQLArray($sql);
 $sql = $dict->DropTableSQL($this->RepeatTable);
 $dict->ExecuteSQLArray($sql);
-//$sql = $dict->DropTableSQL($this->ItemTable.'pick');
-//$dict->ExecuteSQLArray($sql);
-$sql = $dict->DropTableSQL($pre.'module_bkr_cache');
+$sql = $dict->DropTableSQL($this->XdataTable);
 $dict->ExecuteSQLArray($sql);
 // remove sequences
 $db->DropSequence($this->BookerTable.'_seq');
 $db->DropSequence($this->DataTable.'_seq');
 $db->DropSequence($this->FeeTable.'_seq');
 $db->DropSequence($this->GroupTable.'_seq');
-$db->DropSequence($this->HistoryTable.'_seq');
 $db->DropSequence($this->ItemTable.'_seq');
 $db->DropSequence($this->ItemTable.'_gseq');
 //RepeatTable sequence same as for DataTable
-$db->DropSequence($pre.'module_bkr_cache_seq');
+$db->DropSequence($this->XdataTable.'_seq');
 // remove permissions
 $this->RemovePermission($this->PermStructName);
 $this->RemovePermission($this->PermAdminName);
