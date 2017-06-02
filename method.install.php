@@ -152,7 +152,7 @@ non-repeated bookings-data table schema:
  slotlen: seconds booked, NOT seconds-per-slot
  booker_id: identifier
  status: one of the Booker::STAT* values
- paid: boolean
+ paid: boolean (see also XdataTable::payment which has Booker:STATFREE..STATMAXPAY)
  active: enum/boolean 1, or 0 if booking has been deleted but historic data remain
 Booker\CSV::ImportBookings must conform to this
 */
@@ -188,7 +188,7 @@ repeated bookings-data table schema:
  checkedfrom: timestamp for start of first day for which actual bookings have been recoreded
  checkedto: timestamp for start of day after last day for which actual bookings have been recoreded
  subgrpcount: no. of in-group resources to be processed per subgrpalloc
- paid: boolean
+ paid: boolean (see also XdataTable::payment which has Booker:STATFREE..STATMAXPAY)
  active: enum/boolean 1, or 0 if booking has been deleted but historic data remain
 */
 $fields = '
@@ -306,10 +306,11 @@ $db->CreateSequence($this->BookerTable.'_seq');
 
 /*
 NOTE action.requestbooking.php must be conformed to any change here
- history table schema:
- history_id: table key
- booker_id: cross-referencer (indexed)
- item_id: booked-resource identifier
+ extra-data table schema:
+ xtra_id: table key
+ bkg_id: DataTable/RepeatTable cross-referencer (indexed)
+ booker_id: BookerTable cross-referencer (indexed)
+ item_id: ItemTable cross-referencer
  subgrpcount: no. of requested items in a group, irrelevant for non-groups
  lodged: UTC timestamp booking submitted/recorded
  approved: UTC timestamp - sometimes needed
@@ -321,12 +322,13 @@ NOTE action.requestbooking.php must be conformed to any change here
  netfee: fee less any gateway/institution cost
  status: enum per some of Booker:STAT*
 	See also BookingCartItem:: constants which overlap this a bit
- payment: another enum per some of Booker:STAT*
+ payment: enum Booker:STATFREE..STATMAXPAY (see also boolean DataTable::paid, RepeatTable::paid)
  gatetransaction: transaction id reported by payment gateway
  gatedata: json data reported by payment gateway, encrypted
 */
 $fields = '
-history_id I(4) KEY,
+xtra_id I(4) KEY,
+bkg_id I(4),
 booker_id I(4),
 item_id I(4),
 subgrpcount I(1) DEFAULT 1,
@@ -343,16 +345,19 @@ payment I(1) DEFAULT '.Booker::STATFREE.',
 gatetransaction C(48),
 gatedata B
 ';
-$sqlarray = $dict->CreateTableSQL($this->HistoryTable,$fields,$taboptarray);
+$sqlarray = $dict->CreateTableSQL($this->XdataTable,$fields,$taboptarray);
 if ($sqlarray == FALSE)
 	return FALSE;
 $res = $dict->ExecuteSQLArray($sqlarray,FALSE);
 if ($res != 2)
 	return FALSE;
-// index
-$sqlarray = $dict->CreateIndexSQL('idx_'.$this->HistoryTable,$this->HistoryTable,'booker_id');
+// indices
+$sqlarray = $dict->CreateIndexSQL('idx_'.$this->XdataTable,$this->XdataTable,'bkg_id');
 $dict->ExecuteSQLArray($sqlarray);
-$db->CreateSequence($this->HistoryTable.'_seq');
+$sqlarray = $dict->CreateIndexSQL('idx_2'.$this->XdataTable,$this->XdataTable,'booker_id');
+$dict->ExecuteSQLArray($sqlarray);
+
+$db->CreateSequence($this->XdataTable.'_seq');
 
 /*
 item-pickability table schema:
@@ -439,7 +444,7 @@ $this->SetPreference('leadcount',0);
 $this->SetPreference('leadtype',3); //week-index per TimeIntervals()
 $this->SetPreference('listformat',Booker::LISTSU);
 $this->SetPreference('membersname',$this->Lang('members'));
-$this->SetPreference('owner',0);	//each resource/group may have a specific owner/contact
+$this->SetPreference('owner',0); //each resource/group may have a specific owner/contact
 $this->SetPreference('pagerows',10); //page-length of admin bookings-data view
 $this->SetPreference('paymentiface',''); //data for payment-processing
 $this->SetPreference('rationcount',0);
@@ -451,7 +456,7 @@ $this->SetPreference('smsprefix',''); //TODO func(timezone)
 $this->SetPreference('stripexport',0);
 $this->SetPreference('stylesfile','');
 $this->SetPreference('subgrpalloc',Booker::ALLOCNONE);
-$this->SetPreference('timeformat','G:i');	//default date/time format string
+$this->SetPreference('timeformat','G:i'); //default date/time format string
 //for email address checking by mailcheck.js
 $this->SetPreference('domains',''); //for initial check
 $this->SetPreference('subdomains',''); //for secondary check
