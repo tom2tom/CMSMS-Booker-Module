@@ -13,12 +13,12 @@ class Histops
 
 	private function GetBookings($params)
 	{
-		return $mod->dbHandle->GetArray('SELECT FROM '.$mod->HistoryTable.' WHERE ',$args);
+		return $mod->dbHandle->GetArray('SELECT X FROM '.$mod->XdataTable.' WHERE ',$args);
 	}
 
-	private function GetHistory($params)
+	private function GetExtraData($params)
 	{
-		return $mod->dbHandle->GetArray('SELECT FROM '.$mod->HistoryTable.' WHERE ',$args);
+		return $mod->dbHandle->GetArray('SELECT X FROM '.$mod->XdataTable.' WHERE ',$args);
 	}
 
 	/**
@@ -102,7 +102,7 @@ class Histops
 		}
 		if (is_callable($item)) {
 			$valid = array();
-			$all = self::GetHistory($params);
+			$all = self::GetExtraData($params);
 			if ($all) {
 				foreach ($all as $one) {
 					if ($item($one)) {
@@ -111,11 +111,11 @@ class Histops
 				}
 			}
 		} elseif (is_array($item)) {
-			$valid = self::GetHistory($params);
+			$valid = self::GetExtraData($params);
 		} elseif ($item == '*') {
-			$valid = self::GetHistory($params);
+			$valid = self::GetExtraData($params);
 		} else {
-			$valid = self::GetHistory($params);
+			$valid = self::GetExtraData($params);
 		}
 
 		$count = 0;
@@ -142,7 +142,7 @@ class Histops
 		}
 		if (is_callable($booker)) {
 			$valid = array();
-			$all = self::GetHistory($params);
+			$all = self::GetExtraData($params);
 			if ($all) {
 				foreach ($all as $one) {
 					if ($booker($one)) {
@@ -151,11 +151,11 @@ class Histops
 				}
 			}
 		} elseif (is_array($booker)) {
-			$valid = self::GetHistory($params);
+			$valid = self::GetExtraData($params);
 		} elseif ($booker == '*') {
-			$valid = self::GetHistory($params);
+			$valid = self::GetExtraData($params);
 		} else {
-			$valid = self::GetHistory($params);
+			$valid = self::GetExtraData($params);
 		}
 
 		$count = 0;
@@ -178,7 +178,7 @@ class Histops
 	{
 		if (is_callable($booker)) {
 			$valid = array();
-			$all = self::GetHistory($params);
+			$all = self::GetExtraData($params);
 			if ($all) {
 				foreach ($all as $one) {
 					if ($booker($one)) {
@@ -187,11 +187,11 @@ class Histops
 				}
 			}
 		} elseif (is_array($booker)) {
-			$valid = self::GetHistory($params);
+			$valid = self::GetExtraData($params);
 		} elseif ($booker == '*') {
-			$valid = self::GetHistory($params);
+			$valid = self::GetExtraData($params);
 		} else {
-			$valid = self::GetHistory($params);
+			$valid = self::GetExtraData($params);
 		}
 		$ret = 0.0;
 		foreach ($valid as $one) {
@@ -210,7 +210,7 @@ class Histops
 	*/
 	public function UseCredit(&$mod, $bookerid, $amount)
 	{
-		$valid = self::GetHistory($params);
+		$valid = self::GetExtraData($params);
 		foreach ($valid as $one) {
 			$amount -= $X;
 			if ($amount <= 0.0) {
@@ -241,7 +241,7 @@ class Histops
 	{
 		if (is_callable($booker)) {
 			$valid = array();
-			$all = self::GetHistory($params);
+			$all = self::GetExtraData($params);
 			if ($all) {
 				foreach ($all as $one) {
 					if ($booker($one)) {
@@ -250,11 +250,11 @@ class Histops
 				}
 			}
 		} elseif (is_array($booker)) {
-			$valid = self::GetHistory($params);
+			$valid = self::GetExtraData($params);
 		} elseif ($booker == '*') {
-			$valid = self::GetHistory($params);
+			$valid = self::GetExtraData($params);
 		} else {
-			$valid = self::GetHistory($params);
+			$valid = self::GetExtraData($params);
 		}
 		foreach ($valid as $one) {
 			//OR merged sql
@@ -271,7 +271,7 @@ class Histops
 	{
 		if (is_callable($booker)) {
 			$valid = array();
-			$all = self::GetHistory($params);
+			$all = self::GetExtraData($params);
 			if ($all) {
 				foreach ($all as $one) {
 					if ($booker($one)) {
@@ -280,11 +280,11 @@ class Histops
 				}
 			}
 		} elseif (is_array($booker)) {
-			$valid = self::GetHistory($params);
+			$valid = self::GetExtraData($params);
 		} elseif ($booker == '*') {
-			$valid = self::GetHistory($params);
+			$valid = self::GetExtraData($params);
 		} else {
-			$valid = self::GetHistory($params);
+			$valid = self::GetExtraData($params);
 		}
 		foreach ($valid as $one) {
 			//OR merged sql
@@ -292,17 +292,17 @@ class Histops
 	}
 
 	/**
-	ClearHistory:
-	Delete all history records older than @before and matching @booker
+	ClearExtraData:
+	Delete all extradata records older than @before and matching @booker
 	@booker: a numeric booker_id, or array of them, or '*' for all, or a callback for filtering
 	@before: UTC timestamp for limit on retained history
 	Returns: nothing
 	*/
-	public function ClearHistory(&$mod, $booker, $before)
+	public function ClearExtraData(&$mod, $booker, $before)
 	{
 		if (is_callable($booker)) {
 			$valid = array();
-			$all = self::GetHistory($params);
+			$all = self::GetExtraData($params);
 			if ($all) {
 				foreach ($all as $one) {
 					if ($booker($one)) {
@@ -311,11 +311,11 @@ class Histops
 				}
 			}
 		} elseif (is_array($booker)) {
-			$valid = self::GetHistory($params);
+			$valid = self::GetExtraData($params);
 		} elseif ($booker == '*') {
-			$valid = self::GetHistory($params);
+			$valid = self::GetExtraData($params);
 		} else {
-			$valid = self::GetHistory($params);
+			$valid = self::GetExtraData($params);
 		}
 		foreach ($valid as $one) {
 			//OR merged sql
@@ -323,16 +323,16 @@ class Histops
 	}
 
 	/**
-	ClearHistoryFor:
-	Delete all history records matching @booker
+	ClearExtraDataFor:
+	Delete all extradata records matching @booker
 	@booker: a numeric booker_id, or array of them, or '*' for all, or a callback for filtering
 	Returns: nothing
 	*/
-	public function ClearHistoryFor(&$mod, $booker)
+	public function ClearExtraDataFor(&$mod, $booker)
 	{
 		if (is_callable($booker)) {
 			$valid = array();
-			$all = self::GetHistory($params);
+			$all = self::GetExtraData($params);
 			if ($all) {
 				foreach ($all as $one) {
 					if ($booker($one)) {
@@ -341,11 +341,11 @@ class Histops
 				}
 			}
 		} elseif (is_array($booker)) {
-			$valid = self::GetHistory($params);
+			$valid = self::GetExtraData($params);
 		} elseif ($booker == '*') {
-			$valid = self::GetHistory($params);
+			$valid = self::GetExtraData($params);
 		} else {
-			$valid = self::GetHistory($params);
+			$valid = self::GetExtraData($params);
 		}
 		foreach ($valid as $one) {
 			//OR merged sql
