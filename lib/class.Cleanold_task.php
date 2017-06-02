@@ -52,7 +52,7 @@ EOS;
 			}
 		}
 		//TODO also $mod->RepeatTable, && maybe $mod->DataTable rows for that bulk_id
-		//TODO also $mod->HistoryTable
+		//TODO also $mod->XdataTable
 		return TRUE;
 	}
 

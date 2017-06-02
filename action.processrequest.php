@@ -15,9 +15,9 @@ if (isset($params['cancel'])) {
 } elseif (isset($params['find'])) {
 	$newparms = array('resume'=>'defaultadmin','active_tab'=>$params['active_tab']);
 	if (!empty($params['selreq'])) {
-		$sql = 'SELECT item_id FROM '.$this->HistoryTable.' WHERE history_id=?';
-		$hid = reset($params['selreq']);
-		$item_id = $this->dbHandle->GetOne($sql,array($hid));
+		$sql = 'SELECT item_id FROM '.$this->XdataTable.' WHERE xtra_id=?';
+		$xid = reset($params['selreq']);
+		$item_id = $this->dbHandle->GetOne($sql,array($xid));
 		$newparms['item_id'] = $item_id;
 	}
 	$this->Redirect($id,'findbooking','',$newparms);
@@ -30,29 +30,29 @@ if (isset($params['cancel'])) {
 	$params['resume'] = json_encode(array('defaultadmin'));
 	switch ($params['task']) {
 	 case 'see':
-		$this->Redirect($id,'openrequest','',array('history_id'=>$params['history_id'],
+		$this->Redirect($id,'openrequest','',array('xtra_id'=>$params['xtra_id'],
 			'resume'=>$params['resume'],'task'=>'see'));
 		break;
 	 case 'edit':
-		$this->Redirect($id,'openrequest','',array('history_id'=>$params['history_id'],
+		$this->Redirect($id,'openrequest','',array('xtra_id'=>$params['xtra_id'],
 			'resume'=>$params['resume'],'task'=>'edit'));
 		break;
 /*	 case 'add':
-		$this->Redirect($id,'openrequest','',array('history_id'=>$params['history_id'],
+		$this->Redirect($id,'openrequest','',array('xtra_id'=>$params['xtra_id'],
 		'resume'=>$params['resume'],'task'=>'add'));
 		break;
 */
 	 case 'approve':
-		list($res,$msg) = $funcs->ApproveReq($this,$params['history_id'],$params['custmsg']);
+		list($res,$msg) = $funcs->ApproveReq($this,$params['xtra_id'],$params['custmsg']);
 		break;
 	 case 'reject':
-		list($res,$msg) = $funcs->RejectReq($this,$params['history_id'],$params['custmsg']);
+		list($res,$msg) = $funcs->RejectReq($this,$params['xtra_id'],$params['custmsg']);
 		break;
 	 case 'ask':
-		list($res,$msg) = $funcs->AskReq($this,$params['history_id'],$params['custmsg']);
+		list($res,$msg) = $funcs->AskReq($this,$params['xtra_id'],$params['custmsg']);
 		break;
 	 case 'delete':
-		list($res,$msg) = $funcs->DeleteReq($this,$params['history_id'],$params['custmsg']);
+		list($res,$msg) = $funcs->DeleteReq($this,$params['xtra_id'],$params['custmsg']);
 		break;
 	 default:
 	 	$res = TRUE;

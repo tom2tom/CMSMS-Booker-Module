@@ -15,7 +15,7 @@ class Verify
 	@mod reference to current module-object
 	@utils: reference to Booker\Utils object
 	@params: reference to array of request-parameters, sufficiently equivalent
-	 to a HistoryTable row, for:
+	 to a XdataTable row, for:
 		a not-yet-recorded request OR
 		a recorded request now being edited OR
 		a recorded booking now being edited
