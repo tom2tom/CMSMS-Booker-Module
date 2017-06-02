@@ -2537,7 +2537,8 @@ EOS;
 				 'errmsg' => 'message',
 				 'successmsg' => 'message',
 				 'success' => 'result',
-				 'transactid' => 'identifier',
+				 'transactid' => 'bkr_transaction',
+				 'receivedata' => 'bkr_gatedata',
 				 'passthru' => 'paramskey'
 				),
 				array($mod->GetName(), 'method.requestfinish'),
