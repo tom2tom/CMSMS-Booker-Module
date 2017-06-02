@@ -148,8 +148,10 @@ if (!$cart->seemsEmpty()) {
 	$totals = $cart->getTotals(function($item) {
 		return $item->getStatus() >= 0; //not flagged as deleted
 	});
-	$pay = $totals['totals'][0]; //gross amount
-	if ($pay > 0.01) {
+
+	$minpay = 1.0; //TODO support selectable min. payment
+	$pay = $totals['totals'][0]; //gross amount TODO account for credit
+	if ($pay > $minpay) {
 		$pay = sprintf('%.'.$n.'F',$pay);
 	} else {
 		$pay = FALSE;
