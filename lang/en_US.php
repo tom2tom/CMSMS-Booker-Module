@@ -41,6 +41,19 @@ $lang['audit_uninstalled'] = 'uninstalled';
 $lang['audit_upgraded'] = 'upgraded to version %s';
 $lang['back_module'] = 'Module Main Page';
 $lang['basic'] = 'Basic';
+
+$lang['bkgtype_all'] = 'All';
+$lang['bkgtype_future'] = 'Future';
+$lang['bkgtype_past'] = 'Past';
+$lang['bkgtype_free'] = 'No fee';
+$lang['bkgtype_unpaid'] = 'Unpaid';
+$lang['bkgtype_paid'] = 'Paid';
+$lang['bkgtype_repeated'] = 'Repeated';
+$lang['bkgtype_grouped'] = 'Grouped';
+$lang['bkgtype_byitem'] = 'Resource %s';
+$lang['bkgtype_byuser'] = 'User %s';
+$lang['bkgtype_bytype'] = 'User-type %s';
+
 $lang['book'] = 'Book';
 $lang['booker'] = 'booker';
 $lang['booker_multi'] = 'booker(s)';
@@ -554,6 +567,7 @@ $lang['tip_findbkg'] = 'find a specific booking';
 $lang['tip_finditm'] = 'find a comparable resource to use instead of this';
 $lang['tip_forw1'] = 'forward 1 %s';
 $lang['tip_forwN'] = 'forward %d %s';
+$lang['tip_info'] = 'toggle information display';
 $lang['tip_importbkr'] = 'import bookers data from file';
 $lang['tip_importbkg'] = 'import bookings data from file';
 $lang['tip_importfee'] = 'import item-fees data from file';
