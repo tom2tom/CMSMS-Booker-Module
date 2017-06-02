@@ -131,12 +131,12 @@ $pending = array();
 $min = Booker::STATMAXOK;
 $max = Booker::STATMAXREQ;
 $sql = <<<EOS
-SELECT H.*,COALESCE(A.name,B.name,'') AS name,COALESCE(A.address,B.address,'') AS address,B.publicid,B.phone
-FROM $this->HistoryTable H
-LEFT JOIN $this->BookerTable B ON H.booker_id = B.booker_id
+SELECT X.*,COALESCE(A.name,B.name,'') AS name,COALESCE(A.address,B.address,'') AS address,B.publicid,B.phone
+FROM $this->XdataTable X
+LEFT JOIN $this->BookerTable B ON X.booker_id = B.booker_id
 LEFT JOIN $this->AuthTable A ON B.publicid = A.publicid
-WHERE H.status<={$max} OR H.status>{$min}
-ORDER BY H.lodged
+WHERE X.status<={$max} OR X.status>{$min}
+ORDER BY X.lodged
 EOS;
 $data = $db->GetArray($sql);
 if ($data) {
@@ -198,17 +198,17 @@ if ($data) {
 		if ($t && strlen($t) > 8)
 			$t = substr($t,0,8).'...';
 		$one->comment = $t;
-		$hid = (int)$row['history_id'];
-		$one->see = $this->CreateLink($id,'processrequest',$returnid,$iconrsee,array('history_id'=>$hid,'task'=>'see'));
+		$xid = (int)$row['xtra_id'];
+		$one->see = $this->CreateLink($id,'processrequest',$returnid,$iconrsee,array('xtra_id'=>$xid,'task'=>'see'));
 		if ($bmod) {
-			$one->edit = $this->CreateLink($id,'processrequest',$returnid,$iconredit,array('history_id'=>$hid,'task'=>'edit'));
+			$one->edit = $this->CreateLink($id,'processrequest',$returnid,$iconredit,array('xtra_id'=>$xid,'task'=>'edit'));
 			if (1) { //TODO if e.g. not an info-request
 				if (empty($row['approved'])) {
-					$one->approve = $this->CreateLink($id,'processrequest',$returnid,$iconryes,array('history_id'=>$hid,'task'=>'approve'));
-					$one->reject = $this->CreateLink($id,'processrequest',$returnid,$iconrno,array('history_id'=>$hid,'task'=>'reject'));
+					$one->approve = $this->CreateLink($id,'processrequest',$returnid,$iconryes,array('xtra_id'=>$xid,'task'=>'approve'));
+					$one->reject = $this->CreateLink($id,'processrequest',$returnid,$iconrno,array('xtra_id'=>$xid,'task'=>'reject'));
 				} else {
 					$one->approve = ''; //$yes;
-					$one->reject = $this->CreateLink($id,'processrequest',$returnid,$iconrno,array('history_id'=>$hid,'task'=>'reject')); //TODO 'tip_reject2'
+					$one->reject = $this->CreateLink($id,'processrequest',$returnid,$iconrno,array('xtra_id'=>$xid,'task'=>'reject')); //TODO 'tip_reject2'
 				}
 			} else {
 				$one->approve = '';
@@ -216,10 +216,10 @@ if ($data) {
 			}
 		}
 		if ($tell)
-			$one->notice = $this->CreateLink($id,'processrequest',$returnid,$icontell,array('history_id'=>$hid,'task'=>'ask'));
+			$one->notice = $this->CreateLink($id,'processrequest',$returnid,$icontell,array('xtra_id'=>$xid,'task'=>'ask'));
 		if ($pdel)
-			$one->delete = $this->CreateLink($id,'processrequest',$returnid,$iconrdel,array('history_id'=>$hid,'task'=>'delete'));
-		$one->sel = $this->CreateInputCheckbox($id,'selreq[]',$hid,-1,'title="'.$rtip.'"');
+			$one->delete = $this->CreateLink($id,'processrequest',$returnid,$iconrdel,array('xtra_id'=>$xid,'task'=>'delete'));
+		$one->sel = $this->CreateInputCheckbox($id,'selreq[]',$xid,-1,'title="'.$rtip.'"');
 		$pending[] = $one;
 	}
 	unset($row);
@@ -472,7 +472,7 @@ $tplvars['startform2'] = $this->CreateFormStart($id,'adminbooker',$returnid,
 $tplvars['start_people_tab'] = $this->StartTab('people');
 $tablerows[2] = 0;
 
-$histdata = FALSE;
+$xtradata = FALSE;
 $bkrs = array();
 $sql = <<<EOS
 SELECT B.booker_id,COALESCE(A.name,B.name,'') AS name,B.publicid,COALESCE(A.addwhen,B.addwhen,'') AS addwhen,B.active
@@ -485,8 +485,9 @@ if ($data) {
 	$utils->GetUserProperties($this,$data);
 	$sb = $this->Lang('booker');
 	$dt = new DateTime('@0',NULL);
-	$sql = 'SELECT booker_id AS B,slotstart AS S,item_id AS I FROM '.$this->HistoryTable.' ORDER BY booker_id,slotstart';
-	$histdata = $db->GetArray($sql);
+//CHECKME DataTable &/| RepeatTable instead of XdataTable?
+	$sql = 'SELECT booker_id AS B,slotstart AS S,item_id AS I FROM '.$this->XdataTable.' ORDER BY booker_id,slotstart';
+	$xtradata = $db->GetArray($sql);
 	$t = sprintf($bseetip,$this->Lang('recorded'));
 	$icon1 = sprintf($iconbsee,$t,$t);
 	if ($bmod) {
@@ -547,8 +548,8 @@ if ($data) {
 			$dt->modify($row['addwhen']);
 		}
 		$one->added = $dt->format('Y-m-d'); //sortable format
-		if ($histdata) {
-			$belongs = array_filter($histdata,function($v)use($bookerid){return $v['B'] == $bookerid;});
+		if ($xtradata) {
+			$belongs = array_filter($xtradata,function($v)use($bookerid){return $v['B'] == $bookerid;});
 			if ($belongs) {
 				$count = count($belongs);
 				$v = reset($belongs);
@@ -613,10 +614,10 @@ $tplvars['pcount'] = $pcount;
 /*if($padd)
 	$tplvars['addbooking'] = $this->CreateLink($id,'processrequest',$returnid,
 		 $theme->DisplayImage('icons/system/newobject.gif',$this->Lang('addbooking'),'','','systemicon'),
-		 array('history_id'=>-1,'task'=>'add'),'',FALSE,FALSE,'')
+		 array('xtra_id'=>-1,'task'=>'add'),'',FALSE,FALSE,'')
 	 .' '.$this->CreateLink($id,'processrequest',$returnid,
 		 $this->Lang('addbooking'),
-		 array('history_id'=>-1,'task'=>'add'),'',FALSE,FALSE,'class="pageoptions"');
+		 array('xtra_id'=>-1,'task'=>'add'),'',FALSE,FALSE,'class="pageoptions"');
 */
 if ($pcount > 0) {
 	$tplvars += array(
@@ -785,8 +786,8 @@ EOS;
 				$one->ownername = '';
 		}
 
-		if ($isitem && $histdata) {
-			$belongs = array_filter($histdata,function($v)use($item_id){return $v['I'] == $item_id;});
+		if ($isitem && $xtradata) {
+			$belongs = array_filter($xtradata,function($v)use($item_id){return $v['I'] == $item_id;});
 		} elseif (!$isitem && $gbdata && in_array($item_id,$gbooked)) {
 			$belongs = array_filter($gbdata,function($v)use($item_id){return $v['I'] == $item_id;});
 		} else {
