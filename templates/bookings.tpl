@@ -58,8 +58,9 @@
 {/foreach}
       <th class="pageicon {ldelim}sss:false{rdelim}"></th>
 {if $tell}    <th class="pageicon {ldelim}sss:false{rdelim}"></th>{/if}
-{if $pmod}    <th class="pageicon {ldelim}sss:false{rdelim}"></th>{/if}
-      <th class="checkbox {ldelim}sss:false{rdelim}" style="width:20px;">{if !empty($header_checkbox2)}{$header_checkbox2}{/if}</th>
+{if $pmod}    <th class="pageicon {ldelim}sss:false{rdelim}"></th>
+      <th class="pageicon {ldelim}sss:false{rdelim}"></th>{/if}
+      <th class="checkbox {ldelim}sss:false{rdelim}">{if !empty($header_checkbox2)}{$header_checkbox2}{/if}</th>
      </tr></thead>
      <tbody>
 {foreach from=$reptrows item=bkg}{cycle values='row1,row2' assign='rowclass'}
@@ -70,7 +71,8 @@
        <td>{$bkg->paid}</td>
        <td>{$bkg->open}</td>
 {if $tell}    <td class="bkrtell">{$bkg->tell}</td>{/if}
-{if $pmod}    <td class="bkrdel">{$bkg->delete}</td>{/if}
+{if $pmod}    <td class="bkrfresh">{$bkg->refresh}</td>
+       <td class="bkrdel">{$bkg->delete}</td>{/if}
        <td>{$bkg->selected}</td>
       </tr>
 {/foreach}
