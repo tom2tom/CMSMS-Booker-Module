@@ -43,16 +43,18 @@ $lang['back_module'] = 'Module Main Page';
 $lang['basic'] = 'Basic';
 
 $lang['bkgtype_all'] = 'All';
-$lang['bkgtype_future'] = 'Future';
-$lang['bkgtype_past'] = 'Past';
-$lang['bkgtype_free'] = 'No fee';
-$lang['bkgtype_unpaid'] = 'Unpaid';
-$lang['bkgtype_paid'] = 'Paid';
-$lang['bkgtype_repeated'] = 'Repeated';
-$lang['bkgtype_grouped'] = 'Grouped';
 $lang['bkgtype_byitem'] = 'Resource %s';
-$lang['bkgtype_byuser'] = 'User %s';
 $lang['bkgtype_bytype'] = 'User-type %s';
+$lang['bkgtype_byuser'] = 'User %s';
+$lang['bkgtype_free'] = 'No fee';
+$lang['bkgtype_future'] = 'Future';
+$lang['bkgtype_grouped'] = 'Grouped';
+$lang['bkgtype_onetime'] = 'Not repeated';
+$lang['bkgtype_paid'] = 'Paid';
+$lang['bkgtype_past'] = 'Past';
+$lang['bkgtype_repeated'] = 'Repeated';
+$lang['bkgtype_ungrouped'] = 'Not grouped';
+$lang['bkgtype_unpaid'] = 'Not (fully) paid';
 
 $lang['book'] = 'Book';
 $lang['booker'] = 'booker';
@@ -204,13 +206,15 @@ Any actual comma in a field should be represented by '&amp;#44;'.
 Each line in the file (except the header line, discussed below) represents one booking.</p>
 <h4>Header line</h4>
 <p>The first line of the file names the fields in the file, as follows. Names prefixed by a '#' represent compulsory values.<br />
-<code>#ID,#Start,End,#User,Status,Paid,Update</code></p>
+<code>#ID,Count,Lodged,Approved,Removed,#Start,End,Bookingstatus,#User,Usercomment,<br />
+Feedue,Feepaid,Feestatus,Active,Transaction,Update</code></p>
 <h4>Other lines</h4>
 <p>The data in each line must conform to the header columns, of course. Any non-compulsory field, or entire line, may be empty.<br />
 The #ID field must provide the relevant name, alias or identifying number.<br />
-#Start and End fields must be numeric timestamps like YYYY-[M]M-[D]D [H]H:[M]M ([] is optional). When an End is not provided, it is assumed to be 1-hour after the corresponding #Start.<br />
+The Count field specifies the number of group-members, when the item is a group.<br />
+Lodged, Approved, Removed, #Start and End fields must be numeric timestamps like YYYY-[M]M-[D]D [H]H:[M]M ([] is optional). When an End is not provided, it is assumed to be 1-hour after the corresponding #Start.<br />
 The #User field must provide the name or login of a recorded user.<br />
-The Paid and Update fields will be treated as TRUE if they contain something other than 0 or 'no' or 'NO' (no quotes, untranslated).</p>
+The Active and Update fields will be treated as TRUE if they contain something other than 0 or 'no' or 'NO' (no quotes, untranslated).</p>
 <h3>Problems</h3>
 <p>The import process will fail if:<ul>
 <li>the first line field names are are not as expected</li>
@@ -258,26 +262,6 @@ TODO explain fields</p>
 <li>the first line field names are are not as expected</li>
 <li>a compulsory-field value is not provided</li>
 <li>a resource is not recognised</li>
-</ul></p>
-EOS;
-$lang['help_importhistory'] = <<<'EOS'
-<h3>File format</h3>
-<p>The input file must be in ASCII format with data fields separated by commas.
-Any actual comma in a field should be represented by '&amp;#44;'.
-Each line in the file (except the header line, discussed below) represents one record.</p>
-<h4>Header line</h4>
-<p>The first line of the file names the fields in the file, as follows.
-The supplied names may be in any order. Those prefixed by a '#' represent compulsory values.<br />
-<code>#ID,Count,#User,Lodged,Approved,#Start,End,Comment,FeeDue,Feepaid,Status,Feestatus,Transaction,Update</code></p>
-<h4>Other lines</h4>
-<p>The data in each line must conform to the header columns, of course. Any non-compulsory field, or entire line, may be empty.<br />
-TODO explain fields</p>
-<h3>Problems</h3>
-<p>The import process will fail if:<ul>
-<li>the first line field names are are not as expected</li>
-<li>a compulsory-field value is not provided</li>
-<li>a resource or user is not recognised</li>
-<li>a date-time value is malformed</li>
 </ul></p>
 EOS;
 $lang['help_importitem'] = <<<'EOS'
@@ -485,7 +469,7 @@ $lang['reqnotice'] = 'supply extra information';
 $lang['request'] = 'request';
 $lang['request_multi'] = 'request(s)';
 //$lang['reset'] = 'Reset';
-$lang['reset_subtitle'] = 'You must do this before proceeding';
+$lang['reset_subtitle'] = 'You must do this before proceeding. Afterwards, you will be re-directed back to the start of the process.';
 
 $lang['scrolldown'] = 'scroll down';
 $lang['scrollleft'] = 'scroll left';
@@ -572,12 +556,14 @@ $lang['tip_importbkr'] = 'import bookers data from file';
 $lang['tip_importbkg'] = 'import bookings data from file';
 $lang['tip_importfee'] = 'import item-fees data from file';
 $lang['tip_importitm'] = 'import items data from file';
-$lang['tip_interval'] = 'select different display-range';
+$lang['tip_interval'] = 'select display-range';
+$lang['tip_itempicker'] = 'select what to display';
 $lang['tip_listtype'] = 'list style';
 $lang['tip_notify_selected_records'] = 'send notice to user of each selected item';
 $lang['tip_notifylodger'] = 'send notice to lodger';
 $lang['tip_notifyuser'] = 'send notice to user';
 $lang['tip_otherview'] = 'show other format';
+$lang['tip_refresh'] = 'force-renew all specific bookings';
 $lang['tip_register'] = 'become a registered user';
 $lang['tip_reject'] = 'reject request';
 $lang['tip_reject_sel'] = 'reject selected request(s)';
@@ -670,7 +656,6 @@ $lang['title_image'] = 'Descriptive image(s)';
 $lang['title_importbookers'] = 'Import bookers';
 $lang['title_importbooks'] = 'Import bookings';
 $lang['title_importfees'] = 'Import fee details';
-$lang['title_importhists'] = 'Import history records';
 $lang['title_importitems'] = 'Import items';
 $lang['title_item'] = 'Resource';
 $lang['title_items'] = 'Resources';
