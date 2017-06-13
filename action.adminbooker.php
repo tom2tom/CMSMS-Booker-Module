@@ -29,7 +29,7 @@ if (isset($params['cancel'])) {
 		break;
 	 case 'export';
 		$funcs = new Booker\Bookingops();
-		$sql = 'SELECT bkg_id FROM '.$this->DataTable.' WHERE booker_id=?';
+		$sql = 'SELECT bkg_id FROM '.$this->OnceTable.' WHERE booker_id=?';
 		$bkgid = $db->GetCol($sql,array($params['booker_id']));
 		list($res,$msg) = $funcs->ExportBkg($this,$bkgid);
 		if ($res)
