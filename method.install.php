@@ -103,20 +103,22 @@ active I(1) DEFAULT 1,
 bulletin B
 ';
 $sqlarray = $dict->CreateTableSQL($this->ItemTable, $fields, $taboptarray);
-if ($sqlarray == FALSE)
+if ($sqlarray == FALSE) {
 	return FALSE;
+}
 $res = $dict->ExecuteSQLArray($sqlarray, FALSE);
-if ($res != 2)
+if ($res != 2) {
 	return FALSE;
+}
 
 // sequences, for resource id's (1+) and group id's (MINGRPID+) in same table
 $db->CreateSequence($this->ItemTable.'_seq'); //resource id's 1..MINGRPID-1
-$db->CreateSequence($this->ItemTable.'_gseq',Booker::MINGRPID); //group id's start higher
+$db->CreateSequence($this->ItemTable.'_gseq', Booker::MINGRPID); //group id's start higher
 
 // default group usable by all resources
 $gid = $db->GenID($this->ItemTable.'_gseq');
 $sql = 'INSERT INTO '.$this->ItemTable.' (item_id,name) VALUES (?,?)'; //TODO more fields
-$db->Execute($sql,array($gid,$this->Lang('groupdefault')));
+$db->Execute($sql, array($gid, $this->Lang('groupdefault')));
 
 /*
 group-relationships table schema:
@@ -134,108 +136,148 @@ likeorder I(2) NOTNULL DEFAULT 1,
 proximity I(2) NOTNULL DEFAULT 1
 ';
 $sqlarray = $dict->CreateTableSQL($this->GroupTable, $fields, $taboptarray);
-if ($sqlarray == FALSE)
+if ($sqlarray == FALSE) {
 	return FALSE;
+}
 $res = $dict->ExecuteSQLArray($sqlarray, FALSE);
-if ($res != 2)
+if ($res != 2) {
 	return FALSE;
+}
 // index
 $sqlarray = $dict->CreateIndexSQL('idx_'.$this->GroupTable, $this->GroupTable, 'child');
 $dict->ExecuteSQLArray($sqlarray);
 
 /*
-non-repeated bookings-data table schema:
+requests and non-repeated bookings-data table schema:
+NB Booker\CSV::ImportBookings must conform to this
+NB action.requestbooking.php etc must conformed to this
  bkg_id: unique identifier
- bulk_id: bkg_id of repeat-booking, or of group-boooking, or 0 TODO check need for separate repeat & group id's
- item_id: resource or group id
+ booker_id: identifier
+ item_id: resource or group identifier
+ subgrpcount: 1 or count of group-resources
+ lodged: UTC timestamp
+ approved: UTC timestamp
+ removed: UTC timestamp
  slotstart: UTC timestamp
  slotlen: seconds booked, NOT seconds-per-slot
- booker_id: identifier
+ comment: string submitted as part of request
+ fee: fee for the booking
+ feepaid: amount actually paid for the booking
  status: one of the Booker::STAT* values
- paid: boolean (see also XdataTable::payment which has Booker:STATFREE..STATMAXPAY)
+ payment: enum Booker::STATFREE..STATMAXPAY
  active: enum/boolean 1, or 0 if booking has been deleted but historic data remain
-Booker\CSV::ImportBookings must conform to this
+ gatetransaction: payment-interface transaction identifier
+//gatedata: payment-interface full data for the transaction
 */
 $fields = '
 bkg_id I(4) KEY,
-bulk_id I(4) DEFAULT 0,
+booker_id I(4),
 item_id I(4),
+subgrpcount I(1) DEFAULT 1,
+lodged I(8),
+approved I(8),
+removed I(8),
 slotstart I(8),
 slotlen I(4),
-booker_id I(4),
+comment C(64),
+fee N(8.2) DEFAULT 0.0,
+feepaid N(8.2) DEFAULT 0.0,
 status I(1) DEFAULT '.Booker::STATNONE.',
-paid I(1) DEFAULT 0,
-active I(1) DEFAULT 1
+payment I(1) DEFAULT '.Booker::STATFREE.',
+active I(1) DEFAULT 1,
+gatetransaction C(48)
 ';
-$sqlarray = $dict->CreateTableSQL($this->DataTable, $fields, $taboptarray);
-if ($sqlarray == FALSE)
+//gatedata B
+$sqlarray = $dict->CreateTableSQL($this->OnceTable, $fields, $taboptarray);
+if ($sqlarray == FALSE) {
 	return FALSE;
+}
 $res = $dict->ExecuteSQLArray($sqlarray, FALSE);
-if ($res != 2)
+if ($res != 2) {
 	return FALSE;
-//index
-$sqlarray = $dict->CreateIndexSQL('idx_'.$this->DataTable, $this->DataTable, 'bkg_id');
-$dict->ExecuteSQLArray($sqlarray);
+}
 // sequence
-$db->CreateSequence($this->DataTable.'_seq');
+$db->CreateSequence($this->OnceTable.'_seq');
 
 /*
 repeated bookings-data table schema:
  bkg_id: unique identifier
- item_id: resource or group id
- formula: interval-descriptor string
  booker_id: identifier
- checkedfrom: timestamp for start of first day for which actual bookings have been recoreded
- checkedto: timestamp for start of day after last day for which actual bookings have been recoreded
+ item_id: resource or group id
  subgrpcount: no. of in-group resources to be processed per subgrpalloc
- paid: boolean (see also XdataTable::payment which has Booker:STATFREE..STATMAXPAY)
+ lodged: UTC timestamp
+ approved: UTC timestamp
+ removed: UTC timestamp
+ checkedfrom: UTC timestamp for start of first day for which actual bookings have been recoreded
+ checkedto: UTC timestamp for start of day after last day for which actual bookings have been recoreded
+ formula: interval-descriptor string
+ fee: fee for the booking
+ feepaid: amount actually paid for the booking
+ status: one of the Booker::STAT* values
+ payment: enum Booker::STATFREE..STATMAXPAY
  active: enum/boolean 1, or 0 if booking has been deleted but historic data remain
+ gatetransaction: transaction id reported by payment gateway
+//gatedata: json data reported by payment gateway, encrypted
 */
 $fields = '
 bkg_id I(4) KEY,
-item_id I(4),
-formula C(256),
 booker_id I(4),
-checkedfrom I DEFAULT 0,
-checkedto I DEFAULT 0,
+item_id I(4),
 subgrpcount I(1) DEFAULT 1,
-paid I(1) DEFAULT 0,
+lodged I(8),
+approved I(8),
+removed I(8),
+checkedfrom I(8) DEFAULT 0,
+checkedto I(8) DEFAULT 0,
+formula C(256),
+fee N(8.2) DEFAULT 0.0,
+feepaid N(8.2) DEFAULT 0.0,
+status I(1) DEFAULT '.Booker::STATNONE.',
+payment I(1) DEFAULT '.Booker::STATFREE.',
 active I(1) DEFAULT 1
+gatetransaction C(48)
 ';
-$sqlarray = $dict->CreateTableSQL($this->RepeatTable,$fields,$taboptarray);
-if ($sqlarray == FALSE)
+//gatedata B
+$sqlarray = $dict->CreateTableSQL($this->RepeatTable, $fields, $taboptarray);
+if ($sqlarray == FALSE) {
 	return FALSE;
+}
 $res = $dict->ExecuteSQLArray($sqlarray, FALSE);
-if ($res != 2)
+if ($res != 2) {
 	return FALSE;
+}
 
 /*
-resource-availabilty-cache table schema:
- avl_id: key, not used
- item_id: resource, NOT a group
- slotstart: UTC timestamp
- slotlen: seconds available
- cond_id: condition identifier
+ bookings-display-data table schema:
+ data_id: table key
+ bkg_id: OnceTable/RepeatTable cross-referencer (indexed)
+ booker_id: BookerTable cross-referencer (indexed)
+ item_id: ItemTable cross-referencer
+ slotstart: UTC timestamp start of booking
+ slotlen: booking length (seconds)
+ bulk: enum 0 single,1 group,20 repeat,21 group-repeat
+ displayed: boolean whether to include the record in displayed bookings
 */
-/*$fields = '
-avl_id I(4) AUTO KEY,
+$fields = '
+data_id I(4) KEY,
+bkg_id I(4),
+booker_id I(4),
 item_id I(4),
 slotstart I(8),
 slotlen I(4),
-cond_id I(4)
+bulk I(1) DEFAULT 0,
+displayed I(1) DEFAULT 1
 ';
-$sqlarray = $dict->CreateTableSQL($this->AvailTable,$fields,$taboptarray);
-if ($sqlarray == FALSE)
+$sqlarray = $dict->CreateTableSQL($this->DispTable, $fields, $taboptarray);
+if ($sqlarray == FALSE) {
 	return FALSE;
+}
 $res = $dict->ExecuteSQLArray($sqlarray, FALSE);
-if ($res != 2)
+if ($res != 2) {
 	return FALSE;
-//index
-$sqlarray = $dict->CreateIndexSQL('idx_'.$this->AvailTable, $this->AvailTable, 'item_id');
-$dict->ExecuteSQLArray($sqlarray);
-// sequence
-//$db->CreateSequence($this->AvailTable.'_seq');
-*/
+}
+$db->CreateSequence($this->DispTable.'_seq');
+
 /*
 Fees for resource usage & related conditions
  condition_id:
@@ -259,19 +301,48 @@ signature I(4),
 description C(64),
 slottype I(1),
 slotcount I(1),
-fee N(8.2),
+fee N(8.2) DEFAULT 0.0,
 feecondition C(128),
 usercondition C(32),
 condorder I(1) DEFAULT -1,
 active I(1) DEFAULT 1
 ';
-$sqlarray = $dict->CreateTableSQL($this->FeeTable,$fields,$taboptarray);
-if ($sqlarray == FALSE)
+$sqlarray = $dict->CreateTableSQL($this->FeeTable, $fields, $taboptarray);
+if ($sqlarray == FALSE) {
 	return FALSE;
-$res = $dict->ExecuteSQLArray($sqlarray,FALSE);
-if ($res != 2)
+}
+$res = $dict->ExecuteSQLArray($sqlarray, FALSE);
+if ($res != 2) {
 	return FALSE;
+}
 $db->CreateSequence($this->FeeTable.'_seq');
+
+/**
+payment credit table schema:
+ pay_id: identifier
+ booker_id: identifier
+ when: UTC timestamp, when the record was created
+ first: original credit
+ amount: original +/- all changes
+ status: enum CREDITADDED CREDITUSED CREDITEXPIRED
+*/
+$fields = '
+pay_id I(4) KEY,
+booker_id I(4),
+when I(8),
+first N(8.2) DEFAULT 0.0,
+amount N(8.2) DEFAULT 0.0,
+status I(1) DEFAULT '.Booker::CREDITADDED
+;
+$sqlarray = $dict->CreateTableSQL($this->PayTable, $fields, $taboptarray);
+if ($sqlarray == FALSE) {
+	return FALSE;
+}
+$res = $dict->ExecuteSQLArray($sqlarray, FALSE);
+if ($res != 2) {
+	return FALSE;
+}
+$db->CreateSequence($this->PayTable.'_seq');
 
 /*
 bookers table schema:
@@ -296,95 +367,16 @@ type I(1) DEFAULT 0,
 displayclass I(1) DEFAULT 1,
 active I(1) DEFAULT 1
 ';
-$sqlarray = $dict->CreateTableSQL($this->BookerTable,$fields,$taboptarray);
-if ($sqlarray == FALSE)
+$sqlarray = $dict->CreateTableSQL($this->BookerTable, $fields, $taboptarray);
+if ($sqlarray == FALSE) {
 	return FALSE;
-$res = $dict->ExecuteSQLArray($sqlarray,FALSE);
-if ($res != 2)
+}
+$res = $dict->ExecuteSQLArray($sqlarray, FALSE);
+if ($res != 2) {
 	return FALSE;
+}
 $db->CreateSequence($this->BookerTable.'_seq');
 
-/*
-NOTE action.requestbooking.php must be conformed to any change here
- extra-data table schema:
- xtra_id: table key
- bkg_id: DataTable/RepeatTable cross-referencer (indexed)
- booker_id: BookerTable cross-referencer (indexed)
- item_id: ItemTable cross-referencer
- subgrpcount: no. of requested items in a group, irrelevant for non-groups
- lodged: UTC timestamp booking submitted/recorded
- approved: UTC timestamp - sometimes needed
- removed: UTC timestamp - sometimes needed for cleanups
- slotstart: UTC timestamp start of booking
- slotlen: booking length (seconds)
- comment: as supplied by booker as part of request
- fee: how much was paid
- netfee: fee less any gateway/institution cost
- status: enum per some of Booker:STAT*
-	See also BookingCartItem:: constants which overlap this a bit
- payment: enum Booker:STATFREE..STATMAXPAY (see also boolean DataTable::paid, RepeatTable::paid)
- gatetransaction: transaction id reported by payment gateway
- gatedata: json data reported by payment gateway, encrypted
-*/
-$fields = '
-xtra_id I(4) KEY,
-bkg_id I(4),
-booker_id I(4),
-item_id I(4),
-subgrpcount I(1) DEFAULT 1,
-lodged I(8),
-approved I(8),
-removed I(8),
-slotstart I(8),
-slotlen I(4),
-comment C(64),
-fee N(8.2),
-netfee N(8.2),
-status I(1) DEFAULT '.Booker::STATNONE.',
-payment I(1) DEFAULT '.Booker::STATFREE.',
-gatetransaction C(48),
-gatedata B
-';
-$sqlarray = $dict->CreateTableSQL($this->XdataTable,$fields,$taboptarray);
-if ($sqlarray == FALSE)
-	return FALSE;
-$res = $dict->ExecuteSQLArray($sqlarray,FALSE);
-if ($res != 2)
-	return FALSE;
-// indices
-$sqlarray = $dict->CreateIndexSQL('idx_'.$this->XdataTable,$this->XdataTable,'bkg_id');
-$dict->ExecuteSQLArray($sqlarray);
-$sqlarray = $dict->CreateIndexSQL('idx_2'.$this->XdataTable,$this->XdataTable,'booker_id');
-$dict->ExecuteSQLArray($sqlarray);
-
-$db->CreateSequence($this->XdataTable.'_seq');
-
-/*
-item-pickability table schema:
- gid: unique identifier
- item_id: group id
- pick: boolean whether to always show @item_id in relevant resource-picklists
- pickfor: group identifier or NULL, if not pick, then show item_id in relevant
-	resource-picklists when this field's value is an ancestor of item_id
- pickmembers: boolean whether to always show members of @item_id in relevant resource-picklists
- pickmembersfor: group identifier or NULL, if not pickmembers, then show members
-	of item_id in relevant resource-picklists when this field's value is an ancestor of item_id
-*/
-/*$fields = '
-gid I AUTO KEY,
-item_id I(4) NOTNULL,
-pick I(1) DEFAULT 1,
-pickfor I(4),
-pickmembers I(1) DEFAULT 1,
-pickmembersfor I(4)
-';
-$sqlarray = $dict->CreateTableSQL($this->ItemTable.'pick', $fields, $taboptarray);
-if ($sqlarray == FALSE)
-	return FALSE;
-$res = $dict->ExecuteSQLArray($sqlarray, FALSE);
-if ($res != 2)
-	return FALSE;
-*/
 /*
 Data cache
  cache_id:
@@ -400,7 +392,7 @@ value B,
 savetime I(8),
 lifetime I(4)
 ';
-$sqlarray = $dict->CreateTableSQL($pre.'module_bkr_cache',$fields,$taboptarray);
+$sqlarray = $dict->CreateTableSQL($pre.'module_bkr_cache', $fields, $taboptarray);
 $dict->ExecuteSQLArray($sqlarray);
 //this is not for table-data content
 $db->CreateSequence($pre.'module_bkr_cache_seq');
@@ -408,7 +400,7 @@ $db->CreateSequence($pre.'module_bkr_cache_seq');
 // permissions
 $this->CreatePermission($this->PermStructName, $this->Lang('perm_module')); //Booker Module Admin
 // bookings only
-$this->CreatePermission($this->PermAdminName,$this->Lang('perm_admin')); //Booker Admin
+$this->CreatePermission($this->PermAdminName, $this->Lang('perm_admin')); //Booker Admin
 $this->CreatePermission($this->PermEditName, $this->Lang('perm_edit')); //Booker Modify
 $this->CreatePermission($this->PermSeeName, $this->Lang('perm_view')); //Booker View
 //resources/groups
@@ -419,55 +411,56 @@ $this->CreatePermission($this->PermModName, $this->Lang('perm_modify'));
 $this->CreatePermission($this->PermPerName, $this->Lang('perm_booker'));
 
 // create preferences NOTE most names correspond to a column-name in items-table i.e. inheritable property
-$this->SetPreference('approver','');
-$this->SetPreference('approvercontact','');
-$this->SetPreference('approvertell',1);
-$this->SetPreference('bulletin','');
-$this->SetPreference('authcontext',''); //NOT in items table
-$this->SetPreference('available',''); //always available
-$this->SetPreference('bookcount',0); //book any no. of slots
-$this->SetPreference('bookertell',1);
-$this->SetPreference('cleargroup',0);	//delete items in group when group is deleted (admin)
-$this->SetPreference('exportencoding','UTF-8'); //preference-only, not an items-table field
-$this->SetPreference('exportfile',0); //preference-only, not an items-table field
-$this->SetPreference('fee',0.0);
-$this->SetPreference('feecondition',''); //empty = always used
-$this->SetPreference('feugroup',0);
-$this->SetPreference('formiface',''); //data for custom request-form
-$this->SetPreference('grossfees',1);
-$this->SetPreference('keepcount',0);
-$this->SetPreference('keeptype',8); //year-index per TimeIntervals()
-$this->SetPreference('latitude',0.0);
-$this->SetPreference('longitude',0.0);
-$this->SetPreference('taxrate',0.0);
-$this->SetPreference('leadcount',0);
-$this->SetPreference('leadtype',3); //week-index per TimeIntervals()
-$this->SetPreference('listformat',Booker::LISTSU);
-$this->SetPreference('membersname',$this->Lang('members'));
-$this->SetPreference('owner',0); //each resource/group may have a specific owner/contact
-$this->SetPreference('pagerows',10); //page-length of admin bookings-data view
-$this->SetPreference('paymentiface',''); //data for payment-processing
-$this->SetPreference('rationcount',0);
-$this->SetPreference('showrange',1); //week-index per DisplayIntervals(), default bookings-display-period
-$this->SetPreference('slotcount',1);
-$this->SetPreference('slottype',1); //hour-index per TimeIntervals()
-$this->SetPreference('smspattern','^\d[ \d]{6,15}$');
-$this->SetPreference('smsprefix',''); //TODO func(timezone)
-$this->SetPreference('stripexport',0);
-$this->SetPreference('stylesfile','');
-$this->SetPreference('subgrpalloc',Booker::ALLOCNONE);
-$this->SetPreference('timeformat','G:i'); //default date/time format string
+$this->SetPreference('approver', '');
+$this->SetPreference('approvercontact', '');
+$this->SetPreference('approvertell', 1);
+$this->SetPreference('bulletin', '');
+$this->SetPreference('authcontext', ''); //NOT in items table
+$this->SetPreference('available', ''); //always available
+$this->SetPreference('bookcount', 0); //book any no. of slots
+$this->SetPreference('bookertell', 1);
+$this->SetPreference('cleargroup', 0);	//delete items in group when group is deleted (admin)
+$this->SetPreference('exportencoding', 'UTF-8'); //preference-only, not an items-table field
+$this->SetPreference('exportfile', 0); //preference-only, not an items-table field
+$this->SetPreference('fee', 0.0);
+$this->SetPreference('feecondition', ''); //empty = always used
+$this->SetPreference('feugroup', 0);
+$this->SetPreference('formiface', ''); //data for custom request-form
+$this->SetPreference('grossfees', 1);
+$this->SetPreference('keepcount', 0);
+$this->SetPreference('keeptype', 8); //year-index per TimeIntervals()
+$this->SetPreference('latitude', 0.0);
+$this->SetPreference('longitude', 0.0);
+$this->SetPreference('taxrate', 0.0);
+$this->SetPreference('leadcount', 0);
+$this->SetPreference('leadtype', 3); //week-index per TimeIntervals()
+$this->SetPreference('listformat', Booker::LISTSU);
+$this->SetPreference('membersname', $this->Lang('members'));
+$this->SetPreference('minpay', 1.0); //in whatever currency is used
+$this->SetPreference('owner', 0); //each resource/group may have a specific owner/contact
+$this->SetPreference('pagerows', 10); //page-length of admin bookings-data view
+$this->SetPreference('paymentiface', ''); //data for payment-processing
+$this->SetPreference('rationcount', 0);
+$this->SetPreference('showrange', 1); //week-index per DisplayIntervals(), default bookings-display-period
+$this->SetPreference('slotcount', 1);
+$this->SetPreference('slottype', 1); //hour-index per TimeIntervals()
+$this->SetPreference('smspattern', '^\d[ \d]{6,15}$');
+$this->SetPreference('smsprefix', ''); //TODO func(timezone)
+$this->SetPreference('stripexport', 0);
+$this->SetPreference('stylesfile', '');
+$this->SetPreference('subgrpalloc', Booker::ALLOCNONE);
+$this->SetPreference('timeformat', 'G:i'); //default date/time format string
 //for email address checking by mailcheck.js
-$this->SetPreference('domains',''); //for initial check
-$this->SetPreference('subdomains',''); //for secondary check
-$this->SetPreference('topdomains','biz,co,com,edu,gov,info,mil,name,net,org'); //for final check
+$this->SetPreference('domains', ''); //for initial check
+$this->SetPreference('subdomains', ''); //for secondary check
+$this->SetPreference('topdomains', 'biz,co,com,edu,gov,info,mil,name,net,org'); //for final check
 
 $t = 'nQCeESKBr99A';
 $this->SetPreference($t, hash('sha256', $t.microtime()));
 //$t = some random string;
 //$t = sprintf(base64_decode('U3VjayAlcyB1cCwgY3JhY2tlcnM='),$t);
 $cfuncs = new Booker\Crypter($this);
-$cfuncs->encrypt_preference('masterpass',base64_decode('U3VjayBpdCB1cCwgY3JhY2tlcnMh'));
+$cfuncs->encrypt_preference('masterpass', base64_decode('U3VjayBpdCB1cCwgY3JhY2tlcnMh'));
 
 $format = get_site_preference('defaultdateformat');
 if ($format) {
@@ -482,47 +475,51 @@ if ($format) {
 	'G' => 'o', 'y' => 'y', 'Y' => 'Y',
 	// Full Date / Time - no strf eq : c, r; no date eq : %c
 	's' => 'U', 'D' => 'j/n/y', 'F' => 'Y-m-d', 'x' => 'j F Y'
- 	);
-	$format = str_replace('%','',$format);
-	$parts = explode(' ',$format);
+	);
+	$format = str_replace('%', '', $format);
+	$parts = explode(' ', $format);
 	foreach ($parts as $i => $fmt) {
-		if (array_key_exists($fmt, $strftokens))
+		if (array_key_exists($fmt, $strftokens)) {
 			$parts[$i] = $strftokens[$fmt];
-		else
+		} else {
 			unset($parts[$i]);
+		}
 	}
 	$format = implode(' ', $parts);
-} else
+} else {
 	$format = 'd F y';
-
-$this->SetPreference('dateformat',$format); //default date/time format string
-
-if (date_default_timezone_get())
-	$zone = date_default_timezone_get();
-elseif (!empty($config['timezone']))
-	$zone = $config['timezone'];
-else {
-	$zone = ini_get('date.timezone');
-	if ($zone == FALSE)
-		$zone = 'Europe/London';//default to GMT
 }
-$this->SetPreference('timezone',$zone);	//default zone for time calcs
+
+$this->SetPreference('dateformat', $format); //default date/time format string
+
+if (date_default_timezone_get()) {
+	$zone = date_default_timezone_get();
+} elseif (!empty($config['timezone'])) {
+	$zone = $config['timezone'];
+} else {
+	$zone = ini_get('date.timezone');
+	if ($zone == FALSE) {
+		$zone = 'Europe/London';
+	}//default to GMT
+}
+$this->SetPreference('timezone', $zone);	//default zone for time calcs
 
 //place for file uploads, not an inheritable item-property
 $ud = $this->GetName();
 if ($ud) {
 	$fp = $config['uploads_path'];
 	if ($fp && is_dir($fp)) {
-		$fp = cms_join_path($fp,$ud);
+		$fp = cms_join_path($fp, $ud);
 		if ($fp && !is_dir($fp)) {
-			if (!mkdir($fp,0777,TRUE)) //don't know how server is running!
+			if (!mkdir($fp, 0777, TRUE)) { //don't know how server is running!
 				$ud = '';
+			}
 		}
 	}
 }
-$this->SetPreference('uploadsdir',$ud);
+$this->SetPreference('uploadsdir', $ud);
 //site-page alias for use in RegisterRoute, not an inheritable item-property
-$this->SetPreference('sitepage','booker');
+$this->SetPreference('sitepage', 'booker');
 
 // enable FormBuilder-module custom processing
 $ob = cms_utils::get_module('FormBuilder');
@@ -530,13 +527,13 @@ if (is_object($ob)) {
 	$fp = $config['root_path'];
 	if ($fp && is_dir($fp)) {
 		//this->GetModulePath() N/A prior to installation
-		$src = cms_join_path($fp,'modules','Booker','lib','DispositionBookingRequest.class.php');
+		$src = cms_join_path($fp, 'modules', 'Booker', 'lib', 'DispositionBookingRequest.class.php');
 		if (is_file($src)) {
-			$dest = cms_join_path($ob->GetModulePath,'classes');
-			if (copy($src,$dest)) {
-//TODO remember
+			$dest = cms_join_path($ob->GetModulePath, 'classes');
+			if (copy($src, $dest)) {
+				//TODO remember
 			} else {
-//TODO handle error - NO FRONTEND BOOKINGS
+				//TODO handle error - NO FRONTEND BOOKINGS
 			}
 		} else {
 			echo 'File path error';
@@ -547,4 +544,4 @@ if (is_object($ob)) {
 }
 
 // put mention into the admin log
-$this->Audit(0, $this->Lang('fullname'), $this->Lang('audit_installed',$this->GetVersion()));
+$this->Audit(0, $this->Lang('fullname'), $this->Lang('audit_installed', $this->GetVersion()));
