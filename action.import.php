@@ -54,8 +54,6 @@ elseif (!empty($params['importbkg']))
 	$itype = 3;
 elseif (!empty($params['importfee']))
 	$itype = 4;
-elseif (!empty($params['importhist']))
-	$itype = 5;
 else
 	exit;
 
@@ -78,10 +76,6 @@ if (isset($_FILES) && isset($_FILES[$id.'csvfile'])) {
 	 case 4:
 		list($res,$prop) = $funcs->ImportFees($this,$id);
 		$k = 'fee_multi';
-		break;
-	 case 5:
-		list($res,$prop) = $funcs->ImportHistory($this,$id);
-		$k = 'history_multi'; //TODO or request_multi?
 		break;
 	}
 
@@ -143,11 +137,6 @@ switch ($itype) {
 	$k = 'importfee';
  	$k2 = 'title_importfees';
  	$k3 = 'help_importfee';
-	break;
- case 5:
-	$k = 'importhist';
- 	$k2 = 'title_importhists';
- 	$k3 = 'help_importhistory';
 	break;
 }
 $hidden[$k] = 1;
