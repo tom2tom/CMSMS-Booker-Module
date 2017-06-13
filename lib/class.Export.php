@@ -15,7 +15,7 @@ class Export
 	@mod: reference to current Booker module object
 	@utils: reference to Utils-class object
 	@id: enumerator of the thing being exported, or array of such, or '*'
-	@mode: one of: 'item','booker','booking','fee','history'
+	@mode: one of: 'item','booker','booking','fee'
 	Returns: string
 	*/
 	private function NameDetail(&$mod, &$utils, $id, $mode)
@@ -56,14 +56,10 @@ class Export
 			else
 				$name = $mod->Lang('title_fees');
 			break;
-		 case 'history':
-		 	if ($id)
-				$name = $mod->Lang('TODO').$id;
-			else
-				$name = $mod->Lang('TODO');
-			break;
+		 default:
+			$name = '';
 		}
-		return $name.$extra;
+		return $name.$xtra;
 	}
 
 	/*
@@ -574,7 +570,7 @@ EOS;
 			$sql .= ' '.$joiner.' bkg_id IN('.$fillers.'?)';
 			$args = array_merge($args,$bgk_id);
 			$joiner = 'AND';
-		}elseif ($bkgid && $bkgid != '*') {
+		} elseif ($bkgid && $bkgid != '*') {
 			$sql .= ' '.$joiner.' bkg_id=?';
 			$args[] = $bkgid;
 			$joiner = 'AND';
@@ -592,7 +588,7 @@ EOS;
 
 	/**
 	ExportBookings:
-	Export booking(s) data
+	Export OnceTable data: onetime-booking(s) and/or request(s)
 	To avoid field-corruption, existing separators in headings or data are converted
 	to something else, generally like &#...;
 	(except when the separator is '&', '#' or ';', those become %...%)
@@ -603,14 +599,16 @@ EOS;
 	@bkgid: optional booking enumerator, or array of such, or '*' default FALSE
 	@bookerid: optional booker enumerator, or array of such, or '*' default FALSE
 	@sep: optional field-separator for exported content, assumed single-byte ASCII, default ','
-	Returns: 2-member array, 1st is T/F indicating success, 2nd '' or lang key for message
+	Returns: 2-member array,
+	 [0] = boolean indicating success
+	 [1] = '' or lang key for message
 	*/
 	public function ExportBookings(&$mod, $item_id=FALSE, $bkgid=FALSE, $bookerid=FALSE, $sep=',')
 	{
 		if (!($item_id || $bkgid || $bookerid))
 			return array(FALSE,'err_system');
 		$all = FALSE;
-		$sql = 'SELECT bkg_id FROM '.$mod->DataTable;
+		$sql = 'SELECT bkg_id FROM '.$mod->OnceTable;
  		if ($item_id) {
 			if (is_array($item_id)) {
 				$fillers = str_repeat('?,',count($item_id)-1);
@@ -688,7 +686,6 @@ EOS;
 		}
 
 		if ($all) {
-
 			$sep2 = ($sep != ' ')?' ':',';
 			switch ($sep) {
 			 case '&':
@@ -709,11 +706,20 @@ EOS;
 			//file-column-name to fieldname translation
 			$translates = array(
 			 '#ID'=>'item_id', //intepreted
+			 'Count'=>'subgrpcount',
+			 'Lodged'=>'lodged', //ditto
+			 'Approved'=>'approved', //ditto
+			 'Removed'=>'removed', //ditto
 			 '#Start'=>'slotstart', //ditto
 			 'End'=>'slotlen', //ditto
+			 'Bookingstatus'=>'status',
 			 '#User'=>'name',
-			 'Status'=>'status',
-			 'Paid'=>'paid',
+			 'Usercomment'=>'comment',
+			 'Feedue'=>'fee',
+		 	 'Feepaid'=>'feepaid',
+			 'Feestatus'=>'payment',
+			 'Active'=>'active',
+			 'Transaction'=>'gatetransaction',
 			 'Update'=>'bkg_id' //not real
 			);
 			/* non-public fields
@@ -723,13 +729,13 @@ EOS;
 			$outstr = implode($sep,array_keys($translates));
 			$outstr .= $sep."\n";
 			$sql = <<<EOS
-SELECT D.*,COALESCE(A.name,B.name,'') AS name,B.publicid
-FROM $mod->DataTable D
-JOIN $mod->BookerTable B ON D.booker_id=B.booker_id
+SELECT O.*,COALESCE(A.name,B.name,'') AS name,B.publicid
+FROM $mod->OnceTable O
+JOIN $mod->BookerTable B ON O.booker_id=B.booker_id
 LEFT JOIN $mod->AuthTable A ON B.publicid=A.publicid
-WHERE D.bkg_id=?
+WHERE O.bkg_id=?
 EOS;
-			//data lines(s)
+			//data line(s)
 			foreach ($all as $one) {
 				$data = $utils->SafeGet($sql,array($one),'row');
 				$utils->GetUserProperties($mod,$data);
@@ -743,6 +749,14 @@ EOS;
 							$fv = strip_tags($fv);
 						$fv = str_replace($sep,$r,$fv);
 					 	break;
+			 		 case 'lodged':
+			 		 case 'approved':
+			 		 case 'removed':
+						if (!$fv) {
+							$fv = '';
+							break;
+						}
+						//no break here
 					 case 'slotstart':
 						$dt->setTimestamp($fv);
 						$fv = $dt->format('Y-n-j G:i');
@@ -757,11 +771,22 @@ EOS;
 						}
 						$fv = str_replace($sep,$r,$fv);
 					 	break;
+					 case 'fee':
+					 case 'feepaid':
+						$fv = (float)$fv;
+						break;
+					 case 'subgrpcount':
+						if ($data['item_id'] < \Booker::MINGRPID) {
+							$fv = '';
+							break;
+						}
+						//no break here
 					 case 'status':
+					 case 'payment':
 					 case 'bkg_id':
 					 	$fv = (int)$fv;
 					 	break;
-					 case 'paid':
+					 case 'active':
 					 	$fv = ($fv) ? 'YES':'';//no translation
 					 	break;
 					}
@@ -784,145 +809,6 @@ EOS;
 			$fname = self::FullName($mod,$detail);
 			return self::ExportContent($mod,$fname,$outstr);
 		}
-		return array(FALSE,'err_data');
-	}
-
-	/**
-	ExportHistory:
-	Export history data
-	To avoid field-corruption, existing separators in headings or data are converted
-	to something else, generally like &#...;
-	(except when the separator is '&', '#' or ';', those become %...%)
-	@mod: reference to current Booker module object
-	@history_id: enumerator of the item to process, or array of such, or '*'
-	@sep: optional field-separator for exported content, assumed single-byte ASCII, default ','
-	Returns: 2-member array, 1st is T/F indicating success, 2nd '' or lang key for message
-	*/
-	public function ExportHistory(&$mod, $history_id, $sep=',')
-	{
-		if (!$history_id)
-			return array(FALSE,'err_system');
-
-		$sql = <<<EOS
-SELECT H.*,COALESCE(A.name,B.name,'') AS name,B.publicid,I.name AS what
-FROM $mod->HistoryTable H
-JOIN $mod->BookerTable B ON H.booker_id=B.booker_id
-LEFT JOIN $mod->AuthTable A ON B.publicid=A.publicid
-JOIN $mod->ItemTable I ON H.item_id=I.item_id
-EOS;
-		if (is_array($history_id)) {
-			$fillers = str_repeat('?,',count($history_id)-1);
-			$sql .= ' WHERE history_id IN('.$fillers.'?) ORDER BY H.item_id,H.slotstart';
-			$args = $history_id;
-		} elseif ($history_id == '*') {
-			$sql .= ' ORDER BY H.item_id,H.slotstart';
-			$args = array();
-		} else {
-			$sql .= ' WHERE H.history_id=?';
-			$args = array($history_id);
-		}
-		$utils = new Utils();
-		$all = $utils->SafeGet($sql,$args);
-		if ($all) {
-			$utils->GetUserProperties($mod,$all);
-			$sep2 = ($sep != ' ')?' ':',';
-			switch ($sep) {
-			 case '&':
-				$r = '%38%';
-				break;
-			 case '#':
-				$r = '%35%';
-				break;
-			 case ';':
-				$r = '%59%';
-				break;
-			 default:
-				$r = '&#'.ord($sep).';';
-				break;
-			}
-
-			$strip = $mod->GetPreference('stripexport');
-			//file-column-name to fieldname translation
-			$translates = array(
-			 '#ID'=>'what',
-			 'Count'=>'subgrpcount',
-			 '#User'=>'name',
-			 'Lodged'=>'lodged',
-			 'Approved'=>'approved',
-			 '#Start'=>'slotstart',
-			 'End'=>'slotlen',
-			 'Comment'=>'comment',
-			 'FeeDue'=>'fee',
-			 'Feepaid'=>'netfee',
-			 'Status'=>'status',
-			 'Feestatus'=>'payment',
-			 'Transaction'=>'gatetransaction',
-			 'Update'=>'history_id'
-			);
-			/* non-public fields
-			'item_id'
-			'booker_id'
-			'gatedata'
-			*/
-			$dtw = new \DateTime('@0',NULL);
-			//header line
-			$outstr = implode($sep,array_keys($translates));
-			$outstr .= "\n";
-			//data lines(s)
-			foreach ($all as $data) {
-				//accumulator
-				$stores = array();
-				foreach ($translates as $one) {
-					$fv = $data[$one];
-					switch ($one) {
-					 case 'name':
-					 	if ($data['publicid']) {
-							$fv = $data['publicid']; //prefer login identifier
-						}
-					//no break here
-					 case 'what':
-					 case 'comment':
-					 case 'gatetransaction':
-						$fv = preg_replace('/[\n\t\r]/',$sep2,$fv);
-						$fv = str_replace($sep,$r,$fv);
-						break;
-					 case 'lodged':
-					 case 'approved':
-					 case 'slotstart':
-						if ($fv) {
-							$dtw->setTimestamp($fv);
-							$fv = $dtw->format('Y-m-d G:i');
-						} else {
-							$fv = '';
-						}
-						break;
-					 case 'slotlen':
-						if ($fv && $data['slotstart']) {
-							$dtw->setTimestamp($fv+$data['slotstart']);
-							$fv = $dtw->format('Y-m-d G:i');
-						} else {
-							$fv = '';
-						}
-						break;
-					 case 'fee':
-					 case 'netfee':
-						$fv = (float)$fv;
-						break;
-					 case 'subgrpcount':
-					 case 'status':
-					 case 'payment':
-					 case 'history_id':
-						$fv = (int)$fv;
-						break;
-					}
-					$stores[] = $fv;
-				} //foreach $translates
-				$outstr .= implode($sep,$stores)."\n";
-			} //foreach $all
-			$detail = self::NameDetail($mod,$utils,$history_id,'history');
-			$fname = self::FullName($mod,$detail);
-			return self::ExportContent($mod,$fname,$outstr);
-		} //$all
 		return array(FALSE,'err_data');
 	}
 }
