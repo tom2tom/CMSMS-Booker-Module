@@ -18,7 +18,7 @@
      <th class="pageicon {ldelim}sss:false{rdelim}"></th>
 {if $tell}  <th class="pageicon {ldelim}sss:false{rdelim}"></th>{/if}
 {if $pmod}  <th class="pageicon {ldelim}sss:false{rdelim}"></th>{/if}
-     <th class="checkbox {ldelim}sss:false{rdelim}" style="width:20px;">{if !empty($header_checkbox)}{$header_checkbox}{/if}</th>
+     <th class="checkbox {ldelim}sss:false{rdelim}">{if $ocount > 1}{$header_checkbox}{/if}</th>
     </tr></thead>
     <tbody>
 {foreach from=$oncerows item=bkg}{cycle values='row1,row2' assign='rowclass'}
@@ -60,7 +60,7 @@
 {if $tell}    <th class="pageicon {ldelim}sss:false{rdelim}"></th>{/if}
 {if $pmod}    <th class="pageicon {ldelim}sss:false{rdelim}"></th>
       <th class="pageicon {ldelim}sss:false{rdelim}"></th>{/if}
-      <th class="checkbox {ldelim}sss:false{rdelim}">{if !empty($header_checkbox2)}{$header_checkbox2}{/if}</th>
+      <th class="checkbox {ldelim}sss:false{rdelim}">{if $rcount > 1}{$header_checkbox2}{/if}</th>
      </tr></thead>
      <tbody>
 {foreach from=$reptrows item=bkg}{cycle values='row1,row2' assign='rowclass'}
