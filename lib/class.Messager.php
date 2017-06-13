@@ -57,6 +57,11 @@ class Messager
 			$kbody1 = 'email_change';
 			$kbody2 = 'text_change';
 		 	break;
+		 case \Booker::STATDEL:
+			$ktitle = 'email_cancelled_title';
+			$kbody1 = 'email_delete';
+			$kbody2 = 'text_delete';
+		 	break;
 		 default:
 		 	return FALSE; //error
 		}
@@ -68,8 +73,10 @@ class Messager
 	Construct arguments for 'outward' message using MessageSender::Send()
 	@mod: reference to current Booker module object
 	@utils: reference to Utils-class object
-	@idata: reference to array of booked-item data
-	@reqdata: reference to array of booking-request data
+	@idata: reference to array of booked-item data, with at least 'item_id','name',
+		'smsprefix','smspattern','approver','approvertell','approvercontact'
+	@reqdata: reference to array of booking-request data from OnceTable row or equivalent
+	@what: item name, or array of them, or FALSE
 	@custommsg: text entered by user, to replace square-bracketed content of the
 		message 'template', or some other message, or FALSE
 	@etitlekey: lang key for email title or FALSE
@@ -82,7 +89,7 @@ class Messager
 		[3] = array of parameters for email message(s)
 		[4] = array of parameters for tweet(s)
 	*/
-	private function MsgParms(&$mod, &$utils, &$idata, &$reqdata, $custommsg, $etitlekey, $ebodykey, $tbodykey)
+	private function MsgParms(&$mod, &$utils, &$idata, &$reqdata, $what, $custommsg, $etitlekey, $ebodykey, $tbodykey)
 	{
 		$from = FALSE; //always use default sender
 		$to = array();
@@ -97,18 +104,21 @@ class Messager
 			$to[] = ($reqdata['address']) ? array($reqdata['name']=>$reqdata['address']):$reqdata['phone'];
 		}
 
+		$shortwhat = FALSE;
 		if ($idata['item_id'] >= \Booker::MINGRPID) {
-			if ($reqdata['subgrpcount'] < 5 && !empty($reqdata['item_name'])) { //TODO limit length for SMS
-				if (is_array($reqdata['item_name'])) {
-					$what = implode(',',$reqdata['item_name']);
+			if ($what) {
+				if (is_array($what)) {
+					$shortwhat = reset($what).' .. '.end($what);
+					$what = implode(', ',$what);
 				} else {
-					$what = $reqdata['item_name'];
+					$what = FALSE;
 				}
-			} else {
-				$what = $utils->GetItemName($mod,$idata);
-				$what = $mod->Lang('countof2',$reqdata['subgrpcount'],$what);
 			}
-		} else {
+			if (!$what) {
+				$t = $utils->GetItemName($mod,$idata);
+				$what = $mod->Lang('countof2',$reqdata['subgrpcount'],$t);
+			}
+		} elseif (!$what) {
 			$what = $utils->GetItemName($mod,$idata);
 		}
 		$dts = new \DateTime('@'.$reqdata['slotstart'],NULL);
@@ -126,17 +136,23 @@ class Messager
 			$mailparms = array('subject'=>$mod->Lang($etitlekey),'body'=>$msg);
 			$msg = $mod->Lang($tbodykey,$detail);
 			$msg = preg_replace('/\[.*\]/',$custommsg,$msg);
+			$tweetparms = array('body'=>$msg);
+			if ($shortwhat && strlen($msg) > 140) {
+				$msg = str_replace($what,$shortwhat,$msg);
+			}
 			$textparms = array('prefix'=>$idata['smsprefix'],
 				'pattern'=>$idata['smspattern'],'body'=>$msg);
-			$tweetparms = array('body'=>$msg);
 		} else {
 			if (!$etitlekey)
 				$etitlekey = 'title_bookings';
 			$msg = sprintf($custommsg,$what);
 			$mailparms = array('subject'=>$mod->Lang($etitlekey),'body'=>$msg);
+			$tweetparms = array('body'=>$msg);
+			if ($shortwhat && strlen($msg) > 140) {
+				$msg = str_replace($what,$shortwhat,$msg);
+			}
 			$textparms = array('prefix'=>$idata['smsprefix'],
 				'pattern'=>$idata['smspattern'],'body'=>$msg);
-			$tweetparms = array('body'=>$msg);
 		}
 
 		if (!empty($idata['approvertell'])) {
@@ -305,10 +321,11 @@ class Messager
 	@mod: reference to current Booker module
 	@utils: reference to Utils-class object
 	@idata: array of item parameters for constructing message
-	@reqdata: array of request data for helping construct the message
+	@reqdata: array of booking-request data from OnceTable or equivalent, for helping construct the message
+	 May also include non-tabled member 'what', an item-name string or array of them
 	@status: actual request/booking status enum, one of \Booker::STAT* or self::MSG*
 	@custommsg: message body 'template', or ''
-	@sender: optional reference to \MessageSender-class object, default NULL
+	@sender: optional reference to Notifier\MessageSender-class object, default NULL
 	Returns: 2-member array:
 	 [0] boolean indicating success
 	 [1] success- or error-message or ''
@@ -323,8 +340,9 @@ class Messager
 	 	$res = self::MsgKeys($status);
 		if ($res) {
 			list($etitlekey,$ebodykey,$tbodykey) = $res;
+			$what = (!empty($reqdata['what'])) ? $reqdata['what'] : FALSE;
 			list($from,$to,$textparms,$mailparms,$tweetparms) =
-				self::MsgParms($mod,$utils,$idata,$reqdata,$custommsg,$etitlekey,$ebodykey,$tbodykey);
+				self::MsgParms($mod,$utils,$idata,$reqdata,$what,$custommsg,$etitlekey,$ebodykey,$tbodykey);
 			list($res,$msg) = $sender->Send($from,$to,$textparms,$mailparms,$tweetparms);
 			if ($res)
 				$sent = $mailparms['body'];
@@ -334,7 +352,6 @@ class Messager
 /* TODO status-specific advice
 		 case \Booker::STATBIG:
 		 case \Booker::STATDEFER:
-		 case \Booker::STATDEL:
 		 case \Booker::STATDUP:
 		 case \Booker::STATERR:
 		 case \Booker::STATGONE:
@@ -366,7 +383,7 @@ class Messager
 	{
 		if ($mod->havenotifier) {
 			$funcs = new Bookingops();
-			$rows = $funcs->GetBkgData($mod,$bkgid);
+			$rows = $funcs->GetBkgMessageData($mod,$bkgid);
 			if ($rows) {
 				list($etitlekey,$ebodykey,$tbodykey) = self::MsgKeys(\Booker::STATCHG);
 				$funcs = new \Notifier\MessageSender();
@@ -377,11 +394,12 @@ class Messager
 					$item_id = $one['item_id'];
 					if (!isset($propstore[$item_id])) {
 						$propstore[$item_id] = $utils->GetItemProperties($mod,$item_id,
-							array('item_id','name','membersname','smspattern','smsprefix'));
+							array('item_id','name','membersname','smspattern','smsprefix','approver','approvertell','approvercontact'));
 					}
 					$idata = $propstore[$item_id];
+					$what = (!empty($one['what'])) ? $one['what'] : FALSE;
 					list($from,$to,$textparms,$mailparms,$tweetparms) =
-						self::MsgParms($mod,$utils,$idata,$one,$custommsg,$etitlekey,$ebodykey,$tbodykey);
+						self::MsgParms($mod,$utils,$idata,$one,$what,$custommsg,$etitlekey,$ebodykey,$tbodykey);
 					list($res,$msg1) = $funcs->Send($from,$to,$textparms,$mailparms,$tweetparms);
 					if (!$res)
 						$msg[] = $msg1;
