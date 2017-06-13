@@ -60,8 +60,8 @@ if (isset($params['submit'])) {
 			return $item->getStatus() >= 0; //not flagged as deleted
 		});
 		$pay = $totals['totals'][0]; //total gross payment
-		$minpay = 1.0; //TODO support selectable min. payment
-		if ($pay > $minpay) {
+		$minpay = $this->GetPreference('minpay');
+		if ($pay > $minpay || ($minpay > 0.0 && $minpay == $pay)) {
 			//no addition to $params['resume']
 			$utils->SaveCart($cart,$cache,$params);
 			$newparms = $utils->FilterParameters($params,$localparams);
@@ -149,9 +149,9 @@ if (!$cart->seemsEmpty()) {
 		return $item->getStatus() >= 0; //not flagged as deleted
 	});
 
-	$minpay = 1.0; //TODO support selectable min. payment
+	$minpay = $this->GetPreference('minpay');
 	$pay = $totals['totals'][0]; //gross amount TODO account for credit
-	if ($pay > $minpay) {
+	if ($pay > $minpay || ($minpay > 0.0 && $minpay == $pay)) {
 		$pay = sprintf('%.'.$n.'F',$pay);
 	} else {
 		$pay = FALSE;
@@ -221,7 +221,7 @@ if (!$cart->seemsEmpty()) {
 			'title="'.$this->Lang('tip_delseltype',$this->Lang('booking_multi')).'"')
 	);
 
-	$t = $this->Lang('delsel_confirm',$this->Lang('booking_multi'));
+	$t = $this->Lang('confirm_del_sel',$this->Lang('booking_multi'));
 	$jsloads[] = <<<EOS
  $('#{$id}delete').click(function() {
   var \$sel = $('#cart').find('input:checked');
