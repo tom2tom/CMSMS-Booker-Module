@@ -186,22 +186,43 @@ class Payment
 		}
 	}
 */
+
 	/**
-	Amounts:
-	Get gross fee for use of resource, and current credit against which the fee
-	may be offset
+	AmountFormat:
+	@mod: reference to current Booker module object
+	@utils: reference to Utils-class object
+	@item_id: identifier of item (resource or group) for which rule is sought
+	@amount: number as recorded (8.2f)
+	Returns: string
+	*/
+	public function AmountFormat(&$mod, &$utils, $item_id, $amount)
+	{
+		$idata = $utils->GetItemProperties($mod,$item_id,'paymentiface');
+		$t = $idata['paymentiface'];
+		if ($t && $t != -1) {
+			$imod = \cms_utils::get_module($t);
+			$handlerclass = $imod->GetPayer();
+			$ifuncs = new $handlerclass($mod, $imod);
+			return $ifuncs->PublicFormat($amount*100);
+		}
+		return $amount;
+	}
+
+	/**
+	UsageFee:
+	Get gross fee for use of @item_id
 	@mod: reference to Booker module object
 	@utils: reference to Utils-class object
-	@item_id: resource identifier
+	@item_id: item identifier
 	@bookerid: booker identifier
 	@bs: UTC timestamp representing start of interval to be processed
 	@be: corresponding interval-end, NOT 1-past
 	@search: optional boolean, whether to interrogate ancestor-rules, default TRUE
 	Returns: 2-member array:
-	 [0] gross fee payable for use of @item_id by @bookerid over @bs..@be
-	 [1] current total credit held by @bookerid (so the net fee is the difference between the 2)
+	 [0] float, gross fee payable for use of @item_id by @bookerid over @bs..@be
+	 [1] float, current total credit held by @bookerid (so the net fee is the difference between the 2)
 	*/
-	public function Amounts(&$mod, &$utils, $item_id, $bookerid, $bs, $be, $search=TRUE)
+	public function UsageFee(&$mod, &$utils, $item_id, $bookerid, $bs, $be, $search=TRUE)
 	{
 		if ($search) {
 			$all = $utils->GetItemGroups($mod,$item_id);
@@ -282,9 +303,7 @@ class Payment
 				}
 			}
 		}
-
-		$creditnow = $this->TotalCredit($mod,$bookerid);
-		return array($grossfee,$creditnow);
+		return $grossfee;
 	}
 
 	/**
@@ -322,10 +341,11 @@ class Payment
 	*/
 	public function PayUpdate(&$mod, $bookerid, $postpayable, $grossdue, $grosspaid)
 	{
-		$minpay = 1.0; //TODO support selectable min. payment
-		if ($grosspaid >= $minpay) {
+		$minpay = $mod->GetPreference('minpay');
+		if ($grosspaid > $minpay || ($minpay > 0.0 && $minpay == $grosspaid)) {
 			if ($grosspaid >= $grossdue) {
-				if ($grosspaid - $grossdue > $minpay) {
+				$xpay = $grosspaid - $grossdue;
+				if ($xpay > $minpay || ($minpay > 0.0 && $minpay == $xpay)) {
 					$this->AddCredit($mod,$bookerid,$grosspaid - $grossdue);
 				}
 				return \Booker::STATPAID;
@@ -363,18 +383,20 @@ class Payment
 
 	/**
 	TotalCredit:
-	see also Histops::TotalCredit()
+	see also Dataops::TotalCredit()
 	@mod: reference to Booker module object
 	@bookerid: booker identifier
 	*/
 	public function TotalCredit(&$mod, $bookerid)
 	{
 		$amount = 0.0;
-		$sql = 'SELECT netfee FROM '.$mod->XdataTable.
-		' WHERE booker_id=? AND status='.\Booker::STATCREDITADDED;
-		$rows = $mod->dbHandle->GetCol($sql,array($bookerid));
-		foreach ($rows as $one) {
-			$amount += (float)$one;
+		$sql = 'SELECT amount FROM '.$mod->PayTable.
+		' WHERE booker_id=? AND status!='.\Booker::CREDITEXPIRED;
+		$data = $mod->dbHandle->GetCol($sql,array($bookerid));
+		if ($data) {
+			foreach ($data as $one) {
+				$amount += (float)$one;
+			}
 		}
 		return $amount;
 	}
@@ -388,19 +410,15 @@ class Payment
 	public function AddCredit(&$mod, $bookerid, $amount)
 	{
 		if ($amount > 0.0) {
-			//the 'fee' field retains original credit, 'netfee' field will be used for adjustments
-			$sql = 'INSERT INTO '.$mod->XdataTable.
-' (xtra_id,booker_id,lodged,fee,netfee,status) VALUES (?,?,?,?,?,?)';
-			$xid = $mod->dbHandle->GenID($mod->XdataTable.'_seq');
-			$dt = new \DateTime('now',new \DateTimeZone('UTC'));
-			$st = $dt->getTimestamp();
+			$sql = 'INSERT INTO '.$mod->PayTable.
+' (pay_id,booker_id,when,first,amount) VALUES (?,?,?,?,?)';
+			$pid = $mod->dbHandle->GenID($mod->PayTable.'_seq');
 			$args = array(
-				$xid,
+				$pid,
 				$bookerid,
-				$st,
+				time(),
 				$amount,
-				$amount,
-				\Booker::STATCREDITADDED
+				$amount
 			);
 			//TODO $utils->SafeExec()
 			$mod->dbHandle->Execute($sql,$args);
@@ -409,31 +427,35 @@ class Payment
 
 	/**
 	UseCredit:
-	see also Histops::UseCredit()
+	see also Dataops::UseCredit()
 	@mod: reference to Booker module object
 	@bookerid: booker identifier
-	@amount: amount of credit to be adjusted
+	@amount: amount of credit to be adjusted (pos or neg float)
 	*/
 	public function UseCredit(&$mod, $bookerid, $amount)
 	{
-		$sql = 'SELECT xtra_id,netfee FROM '.$mod->XdataTable.
-		' WHERE booker_id=? AND status='.\Booker::STATCREDITADDED.' ORDER BY lodged';
+		$sql = 'SELECT pay_id,amount FROM '.$mod->PayTable.
+		' WHERE booker_id=? AND amount>0.0 AND status!='.\Booker::CREDITEXPIRED.' ORDER BY when';
 		$data = $mod->dbHandle->GetArray($sql,array($bookerid));
 		if ($data) {
-			$sql = 'UPDATE '.$mod->XdataTable.' SET netfee=? WHERE xtra_id=?';
+			if ($amount < 0) {
+				$amount = -$amount;
+			}
+			$sql1 = 'UPDATE '.$mod->PayTable.' SET amount=?,status='.\Booker::CREDITUSED.' WHERE pay_id=?';
+			$sql2 = 'UPDATE '.$mod->PayTable.' SET amount=? WHERE pay_id=?';
 			foreach ($data as $row) {
-				$now = (float)$row['netfee'];
+				$now = (float)$row['amount'];
 				$amount -= $now;
 				if ($amount >= 0.01) {
-					$now = 0;
-					$stop = ($amount <= 0.01);
+					$now = 0.0; //all used
+					$sql = $sql1;
 				} else { //$amount < 0.0 approx.
-					$now += $amount;
-					$stop = TRUE;
+					$now = -$amount;
+					$sql = $sql2;
 				}
 				//TODO build arrays, then $utils->SafeExec($sql[],$args[]);
-				$mod->dbHandle->Execute($sql,array($now,$row['xtra_id']));
-				if ($stop) {
+				$mod->dbHandle->Execute($sql,array($now,$row['pay_id']));
+				if ($amount < 0.01) {
 					break;
 				}
 			}
@@ -444,16 +466,29 @@ class Payment
 
 	/**
 	ExpireCredit:
-	see also Histops::ExpireCredit()
+	see also Dataops::ExpireCredit()
 	@mod: reference to Booker module object
-	@bookerid: booker identifier
+	@bookerid: booker identifier, or array of them, or '*'
 	@before: UTC timestamp for limit on remaining credit
 	*/
 	public function ExpireCredit(&$mod, $bookerid, $before)
 	{
-		$sql = 'UPDATE '.$mod->XdataTable.' SET status='.\Booker::STATCREDITEXPIRED.
-		' WHERE booker_id=? AND status='.\Booker::STATCREDITADDED.' AND lodged<?';
+		if (is_array($bookerid)) {
+			$fillers = str_repeat('?,', count($bookerid)-1);
+			$sql = 'UPDATE '.$mod->PayTable.' SET status='.\Booker::CREDITEXPIRED.
+			' WHERE booker_id IN('.$fillers.'?) AND status!='.\Booker::CREDITEXPIRED.' AND when<?';
+			$args = $bookerid;
+			array_push($args,$before);
+		} elseif ($bookerid == '*') {
+			$sql = 'UPDATE '.$mod->PayTable.' SET status='.\Booker::CREDITEXPIRED.
+			' WHERE status!='.\Booker::CREDITEXPIRED.' AND when<?';
+			$args = array($before);
+		} else {
+			$sql = 'UPDATE '.$mod->PayTable.' SET status='.\Booker::CREDITEXPIRED.
+			' WHERE booker_id=? AND status!='.\Booker::CREDITEXPIRED.' AND when<?';
+			$args = array($bookerid,$before);
+		}
 		//TODO $utils->SafeExec()
-		$mod->dbHandle->Execute($sql,array($bookerid,$limit));
+		$mod->dbHandle->Execute($sql,$args);
 	}
 }
