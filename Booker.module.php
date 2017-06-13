@@ -20,7 +20,7 @@ define('DBGBKG', FALSE);
 
 class Booker extends CMSModule
 {
-	const MINGRPID = 10000; //lowest id in items-table for a group
+	const MINGRPID = 16384; //lowest id in items-table for a group
 	const USERSTYLES = 5; //no. of styles available for bookings-table styling
 
 	//sub-group allocation protocol
@@ -49,7 +49,7 @@ class Booker extends CMSModule
 	const RANGEWEEK = 1;
 	const RANGEMTH = 2;
 	const RANGEYR = 3;
-	//XdataTable status codes
+	//OnceTable status codes
 	const STATNONE = 0;//unknown/normal/default
 	//request-stage
 	const STATNEW = 1;//new, approver consideration pending
@@ -57,9 +57,9 @@ class Booker extends CMSModule
 	const STATDEL = 3;//delete request, approver consideration pending
 	const STATTELL = 4;//further information submitted
 	const STATASK = 5;//booker queried, waiting for response
- 	const STATCANCEL = 6;//abandoned by user or admin on user's behalf
+	const STATCANCEL = 6;//(request to be) abandoned by user, or admin on user's behalf
 	const STATMAXREQ = 9;//last-recognised request-status value
-	//later status AND ALSO DataTable status-field
+	//later stage
 	const STATOK = 10;//aka APPROVED done/processed
 	const STATADMINREC = 11;//booking recorded by admin
 	const STATSELFREC = 12;//recorded by approved user (i.e. no request)
@@ -74,11 +74,12 @@ class Booker extends CMSModule
 	const STATNA = 24;//resouce N/A at requested time, cannot accept
 	const STATDUP = 25;//duplicate request, cannot accept
 	const STATPERM = 26;//user not permitted
- 	const STATERR = 27;//system error while processing
- 	const STATRETRY = 28;//some temporary problem, try again later
-	const STATFAILED = 29;//generic request-failure
+	const STATNFEE = 27;//request not (entirely) pre/post-paid
+ 	const STATERR = 28;//system error while processing
+ 	const STATRETRY = 34;//some temporary problem, try again later
+	const STATFAILED = 35;//generic request-failure
 	const STATMAXBAD = 35;//last-recognised request-bad value
-	//payment-field codes
+	//payment codes
 	const STATFREE = 40;//no fee for use
 	const STATPAYABLE = 41;//fee applies, none yet paid
 	const STATPAID = 42;//fee pre- or post-paid
@@ -86,10 +87,16 @@ class Booker extends CMSModule
 	const STATCREDITED = 44;//fee to be paid upon request
  	const STATNOTPAID = 45;//payable but unpaid for some non-credit-related reason
 	const STATOVRDUE = 46;//payment overdue
-	const STATCREDITUSED = 50;//past credit offset against other use
-	const STATCREDITEXPIRED = 51;//past credit timed out
-	const STATCREDITADDED = 52;//prepayment amount
+	//PayTable status codes
+	const CREDITADDED = 50;//prepayment amount
+	const CREDITUSED = 51;//past credit offset against other use
+	const CREDITEXPIRED = 52;//past credit timed out
 	const STATMAXPAY = 55;//last-recognised payment value
+	//bulk-flags for DispTable (unused)
+	const BULKSINGL1 = 0;
+	const BULKSINGLGRP = 1;
+	const BULKREPT1 = 20;
+	const BULKREPTGRP = 21;
 	//cache-key seed/prefixes
 	const CARTKEY = 'bkr_Cart';
 	const PARMKEY = 'bkr_Parm';
@@ -100,13 +107,14 @@ class Booker extends CMSModule
 	public $dbHandle; //cached connection to adodb
 	public $AuthTable; //authenticated-users data
 	public $BookerTable; //booker details
-	public $DataTable; //non-repeated bookings-data
+	public $DispTable; //bookings data for display
 	public $FeeTable; //payment amounts/rates and associated conditions
 	public $GroupTable; //group-relationships
 	public $ItemTable; //resources and resource-groups
+	public $OnceTable; //non-repeated bookings-data
+	public $PayTable; //payment-credit data
 	public $RepeatTable; //repeated bookings-data
 	public $UserTable; //admin users (who may 'own' resource/group)
-	public $XdataTable; //extra bookings data, much of it common to Data and Repeats
 	public $before20;
 	public $oldtemplates;
 	public $havenotifier;
@@ -130,13 +138,14 @@ class Booker extends CMSModule
 		$pre = cms_db_prefix();
 		$this->AuthTable = $pre.'module_auth_users'; //table belongs to Auther module
 		$this->BookerTable = $pre.'module_bkr_bookers';
-		$this->DataTable = $pre.'module_bkr_data';
+		$this->DispTable = $pre.'module_bkr_data';
 		$this->FeeTable = $pre.'module_bkr_fees';
 		$this->GroupTable = $pre.'module_bkr_groups';
 		$this->ItemTable = $pre.'module_bkr_items';
+		$this->OnceTable = $pre.'module_bkr_singls';
+		$this->PayTable = $pre.'module_bkr_credit';
 		$this->RepeatTable = $pre.'module_bkr_repeats';
 		$this->UserTable = $pre.'users';
-		$this->XdataTable = $pre.'module_bkr_xdata';
 		global $CMS_VERSION;
 		$this->before20 = (version_compare($CMS_VERSION,'2.0') < 0);
 		$this->oldtemplates = $this->before20 || 1; //TODO
