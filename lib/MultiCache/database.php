@@ -40,7 +40,8 @@ class Cache_database extends CacheBase implements CacheInterface
 				$lifetime = NULL;
 			}
 			$sql = 'INSERT INTO '.$this->table.' (keyword,value,savetime,lifetime) VALUES (?,?,?,?)';
-			$ret = $db->Execute($sql,array($keyword,$value,time(),$lifetime));
+			$db->Execute($sql,array($keyword,$value,time(),$lifetime));
+			$ret = ($db->Affected_Rows() > 0); //racy if returned directly? async issue?
 			return $ret;
 		}
 		return FALSE;
@@ -59,12 +60,13 @@ class Cache_database extends CacheBase implements CacheInterface
 		//upsert, sort-of
 		if ($id) {
 			$sql = 'UPDATE '.$this->table.' SET value=?,savetime=?,lifetime=? WHERE cache_id=?';
-			$ret = $db->Execute($sql,array($value,time(),$lifetime,$id));
+			$db->Execute($sql,array($value,time(),$lifetime,$id));
 		} else {
 			$sql = 'INSERT INTO '.$this->table.' (keyword,value,savetime,lifetime) VALUES (?,?,?,?)';
-			$ret = $db->Execute($sql,array($keyword,$value,time(),$lifetime));
+			$db->Execute($sql,array($keyword,$value,time(),$lifetime));
 		}
-		return ($db->Affected_Rows() > 0); //racy??
+		$ret = ($db->Affected_Rows() > 0); //racy if returned directly? async issue?
+		return $ret;
 	}
 
 	public function _get($keyword)
@@ -123,7 +125,8 @@ class Cache_database extends CacheBase implements CacheInterface
 	{
 		$db = \cmsms()->GetDb();
 		$db->Execute('DELETE FROM '.$this->table.' WHERE keyword=?',array($keyword));
-		return ($db->Affected_Rows() > 0);
+		$ret = ($db->Affected_Rows() > 0);
+		return $ret;
 	}
 
 	public function _clean($filter)
