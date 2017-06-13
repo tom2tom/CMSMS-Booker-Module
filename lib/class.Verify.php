@@ -11,18 +11,20 @@ class Verify
 {
 	/**
 	VerifyData:
-	Validate relevant members of @params
+	Validate and sanitize relevant members of @params
 	@mod reference to current module-object
 	@utils: reference to Booker\Utils object
 	@params: reference to array of request-parameters, sufficiently equivalent
-	 to a XdataTable row, for:
+	 to a OnceTable row, for:
 		a not-yet-recorded request OR
-		a recorded request now being edited OR
-		a recorded booking now being edited
+		a recorded request now being edited or deleted OR
+		a recorded booking now being edited or deleted
 	@item_id: resource or group identifier
 	@is_new: boolean whether validating data for a new request
 	@admin: boolean whether the caller is backend/admin
-	Returns: 2-member array, 1st is boolean indicating success, 2nd '' or array of error messages
+	Returns: 2-member array,
+	 [0] = boolean indicating success
+	 [1] = '' or array of error-message strings
 	*/
 	public function VerifyData(&$mod, &$utils, &$params, $item_id, $is_new, $admin)
 	{
@@ -34,18 +36,19 @@ class Verify
 		'subgrpcount'? 'when' 'until'? 'name' 'conformuser' 'displayclass'
 		'conformstyle' 'contact' 'conformcontact' 'paid'
 TODO support 'past' data without both date/time $params[]
+		for a registered user, want $params[] keys: 'account','passwd'
+		else want 'name','contact'
+		maybe-present keys
+		'subgrpcount','when','until'(maybe empty),
 */
-		//for a registered user, want $params[] keys: 'account','passwd'
-		//else want 'name','contact'
-		//maybe-present keys
-		//'subgrpcount','when','until'(maybe empty),
 		if (isset($params['when'])) {
-			$fv = $params['when'];
+			$fv = filter_var(trim($params['when']), FILTER_SANITIZE_STRING);
 			if ($fv) {
 				$lvl = error_reporting(0);
 				$res = $dtw->modify($fv);
 				error_reporting($lvl);
 				if ($res) {
+					$params['when'] = $fv;
 					$bs = $dtw->getTimestamp();
 				} else {
 					$msg[] = $mod->Lang('err_badstart');
@@ -58,13 +61,15 @@ TODO support 'past' data without both date/time $params[]
 		}
 
 		$idata = $utils->GetItemProperties($mod, $item_id, array('slottype', 'slotcount', 'timezone'), TRUE);
+
 		if (isset($params['until'])) {
-			$fv = $params['until'];
+			$fv = filter_var(trim($params['until']), FILTER_SANITIZE_STRING);
 			if ($fv) {
 				$lvl = error_reporting(0);
 				$res = $dtw->modify($fv);
 				error_reporting($lvl);
 				if ($res) {
+					$params['until'] = $fv;
 					$be = $dtw->getTimestamp();
 				} else {
 					$msg[] = $mod->Lang('err_badend');
@@ -81,13 +86,17 @@ TODO support 'past' data without both date/time $params[]
 			if ($be > $bs) {
 				//rationalise specified times relative to slot length
 				list($bs, $be) = $utils->TuneBlock($idata['slottype'], $idata['slotcount'], $bs, $be);
-				//check $bs..$be all valid for $item_id (any user)
 				$funcs = new Schedule();
-				if ($funcs->ItemAvailable($mod, $utils, $item_id, 0, $bs, $be)) {
-					$timely = ($be > $bs);
+				if ($is_new) {
+					//check $bs..$be all valid for $item_id (any user)
+					if ($funcs->ItemAvailable($mod, $utils, $item_id, 0, $bs, $be)) {
+						$timely = ($be > $bs);
+					} else {
+						$timely = FALSE;
+						$msg[] = $mod->Lang('err_na');
+					}
 				} else {
-					$timely = FALSE;
-					$msg[] = $mod->Lang('err_na');
+					$timely = TRUE;
 				}
 				if ($timely && !$admin) {
 					if ($idata['timezone']) {
@@ -98,12 +107,14 @@ TODO support 'past' data without both date/time $params[]
 					}
 				}
 				if ($timely) {
-					if ($is_new || !isset($params['bkg_id'])) {
-						$excl = FALSE;
+					if ($is_new) {
+						$c = $funcs->ItemVacantCount($mod, $item_id, $bs, $be, FALSE);
+					} elseif (isset($params['bkg_id'])) {
+						$c = $funcs->ItemVacantCount($mod, $item_id, $bs, $be, $params['bkg_id']);
 					} else {
-						$excl = $params['bkg_id'];
+						$c = 1; //no check needed
 					}
-					if ($funcs->ItemVacantCount($mod, $item_id, $bs, $be, $excl) == 0) {
+					if ($c == 0) {
 						$msg[] = $mod->Lang('err_dup');
 					} else { //all checks passed
 						$params['slotstart'] = $bs;
@@ -119,25 +130,32 @@ TODO support 'past' data without both date/time $params[]
 
 		if (isset($params['bookertype']) && $params['bookertype'] == 1) {
 			$ufuncs = new Userops($mod);
-			$fv = trim($params[ 'account']);
-			$pw = trim($params[ 'passwd']);
-			if (!$ufuncs->GetKnown($mod, $fv, $pw)) {
+			$fv = filter_var(trim($params['account']), FILTER_SANITIZE_STRING);
+			$pw = filter_var(trim($params['passwd']), FILTER_SANITIZE_STRING);
+			if ($ufuncs->GetKnown($mod, $fv, $pw)) {
+				$params['account'] = $fv;
+				$params['passwd'] = $pw;
+			} else {
 				//not registered
 				$msg[] = $mod->Lang('err_account');
 			}
 		} else {
-			$fv = trim($params['name']);
-			if (!$fv) {
+			$fv = filter_var(trim($params['name']), FILTER_SANITIZE_STRING);
+			if ($fv) {
+				$params['name'] = $fv;
+			} else {
 				$msg[] = ($admin) ?
 					$mod->Lang('missing_type', $mod->Lang('name')) :
 					$mod->Lang('err_nosender');
 			}
 
 			if (isset($params['contact'])) {
-				$fv = trim($params['contact']);
+				$fv = filter_var(trim($params['contact']), FILTER_SANITIZE_STRING);
 				if ($fv) {
-					if (!(preg_match(\Booker::PATNADDRESS, $fv)
-					   || preg_match(\Booker::PATNPHONE, $fv))) {
+					if (preg_match(\Booker::PATNADDRESS, $fv)
+					   || preg_match(\Booker::PATNPHONE, $fv)) {
+						$params['contact'] = $fv;
+					} else {
 						$msg[] = ($admin) ?
 						$mod->Lang('invalid_type', $mod->Lang('contact')) :
 						$mod->Lang('err_nocontact');
@@ -151,8 +169,10 @@ TODO support 'past' data without both date/time $params[]
 		}
 
 		if (isset($params['subgrpcount'])) {
-			$fv = $params['subgrpcount'];
-			if (!$fv) { //TODO or too big
+			$fv = (int)filter_var($params['subgrpcount'], FILTER_SANITIZE_NUMBER_INT);
+			if ($fv > 0) { //TODO or too big
+				$params['subgrpcount'] = $fv;
+			} else {
 				$msg[] = $mod->Lang('err_parm');
 			}
 		}
@@ -163,12 +183,19 @@ TODO support 'past' data without both date/time $params[]
 			}
 		}
 
+		if (isset($params['comment'])) {
+			$params['comment'] = filter_var(trim($params['comment']), FILTER_SANITIZE_STRING);
+		}
+
 		if (isset($params['captcha'])) {
 			$ob = \cms_utils::get_module('Captcha');
 			if ($ob) {
-				$valid = $ob->checkCaptcha($params['captcha']);
+				$fv = filter_var(trim($params['captcha']), FILTER_SANITIZE_STRING);
+				$valid = $ob->checkCaptcha($fv);
 				unset($ob);
-				if (!$valid) {
+				if ($valid) {
+					$params['captcha'] = $fv;
+				} else {
 					$msg[] = $mod->Lang('err_captcha');
 				}
 			}
