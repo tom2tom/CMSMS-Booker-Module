@@ -252,14 +252,14 @@ EOS;
 
 	/**
 	 * GetBookingItemID:
-	 * Get resource/group id to which @bkgid applies.
+	 * Get resource/group id to which (non-repeat) @bkgid applies.
 	 *
 	 * @mod: reference to Booker module object
 	 * @bkgid: identifier of booking
 	 */
 	public function GetBookingItemID(&$mod, $bkgid)
 	{
-		$sql = 'SELECT item_id FROM '.$mod->DataTable.' WHERE bkg_id=?';
+		$sql = 'SELECT item_id FROM '.$mod->OnceTable.' WHERE bkg_id=?';
 		$t = self::SafeGet($sql, array($bkgid), 'one');
 		if ($t) {
 			return (int) $t;
@@ -379,7 +379,7 @@ EOS;
 			}
 		}
 		return $mod->CreateInputDropdown($id, $name, array_flip($picknames),
-			-1, $currentpick, 'id="'.$id.$name.'"');
+			-1, $currentpick, 'id="'.$id.$name.'" title="'.$mod->Lang('tip_itempicker').'"');
 	}
 
 	/* *
@@ -918,12 +918,15 @@ EOS;
 		}
 	}
 
-	/*
-	@mod: reference to current Booker module object
-	@items: array of item_id's for resource(s) and/or group(s)
-	Returns: associative array, or maybe empty
-	*/
-	private function GetNamedItems(&$mod, $items)
+	/**
+	 * GetNamedItems:
+	 * Get name for each @items, with fallback.
+	 *
+	 * @mod: reference to current Booker module object
+	 * @items: array of item_id's for resource(s) and/or group(s)
+	 * Returns: associative array, or maybe empty
+	 */
+	public function GetNamedItems(&$mod, $items)
 	{
 		$sql = 'SELECT item_id,name FROM '.$mod->ItemTable.' WHERE item_id IN('.implode(',', $items).')';
 		$rows = $mod->dbHandle->GetAssoc($sql);
@@ -1836,11 +1839,12 @@ EOS;
 		return array($bs, $be);
 	}
 
-/*	public function GetBookingItemName(&$mod, $bkgid)
+/* applies to non-repeat bookings
+	public function GetBookingItemName(&$mod, $bkgid)
 	{
 		$sql = <<<EOS
 SELECT I.item_id,I.name FROM $mod->ItemTable I
-JOIN $mod->DataTable D ON I.item_id=D.item_id
+JOIN $mod->OnceTable D ON I.item_id=D.item_id
 WHERE I.active>0 AND D.bkg_id=?
 EOS;
 		$idata = self::SafeGet($sql,array($bkgid),'row');
