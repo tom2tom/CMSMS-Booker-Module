@@ -607,7 +607,7 @@ class Display
 		$be = $dte->getTimestamp()-1;
 		$funcs->UpdateRepeats($this->mod,$this->utils,$all,$bs,$be);
 
-		//get availability-blocks
+		//get availability-blocks hierarchy
 		$rules = $this->utils->GetHeritableProperty($this->mod,$item_id,'available');
 		$rules = array_filter($rules); //omit empties
 		if ($rules) {
@@ -695,7 +695,7 @@ class Display
 			}
 			$bs = $dts->getTimestamp() //start-stamp for current segment
 					+ $segoffst; //hence start-stamp for 1st displayed slot in segment
-			if ($c > 0) {
+			if ($c > 0 && $iter) {
 				//forward to next displayed-segment start
 				while ($iter->valid()) {
 					$row = $iter->current();
