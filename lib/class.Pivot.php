@@ -1,40 +1,39 @@
 <?php
-/**
- * Pivot tables with PHP
- * Adapted from sources at https://github.com/gonzalo123/gam-pivot
- *
- * THIS PROGRAM COMES WITH ABSOLUTELY NO WARRANTY !
- * USE IT AT YOUR OWN RISK !
- *
- * @copyright Gonzalo Ayuso <gonzalo123@gmail.com>
- * @license GPL 2
- */
+#----------------------------------------------------------------------
+# Module: Booker - a resource booking module
+# Library file: PivotBase - pivot table functions
+# Adapted from gam-pivot <https://github.com/gonzalo123/gam-pivot>
+# Copyright (C) Gonzalo Ayuso <gonzalo123@gmail.com>
+#----------------------------------------------------------------------
+# See file Booker.module.php for full details of copyright, licence, etc.
+#----------------------------------------------------------------------
 namespace Booker;
 
-class Pivot
+class PivotBase
 {
 	const ID = '_id';
+	const SEP = '..';
 	const FETCH_STRUCT = 1;
 	const TYPE_LINE = 0;
 	const TYPE_PIVOT_TOTAL_LEVEL1 = 1;
 	const TYPE_PIVOT_TOTAL_LEVEL2 = 2;
 	const TYPE_FULL_TOTAL = 3;
 
-	protected $_recordset;
-	protected $_pivotOn;
-	protected $_pivotcount;
-	protected $_column;
-	protected $_columnValues;
-	protected $_columnPivots;
-	protected $_columnCounts;
-	protected $_colvalcount;
-	protected $_lineTotal;
-	protected $_pivotTotal;
-	protected $_fullTotal;
-	protected $_typeMark;
-	protected $_totalName;
-	protected $_typeName;
-	protected $_splits = array();
+	protected $recordset;
+	protected $pivotOn;
+	protected $pivotscount;
+	protected $column;
+	protected $columnCalcs;
+	protected $columnPivots;
+	protected $columnCounts;
+	protected $calcscount;
+	protected $typeMark;
+	protected $lineTotal;
+	protected $pivotTotal;
+	protected $fullTotal;
+	protected $totalName;
+	protected $typeName;
+	protected $splits = array();
 
 	/**
 	 * @param array of associative arrays $recordset
@@ -55,35 +54,413 @@ class Pivot
 		$linetotal = false, $pivottotal = false, $fulltotal = false,
 		$total = 'TOT', $type = 'type')
 	{
-		$this->_recordset = $recordset;
-		$this->_pivotOn = (is_array($pivoton)) ? $pivoton : array($pivoton);
-		$this->_pivotcount = count($this->_pivotOn);
-		$this->_column = (is_array($group)) ? $group : (($group) ? array($group) : null);
-		$this->_columnValues = (is_array($groupvalue)) ? $groupvalue : (($groupvalue) ? array($groupvalue) : null);
-		$this->_colvalcount = ($groupvalue) ? count($this->_columnValues) : 0;
-		$this->_columnPivots = array_fill(0, $this->_colvalcount, 0);
-		$this->_columnCounts = array_fill(0, $this->_colvalcount, 0);
-		for ($z = 0; $z < $this->_colvalcount; $z++) {
-			$item = $this->_columnValues[$z];
+		$this->recordset = $recordset;
+		$this->pivotOn = (is_array($pivoton)) ? $pivoton : array($pivoton);
+		$this->pivotscount = count($this->pivotOn);
+		$this->column = (is_array($group)) ? $group : (($group) ? array($group) : null);
+		$this->columnCalcs = (is_array($groupvalue)) ? $groupvalue : (($groupvalue) ? array($groupvalue) : null);
+		$this->calcscount = ($groupvalue) ? count($this->columnCalcs) : 0;
+		$this->columnPivots = array_fill(0, $this->calcscount, 0);
+		$this->columnCounts = array_fill(0, $this->calcscount, 0);
+		for ($ic = 0; $ic < $this->calcscount; $ic++) {
+			$item = $this->columnCalcs[$ic];
 			if (is_array($item)) {
-				$this->_columnValues[$z] = $item[0];
+				$this->columnCalcs[$ic] = $item[0];
 				if ($item[1] == 'count') {
-					$this->_columnCounts[$z] = 1;
+					$this->columnCounts[$ic] = 1;
 				} elseif (is_callable($item[1], false, $callable_name)) {
 					if ($callable_name) {
-						$this->_columnPivots[$z] = $callable_name;
+						$this->columnPivots[$ic] = $callable_name;
 					} else {
-						$this->_columnPivots[$z] = $item[1]; //anonymous?
+						$this->columnPivots[$ic] = $item[1]; //anonymous?
 					}
 				}
 			}
 		}
-		$this->_lineTotal = $linetotal;
-		$this->_pivotTotal = $pivottotal;
-		$this->_fullTotal = $fulltotal;
-		$this->_typeMark = $showtype;
-		$this->_totalName = $total;
-		$this->_typeName = $type;
+		$this->typeMark = $showtype;
+		$this->lineTotal = $linetotal;
+		$this->pivotTotal = $pivottotal;
+		$this->fullTotal = $fulltotal;
+		$this->totalName = $total;
+		$this->typeName = $type;
+	}
+
+	/*
+	Sub-class this
+	*/
+	protected function parse()
+	{
+/*		$parsed = $parsedCount = array();
+		$split  = $this->column[0];
+		$column = (!empty($this->column[1])) ? $this->column[1] : null; //CHECKME column[0] ?
+
+		foreach ($this->recordset as $row) {
+			switch ($this->pivotscount) {
+				case 1:
+					$k0 = $row[$this->pivotOn[0]];
+					for ($ic = 0; $ic < $this->calcscount; $ic++) {
+						if ($this->columnPivots[$ic]) {
+							break;
+						}
+						if ($column) {
+							$k = $this->columnCalcs[$ic];
+							if ($this->columnCounts[$ic]) {
+								$parsedCount[$k0][$row[$split]][$row[$column]][$k]++;
+							}
+							$parsed[$k0][$row[$split]][$row[$column]][$k] += $row[$k];
+							$this->splits[$row[$split]][$row[$column]][$k] = $k;
+						} else {
+							$k = 'TODO';
+						}
+					}
+					break;
+				case 2:
+					$k0 = $row[$this->pivotOn[0]];
+					$k1 = $row[$this->pivotOn[1]];
+					for ($ic = 0; $ic < $this->calcscount; $ic++) {
+						if ($this->columnPivots[$ic]) {
+							break;
+						}
+						if ($column) {
+							$k = $this->columnCalcs[$ic];
+							if ($this->columnCounts[$ic]) {
+								$parsedCount[$k0][$k1][$row[$split]][$row[$column]][$k] ++;
+							}
+							$parsed[$k0][$k1][$row[$split]][$row[$column]][$k] += $row[$k];
+							$this->splits[$row[$split]][$row[$column]][$k] = $k;
+						} else {
+							$k = 'TODO';
+						}
+					}
+					break;
+				case 3:
+					$k0 = $row[$this->pivotOn[0]];
+					$k1 = $row[$this->pivotOn[1]];
+					$k2 = $row[$this->pivotOn[2]];
+					for ($ic = 0; $ic < $this->calcscount; $ic++) {
+						if ($this->columnPivots[$ic]) {
+							break;
+						}
+						if ($column) {
+							$k = $this->columnCalcs[$ic];
+							if ($this->columnCounts[$ic]) {
+								$parsedCount[$k0][$k1][$k2][$row[$split]][$row[$column]][$k] ++;
+							}
+							$parsed[$k0][$k1][$k2][$row[$split]][$row[$column]][$k] += $row[$k];
+							$this->splits[$row[$split]][$row[$column]][$k] = $k;
+						} else {
+							$k = 'TODO';
+						}
+					}
+					break;
+			}
+		}
+		return array($parsed,$parsedCount);
+*/
+	}
+
+	/*
+	Sub-class this
+	*/
+	protected function build($parsed, $parsedCount, $subtitle, $tpl, &$fullTotal, &$out)
+	{
+/*
+		$ir = 0;
+
+		switch ($this->pivotscount) {
+			case 1:
+				foreach ($parsed as $p0 => $p0Values) {
+					$_out = $_lineTotal = array();
+					$_out[self::ID] = ++$ir;
+					if ($this->typeMark) {
+						$_out[$this->typelName] = self::TYPE_LINE;
+					}
+
+					$_out[$this->pivotOn[0]] = $p0;
+
+					foreach (array_keys($this->splits) as $split) {
+						$cols = $p0Values[$split];
+
+						foreach (array_keys($this->splits[$split]) as $col) {
+							$colValues = $cols[$col];
+							for ($ic = 0; $ic < $this->calcscount; $ic++) {
+								$k = $this->columnCalcs[$ic];
+								$t = sprintf($tpl, $split, $col, $k);
+								if ($this->columnPivots[$ic]) {
+									$value = call_user_func($this->columnPivots[$ic], $colValues);
+								} elseif ($this->columnCounts[$ic]) {
+									$value = $parsedCount[$p0][$split][$col][$k];
+								} else {
+									$value = $colValues[$k];
+								}
+								$_out[$t] = $value;
+								if ($this->lineTotal) {
+									$_lineTotal[$k] += $value;
+								}
+								if ($this->fullTotal) {
+									$fullTotal[$split][$col][$k] += $value;
+								}
+							}
+						}
+					}
+					if ($this->lineTotal) {
+						for ($ic = 0; $ic < $this->calcscount; $ic++) {
+							$k = $this->columnCalcs[$ic];
+							$t = $subtitle . $k;
+							if ($this->columnPivots[$ic]) {
+								$_out[$t] = call_user_func($this->columnPivots[$ic], $_lineTotal);
+							} else {
+								$_out[$t] = $_lineTotal[$k];
+							}
+						}
+					}
+					$out[] = $_out;
+				}
+				break;
+			case 2:
+				foreach ($parsed as $p0 => $p0Values) {
+					$p0Total = array();
+					foreach ($p0Values as $p1 => $p1Values) {
+						$_out = $_lineTotal = array();
+						$_out[self::ID] = ++$ir;
+						if ($this->typeMark) {
+							$_out[$this->typelName] = self::TYPE_LINE;
+						}
+						$_out[$this->pivotOn[0]] = $p0;
+						$_out[$this->pivotOn[1]] = $p1;
+
+						foreach (array_keys($this->splits) as $split) {
+							$cols = $p1Values[$split];
+
+							foreach (array_keys($this->splits[$split]) as $col) {
+								$colValues = $cols[$col];
+								for ($ic = 0; $ic < $this->calcscount; $ic++) {
+									$k = $this->columnCalcs[$ic];
+									$t = sprintf($tpl, $split, $col, $k);
+									if ($this->columnPivots[$ic]) {
+										$value = call_user_func($this->columnPivots[$ic], $colValues);
+									} elseif ($this->columnCounts[$ic]) {
+										$value = $parsedCount[$p0][$p1][$split][$col][$k];
+									} else {
+										$value = $colValues[$k];
+									}
+									$_out[$t] = $value;
+									if ($this->lineTotal) {
+										$_lineTotal[$k] += $value;
+									}
+									if ($this->pivotTotal) {
+										$p0Total[$split][$col][$k] += $value;
+									}
+									if ($this->fullTotal) {
+										$fullTotal[$split][$col][$k] += $value;
+									}
+								}
+							}
+						}
+						if ($this->lineTotal) {
+							for ($ic = 0; $ic < $this->calcscount; $ic++) {
+								$k = $this->columnCalcs[$ic];
+								$t = $subtitle . $k;
+								if ($this->columnPivots[$ic]) {
+									$_out[$t] = call_user_func($this->columnPivots[$ic], $_lineTotal);
+								} else {
+									$_out[$t] = $_lineTotal[$k];
+								}
+							}
+						}
+						$out[] = $_out;
+					}
+					if ($this->pivotTotal) {
+						$_out = $_lineTotal = array();
+						$_out[self::ID] = ++$ir;
+						if ($this->typeMark) {
+							$_out[$this->typelName] = self::TYPE_PIVOT_TOTAL_LEVEL1;
+						}
+						for ($ip = 0; $ip < $this->pivotscount; $ip++) {
+							$pivotOn = $this->pivotOn[$ip];
+							if ($ip == 0) {
+								$_out[$pivotOn] = $this->totalName . " ({$pivotOn})";
+							} else {
+								$_out[$pivotOn] = null;
+							}
+						}
+						foreach ($p0Total as $split => $values) {
+							foreach ($values as $col => $colValues) {
+								for ($ic = 0; $ic < $this->calcscount; $ic++) {
+									$k = $this->columnCalcs[$ic];
+									$t = sprintf($tpl, $split, $col, $k);
+									if ($this->columnPivots[$ic]) {
+										$value = call_user_func($this->columnPivots[$ic], $p0Total[$split][$col]);
+									} else {
+										$value = $p0Total[$split][$col][$k];
+									}
+									$_out[$t] = $value;
+									$_lineTotal[$k] += $value;
+								}
+							}
+						}
+						if ($this->lineTotal) {
+							for ($ic = 0; $ic < $this->calcscount; $ic++) {
+								$k = $this->columnCalcs[$ic];
+								$t = $subtitle . $k;
+								if ($this->columnPivots[$ic]) {
+									$_out[$t] = call_user_func($this->columnPivots[$ic], $_lineTotal);
+								} else {
+									$_out[$t] = $_lineTotal[$k];
+								}
+							}
+						}
+						$out[] = $_out;
+					}
+				}
+				break;
+			case 3:
+				foreach ($parsed as $p0 => $p0Values) {
+					$p0Total = array();
+					foreach ($p0Values as $p1 => $p1Values) {
+						foreach ($p1Values as $p2 => $p2Values) {
+							$_out = $_lineTotal = array();
+							$_out[self::ID] = ++$ir;
+							if ($this->typeMark) {
+								$_out[$this->typelName] = self::TYPE_LINE;
+							}
+							$_out[$this->pivotOn[0]] = $p0;
+							$_out[$this->pivotOn[1]] = $p1;
+							$_out[$this->pivotOn[2]] = $p2;
+
+							foreach (array_keys($this->splits) as $split) {
+								$cols = $p2Values[$split];
+
+								foreach (array_keys($this->splits[$split]) as $col) {
+									$colValues = $cols[$col];
+									for ($ic = 0; $ic < $this->calcscount; $ic++) {
+										$k = $this->columnCalcs[$ic];
+										$t = sprintf($tpl, $split, $col, $k);
+										if ($this->columnPivots[$ic]) {
+											$value = call_user_func($this->columnPivots[$ic], $colValues);
+										} elseif ($this->columnCounts[$ic]) {
+											$value = $parsedCount[$p0][$p1][$p2][$split][$col][$k];
+										} else {
+											$value = $colValues[$k];
+										}
+										$_out[$t] = $value;
+										if ($this->lineTotal) {
+											$_lineTotal[$k] += $value;
+										}
+										if ($this->pivotTotal) {
+											$p0Total[$split][$col][$k] += $value;
+											$p1Total[$split][$col][$k] += $value;
+										}
+										if ($this->fullTotal) {
+											$fullTotal[$split][$col][$k] += $value;
+										}
+									}
+								}
+							}
+							if ($this->lineTotal) {
+								for ($ic = 0; $ic < $this->calcscount; $ic++) {
+									$k = $this->columnCalcs[$ic];
+									$t = $subtitle . $k;
+									if ($this->columnPivots[$ic]) {
+										$_out[$t] = call_user_func($this->columnPivots[$ic], $_lineTotal);
+									} else {
+										$_out[$t] = $_lineTotal[$k];
+									}
+								}
+							}
+							$out[] = $_out;
+						}
+					}
+					if ($this->pivotTotal) {
+						$_out = $_lineTotal = array();
+						$_out[self::ID] = ++$ir;
+						if ($this->typeMark) {
+							$_out[$this->typelName] = self::TYPE_PIVOT_TOTAL_LEVEL2;
+						}
+						for ($ip = 0; $ip < $this->pivotscount; $ip++) {
+							$pivotOn = $this->pivotOn[$ip];
+							if ($ip == 0) {
+								$_out[$pivotOn] = $this->totalName . " ({$pivotOn})";
+							} else {
+								$_out[$pivotOn] = null;
+							}
+						}
+						foreach ($p0Total as $split => $values) {
+							foreach ($values as $col => $colValues) {
+								for ($ic = 0; $ic < $this->calcscount; $ic++) {
+									$k = $this->columnCalcs[$ic];
+									$t = sprintf($tpl, $split, $col, $k);
+									if ($this->columnPivots[$ic]) {
+										$value = call_user_func($this->columnPivots[$ic], $p0Total[$split][$col]);
+									} else {
+										$value = $p0Total[$split][$col][$k];
+									}
+									$_out[$t] = $value;
+									$_lineTotal[$k] += $value;
+								}
+							}
+						}
+						if ($this->lineTotal) {
+							for ($ic = 0; $ic < $this->calcscount; $ic++) {
+								$k = $this->columnCalcs[$ic];
+								$t = $subtitle . $k;
+								if ($this->columnPivots[$ic]) {
+									$_out[$t] = call_user_func($this->columnPivots[$ic], $_lineTotal);
+								} else {
+									$_out[$t] = $_lineTotal[$k];
+								}
+							}
+						}
+						$out[] = $_out;
+					}
+
+					if ($this->pivotTotal) {
+						$_out = $_lineTotal = array();
+						$_out[self::ID] = ++$ir;
+						if ($this->typeMark) {
+							$_out[$this->typelName] = self::TYPE_PIVOT_TOTAL_LEVEL1;
+						}
+						for ($ip = 0; $ip < $this->pivotscount; $ip++) {
+							$pivotOn = $this->pivotOn[$ip];
+							if ($ip == 0) {
+								$_out[$pivotOn] = $this->totalName . " ({$pivotOn}, {$this->pivotOn[1]})";
+							} else {
+								$_out[$pivotOn] = null;
+							}
+						}
+						foreach ($p1Total as $split => $values) {
+							foreach ($values as $col => $colValues) {
+								for ($ic = 0; $ic < $this->calcscount; $ic++) {
+									$k = $this->columnCalcs[$ic];
+									$t = sprintf($tpl, $split, $col, $k);
+									if ($this->columnPivots[$ic]) {
+										$value = call_user_func($this->columnPivots[$ic], $p1Total[$split][$col]);
+									} else {
+										$value = $p1Total[$split][$col][$k];
+									}
+									$_out[$t] = $value;
+									$_lineTotal[$k] += $value;
+								}
+							}
+						}
+						if ($this->lineTotal) {
+							for ($ic = 0; $ic < $this->calcscount; $ic++) {
+								$k = $this->columnCalcs[$ic];
+								$t = $subtitle . $k;
+								if ($this->columnPivots[$ic]) {
+									$_out[$t] = call_user_func($this->columnPivots[$ic], $_lineTotal);
+								} else {
+									$_out[$t] = $_lineTotal[$k];
+								}
+							}
+						}
+						$out[] = $_out;
+					}
+				}
+				break;
+		}
+		return $ir;
+*/
 	}
 
 	/**
@@ -92,401 +469,53 @@ class Pivot
 	 */
 	public function fetch($fetchType = 0)
 	{
-		$tmp = $tmpCount = array();
-		$split  = $this->_column[0];
-		$column = (!empty($this->_column[1])) ? $this->_column[1] : null; //CHECKME column[0] ?
+		list($parsed, $parsedCount) = $this->parse();
 
-		foreach ($this->_recordset as $reg) {
-			switch ($this->_pivotcount) {
-				case 1:
-					$k0 = $reg[$this->_pivotOn[0]];
-					for ($z = 0; $z < $this->_colvalcount; $z++) {
-						if ($this->_columnPivots[$z]) {
-							break;
-						}
-						if ($column) {
-							$k = $this->_columnValues[$z];
-							if ($this->_columnCounts[$z]) {
-								$tmpCount[$k0][$reg[$split]][$reg[$column]][$k]++;
-							}
-							$tmp[$k0][$reg[$split]][$reg[$column]][$k] += $reg[$k];
-							$this->_splits[$reg[$split]][$reg[$column]][$k] = $k;
-						} else {
-							$k = 'TODO';
-						}
-					}
-					break;
-				case 2:
-					$k0 = $reg[$this->_pivotOn[0]];
-					$k1 = $reg[$this->_pivotOn[1]];
-					for ($z = 0; $z < $this->_colvalcount; $z++) {
-						if ($this->_columnPivots[$z]) {
-							break;
-						}
-						if ($column) {
-							$k = $this->_columnValues[$z];
-							if ($this->_columnCounts[$z]) {
-								$tmpCount[$k0][$k1][$reg[$split]][$reg[$column]][$k] ++;
-							}
-							$tmp[$k0][$k1][$reg[$split]][$reg[$column]][$k] += $reg[$k];
-							$this->_splits[$reg[$split]][$reg[$column]][$k] = $k;
-						} else {
-							$k = 'TODO';
-						}
-					}
-					break;
-				case 3:
-					$k0 = $reg[$this->_pivotOn[0]];
-					$k1 = $reg[$this->_pivotOn[1]];
-					$k2 = $reg[$this->_pivotOn[2]];
-					for ($z = 0; $z < $this->_colvalcount; $z++) {
-						if ($this->_columnPivots[$z]) {
-							break;
-						}
-						if ($column) {
-							$k = $this->_columnValues[$z];
-							if ($this->_columnCounts[$z]) {
-								$tmpCount[$k0][$k1][$k2][$reg[$split]][$reg[$column]][$k] ++;
-							}
-							$tmp[$k0][$k1][$k2][$reg[$split]][$reg[$column]][$k] += $reg[$k];
-							$this->_splits[$reg[$split]][$reg[$column]][$k] = $k;
-						} else {
-							$k = 'TODO';
-						}
-					}
-					break;
-			}
-		}
-		// build output
+		$subtitle = $this->totalName . self::SEP;
+		$tpl = '%s'.self::SEP.'%s'.self::SEP.'%s';
+		$fullTotal = array();
 		$out = array();
-		$cont = 0;
-		$fullTotal  = array();
-		$title2 = $this->_totalName . '::';
-		switch ($this->_pivotcount) {
-			case 1:
-				foreach ($tmp as $p0 => $p0Values) {
-					$_out = $_lineTotal = array();
-					$_out[self::ID] = ++$cont;
-					if ($this->_typeMark) {
-						$_out[$this->_typelName] = self::TYPE_LINE;
-					}
 
-					$_out[$this->_pivotOn[0]] = $p0;
+		$ir = $this->build($parsed, $parsedCount, $subtitle, $tpl, $fullTotal, $out);
 
-					foreach (array_keys($this->_splits) as $split) {
-						$cols = $p0Values[$split];
-
-						foreach (array_keys($this->_splits[$split]) as $col) {
-							$colValues = $cols[$col];
-							for ($z = 0; $z < $this->_colvalcount; $z++) {
-								$k = $this->_columnValues[$z];
-								if ($this->_columnPivots[$z]) {
-									$value = call_user_func($this->_columnPivots[$z], $colValues);
-								} elseif ($this->_columnCounts[$z]) {
-									$value = $tmpCount[$p0][$split][$col][$k];
-								} else {
-									$value = $colValues[$k];
-								}
-
-								$_out["{$split}::{$col}::{$k}"] = $value;
-								if ($this->_lineTotal) {
-									$_lineTotal[$k] += $value;
-								}
-								if ($this->_fullTotal) {
-									$fullTotal[$split][$col][$k] += $value;
-								}
-							}
-						}
-					}
-					if ($this->_lineTotal) {
-						for ($z = 0; $z < $this->_colvalcount; $z++) {
-							$k = $this->_columnValues[$z];
-							if ($this->_columnPivots[$z]) {
-								$value = call_user_func($this->_columnPivots[$z], $_lineTotal);
-							} else {
-								$value = $_lineTotal[$k];
-							}
-							$_out[$title2 . $k] = $value;
-						}
-					}
-					$out[] = $_out;
-				}
-				break;
-			case 2:
-				foreach ($tmp as $p0 => $p0Values) {
-					$p0Total  = array();
-					foreach ($p0Values as $p1 => $p1Values) {
-						$_out = $_lineTotal = array();
-						$_out[self::ID] = ++$cont;
-						if ($this->_typeMark) {
-							$_out[$this->_typelName] = self::TYPE_LINE;
-						}
-						$_out[$this->_pivotOn[0]] = $p0;
-						$_out[$this->_pivotOn[1]] = $p1;
-
-						foreach (array_keys($this->_splits) as $split) {
-							$cols = $p1Values[$split];
-
-							foreach (array_keys($this->_splits[$split]) as $col) {
-								$colValues = $cols[$col];
-								for ($z = 0; $z < $this->_colvalcount; $z++) {
-									$k = $this->_columnValues[$z];
-									if ($this->_columnPivots[$z]) {
-										$value = call_user_func($this->_columnPivots[$z], $colValues);
-									} elseif ($this->_columnCounts[$z]) {
-										$value = $tmpCount[$p0][$p1][$split][$col][$k];
-									} else {
-										$value = $colValues[$k];
-									}
-									$_out["{$split}::{$col}::{$k}"] = $value;
-									if ($this->_lineTotal) {
-										$_lineTotal[$k] += $value;
-									}
-									if ($this->_pivotTotal) {
-										$p0Total[$split][$col][$k] += $value;
-									}
-									if ($this->_fullTotal) {
-										$fullTotal[$split][$col][$k] += $value;
-									}
-								}
-							}
-						}
-						if ($this->_lineTotal) {
-							for ($z = 0; $z < $this->_colvalcount; $z++) {
-								$k = $this->_columnValues[$z];
-								if ($this->_columnPivots[$z]) {
-									$value = call_user_func($this->_columnPivots[$z], $_lineTotal);
-								} else {
-									$value = $_lineTotal[$k];
-								}
-								$_out[$title2 . $k] = $value;
-							}
-						}
-						$out[] = $_out;
-					}
-					if ($this->_pivotTotal) {
-						$_out = $_lineTotal = array();
-						$_out[self::ID] = ++$cont;
-						if ($this->_typeMark) {
-							$_out[$this->_typelName] = self::TYPE_PIVOT_TOTAL_LEVEL1;
-						}
-						for ($i = 0; $i < $this->_pivotcount; $i++) {
-							$pivotOn = $this->_pivotOn[$i];
-							if ($i == 0) {
-								$_out[$pivotOn] = $this->_totalName . " ({$pivotOn})";
-							} else {
-								$_out[$pivotOn] = null;
-							}
-						}
-						foreach ($p0Total as $split => $values) {
-							foreach ($values as $col => $colValues) {
-								for ($z = 0; $z < $this->_colvalcount; $z++) {
-									$k = $this->_columnValues[$z];
-									if ($this->_columnPivots[$z]) {
-										$value = call_user_func($this->_columnPivots[$z], $p0Total[$split][$col]);
-									} else {
-										$value = $p0Total[$split][$col][$k];
-									}
-									$_out["{$split}::{$col}::{$k}"] = $value;
-									$_lineTotal[$k] += $value;
-								}
-							}
-						}
-						if ($this->_lineTotal) {
-							for ($z = 0; $z < $this->_colvalcount; $z++) {
-								$k = $this->_columnValues[$z];
-								if ($this->_columnPivots[$z]) {
-									$value = call_user_func($this->_columnPivots[$z], $_lineTotal);
-								} else {
-									$value = $_lineTotal[$k];
-								}
-								$_out[$title2 . $k] = $_lineTotal[$k];
-							}
-						}
-						$out[] = $_out;
-					}
-				}
-				break;
-			case 3:
-				foreach ($tmp as $p0 => $p0Values) {
-					$p0Total  = array();
-					foreach ($p0Values as $p1 => $p1Values) {
-						foreach ($p1Values as $p2 => $p2Values) {
-							$_out = $_lineTotal = array();
-							$_out[self::ID] = ++$cont;
-							if ($this->_typeMark) {
-								$_out[$this->_typelName] = self::TYPE_LINE;
-							}
-							$_out[$this->_pivotOn[0]] = $p0;
-							$_out[$this->_pivotOn[1]] = $p1;
-							$_out[$this->_pivotOn[2]] = $p2;
-
-							foreach (array_keys($this->_splits) as $split) {
-								$cols = $p2Values[$split];
-
-								foreach (array_keys($this->_splits[$split]) as $col) {
-									$colValues = $cols[$col];
-									for ($z = 0; $z < $this->_colvalcount; $z++) {
-										$k = $this->_columnValues[$z];
-										if ($this->_columnPivots[$z]) {
-											$value = call_user_func($this->_columnPivots[$z], $colValues);
-										} elseif ($this->_columnCounts[$z]) {
-											$value = $tmpCount[$p0][$p1][$p2][$split][$col][$k];
-										} else {
-											$value = $colValues[$k];
-										}
-										$_out["{$split}::{$col}::{$k}"] = $value;
-										if ($this->_lineTotal) {
-											$_lineTotal[$k] += $value;
-										}
-										if ($this->_pivotTotal) {
-											$p0Total[$split][$col][$k] += $value;
-											$p1Total[$split][$col][$k] += $value;
-										}
-										if ($this->_fullTotal) {
-											$fullTotal[$split][$col][$k] += $value;
-										}
-									}
-								}
-							}
-							if ($this->_lineTotal) {
-								for ($z = 0; $z < $this->_colvalcount; $z++) {
-									$k = $this->_columnValues[$z];
-									if ($this->_columnPivots[$z]) {
-										$value = call_user_func($this->_columnPivots[$z], $_lineTotal);
-									} else {
-										$value = $_lineTotal[$k];
-									}
-									$_out[$title2 . $k] = $value;
-								}
-							}
-							$out[] = $_out;
-						}
-					}
-					if ($this->_pivotTotal) {
-						$_out = $_lineTotal = array();
-						$_out[self::ID] = ++$cont;
-						if ($this->_typeMark) {
-							$_out[$this->_typelName] = self::TYPE_PIVOT_TOTAL_LEVEL2;
-						}
-						for ($i = 0; $i < $this->_pivotcount; $i++) {
-							$pivotOn = $this->_pivotOn[$i];
-							if ($i == 0) {
-								$_out[$pivotOn] = $this->_totalName . " ({$pivotOn})";
-							} else {
-								$_out[$pivotOn] = null;
-							}
-						}
-						foreach ($p0Total as $split => $values) {
-							foreach ($values as $col => $colValues) {
-								for ($z = 0; $z < $this->_colvalcount; $z++) {
-									$k = $this->_columnValues[$z];
-									if ($this->_columnPivots[$z]) {
-										$value = call_user_func($this->_columnPivots[$z], $p0Total[$split][$col]);
-									} else {
-										$value = $p0Total[$split][$col][$k];
-									}
-									$_out["{$split}::{$col}::{$k}"] = $value;
-									$_lineTotal[$k] += $value;
-								}
-							}
-						}
-						if ($this->_lineTotal) {
-							for ($z = 0; $z < $this->_colvalcount; $z++) {
-								$k = $this->_columnValues[$z];
-								if ($this->_columnPivots[$z]) {
-									$value = call_user_func($this->_columnPivots[$z], $_lineTotal);
-								} else {
-									$value = $_lineTotal[$k];
-								}
-								$_out[$title2 . $k] = $value;
-							}
-						}
-						$out[] = $_out;
-					}
-
-					if ($this->_pivotTotal) {
-						$_out = $_lineTotal = array();
-						$_out[self::ID] = ++$cont;
-						if ($this->_typeMark) {
-							$_out[$this->_typelName] = self::TYPE_PIVOT_TOTAL_LEVEL1;
-						}
-						for ($i = 0; $i < $this->_pivotcount; $i++) {
-							$pivotOn = $this->_pivotOn[$i];
-							if ($i == 0) {
-								$_out[$pivotOn] = $this->_totalName . " ({$pivotOn}, {$this->_pivotOn[1]})";
-							} else {
-								$_out[$pivotOn] = null;
-							}
-						}
-						foreach ($p1Total as $split => $values) {
-							foreach ($values as $col => $colValues) {
-								for ($z = 0; $z < $this->_colvalcount; $z++) {
-									$k = $this->_columnValues[$z];
-									if ($this->_columnPivots[$z]) {
-										$value = call_user_func($this->_columnPivots[$z], $p1Total[$split][$col]);
-									} else {
-										$value = $p1Total[$split][$col][$k];
-									}
-									$_out["{$split}::{$col}::{$k}"] = $value;
-									$_lineTotal[$k] += $value;
-								}
-							}
-						}
-						if ($this->_lineTotal) {
-							for ($z = 0; $z < $this->_colvalcount; $z++) {
-								$k = $this->_columnValues[$z];
-								if ($this->_columnPivots[$z]) {
-									$value = call_user_func($this->_columnPivots[$z], $_lineTotal);
-								} else {
-									$value = $_lineTotal[$k];
-								}
-								$_out[$title2 . $k] = $value;
-							}
-						}
-						$out[] = $_out;
-					}
-				}
-				break;
-		}
-
-		if ($this->_fullTotal) {
+		if ($this->fullTotal) {
 			$_out = $_lineTotal = array();
-			$_out[self::ID] = ++$cont;
-			if ($this->_typeMark) {
-				$_out[$this->_typelName] = self::TYPE_FULL_TOTAL;
+			$_out[self::ID] = ++$ir;
+			if ($this->typeMark) {
+				$_out[$this->typelName] = self::TYPE_FULL_TOTAL;
 			}
-			for ($i = 0; $i < $this->_pivotcount; $i++) {
-				$pivotOn = $this->_pivotOn[$i];
-				if ($i == 0) {
-					$_out[$pivotOn] = $this->_totalName;
+			for ($ip = 0; $ip < $this->pivotscount; $ip++) {
+				$pivotOn = $this->pivotOn[$ip];
+				if ($ip == 0) {
+					$_out[$pivotOn] = $this->totalName;
 				} else {
 					$_out[$pivotOn] = null;
 				}
 			}
 			foreach ($fullTotal as $split => $values) {
 				foreach ($values as $col => $colValues) {
-					for ($z = 0; $z < $this->_colvalcount; $z++) {
-						$k = $this->_columnValues[$z];
-						if ($this->_columnPivots[$z]) {
-							$value = call_user_func($this->_columnPivots[$z], $fullTotal[$split][$col]);
+					for ($ic = 0; $ic < $this->calcscount; $ic++) {
+						$k = $this->columnCalcs[$ic];
+						$t = sprintf($tpl, $split, $col, $k);
+						if ($this->columnPivots[$ic]) {
+							$value = call_user_func($this->columnPivots[$ic], $fullTotal[$split][$col]);
 						} else {
 							$value = $fullTotal[$split][$col][$k];
 						}
-						$_out["{$split}::{$col}::{$k}"] = $value;
+						$_out[$t] = $value;
 						$_lineTotal[$k] += $value;
 					}
 				}
 			}
-			if ($this->_lineTotal) {
-				for ($z = 0; $z < $this->_colvalcount; $z++) {
-					$k = $this->_columnValues[$z];
-					if ($this->_columnPivots[$z]) {
-						$value = call_user_func($this->_columnPivots[$z], $_lineTotal);
+			if ($this->lineTotal) {
+				for ($ic = 0; $ic < $this->calcscount; $ic++) {
+					$k = $this->columnCalcs[$ic];
+					$t = $subtitle . $k;
+					if ($this->columnPivots[$ic]) {
+						$_out[$t] = call_user_func($this->columnPivots[$ic], $_lineTotal);
 					} else {
-						$value = $_lineTotal[$k];
+						$_out[$t] = $_lineTotal[$k];
 					}
-					$_out[$title2 . $k] = $value;
 				}
 			}
 			$out[] = $_out;
@@ -494,7 +523,7 @@ class Pivot
 
 		if ($out && $fetchType == self::FETCH_STRUCT) {
 			return array(
-				'splits' => $this->_splits,
+				'splits' => $this->splits,
 				'data' => array_map('array_values', $out),
 			);
 		}
