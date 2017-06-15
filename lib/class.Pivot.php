@@ -1,7 +1,7 @@
 <?php
 /**
  * Pivot tables with PHP
- * https://github.com/gonzalo123/gam-pivot
+ * Adapted from sources at https://github.com/gonzalo123/gam-pivot
  *
  * THIS PROGRAM COMES WITH ABSOLUTELY NO WARANTIES !
  * USE IT AT YOUR OWN RISKS !
@@ -13,7 +13,7 @@ namespace Booker;
 
 class Pivot
 {
-	const _ID = '_id';
+	const ID = '_id';
 	const FETCH_STRUCT = 1;
 	const TYPE_LINE = 0;
 	const TYPE_PIVOT_TOTAL_LEVEL1 = 1;
@@ -35,15 +35,6 @@ class Pivot
 	{
 		$this->_recordset = $recordset;
 		$this->_totalName = $title;
-	}
-
-	/**
-	 * @param struct $recordset
-	 * @return Pivot
-	 */
-	public static function factory($recordset)
-	{
-		return new self($recordset);
 	}
 
 	/**
@@ -110,7 +101,7 @@ class Pivot
 
 	/**
 	 * @param optional int FETCH_* $fetchtype default 0
-	 * @return array
+	 * @return associative array
 	 */
 	public function fetch($fetchType = 0)
 	{
@@ -169,12 +160,13 @@ class Pivot
 		$out = array();
 		$cont = 0;
 		$fullTotal  = array();
+		$title2 = $this->_totalName . ' :: ';
 		switch (count($this->_pivotOn)) {
 			case 1:
 				foreach ($tmp as $p0 => $p0Values) {
 					$i++;
 					$_out = $_lineTotal = array();
-					$_out[self::_ID] = ++$cont;
+					$_out[self::ID] = ++$cont;
 					if ($this->_typeMark) {
 						$_out['type'] = self::TYPE_LINE;
 					}
@@ -212,7 +204,7 @@ class Pivot
 							$k = ($_k instanceof Pivot_Callback || $_k instanceof Pivot_Count) ? $_k->getKey() : $_k;
 							$value = ($_k instanceof Pivot_Callback) ?
 								$_k->cbk($_lineTotal) : $_lineTotal[$k];
-							$_out[$this->_totalName . " :: {$k}"] = $value;
+							$_out[$title2 . $k] = $value;
 						}
 					}
 					$out[] = $_out;
@@ -223,7 +215,7 @@ class Pivot
 					$p0Total  = array();
 					foreach ($p0Values as $p1 => $p1Values) {
 						$_out = $_lineTotal = array();
-						$_out[self::_ID] = ++$cont;
+						$_out[self::ID] = ++$cont;
 						if ($this->_typeMark) {
 							$_out['type'] = self::TYPE_LINE;
 						}
@@ -262,14 +254,14 @@ class Pivot
 								$k = ($_k instanceof Pivot_Callback || $_k instanceof Pivot_Count) ? $_k->getKey() : $_k;
 								$value = ($_k instanceof Pivot_Callback) ?
 									$_k->cbk($_lineTotal) : $_lineTotal[$k];
-								$_out[$this->_totalName . " :: {$k}"] = $value;
+								$_out[$title2 . $k] = $value;
 							}
 						}
 						$out[] = $_out;
 					}
 					if ($this->_pivotTotal) {
 						$_out = $_lineTotal = array();
-						$_out[self::_ID] = ++$cont;
+						$_out[self::ID] = ++$cont;
 						if ($this->_typeMark) {
 							$_out['type'] = self::TYPE_PIVOT_TOTAL_LEVEL1;
 						}
@@ -298,7 +290,7 @@ class Pivot
 								$k = ($_k instanceof Pivot_Callback || $_k instanceof Pivot_Count) ? $_k->getKey() : $_k;
 								$value = ($_k instanceof Pivot_Callback) ?
 									$_k->cbk($_lineTotal) : $_lineTotal[$k];
-								$_out[$this->_totalName . " :: {$k}"] = $_lineTotal[$k];
+								$_out[$title2 . $k] = $_lineTotal[$k];
 							}
 						}
 						$out[] = $_out;
@@ -311,7 +303,7 @@ class Pivot
 					foreach ($p0Values as $p1 => $p1Values) {
 						foreach ($p1Values as $p2 => $p2Values) {
 							$_out = $_lineTotal = array();
-							$_out[self::_ID] = ++$cont;
+							$_out[self::ID] = ++$cont;
 							if ($this->_typeMark) {
 								$_out['type'] = self::TYPE_LINE;
 							}
@@ -352,7 +344,7 @@ class Pivot
 									$k = ($_k instanceof Pivot_Callback || $_k instanceof Pivot_Count) ? $_k->getKey() : $_k;
 									$value = ($_k instanceof Pivot_Callback) ?
 										$_k->cbk($_lineTotal) : $_lineTotal[$k];
-									$_out[$this->_totalName . "::{$k}"] = $value;
+									$_out[$title2 . $k] = $value;
 								}
 							}
 							$out[] = $_out;
@@ -360,7 +352,7 @@ class Pivot
 					}
 					if ($this->_pivotTotal) {
 						$_out = $_lineTotal = array();
-						$_out[self::_ID] = ++$cont;
+						$_out[self::ID] = ++$cont;
 						if ($this->_typeMark) {
 							$_out['type'] = self::TYPE_PIVOT_TOTAL_LEVEL2;
 						}
@@ -389,7 +381,7 @@ class Pivot
 								$k = ($_k instanceof Pivot_Callback || $_k instanceof Pivot_Count) ? $_k->getKey() : $_k;
 								$value = ($_k instanceof Pivot_Callback) ?
 									$_k->cbk($_lineTotal) : $_lineTotal[$k];
-								$_out[$this->_totalName . " :: {$k}"] = $value;
+								$_out[$title2 . $k] = $value;
 							}
 						}
 						$out[] = $_out;
@@ -397,7 +389,7 @@ class Pivot
 
 					if ($this->_pivotTotal) {
 						$_out = $_lineTotal = array();
-						$_out[self::_ID] = ++$cont;
+						$_out[self::ID] = ++$cont;
 						if ($this->_typeMark) {
 							$_out['type'] = self::TYPE_PIVOT_TOTAL_LEVEL1;
 						}
@@ -426,7 +418,7 @@ class Pivot
 								$k = ($_k instanceof Pivot_Callback || $_k instanceof Pivot_Count) ? $_k->getKey() : $_k;
 								$value = ($_k instanceof Pivot_Callback) ?
 									$_k->cbk($_lineTotal) : $_lineTotal[$k];
-								$_out[$this->_totalName . " :: {$k}"] = $value;
+								$_out[$title2 . $k] = $value;
 							}
 						}
 						$out[] = $_out;
@@ -436,7 +428,7 @@ class Pivot
 		}
 		if ($this->_fullTotal) {
 			$_out = $_lineTotal = array();
-			$_out[self::_ID] = ++$cont;
+			$_out[self::ID] = ++$cont;
 			if ($this->_typeMark) {
 				$_out['type'] = self::TYPE_FULL_TOTAL;
 			}
@@ -464,7 +456,7 @@ class Pivot
 				foreach ($this->_columnValues as $_k) {
 					$k = ($_k instanceof Pivot_Callback || $_k instanceof Pivot_Count) ? $_k->getKey() : $_k;
 					$value = ($_k instanceof Pivot_Callback) ? $_k->cbk($_lineTotal) : $_lineTotal[$k];
-					$_out[$this->_totalName . " :: {$k}"] = $value;
+					$_out[$title2 . $k] = $value;
 				}
 			}
 			$out[] = $_out;
