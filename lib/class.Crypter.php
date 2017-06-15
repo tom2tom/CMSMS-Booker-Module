@@ -52,13 +52,14 @@ class Crypter Extends Encryption
 
 	/**
 	encrypt_value:
-	@value: string to encrypted, may be empty
+	@value: value to encrypted, may be empty string
 	@pw: optional password string, default FALSE (meaning use the module-default)
 	@based: optional boolean, whether to base64_encode the encrypted value, default FALSE
 	Returns: encrypted @value, or just @value if it's empty
 	*/
 	public function encrypt_value($value, $pw=FALSE, $based=FALSE)
 	{
+		$value .= '';
 		if ($value) {
 			if (!$pw) {
 				$pw = self::decrypt_preference('masterpass');
@@ -78,7 +79,7 @@ class Crypter Extends Encryption
 	@value: string to decrypted, may be empty
 	@pw: optional password string, default FALSE (meaning use the module-default)
 	@based: optional boolean, whether @value is base64_encoded, default FALSE
-	Returns: decrypted @value, or just @value if it's empty
+	Returns: decrypted @value, or just @value if it's empty, or FALSE
 	*/
 	public function decrypt_value($value, $pw=FALSE, $based=FALSE)
 	{
@@ -94,5 +95,63 @@ class Crypter Extends Encryption
 			}
 		}
 		return $value;
+	}
+
+	/**
+	cloak_value:
+	@value: value to encrypted, may be empty string
+	@minsize: optional minimum byte-length of cloak, default FALSE (hence @value-length + 8)
+	@pw: optional password string, default FALSE (hence use the module-default)
+	@based: optional boolean, whether to base64_encode the encrypted value, default FALSE
+	Returns: encrypted @value
+	*/
+	public function cloak_value($value, $minsize=FALSE, $pw=FALSE, $based=FALSE)
+	{
+		$value .= '';
+		$lv = strlen($value);
+		$lc = $lv + 8;
+		if ($minsize != FALSE && $minsize > $lc) {
+			$lc = $minsize;
+		}
+		$cloak = openssl_random_pseudo_bytes($lc);
+		$c = chr(0);
+		$p = 1;
+		for ($i = 0; $i < $lc; $i++) {
+			if ($cloak[$i] === $c) {
+				$cloak[$i] = chr($p);
+				$p++;
+			}
+		}
+		$p = mt_rand(0, $lc - $lv - 3);
+		$cloak[$p++] = $c;
+		for ($i = 0; $i < $lv; $i++) {
+			$cloak[$p++] = $value[$i];
+		}
+		$cloak[$p] = $c;
+		return self::encrypt_value($cloak, $pw, $based);
+	}
+
+	/**
+	uncloak_value:
+	@value: string to decrypted, may be empty
+	@pw: optional password string, default FALSE (meaning use the module-default)
+	@based: optional boolean, whether @value is base64_encoded, default FALSE
+	Returns: decrypted @value (string), or FALSE
+	*/
+	public function uncloak_value($value, $pw=FALSE, $based=FALSE)
+	{
+		$cloak = self::decrypt_value($value, $pw, $based);
+		if ($cloak) {
+			$c = chr(0);
+			$p = strpos($cloak, $c);
+			if ($p !== FALSE) {
+				$p++;
+				$i = strpos($cloak, $c, $p);
+				if ($i !== FALSE) {
+					return substr($cloak, $p, $i - $p);
+				}
+			}
+		}
+		return FALSE;
 	}
 }
