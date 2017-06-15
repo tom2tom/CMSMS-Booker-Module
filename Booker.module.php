@@ -520,6 +520,7 @@ EOS;
 		 case 'setprefs':
 		 case 'swapgroups':
 		 case 'sortlike':
+		 case 'processreport':
 			break;
 		 case 'bookerbookings':
 		 case 'itembookings':
