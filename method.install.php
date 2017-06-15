@@ -330,10 +330,10 @@ payment credit table schema:
 $fields = '
 pay_id I(4) KEY,
 booker_id I(4),
-when I(8),
+updated I(8),
 status I(1) DEFAULT '.Booker::CREDITADDED.',
-first B,
-amount B
+original B,
+latest B
 ';
 $sqlarray = $dict->CreateTableSQL($this->PayTable, $fields, $taboptarray);
 if ($sqlarray == FALSE) {
