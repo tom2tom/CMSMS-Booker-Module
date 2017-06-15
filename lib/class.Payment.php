@@ -390,12 +390,13 @@ class Payment
 	public function TotalCredit(&$mod, $bookerid)
 	{
 		$amount = 0.0;
-		$sql = 'SELECT amount FROM '.$mod->PayTable.
+		$sql = 'SELECT latest FROM '.$mod->PayTable.
 		' WHERE booker_id=? AND status!='.\Booker::CREDITEXPIRED;
 		$data = $mod->dbHandle->GetCol($sql,array($bookerid));
 		if ($data) {
+			$funcs = new Crypter($mod);
 			foreach ($data as $one) {
-				$amount += (float)$one;
+				$amount += (float)$funcs->uncloak_value($one);
 			}
 		}
 		return $amount;
@@ -410,15 +411,17 @@ class Payment
 	public function AddCredit(&$mod, $bookerid, $amount)
 	{
 		if ($amount > 0.0) {
+			$funcs = new Crypter($mod);
 			$sql = 'INSERT INTO '.$mod->PayTable.
-' (pay_id,booker_id,when,first,amount) VALUES (?,?,?,?,?)';
+' (pay_id,booker_id,updated,original,latest) VALUES (?,?,?,?,?)';
 			$pid = $mod->dbHandle->GenID($mod->PayTable.'_seq');
+			$val = $funcs->cloak_value($amount,16);
 			$args = array(
 				$pid,
 				$bookerid,
 				time(),
-				$amount,
-				$amount
+				$val,
+				$val
 			);
 			//TODO $utils->SafeExec()
 			$mod->dbHandle->Execute($sql,$args);
@@ -434,29 +437,33 @@ class Payment
 	*/
 	public function UseCredit(&$mod, $bookerid, $amount)
 	{
-		$sql = 'SELECT pay_id,amount FROM '.$mod->PayTable.
-		' WHERE booker_id=? AND amount>0.0 AND status!='.\Booker::CREDITEXPIRED.' ORDER BY when';
+		$sql = 'SELECT pay_id,latest FROM '.$mod->PayTable.
+		' WHERE booker_id=? AND status!='.\Booker::CREDITEXPIRED.' ORDER BY updated';
 		$data = $mod->dbHandle->GetArray($sql,array($bookerid));
 		if ($data) {
 			if ($amount < 0) {
 				$amount = -$amount;
 			}
-			$sql1 = 'UPDATE '.$mod->PayTable.' SET amount=?,status='.\Booker::CREDITUSED.' WHERE pay_id=?';
-			$sql2 = 'UPDATE '.$mod->PayTable.' SET amount=? WHERE pay_id=?';
+			$funcs = new Crypter($mod);
+			$sql1 = 'UPDATE '.$mod->PayTable.' SET status='.\Booker::CREDITUSED.',latest=? WHERE pay_id=?';
+			$sql2 = 'UPDATE '.$mod->PayTable.' SET latest=? WHERE pay_id=?';
 			foreach ($data as $row) {
-				$now = (float)$row['amount'];
-				$amount -= $now;
-				if ($amount >= 0.01) {
-					$now = 0.0; //all used
-					$sql = $sql1;
-				} else { //$amount < 0.0 approx.
-					$now = -$amount;
-					$sql = $sql2;
-				}
-				//TODO build arrays, then $utils->SafeExec($sql[],$args[]);
-				$mod->dbHandle->Execute($sql,array($now,$row['pay_id']));
-				if ($amount < 0.01) {
-					break;
+				$now = (float)$funcs->uncloak_value($row['latest']);
+				if ($now > 0.01) {
+					$amount -= $now;
+					if ($amount >= 0.01) {
+						$now = 0.0; //all used
+						$sql = $sql1;
+					} else { //$amount < 0.0 approx.
+						$now = -$amount;
+						$sql = $sql2;
+					}
+					$latest = $funcs->cloak_value($now,16);
+					//TODO build arrays, then $utils->SafeExec($sql[],$args[]);
+					$mod->dbHandle->Execute($sql,array($latest,$row['pay_id']));
+					if ($amount < 0.01) {
+						break;
+					}
 				}
 			}
 			return TRUE;
@@ -476,16 +483,16 @@ class Payment
 		if (is_array($bookerid)) {
 			$fillers = str_repeat('?,', count($bookerid)-1);
 			$sql = 'UPDATE '.$mod->PayTable.' SET status='.\Booker::CREDITEXPIRED.
-			' WHERE booker_id IN('.$fillers.'?) AND status!='.\Booker::CREDITEXPIRED.' AND when<?';
+			' WHERE booker_id IN('.$fillers.'?) AND status!='.\Booker::CREDITEXPIRED.' AND updated<?';
 			$args = $bookerid;
 			array_push($args,$before);
 		} elseif ($bookerid == '*') {
 			$sql = 'UPDATE '.$mod->PayTable.' SET status='.\Booker::CREDITEXPIRED.
-			' WHERE status!='.\Booker::CREDITEXPIRED.' AND when<?';
+			' WHERE status!='.\Booker::CREDITEXPIRED.' AND updated<?';
 			$args = array($before);
 		} else {
 			$sql = 'UPDATE '.$mod->PayTable.' SET status='.\Booker::CREDITEXPIRED.
-			' WHERE booker_id=? AND status!='.\Booker::CREDITEXPIRED.' AND when<?';
+			' WHERE booker_id=? AND status!='.\Booker::CREDITEXPIRED.' AND updated<?';
 			$args = array($bookerid,$before);
 		}
 		//TODO $utils->SafeExec()
