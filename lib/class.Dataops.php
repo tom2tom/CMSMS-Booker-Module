@@ -1,24 +1,285 @@
 <?php
 #----------------------------------------------------------------------
 # Module: Booker - a resource booking module
-# Library file: Histops - functions for processing history data
+# Library file: Dataops - functions for processing bookings data
 #----------------------------------------------------------------------
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
 namespace Booker;
 
-class Histops
+class Dataops
 {
-	//TODO this file is mostly placeholder code
+	const BKGALL = 0;
+	const BKGFUTURE = 1;
+	const BKGPAST = 2;
+	const BKGFREE = 4;
+	const BKGUNPAID = 8;
+	const BKGPAID = 16;
+	const BKGONCE = 32;
+	const BKGREPT = 64;
+	const BKGSINGL = 128;
+	const BKGGROUP = 256;
+	const BKGITEM = 512;
+	const BKGUSER = 1024;
+	const BKGUTYPE = 2048;
 
-	private function GetBookings($params)
+	/**
+	FilterTitle:
+	Get data-descriptor representing @flags and other 'filter' parameter(s)
+	@mod: reference to current Booker module
+	@flags: booking-type(s) identifier, a combination of const's above to be AND'd
+	@itemid: optional item identifier, or array of them, default FALSE
+	@bookerid: optional booker identifier, or array of them, default FALSE
+	@typeid: optional user-type identifier, or array of them, default FALSE
+	Returns: string
+	*/
+	public function FilterTitle(&$mod, $flags, $itemid = FALSE, $bookerid = FALSE, $typeid = FALSE)
 	{
-		return $mod->dbHandle->GetArray('SELECT X FROM '.$mod->XdataTable.' WHERE ',$args);
+		if ($flags == self::BKGALL) {
+			return $mod->Lang('bkgtype_all');
+		}
+
+		$and = array();
+		$fg = self::BKGFUTURE + self::BKGPAST;
+		if (($flags & $fg) == $fg) {
+			$flags &= ~$fg; //ignore both flags
+		} elseif ($flags & self::BKGFUTURE) {
+			$and[] = $mod->Lang('bkgtype_future');
+		} elseif ($flags & self::BKGPAST) {
+			$and[] = $mod->Lang('bkgtype_past');
+		}
+
+		$fg  = self::BKGFREE + self::BKGUNPAID + self::BKGPAID;
+		if (($flags & $fg) == $fg) {
+			$flags &= ~$fg;
+		} else {
+			if ($flags & self::BKGFREE) {
+				$and[] = $mod->Lang('bkgtype_free');
+			}
+
+			$fg = self::BKGUNPAID + self::BKGPAID;
+			if (($flags & $fg) != $fg) {
+				if ($flags & self::BKGUNPAID) {
+					$and[] = $mod->Lang('bkgtype_unpaid');
+				} elseif ($flags & self::BKGPAID) {
+					$and[] = $mod->Lang('bkgtype_paid');
+				}
+			}
+		}
+
+		$fg = self::BKGONCE + self::BKGREPT;
+		if (($flags & $fg) != $fg) {
+			if ($flags & self::BKGONCE) {
+				$and[] = $mod->Lang('bkgtype_onetime');
+			}
+			if ($flags & self::BKGREPT) {
+				$and[] = $mod->Lang('bkgtype_repeated');
+			}
+		}
+
+		$fg = self::BKGSINGL + self::BKGGROUP;
+		if (($flags & $fg) != $fg) {
+			if ($flags & self::BKGSINGL) {
+				$and[] = $mod->Lang('bkgtype_ungrouped');
+			}
+			if ($flags & self::BKGGROUP) {
+				$and[] = $mod->Lang('bkgtype_grouped');
+			}
+		}
+
+		if ($flags & self::BKGITEM) {
+			if (is_array($itemid)) {
+				//TODO $items = $utils->GetNamedItems($mod,$items);
+				//$s = implode(',', $items);
+				$s = 'name..name';
+			} elseif ($itemid) {
+				$s = 'name'; //TODO $s = $utils->GetItemNameForID($mod,$item_id)
+			} else {
+				$s = '';
+			}
+			if ($s) {
+				$and[] = $mod->Lang('bkgtype_byitem', $s);
+			}
+		}
+
+		if ($flags & self::BKGUSER) {
+			if (is_array($bookerid)) {
+				$s = 'name..name'; //TODO implode(',',get names)
+			} elseif ($bookerid) {
+				$s = 'name'; //TODO $utils->GetUserName(&$mod,$bookerid);
+			} else {
+				$s = '';
+			}
+			if ($s) {
+				$and[] = $mod->Lang('bkgtype_byuser', $s);
+			}
+		}
+		if ($flags & self::BKGUTYPE) {
+			if (is_array($typeid)) {
+				$s = implode(',', $typeid);
+				$and[] = $mod->Lang('bkgtype_bytype', $s);
+			} elseif ($typeid) {
+				$and[] = $mod->Lang('bkgtype_bytype', $typeid);
+			}
+		}
+		return ''.implode(',', $and);
 	}
 
-	private function GetExtraData($params)
+	/**
+	FilterData:
+	Get row(s) of data each with some fields from OnceTable and/or RepeatTable
+	 & related, per @flags and other 'filter' parameter(s)
+	@mod: reference to current Booker module
+	@flags: booking-type(s) identifier, a combination of const's above to be AND'd
+	@itemid: optional resource identifier, or array of them, default FALSE
+	@bookerid: optional booker identifier, or array of them, default FALSE
+	@typeid: optional user-type identifier, or array of them, default FALSE
+	Returns: array or FALSE
+	*/
+	public function FilterData(&$mod, $flags, $itemid = FALSE, $bookerid = FALSE, $typeid = FALSE)
 	{
-		return $mod->dbHandle->GetArray('SELECT X FROM '.$mod->XdataTable.' WHERE ',$args);
+		$and = array();
+//		$or = array();
+		$args = array();
+
+		$fg = self::BKGFUTURE + self::BKGPAST;
+		if (($flags & $fg) == $fg) {
+			$flags &= ~$fg; //ignore both flags
+		} elseif ($flags & self::BKGFUTURE) {
+			$and[] = 'D.slotstart>='.time(); //UTC-relative
+		} elseif ($flags & self::BKGPAST) {
+			$and[] = 'D.slotstart<'.time();
+		}
+
+		$fg  = self::BKGFREE + self::BKGUNPAID + self::BKGPAID;
+		if (($flags & $fg) == $fg) {
+			$flags &= ~$fg;
+		} else {
+			if ($flags & self::BKGFREE) {
+				$and[] = 'O.payment='.\Booker::STATFREE;
+			}
+			$fg = self::BKGUNPAID + self::BKGPAID;
+			if (($flags & $fg) == $fg) {
+				$and[] = 'O.payment IN ('.
+				\Booker::STATPAYABLE.','.
+				\Booker::STATPAID.','.
+				\Booker::CREDITED.','.
+				\Booker::STATNOTPAID.','.
+				\Booker::STATOVRDUE.')';
+			} elseif ($flags & self::BKGUNPAID) {
+				$and[] = 'O.payment IN ('.
+				\Booker::STATPAYABLE.','.
+				\Booker::CREDITED.','.
+				\Booker::STATNOTPAID.','.
+				\Booker::STATOVRDUE.')';
+			} elseif ($flags & self::BKGPAID) {
+				$and[] = 'O.payment='.\Booker::STATPAID;
+			}
+		}
+
+		$bulks = array();
+		$fg = self::BKGONCE + self::BKGREPT;
+		if (($flags & $fg) == $fg) {
+			$tfg = $fg; //preserve this
+			$flags &= ~$fg;
+		} elseif ($flags & self::BKGONCE) {
+			$tfg = self::BKGONCE;
+			$bulks = array(0,1);
+		} elseif ($flags & self::BKGREPT) {
+			$tfg = self::BKGREPT;
+			$bulks = array(20,21);
+		} else {
+			$tfg = $fg;
+		}
+
+		$fg = self::BKGSINGL + self::BKGGROUP;
+		if (($flags & $fg) == $fg) {
+			$flags &= ~$fg;
+		} elseif ($flags & self::BKGSINGL) {
+			$bulks[] = 0;
+			$bulks[] = 20;
+		} elseif ($flags & self::BKGGROUP) {
+			$bulks[] = 1;
+			$bulks[] = 21;
+		}
+		if ($bulks) {
+			sort($bulks);
+			$bulks = array_unique($bulks,SORT_NUMERIC);
+			$and[] = 'D.bulk IN('.implode(',',$bulks).')';
+		}
+
+		if ($flags & self::BKGITEM) {
+			if (is_array($itemid)) {
+				$and[] = 'D.item_id IN ('.str_repeat('?,', count($itemid) - 1).'?)';
+				$args = array_merge($args, $itemid);
+			} elseif ($itemid) {
+				$and[] = 'D.item_id=?';
+				$args[] = $itemid;
+			}
+		}
+
+		if ($flags & self::BKGUSER) {
+			if (is_array($bookerid)) {
+				$and[] = 'D.booker_id IN ('.str_repeat('?,', count($bookerid) - 1).'?)';
+				$args = array_merge($args, $bookerid);
+			} elseif ($bookerid) {
+				$and[] = 'D.booker_id=?';
+				$args[] = $bookerid;
+			}
+		}
+
+		if ($flags & self::BKGUTYPE) {
+			if (is_array($typeid)) {
+				$and[] = 'B.type IN ('.str_repeat('?,', count($typeid) - 1).'?)';
+				$args = array_merge($args, $typeid);
+			} elseif ($typeid) {
+				$and[] = 'B.type=?';
+				$args[] = $typeid;
+			}
+		}
+
+		$sql = <<<EOS
+SELECT D.slotstart,D.slotlen,O.fee,O.feepaid,O.status,O.payment,I.name AS what,
+COALESCE(A.name,B.name,'') AS name,COALESCE(A.address,B.address,'') AS address,B.publicid,B.phone
+FROM $mod->DispTable D
+JOIN $mod->OnceTable O ON D.bkg_id=O.bkg_id
+JOIN $mod->ItemTable I ON D.item_id=I.item_id
+JOIN $mod->BookerTable B ON D.booker_id=B.booker_id
+LEFT JOIN $mod->AuthTable A ON B.publicid=A.publicid
+EOS;
+/*		if ($and || $or) {
+			$sql .=  ' WHERE ';
+			if ($and) {
+				$sql .=  implode(' AND ',$and);
+			}
+			if ($or) {
+				if ($and) {
+					$sql .= ' AND (';
+				}
+				$sql .= implode(' OR ',$or);
+				if ($and) {
+					$sql .= ')';
+				}
+			}
+		}
+*/
+		if ($and) {
+			$sql .= ' WHERE '.implode(' AND ', $and);
+		}
+
+		if ($tfg == self::BKGREPT) {
+			$sql = str_replace(array($mod->OnceTable.' O','O.'),array($mod->RepeatTable.' R','R.'),$sql);
+		} elseif ($tfg == self::BKGONCE + self::BKGREPT) {
+			$sql .= ' UNION '.str_replace(array($mod->OnceTable.' O','O.'),array($mod->RepeatTable.' R','R.'),$sql);
+		}
+		$sql .= ' ORDER BY what,slotstart';
+
+		$utils = new Utils();
+		$data = $utils->SafeGet($sql, $args);
+		if ($data) {
+			$utils->GetUserProperties($mod, $data);
+		}
+		return $data;
 	}
 
 	/**
