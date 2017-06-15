@@ -6,7 +6,8 @@
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
 
-$taboptarray = array('mysql' => 'ENGINE MyISAM CHARACTER SET utf8 COLLATE utf8_general_ci',
+$taboptarray = array(
+ 'mysql' => 'ENGINE MyISAM CHARACTER SET utf8 COLLATE utf8_general_ci',
  'mysqli' => 'ENGINE MyISAM CHARACTER SET utf8 COLLATE utf8_general_ci');
 $dict = NewDataDictionary($db);
 $pre = cms_db_prefix();
@@ -322,18 +323,18 @@ payment credit table schema:
  pay_id: identifier
  booker_id: identifier
  when: UTC timestamp, when the record was created
- first: original credit
+ status: enum {CREDITADDED CREDITUSED CREDITEXPIRED}
+ first: original credit added
  amount: original +/- all changes
- status: enum CREDITADDED CREDITUSED CREDITEXPIRED
 */
 $fields = '
 pay_id I(4) KEY,
 booker_id I(4),
 when I(8),
-first N(8.2) DEFAULT 0.0,
-amount N(8.2) DEFAULT 0.0,
-status I(1) DEFAULT '.Booker::CREDITADDED
-;
+status I(1) DEFAULT '.Booker::CREDITADDED.',
+first B,
+amount B
+';
 $sqlarray = $dict->CreateTableSQL($this->PayTable, $fields, $taboptarray);
 if ($sqlarray == FALSE) {
 	return FALSE;
