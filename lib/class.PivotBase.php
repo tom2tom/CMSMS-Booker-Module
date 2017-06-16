@@ -108,9 +108,9 @@ class PivotBase
 	@tpl:
 	Returns: 2-member array
 	*/
-	protected function build($parsedSum, $parsedCount, $parsedSplit, $subtitle, $tpl)
+	protected function populate($parsedSum, $parsedCount, $parsedSplit, $subtitle, $tpl)
 	{
-		return array($out, $fullTotal);
+		return array($out, $fullTotals);
 	}
 
 	/**
@@ -121,14 +121,14 @@ class PivotBase
 	public function fetch($fetchType = 0)
 	{
 		list($parsedSum, $parsedCount, $parsedSplit) = $this->aggregate();
-
+		//output-key formatters
 		$subtitle = $this->totalName . self::SEP;
 		$tpl = '%s'.self::SEP.'%s'.self::SEP.'%s';
 
-		list($out, $fullTotal) = $this->build($parsedSum, $parsedCount, $parsedSplit, $subtitle, $tpl);
+		list($out, $fullTotals) = $this->populate($parsedSum, $parsedCount, $parsedSplit, $subtitle, $tpl);
 
 		if ($this->fullTotal) {
-			$_out = $_lineTotal = array();
+			$_out = $lineTotals = array();
 			if ($this->idMark) {
 				$_out[self::ID] = count($out) + 1;
 			}
@@ -144,19 +144,19 @@ class PivotBase
 				}
 			}
 
-			foreach ($fullTotal as $split => $values) {
+			foreach ($fullTotals as $split => $values) {
 				foreach ($values as $col => $colSums) {
 					for ($ic = 0; $ic < $this->calcscount; $ic++) {
 						$k = $this->colCalcs[$ic];
 						$t = sprintf($tpl, $split, $col, $k);
 						if ($this->colFuncs[$ic]) {
-							$value = call_user_func($this->colFuncs[$ic], $fullTotal[$split][$col]);
+							$value = call_user_func($this->colFuncs[$ic], $fullTotals[$split][$col]);
 						} else {
-							$value = $fullTotal[$split][$col][$k];
+							$value = $fullTotals[$split][$col][$k];
 						}
 						$_out[$t] = $value;
 						if ($this->lineTotal) {
-							$_lineTotal[$k] += $value;
+							$lineTotals[$k] += $value;
 						}
 					}
 				}
@@ -167,9 +167,9 @@ class PivotBase
 					$k = $this->colCalcs[$ic];
 					$t = $subtitle . $k;
 					if ($this->colFuncs[$ic]) {
-						$_out[$t] = call_user_func($this->colFuncs[$ic], $_lineTotal);
+						$_out[$t] = call_user_func($this->colFuncs[$ic], $lineTotals);
 					} else {
-						$_out[$t] = $_lineTotal[$k];
+						$_out[$t] = $lineTotals[$k];
 					}
 				}
 			}

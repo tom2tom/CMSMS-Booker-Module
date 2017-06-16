@@ -51,17 +51,17 @@ class Pivot3 extends PivotBase
 		return array($parsedSum, $parsedCount, $parsedSplit);
 	}
 
-	protected function build($parsedSum, $parsedCount, $parsedSplit, $subtitle, $tpl)
+	protected function populate($parsedSum, $parsedCount, $parsedSplit, $subtitle, $tpl)
 	{
 		$ir = 0;
-		$out = $fullTotal = array();
+		$out = $fullTotals = array();
 
 		foreach ($parsedSum as $p0 => &$p0Sums) {
 			$p0Total = array();
 
 			foreach ($p0Sums as $p1 => &$p1Sums) {
 				foreach ($p1Sums as $p2 => &$p2Sums) {
-					$_out = $_lineTotal = array();
+					$_out = $lineTotals = array();
 					if ($this->idMark) {
 						$_out[parent::ID] = ++$ir;
 					}
@@ -93,14 +93,14 @@ class Pivot3 extends PivotBase
 								}
 								$_out[$t] = $value;
 								if ($this->lineTotal) {
-									$_lineTotal[$k] += $value;
+									$lineTotals[$k] += $value;
 								}
 								if ($this->pivotTotal) {
 									$p0Total[$split][$col][$k] += $value;
 									$p1Total[$split][$col][$k] += $value;
 								}
 								if ($this->fullTotal) {
-									$fullTotal[$split][$col][$k] += $value;
+									$fullTotals[$split][$col][$k] += $value;
 								}
 							}
 						}
@@ -111,9 +111,9 @@ class Pivot3 extends PivotBase
 							$k = $this->colCalcs[$ic];
 							$t = $subtitle . $k;
 							if ($this->colFuncs[$ic]) {
-								$_out[$t] = call_user_func($this->colFuncs[$ic], $_lineTotal);
+								$_out[$t] = call_user_func($this->colFuncs[$ic], $lineTotals);
 							} else {
-								$_out[$t] = $_lineTotal[$k];
+								$_out[$t] = $lineTotals[$k];
 							}
 						}
 					}
@@ -124,7 +124,7 @@ class Pivot3 extends PivotBase
 			unset($p1Sums);
 
 			if ($this->pivotTotal) {
-				$_out = $_lineTotal = array();
+				$_out = $lineTotals = array();
 				if ($this->idMark) {
 					$_out[parent::ID] = ++$ir;
 				}
@@ -151,7 +151,7 @@ class Pivot3 extends PivotBase
 							}
 							$_out[$t] = $value;
 							if ($this->lineTotal) {
-								$_lineTotal[$k] += $value;
+								$lineTotals[$k] += $value;
 							}
 						}
 					}
@@ -162,9 +162,9 @@ class Pivot3 extends PivotBase
 						$k = $this->colCalcs[$ic];
 						$t = $subtitle . $k;
 						if ($this->colFuncs[$ic]) {
-							$_out[$t] = call_user_func($this->colFuncs[$ic], $_lineTotal);
+							$_out[$t] = call_user_func($this->colFuncs[$ic], $lineTotals);
 						} else {
-							$_out[$t] = $_lineTotal[$k];
+							$_out[$t] = $lineTotals[$k];
 						}
 					}
 				}
@@ -172,7 +172,7 @@ class Pivot3 extends PivotBase
 			}
 
 			if ($this->pivotTotal) {
-				$_out = $_lineTotal = array();
+				$_out = $lineTotals = array();
 				if ($this->idMark) {
 					$_out[parent::ID] = ++$ir;
 				}
@@ -200,7 +200,7 @@ class Pivot3 extends PivotBase
 							}
 							$_out[$t] = $value;
 							if ($this->lineTotal) {
-								$_lineTotal[$k] += $value;
+								$lineTotals[$k] += $value;
 							}
 						}
 					}
@@ -211,9 +211,9 @@ class Pivot3 extends PivotBase
 						$k = $this->colCalcs[$ic];
 						$t = $subtitle . $k;
 						if ($this->colFuncs[$ic]) {
-							$_out[$t] = call_user_func($this->colFuncs[$ic], $_lineTotal);
+							$_out[$t] = call_user_func($this->colFuncs[$ic], $lineTotals);
 						} else {
-							$_out[$t] = $_lineTotal[$k];
+							$_out[$t] = $lineTotals[$k];
 						}
 					}
 				}
@@ -221,6 +221,6 @@ class Pivot3 extends PivotBase
 			}
 		}
 		unset($p0Sums);
-		return array($out, $fullTotal);
+		return array($out, $fullTotals);
 	}
 }
