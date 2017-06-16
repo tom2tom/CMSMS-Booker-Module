@@ -16,63 +16,73 @@ class Pivot1 extends PivotBase
 		call_user_func_array('parent::__construct', func_get_args());
 	}
 
-	protected function parse()
+	protected function aggregate()
 	{
-		$parsed = $parsedCount = array();
-		$split  = $this->column[0];
-		$column = (!empty($this->column[1])) ? $this->column[1] : null; //CHECKME column[0] ?
+		$parsedSum = $parsedCount = $parsedSplit = array();
+		$split  = $this->colGrouped[0]; //top-level pivot
+		//TODO support extra pivot-column(s)
+		$pivot = (!empty($this->colGrouped[1])) ? $this->colGrouped[1] : null;
 
 		foreach ($this->recordset as &$row) {
 			$k0 = $row[$this->pivotOn[0]];
 			for ($ic = 0; $ic < $this->calcscount; $ic++) {
-				if ($this->columnPivots[$ic]) {
-					break;
+				if ($this->colFuncs[$ic]) {
+					continue;
 				}
-				if ($column) {
-					$k = $this->columnCalcs[$ic];
-					if ($this->columnCounts[$ic]) {
-						$parsedCount[$k0][$row[$split]][$row[$column]][$k]++;
+				$k = $this->colCalcs[$ic];
+				if ($pivot) {
+					if ($this->colCounts[$ic] && $row[$k]) {
+						$parsedCount[$k0][$row[$split]][$row[$pivot]][$k]++;
 					}
-					$parsed[$k0][$row[$split]][$row[$column]][$k] += $row[$k];
-					$this->splits[$row[$split]][$row[$column]][$k] = $k;
+					$parsedSum[$k0][$row[$split]][$row[$pivot]][$k] += $row[$k];
+					$parsedSplit[$row[$split]][$row[$pivot]][$k] = $k;
 				} else {
-					$k = 'TODO';
+					if ($this->colCounts[$ic] && $row[$k]) {
+						$parsedCount[$k0][$row[$split]][$k]++;
+					}
+					$parsedSum[$k0][$row[$split]][$k] += $row[$k];
+					$parsedSplit[$row[$split]][$k] = $k;
 				}
 			}
 		}
 		unset($row);
-		return array($parsed,$parsedCount);
+		return array($parsedSum, $parsedCount, $parsedSplit);
 	}
 
-	protected function build($parsed, $parsedCount, $subtitle, $tpl, &$fullTotal, &$out)
+	protected function build($parsedSum, $parsedCount, $parsedSplit, $subtitle, $tpl)
 	{
 		$ir = 0;
+		$out = $fullTotal = array();
 
-		foreach ($parsed as $p0 => &$p0Values) {
+		foreach ($parsedSum as $p0 => &$p0Sums) {
 			$_out = $_lineTotal = array();
-			if (0) {
+			if ($this->idMark) {
 				$_out[parent::ID] = ++$ir;
 			}
 			if ($this->typeMark) {
-				$_out[$this->typelName] = parent::TYPE_LINE;
+				$_out[$this->typeName] = parent::TYPE_LINE;
 			}
 
 			$_out[$this->pivotOn[0]] = $p0;
 
-			foreach (array_keys($this->splits) as $split) {
-				$cols = $p0Values[$split];
+			foreach (array_keys($parsedSplit) as $split) {
+				$cols = $p0Sums[$split];
 
-				foreach (array_keys($this->splits[$split]) as $col) {
-					$colValues = $cols[$col];
+				foreach (array_keys($parsedSplit[$split]) as $col) {
+					$colSums = $cols[$col];
+
 					for ($ic = 0; $ic < $this->calcscount; $ic++) {
-						$k = $this->columnCalcs[$ic];
+						$k = $this->colCalcs[$ic];
 						$t = sprintf($tpl, $split, $col, $k);
-						if ($this->columnPivots[$ic]) {
-							$value = call_user_func($this->columnPivots[$ic], $colValues);
-						} elseif ($this->columnCounts[$ic]) {
+						if ($this->colCounts[$ic]) {
 							$value = $parsedCount[$p0][$split][$col][$k];
+							if (!$value) {
+								$value = 0;
+							}
+						} elseif ($this->colFuncs[$ic]) {
+							$value = call_user_func($this->colFuncs[$ic], $colSums);
 						} else {
-							$value = $colValues[$k];
+							$value = $colSums[$k];
 						}
 						$_out[$t] = $value;
 						if ($this->lineTotal) {
@@ -87,10 +97,10 @@ class Pivot1 extends PivotBase
 
 			if ($this->lineTotal) {
 				for ($ic = 0; $ic < $this->calcscount; $ic++) {
-					$k = $this->columnCalcs[$ic];
+					$k = $this->colCalcs[$ic];
 					$t = $subtitle . $k;
-					if ($this->columnPivots[$ic]) {
-						$_out[$t] = call_user_func($this->columnPivots[$ic], $_lineTotal);
+					if ($this->colFuncs[$ic]) {
+						$_out[$t] = call_user_func($this->colFuncs[$ic], $_lineTotal);
 					} else {
 						$_out[$t] = $_lineTotal[$k];
 					}
@@ -98,7 +108,7 @@ class Pivot1 extends PivotBase
 			}
 			$out[] = $_out;
 		}
-		unset($p0Values);
-		return $ir;
+		unset($p0Sums);
+		return array($out, $fullTotal);
 	}
 }
