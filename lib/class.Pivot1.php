@@ -91,46 +91,54 @@ class Pivot1 extends PivotBase
 			}
 
 			foreach (array_keys($parsedSplit) as $split) {
-				$cols = $p0Sums[$split];
+				if (array_key_exists($split, $p0Sums)) {
+					$cols = $p0Sums[$split];
+					foreach (array_keys($parsedSplit[$split]) as $col) {
+						$colSums = $cols[$col]; //scalar ($shortform) or array (!$shortform)
 
-				foreach (array_keys($parsedSplit[$split]) as $col) {
-					$colSums = $cols[$col]; //scalar ($shortform) or array (!$shortform)
-
+						for ($ic = 0; $ic < $this->calcscount; $ic++) {
+							$k = $this->colCalcs[$ic];
+							if ($shortform) {
+								$t = sprintf($keytemplate, $split, $k);
+								if ($this->colCounts[$ic]) {
+									$v = $parsedCount[$p0][$split][$k];
+								} elseif ($this->colFuncs[$ic]) {
+									$v = call_user_func($this->colFuncs[$ic], $colSums);
+								} else {
+									$v = $cols[$k];
+								}
+							} else {
+								$t = sprintf($keytemplate, $split, $col, $k);
+								if ($this->colCounts[$ic]) {
+									$v = $parsedCount[$p0][$split][$col][$k];
+								} elseif ($this->colFuncs[$ic]) {
+									$v = call_user_func($this->colFuncs[$ic], $colSums);
+								} else {
+									$v = $colSums[$k];
+								}
+							}
+							$_out[$t] = $v;
+							if ($this->lineTotal) {
+								$lineTotals[$k] += $v;
+							}
+							if ($this->fullTotal) {
+								if (isset($fullTotals[$split][$col][$k])) {
+									$fullTotals[$split][$col][$k] += $v;
+								} else {
+									$fullTotals[$split][$col][$k] = $v;
+								}
+							}
+						}
+					}
+				} else {
 					for ($ic = 0; $ic < $this->calcscount; $ic++) {
 						$k = $this->colCalcs[$ic];
 						if ($shortform) {
 							$t = sprintf($keytemplate, $split, $k);
-							if ($this->colCounts[$ic]) {
-								$v = $parsedCount[$p0][$split][$k];
-								if (!$v) {
-									$v = 0;
-								}
-							} elseif ($this->colFuncs[$ic]) {
-								$v = call_user_func($this->colFuncs[$ic], $colSums);
-							} else {
-								$v = $cols[$k];
-							}
 						} else {
-							$t = sprintf($keytemplate, $split, $col, $k);
-							if ($this->colCounts[$ic]) {
-								$v = $parsedCount[$p0][$split][$col][$k];
-							} elseif ($this->colFuncs[$ic]) {
-								$v = call_user_func($this->colFuncs[$ic], $colSums);
-							} else {
-								$v = $colSums[$k];
-							}
+$this->Crash();				//$t = sprintf($keytemplate, $split, $col, $k);
 						}
-						$_out[$t] = $v;
-						if ($this->lineTotal) {
-							$lineTotals[$k] += $v;
-						}
-						if ($this->fullTotal) {
-							if (isset($fullTotals[$split][$col][$k])) {
-								$fullTotals[$split][$col][$k] += $v;
-							} else {
-								$fullTotals[$split][$col][$k] = $v;
-							}
-						}
+						$_out[$t] = 0;
 					}
 				}
 			}
