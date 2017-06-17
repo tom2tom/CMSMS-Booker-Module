@@ -11,7 +11,6 @@ namespace Booker;
 
 class PivotBase
 {
-	const ID = '_id'; //enumerator-title key
 	const SEP = '\\'; //title-element separator
 	//returned data format specifiers
 	const FETCH_STRUCT = 1;
@@ -21,15 +20,15 @@ class PivotBase
 	const TYPE_PIVOT_TOTAL_LEVEL2 = 2;
 	const TYPE_FULL_TOTAL = 3;
 
-	protected $recordset;
-	protected $pivotOn;
+	public $recordset;
+	public $pivotOn;
+	public $colGrouped;
+	public $colCalcs;
+
 	protected $pivotscount;
-	protected $colGrouped;
-	protected $colCalcs;
+	protected $calcscount;
 	protected $colFuncs;
 	protected $colCounts;
-	protected $calcscount;
-	protected $idMark;
 	protected $typeMark;
 	protected $lineTotal;
 	protected $pivotTotal;
@@ -43,7 +42,7 @@ class PivotBase
 	 * @group optional single, or 1..2-member array of, @recordset key name(s)
 	 *  whose values are to be grouped, default null
 	 * @groupvalue optional single, or array of, $@recordset key name(s)
-	 *  whose values are to be summed in each group, and/or calculated key(s),
+	 *  whose values are to be used in each group, and/or calculated key(s),
 	 *  default null
 	 * @showtype optional boolean, default false
 	 * @linetotal optional boolean, default false
@@ -57,12 +56,51 @@ class PivotBase
 		$linetotal = false, $pivottotal = false, $fulltotal = false,
 		$total = 'TOT', $type = 'type')
 	{
+		$this->setdata($recordset, $pivoton, $group, $groupvalue);
+		$this->typeMark = $showtype;
+		$this->lineTotal = $linetotal;
+		$this->pivotTotal = $pivottotal;
+		$this->fullTotal = $fulltotal;
+		$this->totalName = $total;
+		$this->typeName = $type;
+	}
+
+	/**
+	 * See __construct()
+	 */
+	public function setdata($recordset, $pivoton, $group = null, $groupvalue = null)
+	{
 		$this->recordset = $recordset;
 		$this->pivotOn = (is_array($pivoton)) ? $pivoton : array($pivoton);
-		$this->pivotscount = count($this->pivotOn);
 		$this->colGrouped = (is_array($group)) ? $group : (($group) ? array($group) : null);
 		$this->colCalcs = (is_array($groupvalue)) ? $groupvalue : (($groupvalue) ? array($groupvalue) : null);
-		$this->calcscount = ($groupvalue) ? count($this->colCalcs) : 0;
+	}
+
+	/*
+	Subclass this for specific $pivotscount values
+	@shortform:
+	@keytemplate:
+	@subtitle:
+	Returns: 2-member array
+	*/
+	protected function populate($shortform, $keytemplate, $subtitle)
+	{
+		return array($out, $fullTotals);
+	}
+
+	/**
+	 * Get pivoted data per self::recordset and @fetchtype
+	 * @fetchtype optional int FETCH_*, default 0
+	 * Returns: associative array or empty array
+	 */
+	public function fetch($fetchType = 0)
+	{
+		if (!$this->colGrouped) {
+			return array();
+		}
+		//TODO confirm all colGrouped are recordset keys
+		$this->pivotscount = count($this->pivotOn);
+		$this->calcscount = ($this->colCalcs) ? count($this->colCalcs) : 0;
 		$this->colFuncs = array_fill(0, $this->calcscount, 0);
 		$this->colCounts = array_fill(0, $this->calcscount, 0);
 		for ($ic = 0; $ic < $this->calcscount; $ic++) {
@@ -80,58 +118,24 @@ class PivotBase
 				}
 			}
 		}
-		$this->idMark = false;
-		$this->typeMark = $showtype;
-		$this->lineTotal = $linetotal;
-		$this->pivotTotal = $pivottotal;
-		$this->fullTotal = $fulltotal;
-		$this->totalName = $total;
-		$this->typeName = $type;
-	}
 
-	/*
-	Calculate relevant field-sum and field-count values (no callback calculations)
-	Subclass this for specific pivotfields-counts
-	Returns: 3-member array
-	*/
-	protected function aggregate()
-	{
-		return array($parsedSum, $parsedCount, $parsedSplit);
-	}
-
-	/*
-	Subclass this for specific pivotfields-counts
-	@parsedSum: array returned by aggregate()
-	@parsedCount: array returned by aggregate()
-	@parsedSplit: array returned by aggregate()
-	@subtitle:
-	@tpl:
-	Returns: 2-member array
-	*/
-	protected function populate($parsedSum, $parsedCount, $parsedSplit, $subtitle, $tpl)
-	{
-		return array($out, $fullTotals);
-	}
-
-	/**
-	 * Get pivoted data per self::recordset and @fetchtype
-	 * @fetchtype optional int FETCH_*, default 0
-	 * Returns: associative array
-	 */
-	public function fetch($fetchType = 0)
-	{
-		list($parsedSum, $parsedCount, $parsedSplit) = $this->aggregate();
-		//output-key formatters
+		//output-formatters
+		if (count($this->colGrouped) == 1) {
+			$shortform = true;
+			$keytemplate = '%s' . self::SEP . '%s';
+		} else {
+			$shortform = false;
+			$keytemplate = '%s' . self::SEP . '%s' . self::SEP . '%s';
+		}
 		$subtitle = $this->totalName . self::SEP;
-		$tpl = '%s'.self::SEP.'%s'.self::SEP.'%s';
 
-		list($out, $fullTotals) = $this->populate($parsedSum, $parsedCount, $parsedSplit, $subtitle, $tpl);
+		list($out, $fullTotals) = $this->populate($shortform, $keytemplate, $subtitle);
+		if (!$out) {
+			return array();
+		}
 
 		if ($this->fullTotal) {
-			$_out = $lineTotals = array();
-			if ($this->idMark) {
-				$_out[self::ID] = count($out) + 1;
-			}
+			$_out = array();
 			if ($this->typeMark) {
 				$_out[$this->typeName] = self::TYPE_FULL_TOTAL;
 			}
@@ -144,19 +148,36 @@ class PivotBase
 				}
 			}
 
+			if ($this->lineTotal) {
+				$lineTotals = array();
+			}
+
 			foreach ($fullTotals as $split => $values) {
 				foreach ($values as $col => $colSums) {
 					for ($ic = 0; $ic < $this->calcscount; $ic++) {
 						$k = $this->colCalcs[$ic];
-						$t = sprintf($tpl, $split, $col, $k);
-						if ($this->colFuncs[$ic]) {
-							$value = call_user_func($this->colFuncs[$ic], $fullTotals[$split][$col]);
+						if ($shortform) {
+							$t = sprintf($keytemplate, $split, $k);
+							if ($this->colFuncs[$ic]) {
+								$v = call_user_func($this->colFuncs[$ic], $fullTotals[$split]);
+							} else {
+								$v = $fullTotals[$split][$k];
+							}
 						} else {
-							$value = $fullTotals[$split][$col][$k];
+							$t = sprintf($keytemplate, $split, $col, $k);
+							if ($this->colFuncs[$ic]) {
+								$v = call_user_func($this->colFuncs[$ic], $fullTotals[$split][$col]);
+							} else {
+								$v = $fullTotals[$split][$col][$k];
+							}
 						}
-						$_out[$t] = $value;
+						$_out[$t] = $v;
 						if ($this->lineTotal) {
-							$lineTotals[$k] += $value;
+							if (isset($lineTotals[$k])) {
+								$lineTotals[$k] += $v;
+							} else {
+								$lineTotals[$k] = $v;
+							}
 						}
 					}
 				}
@@ -185,4 +206,3 @@ class PivotBase
 		return $out;
 	}
 }
-
