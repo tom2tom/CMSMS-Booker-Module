@@ -66,7 +66,7 @@ abstract class CacheBase
 	{
 		return $this->_getall($filter);
 	}
-	
+
 	/**
 	has:
 	@keyword: string
@@ -170,15 +170,15 @@ abstract class CacheBase
 
 	protected function unflatten($flatvalue)
 	{
-//		if ($$flatvalue == 'b:0;') {
+//		if ($flatvalue == 'b:0;') {
 //			$value = FALSE;
 //		} else
-		if ($$flatvalue == '_REALNULL_') {
+		if ($flatvalue == '_REALNULL_') {
 			$value = NULL;
-		} elseif (is_string($$flatvalue) && strpos('Resource id', $$flatvalue) === 0) {
+		} elseif (is_string($flatvalue) && strpos('Resource id', $flatvalue) === 0) {
 			$value = NULL; //can't usefully reinstate a (string'd)resource
 		} else {
-/ *			$conv = @unserialize($$flatvalue);
+/ *			$conv = @unserialize($flatvalue);
 			if ($conv === FALSE) {
 				$value = $flatvalue;
 			} else {
