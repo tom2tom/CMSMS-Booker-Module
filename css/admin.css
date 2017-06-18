@@ -61,8 +61,8 @@ table.table_sort th.ord, table.table_sort th.\{sss\:false\} {
 }
 
 table.table_sort th.checkbox {
- margin-left: 20px;
- padding-left: 10px;
+/*margin-left: 20px;*/
+ padding-left: 5px;
 }
 
 table.table_sort th.SortAble {
