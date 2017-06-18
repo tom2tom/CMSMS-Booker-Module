@@ -21,8 +21,10 @@ OR
 OR
 'range' => string
 'task'=> string
-'startchooser' => string
-'endchooser'=> string
+'showfrom' => string
+'showto'=> string
+'from' => string
+'until' => string
 */
 
 $utils = new Booker\Utils();
@@ -35,33 +37,36 @@ if (isset($params['close'])) {
 
 $params['task'] = 'itmview'; //DEBUG
 //report type
-switch ($params['task']) {
- case 'itmview':
-	$t = 'item-summary';
+switch (substr($params['task'],0,3)) {
+ case 'itm':
+	$f1 = 'item';
+	$t = $this->Lang('title_item');
 	break;
- case 'itmpay':
-	$t = 'item-payments';
+ case 'bkr':
+	$f1 = 'booker';
+	$t = $this->Lang('title_booker');
 	break;
- case 'itmstat':
-	$t = 'item-status';
+ case 'rng':
+	$f1 = 'interval';
+	$t = $this->Lang('title_period');
 	break;
- case 'bkrview':
-	$t = 'booker-summary';
+ default:
+	echo $this->Lang('err_system');
+	return;
+}
+
+switch (substr($params['task'],3)) {
+ case 'view':
+	$f2 = 'summary';
+	$t2 = $this->Lang('title_overview');
 	break;
- case 'bkrpay':
-	$t = 'booker-payments';
+ case 'pay':
+	$f2 = 'payments';
+	$t2 = $this->Lang('title_payments');
 	break;
- case 'bkrstat':
-	$t = 'booker-status';
-	break;
- case 'rngview':
-	$t = 'interval-summary';
-	break;
- case 'rngpay':
-	$t = 'interval-payments';
-	break;
- case 'rngstat':
-	$t = 'interval-status';
+ case 'stat':
+	$f2 = 'status';
+	$t2 = $this->Lang('status');
 	break;
  default:
 	echo $this->Lang('err_system');
@@ -69,12 +74,19 @@ switch ($params['task']) {
 }
 
 if (isset($params['range'])) {
-//TODO process $params['startchooser', 'endchooser']
+//TODO process $params['showfrom', 'showto']
+} elseif (isset($params['from'])) {
+//TODO process $params['from', 'until']
 }
 
+$title = $this->Lang('report_title',$t,$t2);
+/*TODO supplement with interval-description if relevant
+from S to E, from S onwards, E and before
+*/
+$tplvars = array();
 $display = array(); //output populated by included file, or maybe empty
 
-require 'report.'.$t.'.php';
+require 'report.'.$f1.'-'.$f2.'.php';
 
 if (isset($params['export'])) {
 	if ($display) {
@@ -85,15 +97,12 @@ if (isset($params['export'])) {
 	}
 }
 
-$tplvars = array();
-
 $tplvars['pagenav'] = $utils->BuildNav($this,$id,$returnid,$params['action'],$params);
+$tplvars['title'] = $title;
 $tplvars['startform'] = $this->CreateFormStart($id,'processreport',$returnid,'POST','','','',
 	array('task'=>$params['task'],'active_tab'=>$params['active_tab']));
-//TODO 'resume'=>$params['resume']
+//TODO 'resume'=>$params[ 'resume' 'from' 'until' etc
 $tplvars['endform'] = $this->CreateFormEnd();
-
-$tplvars['title'] = 'PAGE TITLE GOES HERE';
 
 if (!empty($params['message'])) {
 	$tplvars['message'] = $params['message'];
@@ -111,53 +120,9 @@ if ($dc) {
 	$tplvars['data'] = $display;
 	$tplvars['colnames'] = $coltitles;
 
-	//TODO titles and help for these
-	//TODO date-pick for these
-	$tplvars['startchooser'] = $this->CreateInputText($id,'startchooser','',30,64); //TODO "ranger" class
-	$tplvars['endchooser'] = $this->CreateInputText($id,'endchooser','',30,64); //ditto
-	//for date-picker
-	$stylers = <<<EOS
-<link rel="stylesheet" type="text/css" href="{$baseurl}/css/pikaday.css" />
-EOS;
-	$jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/lib/js/pikaday.min.js"></script>
-<script type="text/javascript" src="{$baseurl}/lib/js/pikaday.jquery.min.js"></script>
-<script type="text/javascript" src="{$baseurl}/lib/js/php-date-formatter.min.js"></script>
-EOS;
-	$prevm = $this->Lang('prevm');
-	$nextm = $this->Lang('nextm');
-	//js wants quoted period-names
-	$t = $this->Lang('longmonths');
-	$mnames = "'".str_replace(",","','",$t)."'";
-	$t = $this->Lang('longdays');
-	$dnames = "'".str_replace(",","','",$t)."'";
-	$t = $this->Lang('shortdays');
-	$sdnames = "'".str_replace(",","','",$t)."'";
-	$jsloads[] = <<<EOS
- $('.ranger').pikaday({
-  field: document.getElementById('{$id}showfrom'),
-  i18n: {
-   previousMonth: '$prevm',
-   nextMonth: '$nextm',
-   months: [$mnames],
-   weekdays: [$dnames],
-   weekdaysShort: [$sdnames]
-  },
-  onClose: function() {
-   if('_d' in this && this._d) {
-    var fmt = new DateFormatter();
-    var dt = fmt.formatDate(this._d,'Y-m-d');
-    $('#{$id}showfrom').val(dt);
-   }
-  }
- });
-EOS;
-	$tplvars['range'] = $this->CreateInputSubmit($id,'range',$this->Lang('interval'),
-		'title="'.$this->Lang('tip_report_interval').'" onclick="return TODO();"');
-	//TODO js to validate chooser(s) content
 	if ($dc > 1) {
-		$pagerows = $this->GetPreference('pagerows',10);
-		$paged = ($pagerows > 5 && $dc > $pagerows);
+		$pagerows = (int)$this->GetPreference('pagerows',10);
+		$paged = ($pagerows > 5 && $dc > $pagerows) ? 'true' : 'false';
 
 		$jsincs[] = <<<EOS
 <script type="text/javascript" src="{$baseurl}/lib/js/jquery.metadata.min.js"></script>
@@ -173,12 +138,7 @@ EOS;
   countid: 'tpage'
  });
 EOS;
-		$jsfuncs[] = <<<'EOS'
-function select_all(cb) {
- $('#datatable > tbody').find('input[type="checkbox"]').attr('checked',cb.checked);
-}
-EOS;
-		if ($paged) {
+		if ($paged == 'true') {
 			//more setup for SSsort
 			$curpg='<span id="cpage">1</span>';
 			$totpg='<span id="tpage">'.ceil($dc/$pagerows).'</span>';
@@ -207,19 +167,24 @@ EOS;
 
 			$jsfuncs[] = <<<'EOS'
 function pagefirst() {
- $.SSsort.movePage($('#submissions')[0],false,true);
+ var t = document.getElementById('datatable');
+ $.SSsort.movePage(t,false,true);
 }
 function pagelast() {
- $.SSsort.movePage($('#submissions')[0],true,true);
+ var t = document.getElementById('datatable');
+ $.SSsort.movePage(t,true,true);
 }
 function pageforw() {
- $.SSsort.movePage($('#submissions')[0],true,false);
+ var t = document.getElementById('datatable');
+ $.SSsort.movePage(t,true,false);
 }
 function pageback() {
- $.SSsort.movePage($('#submissions')[0],false,false);
+ var t = document.getElementById('datatable');
+ $.SSsort.movePage(t,false,false);
 }
 function pagerows(cb) {
- $.SSsort.setCurrent($('#submissions')[0],'pagesize',parseInt(cb.value));
+ var t = document.getElementById('datatable');
+ $.SSsort.setCurrent(t,'pagesize',parseInt(cb.value));
 }
 EOS;
 		} else {
@@ -232,23 +197,77 @@ EOS;
 	}
 
 	if (1) { //TODO relevant test
-		$tplvars['export'] = $this->CreateInputSubmit($id,'export',$this->Lang('export'),
-			'title="'.$this->Lang('tip_export_selected_records').'" onclick="return any_selected();"');
-		$jsfuncs[] = <<<EOS
-function sel_count() {
- var cb = $('input[name="{$id}sel[]"]:checked');
- return cb.length;
-}
-function any_selected() {
- return (sel_count() > 0);
-}
-EOS;
+		$tplvars['export'] = $this->CreateInputSubmit($id,'export',$this->Lang('export'));
 	}
 } else {
 	$tplvars['nodata'] = $this->Lang('nodata');
 }
 
 $tplvars['close'] = $this->CreateInputSubmit($id, 'close', $this->Lang('close'));
+
+$tplvars['titlefrom'] = $this->Lang('start');
+$t = $this->CreateInputText($id,'showfrom','',12,15);
+$tplvars['showfrom'] = str_replace('class="','class="dateinput ',$t);
+$tplvars['helpfrom'] = $this->Lang('help_reportfrom');
+$tplvars['titleto'] = $this->Lang('end');
+$t = $this->CreateInputText($id,'showto','',12,15);
+$tplvars['showto'] = str_replace('class="','class="dateinput ',$t);
+$tplvars['helpto'] = $this->Lang('help_reportto');
+//for date-picker
+$stylers = <<<EOS
+<link rel="stylesheet" type="text/css" href="{$baseurl}/css/pikaday.css" />
+EOS;
+$jsincs[] = <<<EOS
+<script type="text/javascript" src="{$baseurl}/lib/js/pikaday.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/pikaday.jquery.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/php-date-formatter.min.js"></script>
+EOS;
+
+$prevm = $this->Lang('prevm');
+$nextm = $this->Lang('nextm');
+//js wants quoted period-names
+$t = $this->Lang('longmonths');
+$mnames = "'".str_replace(",","','",$t)."'";
+$t = $this->Lang('shortmonths');
+$smnames = "'".str_replace(",","','",$t)."'";
+$t = $this->Lang('longdays');
+$dnames = "'".str_replace(",","','",$t)."'";
+$t = $this->Lang('shortdays');
+$sdnames = "'".str_replace(",","','",$t)."'";
+$t = $this->Lang('meridiem');
+$meridiem = "'".str_replace(",","','",$t)."'";
+$jsloads[] = <<<EOS
+ var fmt = new DateFormatter({
+  longDays: [$dnames],
+  shortDays: [$sdnames],
+  longMonths: [$mnames],
+  shortMonths: [$smnames],
+  meridiem: [$meridiem],
+  ordinal: function (number) {
+   var n = number % 10, suffixes = {1: 'st', 2: 'nd', 3: 'rd'};
+   return Math.floor(number % 100 / 10) === 1 || !suffixes[n] ? 'th' : suffixes[n];
+  }
+ });
+ $('.dateinput').pikaday({
+  format: 'Y-m-j',
+  reformat: function(target,f) {
+   return fmt.formatDate(target,f);
+  },
+  getdate: function(target,f) {
+   return fmt.parseDate(target,f);
+  },
+  i18n: {
+   previousMonth: '$prevm',
+   nextMonth: '$nextm',
+   months: [$mnames],
+   weekdays: [$dnames],
+   weekdaysShort: [$sdnames]
+  }
+ });
+EOS;
+$tplvars['rangeset'] = $this->Lang('title_report_change');
+$tplvars['range'] = $this->CreateInputSubmit($id,'range',$this->Lang('apply'),
+	'title="'.$this->Lang('tip_report_interval').'"');
 
 if (!empty($stylers)) {
 	//heredoc-var newlines are a problem for in-js quoted strings, so ...
