@@ -518,6 +518,7 @@ $lang['stat_tell'] = 'sent info';
 $lang['stat_temp'] = 'recorded';
 $lang['status'] = 'Status';
 $lang['submit'] = 'Submit';
+$lang['subtotal'] = 'Subtotal';
 $lang['sunrise'] = 'sunrise';
 $lang['sunset'] = 'sunset';
 
@@ -684,6 +685,7 @@ $lang['title_long_desc'] = 'Detailed description';
 $lang['title_members'] = 'Members of this group';
 $lang['title_membersname'] = 'Generic plural member-descriptor e.g. \'rooms\'';
 $lang['title_minutes'] = 'Minutes';
+$lang['title_month'] = 'Month';
 $lang['title_months'] = 'Months';
 $lang['title_masterpass']='Pass-phrase for securing sensitive data';
 $lang['title_must'] = 'Information <strong>must</strong> be provided for each item below which is marked with a <strong>*</strong>';
@@ -815,7 +817,6 @@ $lang['multiperiods'] = 'minutes,hours,days,weeks,months,years';
 $lang['meridiem'] = 'AM,PM'; //upper-case, comma-separated, ante-first
 
 //popup calendar titles
-//$lang['title_month'] = 'Month';
 $lang['nextm'] = 'Next Month';
 $lang['prevm'] = 'Previous Month';
 //$lang['title_year'] = 'Year';
