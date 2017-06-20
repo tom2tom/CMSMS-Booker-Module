@@ -1,9 +1,7 @@
 <?php
 #----------------------------------------------------------------------
 # Module: Booker - a resource booking module
-# Library file: PivotBase - pivot table functions
-# Adapted from gam-pivot <https://github.com/gonzalo123/gam-pivot>
-# Copyright (C) Gonzalo Ayuso <gonzalo123@gmail.com>
+# Library file: Pivot1 - subclass for pivot table creation
 #----------------------------------------------------------------------
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
@@ -16,71 +14,106 @@ class Pivot1 extends PivotBase
 		call_user_func_array('parent::__construct', func_get_args());
 	}
 
-	protected function populate($shortform, $keytemplate, $subtitle)
+	protected function populate($keytemplate)
 	{
 		// calculate relevant field-sums and field-counts (no callback calculations yet)
-		$parsedSum = $parsedCount = $parsedSplit = array();
-		$split  = $this->colGrouped[0]; //top-level pivot
+		$Buckets = $bktValues = array();
+		$p0 = $this->colPivot[0];
 
-		if ($shortform) {
-			foreach ($this->recordset as &$row) {
-				$k0 = $row[$this->pivotOn[0]];
+		if ($this->groupscount == 0) {
+			foreach ($this->Data as &$row) {
+				$k0 = $row[$p0];
 				for ($ic = 0; $ic < $this->calcscount; $ic++) {
 					$k = $this->colCalcs[$ic];
+					$Buckets[$k] = $k;
+					$v = $row[$k];
 					if ($this->colCounts[$ic]) {
-						if (isset($parsedCount[$k0][$row[$split]][$k])) {
-							if ($row[$k]) {
-								$parsedCount[$k0][$row[$split]][$k]++;
-							}
-						} else {
-							$parsedCount[$k0][$row[$split]][$k] = (($row[$k]) ? 1 : 0);
-						}
+						$v = ($v) ? 1 : 0;
 					}
-					$v = ($this->colFuncs[$ic]) ? 0 : $row[$k];
-					if (isset($parsedSum[$k0][$row[$split]][$k])) {
-						$parsedSum[$k0][$row[$split]][$k] += $v;
+					if (isset($bktValues[$k0][$k])) {
+						$bktValues[$k0][$k] += $v;
 					} else {
-						$parsedSum[$k0][$row[$split]][$k] = $v;
+						$bktValues[$k0][$k] = $v;
 					}
-					$parsedSplit[$row[$split]][$k] = $k;
 				}
 			}
-		} else {
-			$pivot = $this->colGrouped[1];
-			foreach ($this->recordset as &$row) {
-				$k0 = $row[$this->pivotOn[0]];
+		} elseif ($this->groupscount == 1) {
+			$g0 = $this->colGrouped[0];
+			foreach ($this->Data as &$row) {
+				$k0 = $row[$p0];
 				for ($ic = 0; $ic < $this->calcscount; $ic++) {
 					$k = $this->colCalcs[$ic];
+					$Buckets[$row[$g0]][$k] = $k;
+					$v = $row[$k];
 					if ($this->colCounts[$ic]) {
-						if (isset($parsedCount[$k0][$row[$split]][$row[$pivot]][$k])) {
-							if ($row[$k]) {
-								$parsedCount[$k0][$row[$split]][$row[$pivot]][$k]++;
-							}
-						} else {
-							$parsedCount[$k0][$row[$split]][$row[$pivot]][$k] = (($row[$k]) ? 1 : 0);
-						}
+						$v = ($v) ? 1 : 0;
 					}
-					$v = ($this->colFuncs[$ic]) ? 0 : $row[$k];
-					if (isset($parsedSum[$k0][$row[$split]][$row[$pivot]][$k])) {
-						$parsedSum[$k0][$row[$split]][$row[$pivot]][$k] += $v;
+					if (isset($bktValues[$k0][$row[$g0]][$k])) {
+						$bktValues[$k0][$row[$g0]][$k] += $v;
 					} else {
-						$parsedSum[$k0][$row[$split]][$row[$pivot]][$k] = $v;
+						$bktValues[$k0][$row[$g0]][$k] = $v;
 					}
-					$parsedSplit[$row[$split]][$row[$pivot]][$k] = $k;
+				}
+			}
+		} else { //2 group-columns
+			$g0 = $this->colGrouped[0];
+			$g1 = $this->colGrouped[1];
+			foreach ($this->Data as &$row) {
+				$k0 = $row[$p0];
+				for ($ic = 0; $ic < $this->calcscount; $ic++) {
+					$k = $this->colCalcs[$ic];
+					$Buckets[$row[$g0]][$row[$g1]][$k] = $k;
+					$v = $row[$k];
+					if ($this->colCounts[$ic]) {
+						$v = ($v) ? 1 : 0;
+					}
+					if (isset($bktValues[$k0][$row[$g0]][$row[$g1]][$k])) {
+						$bktValues[$k0][$row[$g0]][$row[$g1]][$k] += $v;
+					} else {
+						$bktValues[$k0][$row[$g0]][$row[$g1]][$k] = $v;
+					}
 				}
 			}
 		}
 		unset($row);
 
-		$out = $fullTotals = array();
+		$out = array();
 
-		foreach ($parsedSum as $p0 => &$p0Sums) {
-			$_out = array();
+		if ($this->fullTotal) {
+			$fullTotals = array();
+			if ($this->groupscount == 0) {
+				for ($ic = 0; $ic < $this->calcscount; $ic++) {
+					$k = $this->colCalcs[$ic];
+					$fullTotals[$k] = 0;
+				}
+			} elseif ($this->groupscount == 1) {
+				foreach (array_keys($Buckets) as $k0) {
+					for ($ic = 0; $ic < $this->calcscount; $ic++) {
+						$k = $this->colCalcs[$ic];
+						$fullTotals[$k0][$k] = 0;
+					}
+				}
+			} else {
+				foreach (array_keys($Buckets) as $k0) {
+					foreach (array_keys($Buckets[$k0]) as $k1) {
+						for ($ic = 0; $ic < $this->calcscount; $ic++) {
+							$k = $this->colCalcs[$ic];
+							$fullTotals[$k0][$k1][$k] = 0;
+						}
+					}
+				}
+			}
+		} else {
+			$fullTotals = false;
+		}
+
+		foreach ($bktValues as $k0 => &$k0Values) {
+			$out1 = array();
 			if ($this->typeMark) {
-				$_out[$this->typeName] = parent::TYPE_LINE;
+				$out1[$this->typeName] = parent::TYPE_LINE;
 			}
 
-			$_out[$this->pivotOn[0]] = $p0;
+			$out1[$p0] = $k0;
 
 			if ($this->lineTotal) {
 				$lineTotals = array();
@@ -90,55 +123,61 @@ class Pivot1 extends PivotBase
 				}
 			}
 
-			foreach (array_keys($parsedSplit) as $split) {
-				if (array_key_exists($split, $p0Sums)) {
-					$cols = $p0Sums[$split];
-					foreach (array_keys($parsedSplit[$split]) as $col) {
-						$colSums = $cols[$col]; //scalar ($shortform) or array (!$shortform)
-
+			if ($this->groupscount == 0) {
+				for ($ic = 0; $ic < $this->calcscount; $ic++) {
+					$k = $this->colCalcs[$ic];
+					$t = sprintf($keytemplate, $k);
+					$v = $k0Values[$k];
+					if ($this->colFuncs[$ic]) {
+						$v = call_user_func($this->colFuncs[$ic], $v, $k0Values);
+					}
+					$out1[$t] = $v;
+					if ($this->lineTotal) {
+						$lineTotals[$k] += $v;
+					}
+					if ($this->fullTotal) {
+						$fullTotals[$k] += $v;
+					}
+				}
+			} elseif ($this->groupscount == 1) {
+					foreach (array_keys($Buckets) as $s0) {
+						$k1Values = $k0Values[$s0];
+					for ($ic = 0; $ic < $this->calcscount; $ic++) {
+						$k = $this->colCalcs[$ic];
+						$t = sprintf($keytemplate, $s0, $k);
+						$v = $k1Values[$k];
+						if ($this->colFuncs[$ic]) {
+							$v = call_user_func($this->colFuncs[$ic], $v, $k1Values);
+						}
+						$out1[$t] = $v;
+						if ($this->lineTotal) {
+							$lineTotals[$k] += $v;
+						}
+						if ($this->fullTotal) {
+							$fullTotals[$s0][$k] += $v;
+						}
+					}
+				}
+			} else { //2 group-columns
+				foreach (array_keys($Buckets) as $s0) {
+					$k1Values = $k0Values[$s0];
+					foreach (array_keys($Buckets[$s0]) as $s1) {
+						$k2Values = $k1Values[$s1];
 						for ($ic = 0; $ic < $this->calcscount; $ic++) {
 							$k = $this->colCalcs[$ic];
-							if ($shortform) {
-								$t = sprintf($keytemplate, $split, $k);
-								if ($this->colCounts[$ic]) {
-									$v = $parsedCount[$p0][$split][$k];
-								} elseif ($this->colFuncs[$ic]) {
-									$v = call_user_func($this->colFuncs[$ic], $colSums);
-								} else {
-									$v = $cols[$k];
-								}
-							} else {
-								$t = sprintf($keytemplate, $split, $col, $k);
-								if ($this->colCounts[$ic]) {
-									$v = $parsedCount[$p0][$split][$col][$k];
-								} elseif ($this->colFuncs[$ic]) {
-									$v = call_user_func($this->colFuncs[$ic], $colSums);
-								} else {
-									$v = $colSums[$k];
-								}
+							$t = sprintf($keytemplate, $s0, $s1, $k);
+							$v = $k2Values[$k];
+							if ($this->colFuncs[$ic]) {
+								$v = call_user_func($this->colFuncs[$ic], $v, $k2Values);
 							}
-							$_out[$t] = $v;
+							$out1[$t] = $v;
 							if ($this->lineTotal) {
 								$lineTotals[$k] += $v;
 							}
 							if ($this->fullTotal) {
-								if (isset($fullTotals[$split][$col][$k])) {
-									$fullTotals[$split][$col][$k] += $v;
-								} else {
-									$fullTotals[$split][$col][$k] = $v;
-								}
+								$fullTotals[$s0][$s1][$k] += $v;
 							}
 						}
-					}
-				} else {
-					for ($ic = 0; $ic < $this->calcscount; $ic++) {
-						$k = $this->colCalcs[$ic];
-						if ($shortform) {
-							$t = sprintf($keytemplate, $split, $k);
-						} else {
-$this->Crash();				//$t = sprintf($keytemplate, $split, $col, $k);
-						}
-						$_out[$t] = 0;
 					}
 				}
 			}
@@ -146,17 +185,17 @@ $this->Crash();				//$t = sprintf($keytemplate, $split, $col, $k);
 			if ($this->lineTotal) {
 				for ($ic = 0; $ic < $this->calcscount; $ic++) {
 					$k = $this->colCalcs[$ic];
-					$t = $subtitle . $k;
+					$t = $this->totalName . self::SEP . $k;
+					$v = $lineTotals[$k];
 					if ($this->colFuncs[$ic]) {
-						$_out[$t] = call_user_func($this->colFuncs[$ic], $lineTotals);
-					} else {
-						$_out[$t] = $lineTotals[$k];
+						$v = call_user_func($this->colFuncs[$ic], $v, $lineTotals);
 					}
+					$out1[$t] = $v;
 				}
 			}
-			$out[] = $_out;
+			$out[] = $out1;
 		}
-		unset($p0Sums);
+		unset($k0Values);
 		return array($out, $fullTotals);
 	}
 }
