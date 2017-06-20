@@ -21,7 +21,7 @@ $tplvars['title'] = $this->Lang('report_title',$t,$t2);
 
 //TODO support start/end time-limit(s) per $params['startchooser','endchooser'] if relevant
 $sql =<<<EOS
-SELECT item_id,1 AS bkg,(bulk=0) AS singl,(bulk=1) AS grp,(bulk>=20) AS rept,slotstart,slotlen
+SELECT item_id,(bulk=0) AS singl,(bulk=1) AS grp,(bulk>=20) AS rept,1 AS bkg,slotstart,slotlen
 FROM $this->DispTable
 WHERE displayed>0
 ORDER BY item_id,slotstart
@@ -35,7 +35,6 @@ if ($data) {
 	for ($i = 0; $i < $ic; $i++) {
 		$dt->setTimestamp($data[$i]['slotstart']);
 		$data[$i]['month'] = 'M'.(string)($dt->format('n')-1);
-		$data[$i]['weekday'] = 'D'.$dt->format('w');
 	}
 
 	$pivoton = array('item_id','month');
@@ -96,8 +95,6 @@ if ($data) {
 				 case 'type':
 					$parts = FALSE; //type field won't be displayed
 					break 2;
-				 case 'item_id':
-					break;
 				 case 'slotlen':
 					$summers[] = $t2;
 					break;
@@ -130,7 +127,7 @@ if ($data) {
 			if ($dataline) {
 				$current = $translates[$iid]; //item name
 				$row['item_id'] = $current;
-				$row['month'] = $months[$row['month']];;
+				$row['month'] = $months[$row['month']];
 			} elseif (strpos($iid,$subtotal) !== FALSE) {
 				$row['item_id'] = str_replace('item_id',$current,$iid);
 			}
