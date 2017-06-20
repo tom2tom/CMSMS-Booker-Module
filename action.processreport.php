@@ -27,12 +27,27 @@ OR
 'until' => string
 */
 
-$utils = new Booker\Utils();
-$utils->DecodeParameters($params);
+if (isset($params['resume'])) {
+	$params['resume'] = json_decode(html_entity_decode($params['resume'],ENT_QUOTES|ENT_HTML401));
+	while (end($params['resume']) == $params['action']) {
+		array_pop($params['resume']);
+	}
+} else {
+	$params['resume'] = array('defaultadmin'); //got here via link
+}
 
 if (isset($params['close'])) {
-//	$resume = array_pop($params['resume']);
-	$this->Redirect($id,'defaultadmin','',array('active_tab'=>$params['active_tab']));
+	$resume = array_pop($params['resume']);
+	$this->Redirect($id,$resume,'',array('active_tab'=>$params['active_tab']));
+}
+
+if (isset($params['filter'])) {
+	$params['resume'][] = $params['action'];
+	//TODO other filter-params
+	$this->Redirect($id,'filter','',array(
+		'active_tab'=>$params['active_tab'],
+		'resume'=>json_encode($params['resume'])
+	));
 }
 
 $params['task'] = 'itmview'; //DEBUG
@@ -40,15 +55,12 @@ $params['task'] = 'itmview'; //DEBUG
 switch (substr($params['task'],0,3)) {
  case 'itm':
 	$f1 = 'item';
-	$t = $this->Lang('title_item');
 	break;
  case 'bkr':
 	$f1 = 'booker';
-	$t = $this->Lang('title_booker');
 	break;
  case 'rng':
 	$f1 = 'interval';
-	$t = $this->Lang('title_period');
 	break;
  default:
 	echo $this->Lang('err_system');
@@ -58,15 +70,12 @@ switch (substr($params['task'],0,3)) {
 switch (substr($params['task'],3)) {
  case 'view':
 	$f2 = 'summary';
-	$t2 = $this->Lang('title_overview');
 	break;
  case 'pay':
 	$f2 = 'payments';
-	$t2 = $this->Lang('title_payments');
 	break;
  case 'stat':
 	$f2 = 'status';
-	$t2 = $this->Lang('status');
 	break;
  default:
 	echo $this->Lang('err_system');
@@ -79,10 +88,7 @@ if (isset($params['range'])) {
 //TODO process $params['from', 'until']
 }
 
-$title = $this->Lang('report_title',$t,$t2);
-/*TODO supplement with interval-description if relevant
-from S to E, from S onwards, E and before
-*/
+$utils = new Booker\Utils();
 $tplvars = array();
 $display = array(); //output populated by included file, or maybe empty
 
@@ -98,7 +104,6 @@ if (isset($params['export'])) {
 }
 
 $tplvars['pagenav'] = $utils->BuildNav($this,$id,$returnid,$params['action'],$params);
-$tplvars['title'] = $title;
 $tplvars['startform'] = $this->CreateFormStart($id,'processreport',$returnid,'POST','','','',
 	array('task'=>$params['task'],'active_tab'=>$params['active_tab']));
 //TODO 'resume'=>$params[ 'resume' 'from' 'until' etc
