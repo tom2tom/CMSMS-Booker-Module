@@ -50,7 +50,6 @@ if (isset($params['filter'])) {
 	));
 }
 
-$params['task'] = 'itmview'; //DEBUG
 //report type
 switch (substr($params['task'],0,3)) {
  case 'itm':
