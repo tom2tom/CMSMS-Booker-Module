@@ -34,7 +34,7 @@ class Pivot3 extends PivotBase
 					if ($this->colCounts[$ic]) {
 						$v = ($v) ? 1 : 0;
 					}
-					if (isset($bktValues[$k0][$k])) {
+					if (isset($bktValues[$k0][$k1][$k2][$k])) {
 						$bktValues[$k0][$k1][$k2][$k] += $v;
 					} else {
 						$bktValues[$k0][$k1][$k2][$k] = $v;

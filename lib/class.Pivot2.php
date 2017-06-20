@@ -32,7 +32,7 @@ class Pivot2 extends PivotBase
 					if ($this->colCounts[$ic]) {
 						$v = ($v) ? 1 : 0;
 					}
-					if (isset($bktValues[$k0][$k])) {
+					if (isset($bktValues[$k0][$k1][$k])) {
 						$bktValues[$k0][$k1][$k] += $v;
 					} else {
 						$bktValues[$k0][$k1][$k] = $v;
