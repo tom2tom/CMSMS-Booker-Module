@@ -89,12 +89,13 @@ if (isset($params['range'])) {
 
 $utils = new Booker\Utils();
 $tplvars = array();
-$display = array(); //output populated by included file, or maybe empty
+$output = array(); //output populated by included file, or maybe empty
+$display = !isset($params['export']); //whether to create all UI-elements
 
 require 'report.'.$f1.'-'.$f2.'.php';
 
 if (isset($params['export'])) {
-	if ($display) {
+	if ($output) {
 		//TODO STUFF
 		exit;
 	} else {
@@ -118,10 +119,10 @@ $jsfuncs = array();
 $jsloads = array();
 $baseurl = $this->GetModuleURLPath();
 
-$dc = count($display);
+$dc = count($output);
 $tplvars['dcount'] = $dc;
 if ($dc) {
-	$tplvars['data'] = $display;
+	$tplvars['data'] = $output;
 	$tplvars['colnames'] = $coltitles;
 
 	if ($dc > 1) {

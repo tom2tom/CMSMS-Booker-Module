@@ -10,7 +10,6 @@
 // see https://gonzalo123.com/2010/01/24/pivot-tables-in-php for related examples
 
 $dt = new DateTime('@0',NULL);
-$fordisplay = TRUE; //TODO FALSE for export
 
 $t = '';
 $t2 = $this->Lang('title_payments');
@@ -126,11 +125,11 @@ if ($data) {
 
 			$oneset = new stdClass();
 			$oneset->fields = array_values($row);
-			if ($fordisplay) {
+			if ($display) {
 				$oneset->view = ($dataline) ? $this->CreateLink($id,$params['action'],'',$icon_view,
 					array('filter'=>1)) : NULL; //TODO $params[]
 			}
-			$display[] = $oneset;
+			$output[] = $oneset;
 		}
 	}
 }

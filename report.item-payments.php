@@ -141,9 +141,11 @@ if ($data) {
 
 			$oneset = new stdClass();
 			$oneset->fields = array_values($row);
-			$oneset->view = ($dataline) ? $this->CreateLink($id,$params['action'],'',$icon_view,
-				array('filter'=>1,'item_id'=>$iid)) : NULL; //TODO $params[]
-			$display[] = $oneset;
+			if ($display) {
+				$oneset->view = ($dataline) ? $this->CreateLink($id,$params['action'],'',$icon_view,
+					array('filter'=>1,'item_id'=>$iid)) : NULL; //TODO $params[]
+			}
+			$output[] = $oneset;
 		}
 	}
 }
