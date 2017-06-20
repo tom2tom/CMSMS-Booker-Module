@@ -12,7 +12,7 @@
 $dt = new DateTime('@0',NULL);
 $fordisplay = TRUE; //TODO FALSE for export
 
-$t = $this->Lang('title_item');
+$t = '';
 $t2 = $this->Lang('title_overview');
 /*TODO supplement with interval-description if relevant, stamps 'showfrom','showto'
 S to E, S and after, E and before
@@ -22,25 +22,25 @@ $tplvars['title'] = $this->Lang('report_title',$t,$t2);
 
 //TODO support start/end time-limit(s) per $params['startchooser','endchooser'] if relevant
 $sql =<<<EOS
-SELECT item_id,(bulk=0) AS singl,(bulk=1) AS grp,(bulk>=20) AS rept,1 AS bkg,slotstart,slotlen
+SELECT slotstart,slotlen,1 AS bkg
 FROM $this->DispTable
 WHERE displayed>0
-ORDER BY item_id,slotstart
+ORDER BY slotstart,item_id
 EOS;
 //$args = array();
 $data = $db->GetArray($sql);
 
 if ($data) {
-	$iid = $data[0]['item_id']; //for time-interval determination
 	$ic = count($data);
 	for ($i = 0; $i < $ic; $i++) {
 		$dt->setTimestamp($data[$i]['slotstart']);
+		$data[$i]['year'] = $dt->format('Y');
 		$data[$i]['month'] = 'M'.(string)($dt->format('n')-1);
 	}
 
-	$pivoton = array('item_id','month');
+	$pivoton = array('year','month');
 	$group = null;
-	$groupvalue = array(array('singl','count'),array('grp','count'),array('rept','count'),'bkg','slotlen');
+	$groupvalue = array('bkg','slotlen');
 	$total = $this->Lang('total');
 	$subtotal = $this->Lang('subtotal');
 
@@ -56,7 +56,14 @@ if ($data) {
 	unset($data);
 
 	if ($pivoted) {
-		$slen = $utils->GetInterval($this,$iid,'slot');
+		$rs = $db->SelectLimit('SELECT item_id FROM '.$this->ItemTable.' WHERE item_id<'.Booker::MINGRPID, 1, 1);
+		if (!$rs->EOF) {
+			$row = $rs->FetchRow();
+			$slen = $utils->GetInterval($this,$row['item_id'],'slot');
+		} else {
+			$slen = 3600; //TODO better default from module preferences
+		}
+		$rs->Close();
 		if ($slen <= 86400) {
 			$slen = 3600;
 			$t = $this->Lang('title_hours');
@@ -73,12 +80,9 @@ if ($data) {
 
 		$translates = array(
 			'bkg'=>$this->Lang('count'),
-			'grp'=>$this->Lang('bkgtype_grouped'),
-			'item_id'=>$this->Lang('title_name'),
 			'month'=>$this->Lang('title_month'),
-			'rept'=>$this->Lang('bkgtype_repeated'),
-			'singl'=>$this->Lang('bkgtype_single'),
 			'slotlen'=>$t,
+			'year'=>$this->Lang('title_year')
 		);
 		$months = array();
 		foreach (explode(',',$this->Lang('longmonths')) as $k => $val) {
@@ -114,23 +118,20 @@ if ($data) {
 
 		$theme = ($this->before20) ? cmsms()->get_variable('admintheme'):
 			cms_utils::get_theme_object();
-		$t2 = $this->Lang('tip_seetype',$this->Lang('item'));
+		$t2 = $this->Lang('tip_seetype',$this->Lang('booking_multi'));
 		$icon_view = $theme->DisplayImage('icons/system/view.gif',$t2,'','','systemicon');
-		$translates = $db->GetAssoc('SELECT item_id,name FROM '.$this->ItemTable.' ORDER BY item_id');
-		//CHECKME fallback for any missing name ?
 
 		$ic = count($pivoted);
 		for ($i = 0; $i < $ic; $i++) {
 			$row = $pivoted[$i];
 			$dataline = ($row['type'] == Booker\PivotBase::TYPE_LINE);
 			unset($row['type']);
-			$iid = $row['item_id'];
+			$yid = $row['year'];
 			if ($dataline) {
-				$current = $translates[$iid]; //item name
-				$row['item_id'] = $current;
+				$current = $yid;
 				$row['month'] = $months[$row['month']];
-			} elseif (strpos($iid,$subtotal) !== FALSE) {
-				$row['item_id'] = str_replace('item_id',$current,$iid);
+			} elseif (strpos($yid,$subtotal) !== FALSE) {
+				$row['year'] = str_replace('year',$current,$yid);
 			}
 			//interpret *\'slotlen'
 			foreach ($works as $t2) {
@@ -143,7 +144,7 @@ if ($data) {
 			$oneset->fields = array_values($row);
 			if ($fordisplay) {
 				$oneset->view = ($dataline) ? $this->CreateLink($id,$params['action'],'',$icon_view,
-					array('filter'=>1,'item_id'=>$iid)) : NULL; //TODO $params[]
+					array('filter'=>1)) : NULL; //TODO $params[]
 			}
 			$display[] = $oneset;
 		}

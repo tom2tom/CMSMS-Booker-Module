@@ -10,7 +10,6 @@
 // see https://gonzalo123.com/2010/01/24/pivot-tables-in-php for related examples
 
 $dt = new DateTime('@0',NULL);
-$fordisplay = TRUE; //TODO FALSE for export
 
 $t = $this->Lang('title_item');
 $t2 = $this->Lang('title_overview');
@@ -88,7 +87,7 @@ if ($data) {
 
 		$row = reset($pivoted);
 		//interpet titles, and log row-indices of *\'slotlen'
-		$works = array();
+		$summers = array();
 		foreach ($row as $t2 => $val) {
 			$parts = explode('\\',$t2);
 			foreach ($parts as $k => &$val) {
@@ -97,7 +96,7 @@ if ($data) {
 					$parts = FALSE; //type field won't be displayed
 					break 2;
 				 case 'slotlen':
-					$works[] = $t2;
+					$summers[] = $t2;
 					break;
 				}
 				if ($val[0] == 'M') {
@@ -133,18 +132,17 @@ if ($data) {
 				$row['item_id'] = str_replace('item_id',$current,$iid);
 			}
 			//interpret *\'slotlen'
-			foreach ($works as $t2) {
+			foreach ($summers as $t2) {
 				if (isset($row[$t2])) {
-					$row[$t2] = round(($row[$t2]/$slen),1);
+					$a = round(($row[$t2]/$slen),1);
+					$row[$t2] = $a;
 				}
 			}
 
 			$oneset = new stdClass();
 			$oneset->fields = array_values($row);
-			if ($fordisplay) {
-				$oneset->view = ($dataline) ? $this->CreateLink($id,$params['action'],'',$icon_view,
-					array('filter'=>1,'item_id'=>$iid)) : NULL; //TODO $params[]
-			}
+			$oneset->view = ($dataline) ? $this->CreateLink($id,$params['action'],'',$icon_view,
+				array('filter'=>1,'item_id'=>$iid)) : NULL; //TODO $params[]
 			$display[] = $oneset;
 		}
 	}

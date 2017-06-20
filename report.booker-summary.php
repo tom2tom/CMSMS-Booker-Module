@@ -10,6 +10,7 @@
 // see https://gonzalo123.com/2010/01/24/pivot-tables-in-php for related examples
 
 $dt = new DateTime('@0',NULL);
+$fordisplay = TRUE; //TODO FALSE for export
 
 $t = $this->Lang('title_booker');
 $t2 = $this->Lang('title_overview');
@@ -82,7 +83,7 @@ if ($data) {
 			'month'=>$this->Lang('title_month'),
 			'rept'=>$this->Lang('bkgtype_repeated'),
 			'singl'=>$this->Lang('bkgtype_onetime'),
-			'slotlen'=>$t,
+			'slotlen'=>$t
 		);
 		$months = array();
 		foreach (explode(',',$this->Lang('longmonths')) as $k => $val) {
@@ -92,7 +93,7 @@ if ($data) {
 
 		$row = reset($pivoted);
 		//interpet titles, and log row-indices of *\'slotlen'
-		$summers = array();
+		$works = array();
 		foreach ($row as $t2 => $val) {
 			$parts = explode('\\',$t2);
 			foreach ($parts as $k => &$val) {
@@ -101,7 +102,7 @@ if ($data) {
 					$parts = FALSE; //type field won't be displayed
 					break 2;
 				 case 'slotlen':
-					$summers[] = $t2;
+					$works[] = $t2;
 					break;
 				}
 				if ($val[0] == 'M') {
@@ -156,17 +157,18 @@ EOS;
 				$row['booker_id'] = str_replace('booker_id',$current,$bid);
 			}
 			//interpret *\'slotlen'
-			foreach ($summers as $t2) {
+			foreach ($works as $t2) {
 				if (isset($row[$t2])) {
-					$a = round(($row[$t2]/$slen),1);
-					$row[$t2] = $a;
+					$row[$t2] = round(($row[$t2]/$slen),1);
 				}
 			}
 
 			$oneset = new stdClass();
 			$oneset->fields = array_values($row);
-			$oneset->view = ($dataline) ? $this->CreateLink($id,$params['action'],'',$icon_view,
-				array('filter'=>1,'booker_id'=>$bid)) : NULL; //TODO $params[]
+			if ($fordisplay) {
+				$oneset->view = ($dataline) ? $this->CreateLink($id,$params['action'],'',$icon_view,
+					array('filter'=>1,'booker_id'=>$bid)) : NULL; //TODO $params[]
+			}
 			$display[] = $oneset;
 		}
 	}
