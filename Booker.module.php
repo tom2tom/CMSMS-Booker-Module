@@ -521,6 +521,7 @@ EOS;
 		 case 'swapgroups':
 		 case 'sortlike':
 		 case 'processreport':
+		 case 'filter':
 			break;
 		 case 'bookerbookings':
 		 case 'itembookings':
