@@ -16,7 +16,7 @@
     <tbody>
 {foreach from=$data item=entry}{cycle values='row1,row2' assign='rowclass'}
      <tr class="{$rowclass}">
-{foreach from=$entry->fields item=value}<td{if is_numeric($value)} style="text-align:right"{/if}>{$value}</td>{/foreach}
+{foreach from=$entry->fields key=k item=value}<td{if $k>0 && is_numeric($value)} style="text-align:right"{/if}>{$value}</td>{/foreach}
       <td>{$entry->view}</td>
      </tr>
 {/foreach}
