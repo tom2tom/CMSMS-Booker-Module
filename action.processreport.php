@@ -50,53 +50,48 @@ if (isset($params['filter'])) {
 	));
 }
 
-//report type
-switch (substr($params['task'],0,3)) {
- case 'itm':
-	$f1 = 'item';
-	break;
- case 'bkr':
-	$f1 = 'booker';
-	break;
- case 'rng':
-	$f1 = 'interval';
-	break;
- default:
-	echo $this->Lang('err_system');
-	return;
-}
-
-switch (substr($params['task'],3)) {
- case 'view':
-	$f2 = 'summary';
-	break;
- case 'pay':
-	$f2 = 'payments';
-	break;
- case 'stat':
-	$f2 = 'status';
-	break;
- default:
-	echo $this->Lang('err_system');
-	return;
-}
-
 if (isset($params['range'])) {
 //TODO process $params['showfrom', 'showto']
 } elseif (isset($params['from'])) {
 //TODO process $params['from', 'until']
 }
+//TODO
+$after = FALSE;
+$before = FALSE;
+$showfrom = FALSE;
+$showto = FALSE;
 
 $utils = new Booker\Utils();
 $tplvars = array();
-$output = array(); //output populated by included file, or maybe empty
 $display = !isset($params['export']); //whether to create all UI-elements
 
-require 'report.'.$f1.'-'.$f2.'.php';
+$types = (array)json_decode($params['alltypes']);
+$type = array_search($params['task'], $types);
+if (!$type) {
+	echo $this->Lang('err_system');
+	return;
+}
+$classname = 'Booker\\'.$type;
+$funcs = new $classname($this, $utils);
 
-if (isset($params['export'])) {
+$tplvars['title'] = $funcs->PublicTitle($after, $before);
+
+$data = $funcs->GetReportData($showfrom, $showto);
+if ($data) {
+	$pivoted = $funcs->PivotReportData($data);
+	unset($data);
+	if ($pivoted) {
+		list($coltitles, $output) = $funcs->PostProcessData($pivoted, $id, $params['action'], $display);
+	} else {
+		$output = FALSE;
+	}
+} else {
+	$output = FALSE;
+}
+
+if (!$display) { //i.e. isset($params['export']))
 	if ($output) {
-		//TODO STUFF
+		//TODO STUFF WITH $tplvars['title'],$coltitles,$output(each->fields)
 		exit;
 	} else {
 		$params['message'] = $this->Lang('err_data');
@@ -254,7 +249,7 @@ $jsloads[] = <<<EOS
   }
  });
  $('.dateinput').pikaday({
-  format: 'Y-m-j',
+  format: 'Y-m',
   reformat: function(target,f) {
    return fmt.formatDate(target,f);
   },
