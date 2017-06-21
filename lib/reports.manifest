@@ -1,0 +1,7 @@
+;each line ~ classname = privatename
+RptItemSummary = itmovr
+RptItemPayments = itmpay
+RptBookerSummary = bkrovr
+RptBookerPayments = bkrpay
+RptIntervalSummary = rngovr
+RptIntervalPayments = rngpay
