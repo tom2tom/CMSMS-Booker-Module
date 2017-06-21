@@ -32,14 +32,13 @@
 {if $dcount > 0}{$export} {/if}{$close}
 </div>
 <br />
-<fieldset>
- <legend>{$rangeset}</legend>
- <p class="pagetext" style="margin:0">{$titlefrom}</p>
- <div class="pageinput" style="margin:0 0 1em 0">{$showfrom}<br />
- {$helpfrom}</div>
- <p class="pagetext" style="margin:0">{$titleto}</p>
- <div class="pageinput" style="margin:0 0 1em 0">{$showto}<br />
- {$helpto}</div>
- {$range}
-</fieldset>
+<h5>{$rangeset}</h5>
+<br />
+<p class="pagetext" style="margin:0">{$titlefrom}</p>
+<div class="pageinput" style="margin:0 0 1em 0">{$showfrom}<br />
+{$helpfrom}</div>
+<p class="pagetext" style="margin:0">{$titleto}</p>
+<div class="pageinput" style="margin:0 0 1em 0">{$showto}<br />
+{$helpto}</div>
+{$range}
 {$endform}
