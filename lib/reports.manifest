@@ -1,7 +1,8 @@
-;each line ~ classname = privatename
-RptItemSummary = itmovr
-RptItemPayments = itmpay
-RptBookerSummary = bkrovr
-RptBookerPayments = bkrpay
-RptIntervalSummary = rngovr
-RptIntervalPayments = rngpay
+;each line: any-unique-value = classname
+;class-order here determines UI picklist-order
+1 = RptItemSummary
+2 = RptItemPayments
+3 = RptBookerSummary
+4 = RptBookerPayments
+5 = RptIntervalSummary
+6 = RptIntervalPayments
