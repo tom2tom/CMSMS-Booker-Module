@@ -1126,21 +1126,31 @@ $choices = array();
 $fp = $this->GetModulePath().DIRECTORY_SEPARATOR.'lib'.DIRECTORY_SEPARATOR;
 $reps = parse_ini_file($fp.'reports.manifest', FALSE, INI_SCANNER_RAW);
 if ($reps) {
-	foreach ($reps as $t=>$s) {
+	$s = 'Booker\Report';
+	foreach ($reps as $k => $t) {
 		$filename = $fp.'class.'.$t.'.php';
-		include $filename;
-		$classname = 'Booker\\'.$t;
-		$funcs = new $classname($this,$utils);
-		list($private,$public) = $funcs->Titles();
-		$choices[$public] = $private; //or $t for easier retrieval
+		if (is_file($filename)) {
+			include $filename;
+			$classname = 'Booker\\'.$t;
+			$funcs = new $classname($this, $utils);
+			if ($funcs && ($funcs instanceof $s)) {
+				list($private,$public) = $funcs->Titles();
+				$choices[$public] = $private; //or $t for easier retrieval
+				unset($funcs);
+			} else {
+				unset($reps[$k]);
+			}
+		} else {
+			unset($reps[$k]);
+		}
 	}
-	unset($funcs);
+	$alltypes = array_combine(array_values($choices),$reps);
 } else {
-	$reps = array();
+	$alltypes = array();
 }
 
-$tplvars['startform5'] = $this->CreateFormStart($id, 'processreport', $returnid, 'POST', '', '', '',
- array('active_tab' => 'reports', 'resume' => $resume, 'alltypes' => json_encode($reps)));
+$tplvars['startform5'] = $this->CreateFormStart($id,'processreport',$returnid,'POST','','','',
+ array('active_tab' => 'reports','resume' => $resume,'alltypes' => json_encode($alltypes)));
 
 $tplvars['report_type'] =  $this->Lang('title_selecttype');
 $tplvars['report_range'] = $this->Lang('title_interval');
@@ -1156,9 +1166,6 @@ $t = $this->CreateInputText($id,'showto','',12,15);
 $tplvars['showto'] = str_replace('class="','class="dateinput ',$t);
 $tplvars['helpto'] = $this->Lang('help_reportto');
 //for date-picker
-$stylers = <<<EOS
-<link rel="stylesheet" type="text/css" href="{$baseurl}/css/pikaday.css" />
-EOS;
 $jsincs[] = <<<EOS
 <script type="text/javascript" src="{$baseurl}/lib/js/pikaday.min.js"></script>
 <script type="text/javascript" src="{$baseurl}/lib/js/pikaday.jquery.min.js"></script>
