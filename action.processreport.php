@@ -50,33 +50,47 @@ if (isset($params['filter'])) {
 	));
 }
 
-if (isset($params['range'])) {
-//TODO process $params['showfrom', 'showto']
-} elseif (isset($params['from'])) {
-//TODO process $params['from', 'until']
-}
-//TODO
-$after = FALSE;
-$before = FALSE;
-$showfrom = FALSE;
-$showto = FALSE;
 
-$utils = new Booker\Utils();
-$tplvars = array();
-$display = !isset($params['export']); //whether to create all UI-elements
-
-$types = (array)json_decode($params['alltypes']);
-$type = array_search($params['task'], $types);
-if (!$type) {
+$choices = (array)json_decode($params['alltypes']);
+$type = ($choices) ? $choices[$params['task']] : FALSE;
+if (!$choices || !$type) {
 	echo $this->Lang('err_system');
 	return;
 }
+
+$y = $m = 0;
+$after = $before = FALSE;
+if (!empty($params['showfrom'])) {
+	sscanf($params['showfrom'],'%d-%d',$y,$m);
+	$dt = new DateTime('@0',NULL);
+	$lvl = error_reporting(0);
+	$dt->modify($y.'-'.$m.'-01');
+	error_reporting($lvl);
+	if (1) { //TODO
+		$after = $dt->getTimestamp();
+	}
+}
+if (!empty($params['showto'])) {
+	sscanf($params['showto'],'%d-%d',$y,$m);
+	//TODO validate
+	if (!isset($dt)) {
+		$dt = new DateTime('@0',NULL);
+	}
+	$lvl = error_reporting(0);
+	$dt->modify($y.'-'.$m.'-01');
+	error_reporting($lvl);
+	if (1) { //TODO
+		$dt->modify('+1 month');
+		$before = $dt->getTimestamp() - 1;
+	}
+}
+$display = !isset($params['export']); //whether to create all UI-elements
+
+$utils = new Booker\Utils();
 $classname = 'Booker\\'.$type;
 $funcs = new $classname($this, $utils);
 
-$tplvars['title'] = $funcs->PublicTitle($after, $before);
-
-$data = $funcs->GetReportData($showfrom, $showto);
+$data = $funcs->GetReportData($after, $before);
 if ($data) {
 	$pivoted = $funcs->PivotReportData($data);
 	unset($data);
@@ -89,24 +103,28 @@ if ($data) {
 	$output = FALSE;
 }
 
+$title = $funcs->PublicTitle($after, $before);
+
 if (!$display) { //i.e. isset($params['export']))
 	if ($output) {
-		//TODO STUFF WITH $tplvars['title'],$coltitles,$output(each->fields)
+		//TODO STUFF WITH $title ,$coltitles,$output(each->fields)
 		exit;
 	} else {
 		$params['message'] = $this->Lang('err_data');
 	}
 }
 
+$tplvars = array();
 $tplvars['pagenav'] = $utils->BuildNav($this,$id,$returnid,$params['action'],$params);
 $tplvars['startform'] = $this->CreateFormStart($id,'processreport',$returnid,'POST','','','',
 	array('task'=>$params['task'],'active_tab'=>$params['active_tab']));
-//TODO 'resume'=>$params[ 'resume' 'from' 'until' etc
+//TODO 'resume'=>$params[ 'resume' 'showfrom' 'showto'
 $tplvars['endform'] = $this->CreateFormEnd();
 
 if (!empty($params['message'])) {
 	$tplvars['message'] = $params['message'];
 }
+$tplvars['title'] = $title;
 
 //script accumulators
 $jsincs = array();
@@ -214,9 +232,6 @@ $t = $this->CreateInputText($id,'showto','',12,15);
 $tplvars['showto'] = str_replace('class="','class="dateinput ',$t);
 $tplvars['helpto'] = $this->Lang('help_reportto');
 //for date-picker
-$stylers = <<<EOS
-<link rel="stylesheet" type="text/css" href="{$baseurl}/css/pikaday.css" />
-EOS;
 $jsincs[] = <<<EOS
 <script type="text/javascript" src="{$baseurl}/lib/js/pikaday.min.js"></script>
 <script type="text/javascript" src="{$baseurl}/lib/js/pikaday.jquery.min.js"></script>
