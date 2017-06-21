@@ -1121,51 +1121,89 @@ if ($mod) {
 
 //REPORTS TAB (&FORM)
 $tplvars['start_reports_tab'] = $this->StartTab('reports');
-$tplvars['startform5'] = $this->CreateFormStart($id, 'processreport', $returnid,
-	'POST', '', '', '', array('active_tab' => 'reports', 'resume' => $resume));
 
-$cbbase = str_replace('class="', 'class="reportcheck ',
-	$this->CreateInputCheckbox($id, 'task', '999', -1));
-$types = array('itm', 'bkr', 'rng'); //taskname prefixes
-$cells = array();
-//column 0
-//'title_period'
-$column = array(
-'',$this->Lang('title_bywhat'),$this->Lang('title_bywho'),$this->Lang('title_bywhen')
-);
-$cells[] = $column;
-//column 1
-$column = array($this->Lang('title_overview'));
-for ($t = 0; $t < 3; $t++) {
-	$column[] = str_replace('999', $types[$t].'view', $cbbase);
+$choices = array();
+$fp = $this->GetModulePath().DIRECTORY_SEPARATOR.'lib'.DIRECTORY_SEPARATOR;
+$reps = parse_ini_file($fp.'reports.manifest', FALSE, INI_SCANNER_RAW);
+if ($reps) {
+	foreach ($reps as $t=>$s) {
+		$filename = $fp.'class.'.$t.'.php';
+		include $filename;
+		$classname = 'Booker\\'.$t;
+		$funcs = new $classname($this,$utils);
+		list($private,$public) = $funcs->Titles();
+		$choices[$public] = $private; //or $t for easier retrieval
+	}
+	unset($funcs);
+} else {
+	$reps = array();
 }
-$cells[] = $column;
-//column 2
-$column = array($this->Lang('title_payments'));
-for ($t = 0; $t < 3; $t++) {
-	$column[] = str_replace('999', $types[$t].'pay', $cbbase);
-}
-$cells[] = $column;
-//column 3
-$column = array($this->Lang('status'));
-for ($t = 0; $t < 3; $t++) {
-	$column[] = str_replace('999', $types[$t].'stat', $cbbase);
-}
-$cells[] = $column;
 
-$tplvars['reportcells'] = $cells;
-$tplvars['reportrows'] = 4;
-$tplvars['reportcols'] = 4;
+$tplvars['startform5'] = $this->CreateFormStart($id, 'processreport', $returnid, 'POST', '', '', '',
+ array('active_tab' => 'reports', 'resume' => $resume, 'alltypes' => json_encode($reps)));
+
+$tplvars['report_type'] =  $this->Lang('title_selecttype');
+$tplvars['report_range'] = $this->Lang('title_interval');
+$tplvars['reportchoose'] = $this->CreateInputDropdown($id, 'task', $choices, 0, -1);
 $tplvars['displaybtn'] = $this->CreateInputSubmit($id, 'display', $this->Lang('display'));
 $tplvars['exportbtn5'] = $this->CreateInputSubmit($id, 'export', $this->Lang('export'));
+$tplvars['titlefrom'] = $this->Lang('start');
+$t = $this->CreateInputText($id,'showfrom','',12,15);
+$tplvars['showfrom'] = str_replace('class="','class="dateinput ',$t);
+$tplvars['helpfrom'] = $this->Lang('help_reportfrom');
+$tplvars['titleto'] = $this->Lang('end');
+$t = $this->CreateInputText($id,'showto','',12,15);
+$tplvars['showto'] = str_replace('class="','class="dateinput ',$t);
+$tplvars['helpto'] = $this->Lang('help_reportto');
+//for date-picker
+$stylers = <<<EOS
+<link rel="stylesheet" type="text/css" href="{$baseurl}/css/pikaday.css" />
+EOS;
+$jsincs[] = <<<EOS
+<script type="text/javascript" src="{$baseurl}/lib/js/pikaday.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/pikaday.jquery.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/php-date-formatter.min.js"></script>
+EOS;
 
+$prevm = $this->Lang('prevm');
+$nextm = $this->Lang('nextm');
+//js wants quoted period-names
+$t = $this->Lang('longmonths');
+$mnames = "'".str_replace(",","','",$t)."'";
+$t = $this->Lang('shortmonths');
+$smnames = "'".str_replace(",","','",$t)."'";
+$t = $this->Lang('longdays');
+$dnames = "'".str_replace(",","','",$t)."'";
+$t = $this->Lang('shortdays');
+$sdnames = "'".str_replace(",","','",$t)."'";
+$t = $this->Lang('meridiem');
+$meridiem = "'".str_replace(",","','",$t)."'";
 $jsloads[] = <<<EOS
- $('#reportstable').find('input.reportcheck').click(function(ev) {
-  var \$b = $(this),
-   st = \$b.attr('checked');
-  if (st) {
-   $('#reportstable').find('input.reportcheck').attr('checked',false);
-   \$b.attr('checked',true);
+ var fmt = new DateFormatter({
+  longDays: [$dnames],
+  shortDays: [$sdnames],
+  longMonths: [$mnames],
+  shortMonths: [$smnames],
+  meridiem: [$meridiem],
+  ordinal: function (number) {
+   var n = number % 10, suffixes = {1: 'st', 2: 'nd', 3: 'rd'};
+   return Math.floor(number % 100 / 10) === 1 || !suffixes[n] ? 'th' : suffixes[n];
+  }
+ });
+ $('.dateinput').pikaday({
+  format: 'Y-m',
+  reformat: function(target,f) {
+   return fmt.formatDate(target,f);
+  },
+  getdate: function(target,f) {
+   return fmt.parseDate(target,f);
+  },
+  i18n: {
+   previousMonth: '$prevm',
+   nextMonth: '$nextm',
+   months: [$mnames],
+   weekdays: [$dnames],
+   weekdaysShort: [$sdnames]
   }
  });
 EOS;

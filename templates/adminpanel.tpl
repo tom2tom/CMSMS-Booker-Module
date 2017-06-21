@@ -268,19 +268,18 @@
 
 {$start_reports_tab}
 {$startform5}
-<div style="overflow:auto;">
- <table id="reportstable" class="leftwards pagetable">
-  <thead><tr>
-   {foreach $reportcells as $col}<th>{$col[0]}</th>{/foreach}
-  </tr></thead>
-  <tbody>
-{for $r=1 to $reportrows-1}
-   <tr>{for $col=0 to $reportcols-1}
-       <td {if $col==0}style="font-weight:bold;"{else}class="check"{/if}>{$reportcells[$col][$r]}</td>{/for}</tr>
-{/for}
-  </tbody>
- </table>
-</div>
+<h5>{$report_type}</h5>
+<br />
+{$reportchoose}
+<br /><br />
+<h5>{$report_range}</h5>
+<br />
+<p class="pagetext" style="margin:0">{$titlefrom}</p>
+<div class="pageinput" style="margin:0 0 1em 0">{$showfrom}<br />
+{$helpfrom}</div>
+<p class="pagetext" style="margin:0">{$titleto}</p>
+<div class="pageinput" style="margin:0 0 1em 0">{$showto}<br />
+{$helpto}</div>
 <div id="reportacts" class="pageoptions" style="margin-top:1em;">
 {$displaybtn} {$exportbtn5}
 </div>
