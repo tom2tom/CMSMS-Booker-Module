@@ -491,7 +491,7 @@ EOS;
 
 $stylers = <<<EOS
 <link rel="stylesheet" type="text/css" href="{$baseurl}/css/public.css" />
-<link rel="stylesheet" type="text/css" href="{$baseurl}/css/pikaday.css" />
+<link rel="stylesheet" type="text/css" href="{$baseurl}/css/pikaday.min.css" />
 EOS;
 
 $customcss = $utils->GetStylesURL($this,$item_id);
