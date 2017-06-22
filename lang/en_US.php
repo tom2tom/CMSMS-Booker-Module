@@ -438,6 +438,7 @@ $lang['pageof'] = 'Page %s of %s';
 $lang['pagerows'] = 'rows per page';
 $lang['partbooked'] = 'part';
 $lang['password'] = 'password';
+$lang['payments'] = 'payments';
 $lang['pending'] = 'Approval pending';
 $lang['percent'] = 'percent';
 //conform these to $Perm* in module file
