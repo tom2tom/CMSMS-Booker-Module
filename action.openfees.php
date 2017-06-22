@@ -497,7 +497,7 @@ if ($pdata) {
 		$t = '\\\''.$t.'\\\''; //surrounding escaped quotes go inside js string inside double-quoted html
 	else
 		$t = $this->Lang('fee_multi');
-	$t = $this->Lang('del_confirm',$t);
+	$t = $this->Lang('confirm_del',$t);
 */
 		$jsfuncs[] = <<<EOS
 function confirmclick(tg,msg) {
@@ -509,7 +509,7 @@ function confirmclick(tg,msg) {
  });
 }
 EOS;
-		$t = $this->Lang('del_confirm','%s');
+		$t = $this->Lang('confirm_del','%s');
 		//this table uses fakelinks for deletes
 		$jsloads[] = <<<EOS
  $('#fees .feedel > input').click(function(ev) {
@@ -566,7 +566,7 @@ function confirm_selitm_count() {
 }
 function confirm_delete_item(btn) {
  if (selitm_count() > 0) {
-  var msg = '{$this->Lang('delsel_confirm',$this->Lang('fee_multi'))}';
+  var msg = '{$this->Lang('confirm_del_sel',$this->Lang('fee_multi'))}';
   $.alertable.confirm(msg,{
    okName: '{$this->Lang('proceed')}',
    cancelName: '{$this->Lang('cancel')}'
