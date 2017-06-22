@@ -151,7 +151,7 @@ EOS;
 		if ($display) {
 			$theme = ($this->mod->before20) ? cmsms()->get_variable('admintheme') :
 				cms_utils::get_theme_object();
-			$t = $this->mod->Lang('tip_seetype', $this->mod->Lang('payments'));
+			$t = $this->mod->Lang('tip_seetype', $this->mod->Lang('booker'));
 			$icon_view = $theme->DisplayImage('icons/system/view.gif', $t, '', '', 'systemicon');
 		}
 		$sql = <<<EOS

@@ -107,7 +107,7 @@ EOS;
 	*/
 	public function PostProcessData($pivoted, $id, $linkaction, $display = TRUE)
 	{
-		$rs = $db->SelectLimit('SELECT item_id FROM '.$this->mod->ItemTable.' WHERE item_id<'.Booker::MINGRPID, 1, 1);
+		$rs = $this->mod->dbHandle->SelectLimit('SELECT item_id FROM '.$this->mod->ItemTable.' WHERE item_id<'.\Booker::MINGRPID,1,1);
 		if (!$rs->EOF) {
 			$row = $rs->FetchRow();
 			list($t,$slen) = $this->SlotParameters($row['item_id']);
@@ -159,7 +159,7 @@ EOS;
 		if ($display) {
 			$theme = ($this->mod->before20) ? cmsms()->get_variable('admintheme') :
 				cms_utils::get_theme_object();
-			$t = $this->mod->Lang('tip_seetype', $this->mod->Lang('booking_multi'));
+			$t = $this->mod->Lang('tip_seetype',$this->mod->Lang('month'));
 			$icon_view = $theme->DisplayImage('icons/system/view.gif', $t, '', '', 'systemicon');
 		}
 		$subtotal = $this->mod->Lang('subtotal');
@@ -188,7 +188,7 @@ EOS;
 				$oneset = new \stdClass();
 				$oneset->fields = array_values($row);
 				$oneset->view = ($dataline) ? $this->mod->CreateLink($id, $linkaction, '', $icon_view,
-					array('filter' => 1, 'item_id' => $iid)) : NULL; //TODO all link $params[]
+					array('filter' => 1)) : NULL; //TODO all link $params[]
 				$output[] = $oneset;
 			} else {
 				$output[] = array_values($row);

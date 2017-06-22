@@ -48,8 +48,8 @@ class RptIntervalPayments extends Report
 		//TODO support RepeatsTable too - algorithm for payment-splitting across bookings
 		$sql = <<<EOS
 SELECT D.slotstart,O.fee,O.feepaid,1 AS bkg
-FROM $this->DispTable D
-JOIN $this->OnceTable O ON D.bkg_id=O.bkg_id
+FROM {$this->mod->DispTable} D
+JOIN {$this->mod->OnceTable} O ON D.bkg_id=O.bkg_id
 WHERE D.displayed>0
 EOS;
 		$args = array();
@@ -65,6 +65,7 @@ EOS;
 		$data = $this->mod->dbHandle->GetArray($sql, $args);
 
 		if ($data) {
+			$dt = new \DateTime('@0', NULL);
 			$ic = count($data);
 			for ($i = 0; $i < $ic; $i++) {
 				$dt->setTimestamp($data[$i]['slotstart']);
@@ -109,10 +110,19 @@ EOS;
 	public function PostProcessData($pivoted, $id, $linkaction, $display = TRUE)
 	{
 		$translates = array(
+			'bkg'=>$this->mod->Lang('count'),
+			'fee'=>$this->mod->Lang('title_fees'),
+			'feepaid'=>$this->mod->Lang('title_payments'),
+			'month'=>$this->mod->Lang('title_month')
 		);
+		$months = array();
+		foreach (explode(',',$this->mod->Lang('longmonths')) as $k => $val) {
+			$months['M'.$k] = $val;
+		}
+		$translates += $months;
 
 		$row = reset($pivoted);
-		//interpet titles, and log row-indices of slotlen fields
+		//interpet titles, and log row-indices of 'fee' fields
 		$works = array();
 		foreach ($row as $t => $val) {
 			$parts = explode('\\', $t);
@@ -121,11 +131,12 @@ EOS;
 				 case 'type':
 					$parts = FALSE; //type field won't be displayed
 					break 2;
-				 case 'slotlen':
+				 case 'fee':
+				 case 'feepaid':
 					$works[] = $t;
 					break;
 				}
-				if (0) {
+				if ($val[0] == 'M') {
 					unset($parts[$k]);
 				} elseif (array_key_exists($val, $translates)) {
 					$val = $translates[$val];
@@ -140,16 +151,9 @@ EOS;
 		if ($display) {
 			$theme = ($this->mod->before20) ? cmsms()->get_variable('admintheme') :
 				cms_utils::get_theme_object();
-			$t = $this->mod->Lang('tip_seetype', $this->mod->Lang('payments'));
-			$icon_view = $theme->DisplayImage('icons/system/view.gif', $t, '', '', 'systemicon');
+			$t = $this->mod->Lang('tip_seetype',$this->mod->Lang('month'));
+			$icon_view = $theme->DisplayImage('icons/system/view.gif',$t,'','','systemicon');
 		}
-		$translates = $this->mod->dbHandle->GetAssoc();
-		foreach ($translates as &$t) {
-		{
-			if (0) {
-			}
-		}
-		unset($t);
 		$subtotal = $this->mod->Lang('subtotal');
 
 		$output = array();
@@ -158,13 +162,17 @@ EOS;
 			$row = $pivoted[$i];
 			$dataline = ($row['type'] == PivotBase::TYPE_LINE);
 			unset($row['type']);
+			$yid = $row['year'];
 			if ($dataline) {
-			} elseif (0) {
+				$current = $yid;
+				$row['month'] = $months[$row['month']];
+			} elseif (strpos($yid,$subtotal) !== FALSE) {
+				$row['year'] = str_replace('year',$current,$yid);
 			}
-			//interpret
+			//interpret 'fee*'
 			foreach ($works as $t) {
-				if (0) {
-					$row[$t] = 0;
+				if (isset($row[$t])) {
+					$row[$t] = number_format($row[$t],2); //TODO generalize
 				}
 			}
 
@@ -172,7 +180,7 @@ EOS;
 				$oneset = new \stdClass();
 				$oneset->fields = array_values($row);
 				$oneset->view = ($dataline) ? $this->mod->CreateLink($id, $linkaction, '', $icon_view,
-					array('filter' => 1, 'item_id' => $iid)) : NULL; //TODO all link $params[]
+					array('filter' => 1)) : NULL; //TODO all link $params[]
 				$output[] = $oneset;
 			} else {
 				$output[] = array_values($row);

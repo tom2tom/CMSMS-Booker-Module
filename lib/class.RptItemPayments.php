@@ -46,11 +46,11 @@ class RptItemPayments extends Report
 	*/
 	public function GetReportData($showfrom = FALSE, $showto = FALSE)
 	{
-		//TODO support RepeatsTable too - algorithm for splitting payment across bookings
+		//TODO support RepeatsTable too - algorithm for payment-splitting across bookings
 		$sql =<<<EOS
 SELECT D.item_id,D.slotstart,O.fee,O.feepaid,1 AS bkg
 FROM {$this->mod->DispTable} D
-JOIN $this->OnceTable O ON D.bkg_id=O.bkg_id
+JOIN {$this->mod->OnceTable} O ON D.bkg_id=O.bkg_id
 WHERE D.displayed>0
 EOS;
 		$args = array();
@@ -98,7 +98,7 @@ EOS;
 
 	/**
 	@pivoted: non-empty array returned from PivotReportData()
-	@id: module id for link-construction (when @display == TRUE) 
+	@id: module id for link-construction (when @display == TRUE)
 	@linkaction: for link-construction (when @display == TRUE)
 	@display: optional boolean whether output is for screen-display
 	 (as opposed to export), default TRUE
@@ -152,7 +152,7 @@ EOS;
 		if ($display) {
 			$theme = ($this->mod->before20) ? cmsms()->get_variable('admintheme') :
 				cms_utils::get_theme_object();
-			$t = $this->mod->Lang('tip_seetype', $this->mod->Lang('payments'));
+			$t = $this->mod->Lang('tip_seetype', $this->mod->Lang('item'));
 			$icon_view = $theme->DisplayImage('icons/system/view.gif', $t, '', '', 'systemicon');
 		}
 		$translates = $this->mod->dbHandle->GetAssoc('SELECT item_id,name FROM '.$this->mod->ItemTable.' ORDER BY item_id');
@@ -179,9 +179,9 @@ EOS;
 				$row['item_id'] = str_replace('item_id',$current,$iid);
 			}
 			//interpret 'fee*'
-			foreach ($works as $t2) {
-				if (isset($row[$t2])) {
-					$row[$t2] = number_format($row[$t2],2); //TODO generalize
+			foreach ($works as $t) {
+				if (isset($row[$t])) {
+					$row[$t] = number_format($row[$t],2); //TODO generalize
 				}
 			}
 

@@ -106,7 +106,7 @@ EOS;
 	*/
 	public function PostProcessData($pivoted, $id, $linkaction, $display = TRUE)
 	{
-		$rs = $this->mod->dbHandle->SelectLimit('SELECT item_id FROM '.$this->mod->ItemTable.' WHERE item_id<'.Booker::MINGRPID,1,1);
+		$rs = $this->mod->dbHandle->SelectLimit('SELECT item_id FROM '.$this->mod->ItemTable.' WHERE item_id<'.\Booker::MINGRPID,1,1);
 		if (!$rs->EOF) {
 			$row = $rs->FetchRow();
 			list($t,$slen) = $this->SlotParameters($row['item_id']);
@@ -161,7 +161,7 @@ EOS;
 		if ($display) {
 			$theme = ($this->mod->before20) ? cmsms()->get_variable('admintheme') :
 				cms_utils::get_theme_object();
-			$t = $this->mod->Lang('tip_seetype', $this->mod->Lang('booking_multi'));
+			$t = $this->mod->Lang('tip_seetype', $this->mod->Lang('booker'));
 			$icon_view = $theme->DisplayImage('icons/system/view.gif', $t, '', '', 'systemicon');
 		}
 		$sql = <<<EOS
