@@ -308,10 +308,11 @@ class Booker extends CMSModule
 */
 	public function GetHeaderHTML()
 	{
-		$p = $this->GetModuleURLPath();
+		$base = $this->GetModuleURLPath();
 		return <<<EOS
-<link rel="stylesheet" type="text/css" id="adminstyler" href="{$p}/css/admin.min.css" />
-<link rel="stylesheet" type="text/css" href="{$p}/css/alertable.min.css" />
+<link rel="stylesheet" type="text/css" id="adminstyler" href="{$base}/css/admin.min.css" />
+<link rel="stylesheet" type="text/css" href="{$base}/css/alertable.min.css" />
+<link rel="stylesheet" type="text/css" href="{$base}/css/pikaday.min.css" />
 EOS;
 	}
 
