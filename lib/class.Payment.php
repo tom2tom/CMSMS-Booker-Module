@@ -390,7 +390,7 @@ class Payment
 	public function TotalCredit(&$mod, $bookerid)
 	{
 		$amount = 0.0;
-		$sql = 'SELECT latest FROM '.$mod->PayTable.
+		$sql = 'SELECT latest FROM '.$mod->CreditTable.
 		' WHERE booker_id=? AND status!='.\Booker::CREDITEXPIRED;
 		$data = $mod->dbHandle->GetCol($sql,array($bookerid));
 		if ($data) {
@@ -412,9 +412,9 @@ class Payment
 	{
 		if ($amount > 0.0) {
 			$funcs = new Crypter($mod);
-			$sql = 'INSERT INTO '.$mod->PayTable.
+			$sql = 'INSERT INTO '.$mod->CreditTable.
 ' (pay_id,booker_id,updated,original,latest) VALUES (?,?,?,?,?)';
-			$pid = $mod->dbHandle->GenID($mod->PayTable.'_seq');
+			$pid = $mod->dbHandle->GenID($mod->CreditTable.'_seq');
 			$val = $funcs->cloak_value($amount,16);
 			$args = array(
 				$pid,
@@ -437,7 +437,7 @@ class Payment
 	*/
 	public function UseCredit(&$mod, $bookerid, $amount)
 	{
-		$sql = 'SELECT pay_id,latest FROM '.$mod->PayTable.
+		$sql = 'SELECT pay_id,latest FROM '.$mod->CreditTable.
 		' WHERE booker_id=? AND status!='.\Booker::CREDITEXPIRED.' ORDER BY updated';
 		$data = $mod->dbHandle->GetArray($sql,array($bookerid));
 		if ($data) {
@@ -445,8 +445,8 @@ class Payment
 				$amount = -$amount;
 			}
 			$funcs = new Crypter($mod);
-			$sql1 = 'UPDATE '.$mod->PayTable.' SET status='.\Booker::CREDITUSED.',latest=? WHERE pay_id=?';
-			$sql2 = 'UPDATE '.$mod->PayTable.' SET latest=? WHERE pay_id=?';
+			$sql1 = 'UPDATE '.$mod->CreditTable.' SET status='.\Booker::CREDITUSED.',latest=? WHERE pay_id=?';
+			$sql2 = 'UPDATE '.$mod->CreditTable.' SET latest=? WHERE pay_id=?';
 			foreach ($data as $row) {
 				$now = (float)$funcs->uncloak_value($row['latest']);
 				if ($now > 0.01) {
@@ -482,16 +482,16 @@ class Payment
 	{
 		if (is_array($bookerid)) {
 			$fillers = str_repeat('?,', count($bookerid)-1);
-			$sql = 'UPDATE '.$mod->PayTable.' SET status='.\Booker::CREDITEXPIRED.
+			$sql = 'UPDATE '.$mod->CreditTable.' SET status='.\Booker::CREDITEXPIRED.
 			' WHERE booker_id IN('.$fillers.'?) AND status!='.\Booker::CREDITEXPIRED.' AND updated<?';
 			$args = $bookerid;
 			array_push($args,$before);
 		} elseif ($bookerid == '*') {
-			$sql = 'UPDATE '.$mod->PayTable.' SET status='.\Booker::CREDITEXPIRED.
+			$sql = 'UPDATE '.$mod->CreditTable.' SET status='.\Booker::CREDITEXPIRED.
 			' WHERE status!='.\Booker::CREDITEXPIRED.' AND updated<?';
 			$args = array($before);
 		} else {
-			$sql = 'UPDATE '.$mod->PayTable.' SET status='.\Booker::CREDITEXPIRED.
+			$sql = 'UPDATE '.$mod->CreditTable.' SET status='.\Booker::CREDITEXPIRED.
 			' WHERE booker_id=? AND status!='.\Booker::CREDITEXPIRED.' AND updated<?';
 			$args = array($bookerid,$before);
 		}
