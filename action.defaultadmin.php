@@ -183,18 +183,13 @@ if ($data) {
 		if ($one->status === FALSE) {
 			$one->status = $t;
 		}
-		switch ($row['payment']) {
+		switch ($row['statpay']) {
 		 case Booker::STATFREE:
 			$one->paid = NULL;
 			break;
 		 case Booker::STATPAID:
 			$one->paid = $iconyes;
 			break;
-//		 case Booker::STATCREDITED:
-//		 case Booker::STATPAYABLE:
-//		 case Booker::STATNOTPAID:
-//		 case Booker::STATPARTPAID:
-//		 case Booker::STATOVRDUE:
 		 default:
 			$one->paid = $iconno;
 			break;
