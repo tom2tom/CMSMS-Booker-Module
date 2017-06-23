@@ -717,7 +717,7 @@ EOS;
 			 'Usercomment'=>'comment',
 			 'Feedue'=>'fee',
 		 	 'Feepaid'=>'feepaid',
-			 'Feestatus'=>'payment',
+			 'Feestatus'=>'statpay',
 			 'Active'=>'active',
 			 'Transaction'=>'gatetransaction',
 			 'Update'=>'bkg_id' //not real
@@ -782,7 +782,7 @@ EOS;
 						}
 						//no break here
 					 case 'status':
-					 case 'payment':
+					 case 'statpay':
 					 case 'bkg_id':
 					 	$fv = (int)$fv;
 					 	break;
