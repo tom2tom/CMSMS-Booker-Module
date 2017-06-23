@@ -85,7 +85,7 @@ if (isset($params['submit'])) {
 	if (!empty($params['searchsel'])) {
 		$use = (int)reset($params['searchsel']);
 		if ($use) {
-			$use = $db->GetOne('SELECT slotstart FROM '.$this->DataTable.' WHERE bkg_id=?',array($use));
+			$use = $db->GetOne('SELECT slotstart FROM '.$this->DispTable.' WHERE bkg_id=?',array($use));
 			if ($use) {
 				$params['showfrom'] = (int)$use;
 			}
@@ -199,7 +199,7 @@ if (isset($params['search'])) {
  'findlast' => string e.g. ''
  'findusertype' => int 1 or 2 for exact or partial name-match
  'finduser' => string like 'Tom'
- */
+*/
 	$cond = array();
 	$t = (int)$params['findpick'];
 	if ($t < Booker::MINGRPID) {
@@ -230,7 +230,7 @@ if (isset($params['search'])) {
 	}
 	$sql = <<<EOS
 SELECT D.bkg_id,D.slotstart,D.slotlen,COALESCE(A.name,B.name,'') AS name,B.publicid,I.name AS what
-FROM $this->DataTable D
+FROM $this->DispTable D
 JOIN $this->BookerTable B ON D.booker_id=B.booker_id
 JOIN $this->ItemTable I ON D.item_id=I.item_id
 LEFT JOIN $this->AuthTable A ON B.publicid=A.publicid
@@ -459,7 +459,7 @@ EOS;
 //for picker
 
 $stylers .= <<<EOS
-<link rel="stylesheet" type="text/css" href="{$baseurl}/css/pikaday.css" />
+<link rel="stylesheet" type="text/css" href="{$baseurl}/css/pikaday.min.css" />
 EOS;
 
 $jsincs[] = <<<EOS
