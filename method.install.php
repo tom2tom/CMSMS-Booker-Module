@@ -11,6 +11,7 @@ $taboptarray = array(
  'mysqli' => 'ENGINE MyISAM CHARACTER SET utf8 COLLATE utf8_general_ci');
 $dict = NewDataDictionary($db);
 $pre = cms_db_prefix();
+$errmsg = 'Installation failure'; //no translation
 /*
 items (i.e. groups and resources) table schema:
 NOTE (almost) no NOTNULL/default values, so inheritance can be determined
@@ -104,12 +105,8 @@ active I(1) DEFAULT 1,
 bulletin B
 ';
 $sqlarray = $dict->CreateTableSQL($this->ItemTable, $fields, $taboptarray);
-if ($sqlarray == FALSE) {
-	return FALSE;
-}
-$res = $dict->ExecuteSQLArray($sqlarray, FALSE);
-if ($res != 2) {
-	return FALSE;
+if ($sqlarray == FALSE || $dict->ExecuteSQLArray($sqlarray, FALSE) != 2) {
+	return $errmsg;
 }
 
 // sequences, for resource id's (1+) and group id's (MINGRPID+) in same table
@@ -137,16 +134,15 @@ likeorder I(2) NOTNULL DEFAULT 1,
 proximity I(2) NOTNULL DEFAULT 1
 ';
 $sqlarray = $dict->CreateTableSQL($this->GroupTable, $fields, $taboptarray);
-if ($sqlarray == FALSE) {
-	return FALSE;
-}
-$res = $dict->ExecuteSQLArray($sqlarray, FALSE);
-if ($res != 2) {
-	return FALSE;
+if ($sqlarray == FALSE || $dict->ExecuteSQLArray($sqlarray, FALSE) != 2) {
+	return $errmsg;
 }
 // index
 $sqlarray = $dict->CreateIndexSQL('idx_'.$this->GroupTable, $this->GroupTable, 'child');
-$dict->ExecuteSQLArray($sqlarray);
+if ($sqlarray == FALSE || $dict->ExecuteSQLArray($sqlarray, FALSE) != 2) {
+	return $errmsg;
+}
+
 
 /*
 requests and non-repeated bookings-data table schema:
@@ -190,12 +186,8 @@ gatetransaction C(48)
 ';
 //gatedata B
 $sqlarray = $dict->CreateTableSQL($this->OnceTable, $fields, $taboptarray);
-if ($sqlarray == FALSE) {
-	return FALSE;
-}
-$res = $dict->ExecuteSQLArray($sqlarray, FALSE);
-if ($res != 2) {
-	return FALSE;
+if ($sqlarray == FALSE || $dict->ExecuteSQLArray($sqlarray, FALSE) != 2) {
+	return $errmsg;
 }
 // sequence
 $db->CreateSequence($this->OnceTable.'_seq');
@@ -240,12 +232,8 @@ gatetransaction C(48)
 ';
 //gatedata B
 $sqlarray = $dict->CreateTableSQL($this->RepeatTable, $fields, $taboptarray);
-if ($sqlarray == FALSE) {
-	return FALSE;
-}
-$res = $dict->ExecuteSQLArray($sqlarray, FALSE);
-if ($res != 2) {
-	return FALSE;
+if ($sqlarray == FALSE || $dict->ExecuteSQLArray($sqlarray, FALSE) != 2) {
+	return $errmsg;
 }
 
 /*
@@ -260,7 +248,7 @@ if ($res != 2) {
  displayed: boolean whether to include the record in displayed bookings
 */
 $fields = '
-data_id I(4) KEY,
+data_id I(4) NOT NULL,
 bkg_id I(4),
 booker_id I(4),
 item_id I(4),
@@ -270,13 +258,20 @@ bulk I(1) DEFAULT 0,
 displayed I(1) DEFAULT 1
 ';
 $sqlarray = $dict->CreateTableSQL($this->DispTable, $fields, $taboptarray);
-if ($sqlarray == FALSE) {
-	return FALSE;
+if ($sqlarray == FALSE || $dict->ExecuteSQLArray($sqlarray, FALSE) != 2) {
+	return $errmsg;
 }
-$res = $dict->ExecuteSQLArray($sqlarray, FALSE);
-if ($res != 2) {
-	return FALSE;
+//indices
+$sqlarray = $dict->CreateIndexSQL('idx1_'.$this->DispTable, $this->DispTable, 'data_id',
+	array('UNIQUE'));
+if ($sqlarray == FALSE || $dict->ExecuteSQLArray($sqlarray, FALSE) != 2) {
+	return $errmsg;
 }
+$sqlarray = $dict->CreateIndexSQL('idx2_'.$this->DispTable, $this->DispTable, 'slotstart');
+if ($sqlarray == FALSE || $dict->ExecuteSQLArray($sqlarray, FALSE) != 2) {
+	return $errmsg;
+}
+
 $db->CreateSequence($this->DispTable.'_seq');
 
 /*
@@ -309,12 +304,8 @@ condorder I(1) DEFAULT -1,
 active I(1) DEFAULT 1
 ';
 $sqlarray = $dict->CreateTableSQL($this->FeeTable, $fields, $taboptarray);
-if ($sqlarray == FALSE) {
-	return FALSE;
-}
-$res = $dict->ExecuteSQLArray($sqlarray, FALSE);
-if ($res != 2) {
-	return FALSE;
+if ($sqlarray == FALSE || $dict->ExecuteSQLArray($sqlarray, FALSE) != 2) {
+	return $errmsg;
 }
 $db->CreateSequence($this->FeeTable.'_seq');
 
@@ -336,12 +327,8 @@ original B,
 latest B
 ';
 $sqlarray = $dict->CreateTableSQL($this->CreditTable, $fields, $taboptarray);
-if ($sqlarray == FALSE) {
-	return FALSE;
-}
-$res = $dict->ExecuteSQLArray($sqlarray, FALSE);
-if ($res != 2) {
-	return FALSE;
+if ($sqlarray == FALSE || $dict->ExecuteSQLArray($sqlarray, FALSE) != 2) {
+	return $errmsg;
 }
 $db->CreateSequence($this->CreditTable.'_seq');
 
@@ -369,12 +356,8 @@ displayclass I(1) DEFAULT 1,
 active I(1) DEFAULT 1
 ';
 $sqlarray = $dict->CreateTableSQL($this->BookerTable, $fields, $taboptarray);
-if ($sqlarray == FALSE) {
-	return FALSE;
-}
-$res = $dict->ExecuteSQLArray($sqlarray, FALSE);
-if ($res != 2) {
-	return FALSE;
+if ($sqlarray == FALSE || $dict->ExecuteSQLArray($sqlarray, FALSE) != 2) {
+	return $errmsg;
 }
 $db->CreateSequence($this->BookerTable.'_seq');
 
@@ -394,7 +377,9 @@ savetime I(8),
 lifetime I(4)
 ';
 $sqlarray = $dict->CreateTableSQL($pre.'module_bkr_cache', $fields, $taboptarray);
-$dict->ExecuteSQLArray($sqlarray);
+if ($sqlarray == FALSE || $dict->ExecuteSQLArray($sqlarray, FALSE) != 2) {
+	return $errmsg;
+}
 //this is not for table-data content (which is auto-numbered)
 $db->CreateSequence($pre.'module_bkr_cache_seq');
 
