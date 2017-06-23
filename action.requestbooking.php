@@ -2,7 +2,7 @@
 #----------------------------------------------------------------------
 # Module: Booker - a resource booking module
 # Action: requestbooking
-# Initiate booking
+# Request/record/cart/delete a booking
 #----------------------------------------------------------------------
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
@@ -46,6 +46,7 @@ $localparams = array(
 	'comment',
 	'contact',
 	'contactnew',
+	'delete',
 	'origreturnid',
 	'name',
 	'passwd',
@@ -53,7 +54,7 @@ $localparams = array(
 	'register',
 	'request',
 	'requesttype',
-//	'subgrpcount',
+	'subgrpcount',
 	'submit',
 //	'task',
 	'until',
@@ -171,10 +172,8 @@ if (isset($params['cart'])) {
 				$params['booker_id'] = $bookerid;
 				$funcs = new Booker\Payment();
 				//determine how much to be paid (ignoring tax)
-				$amounts = $funcs->Amounts($this,$utils,$item_id,$bookerid,$bs,$be);
-				//ignore $amounts[1] i.e. total credit now, cuz' maybe we're doing multiple items
 				//ignore $params['subgrpcount'] cuz it's processed in the cart
-				$params['fee'] = $amounts[0];
+				$params['fee'] = $funcs->UsageFee($this,$utils,$item_id,$bookerid,$bs,$be);
 
 				$cache = Booker\Cache::GetCache($this);
 				$cart = $utils->RetrieveCart($cache,$params);
@@ -224,10 +223,14 @@ if (isset($params['cart'])) {
 					$funcs->GetForced($this,$params['account']);
 				$funcs = new Booker\Payment();
 				//determine how much to be paid (ignoring tax)
-				$amounts = $funcs->Amounts($this,$utils,$item_id,$bookerid,$bs,$be);
-				$payable = $amounts[0]; //ignore $amounts[1] i.e. total credit now, cuz' maybe we're doing multiple items
+				$payable = $funcs->UsageFee($this,$utils,$item_id,$bookerid,$bs,$be);
 				$params['fee'] = $payable; //ignore $params['subgrpcount'] cuz it's handled in the cart
-
+				$minpay = $this->GetPreference('minpay');
+				if ($payable > $minpay || ($minpay > 0 && $payable == $minpay)) {
+					$owed = $funcs->AmountFormat($this,$utils,$item_id,$payable);
+				} else {
+					$owed = FALSE;
+				}
 				$cache = Booker\Cache::GetCache($this);
 				$cart = $utils->RetrieveCart($cache,$params);
 				$cartwasempty = $cart->seemsEmpty();
@@ -244,7 +247,6 @@ if (isset($params['cart'])) {
 						$newparms = $utils->FilterParameters($params,$localparams);
 						$this->Redirect($id,'auth',$params['returnid'],$newparms);
 					}
-					$minpay = 1.0; //TODO support selectable min. payment
 					if (!$cartwasempty) { //cart now has >1 item
 						$params['resume'][] = 'announce';
 						$params['task'] = 'finish'; //button-labels will be 'cancel','continue'
@@ -253,8 +255,7 @@ if (isset($params['cart'])) {
 						$this->Redirect($id,'opencart',$params['returnid'],$newparms);
 						exit;
 					} else //cart now has 1 item
-						if ($payable >= $minpay
-							&& $rights && empty($rights['postpay'])) { //booker must pre-pay
+						if ($owed && $rights && empty($rights['postpay'])) { //booker must pre-pay
 						$params['resume'][] = 'announce';
 						$newparms = $utils->FilterParameters($params,$localparams);
 						//divert to payment form if possible, and from there, FinishReq()
@@ -263,13 +264,15 @@ if (isset($params['cart'])) {
 						array_pop($params['resume']);
 						$tplvars['message'] = $this->Lang('err_system');
 					} else { //the cart item is non-[pre-]payable
+//						if (!$is_new) { $params['bkg_id'] = TODO; }
+						$params['amount'] = 0.0;
 						list($res,$msg) = $funcs->FinishReq($this,$utils,$params,TRUE);
 						if ($res && !$msg) {
 							$key = ($rights && !empty($rights['record'])) ? 'booking_feedback2':'booking_feedback';
 							$msg = $this->Lang($key);
 						}
-						if ($res && $payable >= $minpay) {
-							$msg .= '<br />'.$this->Lang('booking_feedback3',$payable); //TODO currency-formatted($payable)
+						if ($res && $owed) {
+							$msg .= '<br />'.$this->Lang('booking_feedback3',$owed);
 						}
 						$params['message'] = $msg;
 						$newparms = $utils->FilterParameters($params,$localparams);
@@ -293,14 +296,88 @@ if (isset($params['cart'])) {
 //TODO		$bdata['slotstart'] = ;
 //		$bdata['slotlen'] = ;
 	}
-}
-/* no UI for this
-elseif (isset($params['find'])) { //empty $params['submit']
+} elseif (isset($params['delete'])) {
+	$funcs = new Booker\Verify();
+	list($res,$errmsg) = $funcs->VerifyData($this,$utils,$params,$item_id,FALSE,FALSE);
+	if ($res) {
+		$funcs = new Booker\Userops($this);
+		list($bookerid,$newbooker) = $funcs->GetParamsID($this,$params);
+		if (!($bookerid === FALSE || $newbooker)) {
+			$passreset = !empty($params['account']) &&
+				$funcs->GetForced($this,$params['account']);
+			if ($passreset) {
+				$params['resume'][] = $params['action']; //cancellation comes back here
+				$params['task'] = 'reset';
+				$params['bulletin'] = htmlspecialchars(
+					'<p style="color:#F00">'.$this->Lang('reset_subtitle').'</p>', ENT_XHTML);
+				$newparms = $utils->FilterParameters($params,$localparams);
+				$this->Redirect($id,'auth',$params['returnid'],$newparms);
+			}
+			$record = $funcs->HasRight($this,$bookerid,'record'); //before $funcs changes
+
+			$funcs = new Booker\Bookingops();
+			$bs = $params['slotstart'];
+			$be = $bs + $params['slotlen'];
+			$data = $funcs->CountBooked($this,$item_id,$bs,$be,$bookerid);
+			if ($data) {
+				$funcs = new Booker\BookingChange();
+				$alldone = TRUE;
+				$allmsg = array();
+				$bids = array_column($data,'bkg_id');
+				$cids = array_count_values($bids);
+				foreach ($cids as $bkg_id=>$num) {
+					if ($params['subgrpcount'] < $num) {
+						$num = (int)$params['subgrpcount'];
+					}
+					if ($num < 1) {
+						$num = 1;
+					}
+					$reqdata = array(
+						'bkg_id' => $bkg_id,
+						'booker_id' => $bookerid,
+						'item_id' => $item_id,
+						'subgrpcount' => $num,
+						'slotstart' => $bs,
+						'slotlen' => $params['slotlen'],
+						'comment' => $params['comment']
+					);
+					list($res,$msg) = $funcs->CancelBkg($this,$utils,$item_id,$reqdata,$record);
+					if (!$res) {
+						$alldone = FALSE;
+					}
+					if ($msg) {
+						$allmsg[] = $msg;
+					}
+				}
+
+				if ($allmsg) {
+					$params['message'] = implode('<br />',$allmsg);
+				} elseif ($alldone) {
+					$params['message'] = $this->Lang('bookings_deleted',count($bids)); //TODO better info
+				} else {
+					$params['message'] = $this->Lang('error'); //TODO more info
+				}
+				$newparms = $utils->FilterParameters($params,$localparams);
+				$this->Redirect($id,'announce',$params['returnid'],$newparms);
+				exit;
+			} else {
+				$tplvars['message'] = $this->Lang('nodata');
+			}
+		} else {
+			$tplvars['message'] = $this->Lang('err_account'); //or ('invalid_type',$this->Lang('booker'));
+		}
+		sleep(2); //impede brute-forcers
+	} else { //problem(s) with the request data
+		$tplvars['message'] = implode('<br >',$errmsg);
+	}
+//TODO		$bdata['slotstart'] = ;
+//		$bdata['slotlen'] = ;
+/* no UI for this elseif (isset($params['find'])) {
 	$params['resume'][] = $params['action'];
 	$newparms = $utils->FilterParameters($params,$localparams);
 	$this->Redirect($id,'findbooking',$params['returnid'],$newparms);
-}
 */
+}
 
 if (!isset($params['when'])) { //first-pass
 	if (empty($params['bkgid'])) { //not activated slot with current booking(s)
@@ -323,11 +400,11 @@ if (!isset($params['when'])) { //first-pass
 		//get some useful representative data
 		$bkgid = $params['bkgid'];
 		$sql = <<<EOS
-SELECT D.*,COALESCE(A.name,B.name,'') AS name,COALESCE(A.address,B.address,'') AS address,B.publicid,B.phone
-FROM $this->DataTable D
-JOIN $this->BookerTable B ON D.booker_id=B.booker_id
+SELECT O.*,COALESCE(A.name,B.name,'') AS name,COALESCE(A.address,B.address,'') AS address,B.publicid,B.phone
+FROM $this->OnceTable O
+JOIN $this->BookerTable B ON O.booker_id=B.booker_id
 LEFT JOIN $this->AuthTable A ON B.publicid=A.publicid
-WHERE D.bkg_id=?
+WHERE O.bkg_id=?
 EOS;
 		$bdata = $utils->SafeGet($sql,array($bkgid),'row');
 		if ($bdata) {
@@ -514,7 +591,8 @@ if (isset($tplvars['membermsg'])) {
 		$oneset->inp = $mcount;
 	} elseif ($mcount > 1) {
 		$oneset->mst = 1;
-		$oneset->inp = $this->CreateInputText($id,'subgrpcount',1,3,5);
+		$t = (empty($params['subgrpcount'])) ? 1 : $params['subgrpcount'];
+		$oneset->inp = $this->CreateInputText($id,'subgrpcount',$t,3,5);
 	}
 	$items[] = $oneset;
 }
@@ -577,6 +655,7 @@ $jsloads[] = <<<EOS
  $('#{$id}bookertype1').click(function() {
   $('.hide2').css('visibility','collapse');
   $('.hide1').css('visibility','visible');
+  $('#{$id}delete').prop('disabled',false);
  });
 EOS;
 
@@ -621,14 +700,6 @@ $jsloads[] = <<<EOS
 EOS;
 
 $oneset = new stdClass();
-$oneset->class = 'hide1';
-$oneset->ttl = $this->Lang('title_contacthow');
-$oneset->mst = NULL;
-$t = (!empty($params['contactnew'])) ? $params['contactnew']:'';
-$oneset->inp = $this->CreateInputText($id,'contactnew',$t,30,50);
-$items[] = $oneset;
-
-$oneset = new stdClass();
 $oneset->class = 'reqtitle';
 $oneset->ttl = $btns[1];
 $oneset->mst = NULL;
@@ -638,6 +709,7 @@ $jsloads[] = <<<EOS
  $('#{$id}bookertype2').click(function() {
   $('.hide1').css('visibility','collapse');
   $('.hide2').css('visibility','visible');
+  $('#{$id}delete').prop('disabled',true);
  });
 EOS;
 //*/
@@ -782,9 +854,11 @@ $jsincs[] = <<<EOS
 EOS;
 
 $tplvars['submit'] = $this->CreateInputSubmit($id,'submit',$this->Lang('submit'));
-$tplvars['cancel'] = $this->CreateInputSubmit($id,'cancel',$this->Lang('cancel'));
 $tplvars['cart'] = $this->CreateInputSubmit($id,'cart',$this->Lang('cart'),
 	'title="'.$this->Lang('tip_cartadd').'"');
+$tplvars['delete'] = $this->CreateInputSubmit($id,'delete',$this->Lang('delete'),
+	'title="'.$this->Lang('tip_delbooking').'"');
+$tplvars['cancel'] = $this->CreateInputSubmit($id,'cancel',$this->Lang('close'));
 $tplvars['register'] = $this->CreateInputSubmit($id,'bkr_register',$this->Lang('register'),
 	'title="'.$this->Lang('tip_register').'"');
 $tplvars['change'] = $this->CreateInputSubmit($id,'bkr_change',$this->Lang('change'),
@@ -792,7 +866,17 @@ $tplvars['change'] = $this->CreateInputSubmit($id,'bkr_change',$this->Lang('chan
 //$tplvars['register'] = NULL;
 
 $jsloads[] = <<<EOS
- $('#{$id}submit,#{$id}cart').bind('click',validate);
+ $('#{$id}submit,#{$id}cart,#{$id}delete').bind('click',validate);
+ $('#{$id}delete').click(function() {
+  var btn = this;
+  $.alertable.confirm('{$this->Lang('confirm_cancel')}',{
+   okName: '{$this->Lang('yes')}',
+   cancelName: '{$this->Lang('no')}'
+  }).then(function() {
+   $(btn).trigger('click.deferred');
+  });
+  return false;
+ });
 EOS;
 
 $tplvars['choose'] = NULL; /*$utils->GetItemPicker($this,$id,'itempick',$params['firstpick'],$item_id);
@@ -807,8 +891,8 @@ EOS;
 
 $stylers = <<<EOS
 <link rel="stylesheet" type="text/css" href="{$baseurl}/css/public.css" />
-<link rel="stylesheet" type="text/css" href="{$baseurl}/css/pikaday.css" />
 <link rel="stylesheet" type="text/css" href="{$baseurl}/css/alertable.css" />
+<link rel="stylesheet" type="text/css" href="{$baseurl}/css/pikaday.min.css" />
 EOS;
 $customcss = $utils->GetStylesURL($this,$item_id);
 if ($customcss) {
