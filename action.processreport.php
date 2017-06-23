@@ -7,26 +7,6 @@
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
 
-/*first-pass $params[]
-'display' => string
-OR
-'export' => string
-'task'=> string
-'active_tab' => string
-'resume' => string
-later
-'close' => string
-OR
-'export' => string
-OR
-'range' => string
-'task'=> string
-'showfrom' => string
-'showto'=> string
-'from' => string
-'until' => string
-*/
-
 if (isset($params['resume'])) {
 	$params['resume'] = json_decode(html_entity_decode($params['resume'],ENT_QUOTES|ENT_HTML401));
 	while (end($params['resume']) == $params['action']) {
@@ -50,7 +30,6 @@ if (isset($params['filter'])) {
 	));
 }
 
-
 $choices = (array)json_decode($params['alltypes']);
 $type = ($choices) ? $choices[$params['task']] : FALSE;
 if (!$choices || !$type) {
@@ -64,27 +43,28 @@ if (!empty($params['showfrom'])) {
 	sscanf($params['showfrom'],'%d-%d',$y,$m);
 	$dt = new DateTime('@0',NULL);
 	$lvl = error_reporting(0);
-	$dt->modify($y.'-'.$m.'-01');
+	$res = $dt->modify($y.'-'.$m.'-01');
 	error_reporting($lvl);
-	if (1) { //TODO
+	if ($res) {
+		//TODO bounds check(s)
 		$after = $dt->getTimestamp();
 	}
 }
 if (!empty($params['showto'])) {
 	sscanf($params['showto'],'%d-%d',$y,$m);
-	//TODO validate
 	if (!isset($dt)) {
 		$dt = new DateTime('@0',NULL);
 	}
 	$lvl = error_reporting(0);
-	$dt->modify($y.'-'.$m.'-01');
+	$res = $dt->modify($y.'-'.$m.'-01');
 	error_reporting($lvl);
-	if (1) { //TODO
+	if ($res) {
+		//TODO bounds check(s)
 		$dt->modify('+1 month');
 		$before = $dt->getTimestamp() - 1;
 	}
 }
-$display = !isset($params['export']); //whether to create all UI-elements
+$display = !isset($params['export']); //whether to populate for screen-display
 
 $utils = new Booker\Utils();
 $classname = 'Booker\\'.$type;
@@ -107,8 +87,13 @@ $title = $funcs->PublicTitle($after, $before);
 
 if (!$display) { //i.e. isset($params['export']))
 	if ($output) {
-		//TODO STUFF WITH $title ,$coltitles,$output(each->fields)
-		exit;
+		$output = array(-1 => $coltitles) + $output;
+		$funcs = new Booker\Export();
+		$res = $funcs->ExportReport($this, $title, $output);
+		if ($res[0]) {
+			exit;
+		}
+		$params['message'] = $res[1];
 	} else {
 		$params['message'] = $this->Lang('err_data');
 	}
