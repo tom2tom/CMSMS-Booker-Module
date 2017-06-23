@@ -49,7 +49,7 @@ class Booker extends CMSModule
 	const RANGEWEEK = 1;
 	const RANGEMTH = 2;
 	const RANGEYR = 3;
-	//OnceTable status codes
+	//OnceTable/RepeatTable status codes
 	const STATNONE = 0;//unknown/normal/default
 	//request-stage
 	const STATNEW = 1;//new, approver consideration pending
@@ -78,8 +78,8 @@ class Booker extends CMSModule
  	const STATERR = 28;//system error while processing
  	const STATRETRY = 34;//some temporary problem, try again later
 	const STATFAILED = 35;//generic request-failure
-	const STATMAXBAD = 35;//last-recognised request-bad value
-	//payment codes
+	const STATMAXBAD = 39;//last-recognised request-bad value
+	//statpay codes
 	const STATFREE = 40;//no fee for use
 	const STATPAYABLE = 41;//fee applies, none yet paid
 	const STATPAID = 42;//fee pre- or post-paid
@@ -87,12 +87,12 @@ class Booker extends CMSModule
 	const STATCREDITED = 44;//fee to be paid upon request
  	const STATNOTPAID = 45;//payable but unpaid for some non-credit-related reason
 	const STATOVRDUE = 46;//payment overdue
-	//PayTable status codes
+	const STATMAXPAY = 49;//last-recognised statpay value
+	//CreditTable status codes
 	const CREDITADDED = 50;//prepayment amount
 	const CREDITUSED = 51;//past credit offset against other use
 	const CREDITEXPIRED = 52;//past credit timed out
-	const STATMAXPAY = 55;//last-recognised payment value
-	//bulk-flags for DispTable (unused)
+	//DispTable bulk-codes/flags (unused)
 	const BULKSINGL1 = 0;
 	const BULKSINGLGRP = 1;
 	const BULKREPT1 = 20;
@@ -112,7 +112,7 @@ class Booker extends CMSModule
 	public $GroupTable; //group-relationships
 	public $ItemTable; //resources and resource-groups
 	public $OnceTable; //non-repeated bookings-data
-	public $PayTable; //payment-credit data
+	public $CreditTable; //payment-credit data
 	public $RepeatTable; //repeated bookings-data
 	public $UserTable; //admin users (who may 'own' resource/group)
 	public $before20;
@@ -143,7 +143,7 @@ class Booker extends CMSModule
 		$this->GroupTable = $pre.'module_bkr_groups';
 		$this->ItemTable = $pre.'module_bkr_items';
 		$this->OnceTable = $pre.'module_bkr_singls';
-		$this->PayTable = $pre.'module_bkr_credit';
+		$this->CreditTable = $pre.'module_bkr_adjust';
 		$this->RepeatTable = $pre.'module_bkr_repeats';
 		$this->UserTable = $pre.'users';
 		global $CMS_VERSION;
