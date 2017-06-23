@@ -156,24 +156,24 @@ class Dataops
 			$flags &= ~$fg;
 		} else {
 			if ($flags & self::BKGFREE) {
-				$and[] = 'O.payment='.\Booker::STATFREE;
+				$and[] = 'O.statpay='.\Booker::STATFREE;
 			}
 			$fg = self::BKGUNPAID + self::BKGPAID;
 			if (($flags & $fg) == $fg) {
-				$and[] = 'O.payment IN ('.
+				$and[] = 'O.statpay IN ('.
 				\Booker::STATPAYABLE.','.
 				\Booker::STATPAID.','.
 				\Booker::CREDITED.','.
 				\Booker::STATNOTPAID.','.
 				\Booker::STATOVRDUE.')';
 			} elseif ($flags & self::BKGUNPAID) {
-				$and[] = 'O.payment IN ('.
+				$and[] = 'O.statpay IN ('.
 				\Booker::STATPAYABLE.','.
 				\Booker::CREDITED.','.
 				\Booker::STATNOTPAID.','.
 				\Booker::STATOVRDUE.')';
 			} elseif ($flags & self::BKGPAID) {
-				$and[] = 'O.payment='.\Booker::STATPAID;
+				$and[] = 'O.statpay='.\Booker::STATPAID;
 			}
 		}
 
@@ -239,7 +239,7 @@ class Dataops
 		}
 
 		$sql = <<<EOS
-SELECT D.slotstart,D.slotlen,O.fee,O.feepaid,O.status,O.payment,I.name AS what,
+SELECT D.slotstart,D.slotlen,O.fee,O.feepaid,O.status,O.statpay,I.name AS what,
 COALESCE(A.name,B.name,'') AS name,COALESCE(A.address,B.address,'') AS address,B.publicid,B.phone
 FROM $mod->DispTable D
 JOIN $mod->OnceTable O ON D.bkg_id=O.bkg_id
