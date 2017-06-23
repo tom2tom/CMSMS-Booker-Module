@@ -165,7 +165,7 @@ NB action.requestbooking.php etc must conformed to this
  fee: fee for the booking
  feepaid: amount actually paid for the booking
  status: one of the Booker::STAT* values
- payment: enum Booker::STATFREE..STATMAXPAY
+ statpay: enum Booker::STATFREE..STATMAXPAY
  active: enum/boolean 1, or 0 if booking has been deleted but historic data remain
  gatetransaction: payment-interface transaction identifier
 //gatedata: payment-interface full data for the transaction
@@ -184,7 +184,7 @@ comment C(64),
 fee N(8.2) DEFAULT 0.0,
 feepaid N(8.2) DEFAULT 0.0,
 status I(1) DEFAULT '.Booker::STATNONE.',
-payment I(1) DEFAULT '.Booker::STATFREE.',
+statpay I(1) DEFAULT '.Booker::STATFREE.',
 active I(1) DEFAULT 1,
 gatetransaction C(48)
 ';
@@ -215,7 +215,7 @@ repeated bookings-data table schema:
  fee: fee for the booking
  feepaid: amount actually paid for the booking
  status: one of the Booker::STAT* values
- payment: enum Booker::STATFREE..STATMAXPAY
+ statpay: enum Booker::STATFREE..STATMAXPAY
  active: enum/boolean 1, or 0 if booking has been deleted but historic data remain
  gatetransaction: transaction id reported by payment gateway
 //gatedata: json data reported by payment gateway, encrypted
@@ -234,7 +234,7 @@ formula C(256),
 fee N(8.2) DEFAULT 0.0,
 feepaid N(8.2) DEFAULT 0.0,
 status I(1) DEFAULT '.Booker::STATNONE.',
-payment I(1) DEFAULT '.Booker::STATFREE.',
+statpay I(1) DEFAULT '.Booker::STATFREE.',
 active I(1) DEFAULT 1
 gatetransaction C(48)
 ';
@@ -251,12 +251,12 @@ if ($res != 2) {
 /*
  bookings-display-data table schema:
  data_id: table key
- bkg_id: OnceTable/RepeatTable cross-referencer (indexed)
- booker_id: BookerTable cross-referencer (indexed)
+ bkg_id: OnceTable/RepeatTable cross-referencer
+ booker_id: BookerTable cross-referencer
  item_id: ItemTable cross-referencer
  slotstart: UTC timestamp start of booking
  slotlen: booking length (seconds)
- bulk: enum 0 single,1 group,20 repeat,21 group-repeat
+ bulk: enum Booker::BULK* (0 single, 1 group, 20 repeat, 21 group-repeat)
  displayed: boolean whether to include the record in displayed bookings
 */
 $fields = '
@@ -281,7 +281,7 @@ $db->CreateSequence($this->DispTable.'_seq');
 
 /*
 Fees for resource usage & related conditions
- condition_id:
+ fee_id:
  item_id: group/item to which the condition applies
  signature: identifier for cross-resource matching, raw crc32 hash of slottype.slotcount.fee.feecondition
  description: public info/help about the condition
@@ -296,7 +296,7 @@ NOTE changes to this field-structure must be replicated in the add-fee mechanism
 in action.fees.php
 */
 $fields = '
-condition_id I(4) KEY,
+fee_id I(4) KEY,
 item_id I(4),
 signature I(4),
 description C(64),
@@ -335,7 +335,7 @@ status I(1) DEFAULT '.Booker::CREDITADDED.',
 original B,
 latest B
 ';
-$sqlarray = $dict->CreateTableSQL($this->PayTable, $fields, $taboptarray);
+$sqlarray = $dict->CreateTableSQL($this->CreditTable, $fields, $taboptarray);
 if ($sqlarray == FALSE) {
 	return FALSE;
 }
@@ -343,7 +343,7 @@ $res = $dict->ExecuteSQLArray($sqlarray, FALSE);
 if ($res != 2) {
 	return FALSE;
 }
-$db->CreateSequence($this->PayTable.'_seq');
+$db->CreateSequence($this->CreditTable.'_seq');
 
 /*
 bookers table schema:
@@ -395,7 +395,7 @@ lifetime I(4)
 ';
 $sqlarray = $dict->CreateTableSQL($pre.'module_bkr_cache', $fields, $taboptarray);
 $dict->ExecuteSQLArray($sqlarray);
-//this is not for table-data content
+//this is not for table-data content (which is auto-numbered)
 $db->CreateSequence($pre.'module_bkr_cache_seq');
 
 // permissions
