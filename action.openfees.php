@@ -11,7 +11,7 @@
 if (!function_exists('getfeedata')) {
  function getfeedata(&$params, $item_id, &$mod)
  {
-	if (!isset($params['condition_id'])) {
+	if (!isset($params['fee_id'])) {
 		global $db;
 		$sql = 'SELECT * FROM '.$mod->FeeTable.' WHERE item_id=? ORDER BY condorder';
 		return $db->GetArray($sql,array($item_id));
@@ -26,17 +26,17 @@ if (!function_exists('getfeedata')) {
 		$params['active'] = array();
 	$o = 1;
  	$ret = array();
-	foreach ($params['condition_id'] as $one) {
-		$cid = (int)$one;
-		$row = array('condition_id'=>$cid, 'item_id' => $item_id);
+	foreach ($params['fee_id'] as $one) {
+		$fid = (int)$one;
+		$row = array('fee_id'=>$fid, 'item_id' => $item_id);
 		foreach ($fields as $key) {
-			$row[$key] = $params[$key][$cid]; }
+			$row[$key] = $params[$key][$fid]; }
 		$row['condorder'] = $o++;
 		$key = 'active';
-		if (!empty($params[$key][$cid]))
+		if (!empty($params[$key][$fid]))
 			$row[$key] = 1;
 		else {
-			$params[$key][$cid] = 0;
+			$params[$key][$fid] = 0;
 			$row[$key] = 0;
 		}
 		$ret[] = $row;
@@ -48,7 +48,7 @@ if (!function_exists('getfeedata')) {
  {
 	if (1) { //$pdata || $params['action'] == 'update') //came direct from action.openitem button-click
 		$blank = array(
-		 'condition_id' => -1,	//signal for attention before saving
+		 'fee_id' => -1,	//signal for attention before saving
 		 'item_id' => $item_id,
 		 'description' => '',
 		 'slottype' => 0, //minutes
@@ -65,13 +65,13 @@ if (!function_exists('getfeedata')) {
 
  function delfeedata(&$params, $ids)
  {
-	$fields = array('condition_id','item_id','description','slottype','slotcount','fee','feecondition');
+	$fields = array('fee_id','item_id','description','slottype','slotcount','fee','feecondition');
 	if (!isset($params['active']))
 		$params['active'] = array();
 	if (!is_array($ids))
 		$ids = array($ids);
 	foreach ($ids as $one) {
-		$i = array_search($one,$params['condition_id']);
+		$i = array_search($one,$params['fee_id']);
 		if ($i !== FALSE) {
 			foreach ($fields as $key) {
 				if (is_array($params[$key])) {
@@ -84,12 +84,12 @@ if (!function_exists('getfeedata')) {
 	}
  }
 
- //swap member of $pdata, which has member 'condition_id' == $cid, with next member, if possible
- function swapfeedata(&$pdata, $cid)
+ //swap member of $pdata, which has member 'fee_id' == $fid, with next member, if possible
+ function swapfeedata(&$pdata, $fid)
  {
-	$key = 'condition_id';
+	$key = 'fee_id';
 	foreach ($pdata as $i=>$sub) {
-		if (isset($sub[$key]) && $sub[$key] == $cid) {
+		if (isset($sub[$key]) && $sub[$key] == $fid) {
 			$tmp = current($pdata);
 			if ($tmp !== FALSE) {
 				$t = key($pdata);
@@ -128,7 +128,7 @@ if (!function_exists('getfeedata')) {
 
 $utils = new Booker\Utils();
 $utils->DecodeParameters($params,array(
-	'condition_id',
+	'fee_id',
 	'description',
 	'fee',
 	'slotcount'
@@ -180,7 +180,7 @@ if (isset($params['submit'])) {
 /*$params = array
  'item_id' => string '2'
  'active_tab' => string 'basic' OR 'groups' etc
- 'condition_id' => array (string '1' ... ) with keys = respective condition_id's
+ 'fee_id' => array (string '1' ... ) with keys = respective fee_id's
  'description' => array (string 'Fixed test' ... ) ditto
  'slotcount' => array (string '' ... ) ditto
  'slottype' => array (string '-1' ... ) ditto
@@ -196,7 +196,7 @@ if (isset($params['submit'])) {
 	$pdata = mergefeedata($params,$item_id);
 	if ($pdata) {
 		$sql1 = 'INSERT INTO '.$this->FeeTable.' (
-condition_id,
+fee_id,
 item_id,
 signature,
 description,
@@ -218,13 +218,13 @@ feecondition=?,
 usercondition=?,
 condorder=?,
 active=?
-WHERE condition_id=?';
+WHERE fee_id=?';
 		$allsql = array();
 		$allargs = array();
 		//accumulate all remaining and tabled condition-id's in array data
 		$allids = array();
 		foreach ($pdata as $one) {
-			if ($one['condition_id'] >= 0)
+			if ($one['fee_id'] >= 0)
 				$allids[] = (int)$one;
 		}
 		//remove non-continuing conditions for $item_id
@@ -232,7 +232,7 @@ WHERE condition_id=?';
 		$args = array($item_id);
 		if ($allids) {
 			$fillers = str_repeat('?,',count($allids)-1);
-			$t .= ' AND condition_id NOT IN('.$fillers.'?)';
+			$t .= ' AND fee_id NOT IN('.$fillers.'?)';
 			$args = $args + $allids;
 		}
 		$allsql[] = $t;
@@ -255,14 +255,14 @@ WHERE condition_id=?';
 				$one['usercondition'] = implode(',',$parts);
 			}
 			$one['active'] = (bool)$one['active'];
-			if ($one['condition_id'] < 0) { //new fee-item
+			if ($one['fee_id'] < 0) { //new fee-item
 				$allsql[] = $sql1;
-				$cid = $db->GenID($this->FeeTable.'_seq');
+				$fid = $db->GenID($this->FeeTable.'_seq');
 				if ($relfee)
 					$one['fee'] = NULL; //no basis for relative fee in new conditions
 				$sig = $funcs->GetFeeSignature($one);
 				$allargs[] = array(
-				 $cid,
+				 $fid,
 				 $item_id,
 				 $sig,
 				 $one['description'],
@@ -276,9 +276,9 @@ WHERE condition_id=?';
 				);
 			} else { //existing fee-item
 				$allsql[] = $sql2;
-				$cid = $one['condition_id'];
+				$fid = $one['fee_id'];
 				if ($relfee) {
-					$now = $params['feesnow'][$cid];
+					$now = $params['feesnow'][$fid];
 					if ($now && is_numeric($now)) {
 						$t = trim($one['fee']);
 						$r = preg_replace('/(%|'.$lp.')$/','',$t);
@@ -301,7 +301,7 @@ WHERE condition_id=?';
 				 $one['usercondition'],
 				 $one['condorder'],
 				 $one['active'],
-				 $cid
+				 $fid
 				);
 			}
 		}
@@ -317,9 +317,9 @@ WHERE condition_id=?';
 			foreach ($sel as $thisid) {
 				foreach ($pdata as $one) {
 					$allsql[] = $sql1;
-					$cid = $db->GenID($this->FeeTable.'_seq');
+					$fid = $db->GenID($this->FeeTable.'_seq');
 					$allargs[] = array(
-					 $cid,
+					 $fid,
 					 $thisid,
 					 $one['description'],
 					 $one['slottype'],
@@ -363,8 +363,8 @@ WHERE condition_id=?';
 		//TODO if $params['sel'] == multi-resources upon submit
 	}
 } elseif (isset($params['delfee'])) { //delete single fee
-	$cid = key($params['delfee']);
-	delfeedata($params,$cid);
+	$fid = key($params['delfee']);
+	delfeedata($params,$fid);
 	//TODO if $params['sel'] == multi-resources upon submit
 }
 
@@ -441,39 +441,39 @@ if ($pdata) {
 	foreach ($pdata as $one) {
 		$oneset = new stdClass();
 		if ($pmod) {
-			$cid = $one['condition_id'];
-			$feesnow[$cid] = $one['fee'];
-			$oneset->hidden = $this->CreateInputHidden($id,'condition_id[]',$cid);
-			$oneset->desc = $this->CreateInputText($id,'description['.$cid.']',$one['description'],20,64);
-			$oneset->count = $this->CreateInputText($id,'slotcount['.$cid.']',$one['slotcount'],3,3);
-			$oneset->type = $this->CreateInputDropdown($id,'slottype['.$cid.']',$choices,-1,$one['slottype']);
-			$oneset->fee = $this->CreateInputText($id,'fee['.$cid.']',$one['fee'],6,8);
+			$fid = $one['fee_id'];
+			$feesnow[$fid] = $one['fee'];
+			$oneset->hidden = $this->CreateInputHidden($id,'fee_id[]',$fid);
+			$oneset->desc = $this->CreateInputText($id,'description['.$fid.']',$one['description'],20,64);
+			$oneset->count = $this->CreateInputText($id,'slotcount['.$fid.']',$one['slotcount'],3,3);
+			$oneset->type = $this->CreateInputDropdown($id,'slottype['.$fid.']',$choices,-1,$one['slottype']);
+			$oneset->fee = $this->CreateInputText($id,'fee['.$fid.']',$one['fee'],6,8);
 			$oneset->cond = $this->CreateTextArea(FALSE,$id,$one['feecondition'],
-				'feecondition['.$cid.']','','','','',20,2,'','','style="height:2em;width:20em;"');
-			$oneset->user = $this->CreateInputText($id,'usercondition['.$cid.']',$one['usercondition'],20,32);
-			$oneset->active = $this->CreateInputCheckbox($id,'active['.$cid.']',1,$one['active']);
-			$cid = (int)$cid;
+				'feecondition['.$fid.']','','','','',20,2,'','','style="height:2em;width:20em;"');
+			$oneset->user = $this->CreateInputText($id,'usercondition['.$fid.']',$one['usercondition'],20,32);
+			$oneset->active = $this->CreateInputCheckbox($id,'active['.$fid.']',1,$one['active']);
+			$fid = (int)$fid;
 			if ($r == 0) {
 				$oneset->uplink = '';
 				if ($count > 1) {
-					$oneset->dnlink = $this->_CreateInputLinks($id,'move['.$cid.']',$icondn,FALSE,$tip_dn);
-					$previd = $cid;
+					$oneset->dnlink = $this->_CreateInputLinks($id,'move['.$fid.']',$icondn,FALSE,$tip_dn);
+					$previd = $fid;
 				} else
 					$oneset->dnlink = '';
 			} else {
 				$oneset->uplink = $this->_CreateInputLinks($id,'move['.$previd.']',$iconup,FALSE,$tip_up);
 				if ($r < $rc) {
-					$oneset->dnlink = $this->_CreateInputLinks($id,'move['.$cid.']',$icondn,FALSE,$tip_dn);
-					$previd = $cid;
+					$oneset->dnlink = $this->_CreateInputLinks($id,'move['.$fid.']',$icondn,FALSE,$tip_dn);
+					$previd = $fid;
 				} else
 					$oneset->dnlink = '';
 			}
 			$r++;
 
-			$oneset->deletelink = $this->_CreateInputLinks($id,'delfee['.$cid.']',
+			$oneset->deletelink = $this->_CreateInputLinks($id,'delfee['.$fid.']',
 				$icondel,FALSE,$tip_del);
 			//NOT selitm or selgrp - those may be supplied from elsewhere
-			$oneset->selected = $this->CreateInputCheckbox($id,'selfees['.$cid.']',1,-1);
+			$oneset->selected = $this->CreateInputCheckbox($id,'selfees['.$fid.']',1,-1);
 		} else {
 			$oneset->desc = $one['description'];
 			$oneset->count = ($one['slottype'] != -1) ? $one['slotcount']:'';

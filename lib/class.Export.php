@@ -328,29 +328,29 @@ EOS;
 	to something else, generally like &#...;
 	(except when the separator is '&', '#' or ';', those become %...%)
 	@mod: reference to current Booker module object
-	@condition_id: enumerator of the item to process, or array of such, or '*'
+	@feeid: enumerator of the item to process, or array of such, or '*'
 	@sep: optional field-separator for exported content, assumed single-byte ASCII, default ','
 	Returns: 2-member array, [0]=T/F indicating success, [1]='' or lang key for message
 	*/
-	public function ExportFees(&$mod, $condition_id, $sep=',')
+	public function ExportFees(&$mod, $feeid, $sep=',')
 	{
-		if (!$condition_id)
+		if (!$feeid) {
 			return array(FALSE,'err_system');
-
+		}
 		$sql = <<<EOS
 SELECT F.*,I.name FROM $mod->FeeTable F
 JOIN $mod->ItemTable I ON F.item_id=I.item_id
 EOS;
-		if (is_array($condition_id)) {
-			$fillers = str_repeat('?,',count($condition_id)-1);
-			$sql .= ' WHERE F.condition_id IN('.$fillers.'?) ORDER BY F.item_id,F.condorder';
-			$args = $condition_id;
-		} elseif ($condition_id == '*') {
+		if (is_array($feeid)) {
+			$fillers = str_repeat('?,',count($feeid)-1);
+			$sql .= ' WHERE F.fee_id IN('.$fillers.'?) ORDER BY F.item_id,F.condorder';
+			$args = $feeid;
+		} elseif ($feeid == '*') {
 			$sql .= ' ORDER BY F.item_id,F.condorder';
 			$args = array();
 		} else {
-			$sql .= ' WHERE F.condition_id=?';
-			$args = array($condition_id);
+			$sql .= ' WHERE F.fee_id=?';
+			$args = array($feeid);
 		}
 		$utils = new Utils();
 		$all = $utils->SafeGet($sql,$args);
@@ -381,7 +381,7 @@ EOS;
 			 '#Fee'=>'fee',
 			 'Condition'=>'feecondition',
 			 'Type'=>'usercondition',
-			 'Update'=>'condition_id' //not real
+			 'Update'=>'fee_id' //not real
 			);
 			/* non-public fields
 			'item_id'
@@ -411,7 +411,7 @@ EOS;
 					 case 'fee':
 						$fv = (float)$fv;
 						break;
-					 case 'condition_id':
+					 case 'fee_id':
 					 case 'slotcount':
 						$fv = int($fv);
 						break;
@@ -423,7 +423,7 @@ EOS;
 				} //foreach $translates
 				$outstr .= implode($sep,$stores)."\n";
 			} //foreach $all
-			$detail = self::NameDetail($mod,$utils,$condition_id,'fee');
+			$detail = self::NameDetail($mod,$utils,$feeid,'fee');
 			$fname = self::FullName($mod,$detail);
 			return self::ExportContent($mod,$fname,$outstr);
 		} //$all
@@ -810,5 +810,20 @@ EOS;
 			return self::ExportContent($mod,$fname,$outstr);
 		}
 		return array(FALSE,'err_data');
+	}
+
+	/**
+	ExportReport:
+	@mod: reference to current Booker module object
+	@sep: optional field-separator for exported content, assumed single-byte ASCII, default ','
+	@title: displayable title for the report as used in UI
+	@datalines: array of value-arrays, 1st member has titles
+	Returns: 2-member array,
+	 [0] = boolean indicating success
+	 [1] = '' or lang key for message
+	*/
+	public function ExportReport(&$mod, $title, $datalines, $sep=',')
+	{
+		//TODO
 	}
 }
