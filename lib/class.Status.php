@@ -75,7 +75,7 @@ class Status
 	 0 >> request-status,
 	 1 >> post-request ok etc,
 	 2 >> post-request problem
-	 3 >> payment status
+	 3 >> statpay status
 	Returns: array suitable for dropdown picklist, keys = text or number, values = STAT* enum
 	*/
 	public function GetStatusChoices(&$mod, $mode)
