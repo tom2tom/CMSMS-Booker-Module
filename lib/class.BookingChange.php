@@ -121,7 +121,7 @@ class BookingChange
 							'fee'=>$f,
 							'feepaid'=>$p2,
 							'status'=>$data1['status'],
-							'payment'=>$q,
+							'statpay'=>$q,
 							'gatetransaction'=>$data1['gatetransaction']);
 						$funcs->SaveOnce($mod,$utils,$local,TRUE);
 						//any leftover payment to extra credit
@@ -153,7 +153,7 @@ class BookingChange
 							'fee'=>$f,
 							'feepaid'=>$p2,
 							'status'=>$data1['status'],
-							'payment'=>$q,
+							'statpay'=>$q,
 							'gatetransaction'=>$data1['gatetransaction']);
 						$funcs->SaveOnce($mod,$utils,$local,TRUE);
 						$f = $B * $ndel;
@@ -173,7 +173,7 @@ class BookingChange
 							'fee'=>$f,
 							'feepaid'=>$p3,
 							'status'=>$data1['status'],
-							'payment'=>$q,
+							'statpay'=>$q,
 							'gatetransaction'=>$data1['gatetransaction']);
 						$funcs->SaveOnce($mod,$utils,$local,TRUE);
 						$X = $data1['feepaid'] - $p - $p2 - $p3;
@@ -204,7 +204,7 @@ class BookingChange
 						'subgrpcount'=>$nstet,
 						'fee'=>$f,
 						'feepaid'=>$p,
-						'payment'=>$q,
+						'statpay'=>$q,
 						'bkg_id'=>$bkg_id);
 						$funcs->SaveOnce($mod,$utils,$local,FALSE);
 						$X = $data1['feepaid'] - $p;
@@ -225,7 +225,7 @@ class BookingChange
 							'slotlen'=>$nl,
 							'fee'=>$f,
 							'feepaid'=>$p,
-							'payment'=>$q,
+							'statpay'=>$q,
 							'bkg_id'=>$bkg_id);
 						$funcs->SaveOnce($mod,$utils,$local,FALSE);
 						$X = $data1['feepaid'] - $p;
@@ -237,7 +237,7 @@ class BookingChange
 							'subgrpcount'=>$nstet,
 							'fee'=>$f,
 							'feepaid'=>$p,
-							'payment'=>$q,
+							'statpay'=>$q,
 							'bkg_id'=>$bkg_id);
 						$funcs->SaveOnce($mod,$utils,$local,FALSE);
 						$t = ($reqdata['comment']) ? $reqdata['comment'] : $data1['comment'];
@@ -258,7 +258,7 @@ class BookingChange
 							'fee'=>$f,
 							'feepaid'=>$p2,
 							'status'=>$data1['status'],
-							'payment'=>$q,
+							'statpay'=>$q,
 							'gatetransaction'=>$data1['gatetransaction']);
 						$funcs->SaveOnce($mod,$utils,$local,TRUE);
 						$X = $data1['feepaid'] - $p - $p2;
