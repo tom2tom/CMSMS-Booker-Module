@@ -7,64 +7,101 @@
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
 
+if (!function_exists('paid_status')) {
+ function paid_status($statpay, $yes, $no)
+ {
+	switch ($statpay) {
+		case Booker::STATFREE:
+		   return '';
+		case Booker::STATPAID:
+		   return $yes;
+	}
+	return $no;
+ }
+}
+
 $prettytype = FALSE;
 if (isset($params['delete1'])) {
-	if (!($this->_CheckAccess('admin') || $this->_CheckAccess('book'))) exit;
+	if (!($this->_CheckAccess('admin') || $this->_CheckAccess('book'))) {
+		exit;
+	}
 	$funcs = new Booker\Bookingops();
 	if (empty($params['repeat'])) { //onetime
-		list($res,$msg) = $funcs->DeleteBkg($this,$params['bkg_id'],$params['custmsg']);
+		list($res, $msg) = $funcs->DeleteBkg($this, $params['bkg_id'], $params['custmsg']);
 		if ($res) {
-			$msg = $this->Lang('bookings_deleted',1);
+			$msg = $this->Lang('bookings_deleted', 1);
 			$prettytype = TRUE;
 	//TODO payment reconciliation, if enough notice is given
 		}
 	} else { //repeat-booking
-		list($res,$msg) = $funcs->DeleteRepeat($this,$params['bkg_id']);
+		list($res, $msg) = $funcs->DeleteRepeat($this, $params['bkg_id']);
 		if ($res) {
-	//DO RELATED STUFF ?
+			//DO RELATED STUFF ?
 		}
 	}
 	$params['task'] = 'edit';
 } elseif (isset($params['delete'])) {
-	if (!($this->_CheckAccess('admin') || $this->_CheckAccess('book'))) exit;
+	if (!($this->_CheckAccess('admin') || $this->_CheckAccess('book'))) {
+		exit;
+	}
 	if (isset($params['sel'])) {
 		$funcs = new Booker\Bookingops();
 		if (!empty($params['repeat'])) { //is repeat-booking
-			list($res,$msg) = $funcs->DeleteRepeat($this,$params['sel']);
+			list($res, $msg) = $funcs->DeleteRepeat($this, $params['sel']);
 			if ($res) {
-		//DO STUFF ?
-				$msg = $this->Lang('bookings_deleted',count($params['sel']));
+				//DO STUFF ?
+				$msg = $this->Lang('bookings_deleted', count($params['sel']));
 				$prettytype = TRUE;
 			}
 		} else { //onetime
-			list($res,$msg) = $funcs->DeleteBkg($this,$params['sel'],$params['custmsg']);
+			list($res, $msg) = $funcs->DeleteBkg($this, $params['sel'], $params['custmsg']);
 			if ($res) {
-		//TODO payment reconciliation, if enough notice is given
-				$msg = $this->Lang('bookings_deleted',count($params['sel']));
+				//TODO payment reconciliation, if enough notice is given
+				$msg = $this->Lang('bookings_deleted', count($params['sel']));
 				$prettytype = TRUE;
 			}
 		}
 	} else { //nothing selected
-		$msg = $this->Lang('notypesel',$this->Lang('booking_multi'));
+		$msg = $this->Lang('notypesel', $this->Lang('booking_multi'));
 	}
-} elseif (isset($params['notify'])) {
-//	if (!($this->_CheckAccess('admin') || $this->_CheckAccess('book'))) exit;
-	if (isset($params['sel'])) {
-		$funcs = new Booker\Messager();
-		list($res,$msg) = $funcs->NotifyBooker($this,$params['sel'],$params['custmsg']);
-	} else {
-		$msg = $this->Lang('notypesel',$this->Lang('booking_multi'));
+} elseif (isset($params['refresh1'])) {
+	if (!($this->_CheckAccess('admin') || $this->_CheckAccess('book'))) {
+		exit;
 	}
-} elseif (isset($params['export'])) {
-	if (!($this->_CheckAccess('admin') || $this->_CheckAccess('view'))) exit;
+	$funcs = new Booker\Bookingops();
+	//TODO support refresh for non-repeat bookings
+	$funcs->ClearRepeat($this, $params['bkg_id'], 0);
+	$params['task'] = 'edit';
+} elseif (isset($params['refresh'])) {
+	if (!($this->_CheckAccess('admin') || $this->_CheckAccess('book'))) {
+		exit;
+	}
 	if (isset($params['sel'])) {
 		$funcs = new Booker\Bookingops();
-		list($res,$msg) = $funcs->ExportBkg($this,$params['sel']);
+		$funcs->ClearRepeat($this, $params['sel'], 0);
+	} else { //nothing selected
+		$msg = $this->Lang('notypesel', $this->Lang('booking_multi'));
+	}
+} elseif (isset($params['notify'])) {
+	//	if (!($this->_CheckAccess('admin') || $this->_CheckAccess('book'))) exit;
+	if (isset($params['sel'])) {
+		$funcs = new Booker\Messager();
+		list($res, $msg) = $funcs->NotifyBooker($this, $params['sel'], $params['custmsg']);
+	} else {
+		$msg = $this->Lang('notypesel', $this->Lang('booking_multi'));
+	}
+} elseif (isset($params['export'])) {
+	if (!($this->_CheckAccess('admin') || $this->_CheckAccess('view'))) {
+		exit;
+	}
+	if (isset($params['sel'])) {
+		$funcs = new Booker\Bookingops();
+		list($res, $msg) = $funcs->ExportBkg($this, $params['sel']);
 		if ($res) {
 			exit;
 		}
 	} else {
-		$msg = $this->Lang('notypesel',$this->Lang('booking_multi'));
+		$msg = $this->Lang('notypesel', $this->Lang('booking_multi'));
 	}
 }
 
@@ -85,10 +122,10 @@ if ($params['task'] == 'see') {
 }
 
 $tplvars = array();
-$tplvars['pmod'] = (($pmod)?1:0);
+$tplvars['pmod'] = (($pmod) ? 1 : 0);
 
 if (!empty($msg)) {
-	$tplvars['message'] = $this->_PrettyMessage($msg,$prettytype,FALSE);
+	$tplvars['message'] = $this->_PrettyMessage($msg, $prettytype, FALSE);
 }
 
 if ($this->havenotifier) {
@@ -102,7 +139,7 @@ $item_id = (int)$params['item_id'];
 $is_group = ($item_id >= Booker::MINGRPID);
 
 if (isset($params['resume'])) {
-	$params['resume'] = json_decode(html_entity_decode($params['resume'],ENT_QUOTES|ENT_HTML401));
+	$params['resume'] = json_decode(html_entity_decode($params['resume'], ENT_QUOTES | ENT_HTML401));
 	while (end($params['resume']) == $params['action']) {
 		array_pop($params['resume']);
 	}
@@ -111,33 +148,35 @@ if (isset($params['resume'])) {
 }
 
 $utils = new Booker\Utils();
-$params['active_tab'] = ($is_group) ? 'groups':'items';
-$tplvars['pagenav'] = $utils->BuildNav($this,$id,$returnid,$params['action'],$params);
+$params['active_tab'] = ($is_group) ? 'groups' : 'items';
+$tplvars['pagenav'] = $utils->BuildNav($this, $id, $returnid, $params['action'], $params);
 $resume = json_encode($params['resume']);
 
-$tplvars['startform'] = $this->CreateFormStart($id,'itembookings',$returnid,'POST','','','',
-	array('item_id'=>$item_id,'resume'=>$resume,'task'=>$params['task'],'custmsg'=>''));
-$tplvars['startform2'] = $this->CreateFormStart($id,'itembookings',$returnid,'POST','','','',
-	array('item_id'=>$item_id,'resume'=>$resume,'task'=>$params['task'],'repeat'=>1));
+$tplvars['startform'] = $this->CreateFormStart($id, 'itembookings', $returnid, 'POST', '', '', '',
+	array('item_id' => $item_id, 'resume' => $resume, 'task' => $params['task'], 'custmsg' => ''));
+$tplvars['startform2'] = $this->CreateFormStart($id, 'itembookings', $returnid, 'POST', '', '', '',
+	array('item_id' => $item_id, 'resume' => $resume, 'task' => $params['task'], 'repeat' => 1));
 $tplvars['endform'] = $this->CreateFormEnd();
 
-if (!empty($params['message']))
+if (!empty($params['message'])) {
 	$tplvars['message'] = $params['message'];
+}
 
-$idata = $utils->GetItemProperties($this,$item_id,array('name','description'));
+$idata = $utils->GetItemProperties($this, $item_id, array('name', 'description'));
 
-$typename = ($is_group) ? $this->Lang('group'):$this->Lang('item');
+$typename = ($is_group) ? $this->Lang('group') : $this->Lang('item');
 if (!empty($idata['name'])) {
-	if ($is_group)
-		$tplvars['item_title'] = $this->Lang('title_booksfor',$typename,$idata['name']);
-	else
-		$tplvars['item_title'] = $this->Lang('title_booksfor',$idata['name'],'');
+	if ($is_group) {
+		$tplvars['item_title'] = $this->Lang('title_booksfor', $typename, $idata['name']);
+	} else {
+		$tplvars['item_title'] = $this->Lang('title_booksfor', $idata['name'], '');
+	}
 } else {
-	$t = $this->Lang('title_noname',$typename,$item_id);
-	$tplvars['item_title'] = $this->Lang('title_booksfor',$t,'');
+	$t = $this->Lang('title_noname', $typename, $item_id);
+	$tplvars['item_title'] = $this->Lang('title_booksfor', $t, '');
 }
 if ($is_group && !empty($idata['description'])) {
-	$tplvars['desc'] = Booker\Utils::ProcessTemplateFromData($this,$idata['description'],$tplvars);
+	$tplvars['desc'] = Booker\Utils::ProcessTemplateFromData($this, $idata['description'], $tplvars);
 }
 //in this context, ignore $idata['image']
 
@@ -146,18 +185,18 @@ $no = $this->Lang('no');
 $from_group = FALSE;
 
 $baseurl = $this->GetModuleURLPath();
-$theme = ($this->before20) ? cmsms()->get_variable('admintheme'):
+$theme = ($this->before20) ? cmsms()->get_variable('admintheme') :
 	cms_utils::get_theme_object();
 
 if ($pmod) {
 	$t = $this->Lang('edit');
 	$icon_open = '<img src="'.$baseurl.'/images/booking-edit.png" alt="'.$t.'" title="'.$t.'" border="0" />';
-	$icon_delete = $theme->DisplayImage('icons/system/delete.gif',$this->Lang('delete'),'','','systemicon');
+	$icon_delete = $theme->DisplayImage('icons/system/delete.gif', $this->Lang('delete'), '', '', 'systemicon');
 } else {
 	$t = $this->Lang('view');
 	$icon_open = '<img src="'.$baseurl.'/images/booking.png" alt="'.$t.'" title="'.$t.'" border="0" />';
 }
-$icon_export = $theme->DisplayImage('icons/system/export.gif',$this->Lang('export'),'','','systemicon');
+$icon_export = $theme->DisplayImage('icons/system/export.gif', $this->Lang('export'), '', '', 'systemicon');
 $t = $this->Lang('tip_notifyuser');
 $icon_tell = '<img src="'.$baseurl.'/images/notice.png" alt="'.$t.'" title="'.$t.'" border="0" />';
 
@@ -167,30 +206,31 @@ $jsfuncs = array(); //script accumulators
 $jsloads = array();
 $jsincs = array();
 
-//========== NON-REPEAT BOOKINGS ===========
+//========== ONETIME BOOKINGS ===========
 //TODO support limit to date-range, changing such date-range
 $sql = <<<EOS
-SELECT D.bkg_id,D.item_id,D.booker_id,D.slotstart,D.slotlen,D.paid,COALESCE(A.name,B.name,'') AS name,B.publicid
-FROM $this->DataTable D
-JOIN $this->BookerTable B ON D.booker_id=B.booker_id
+SELECT O.bkg_id,O.booker_id,O.item_id,O.slotstart,O.slotlen,O.statpay,COALESCE(A.name,B.name,'') AS name,B.publicid
+FROM $this->OnceTable O
+JOIN $this->BookerTable B ON O.booker_id=B.booker_id
 LEFT JOIN $this->AuthTable A ON B.publicid=A.publicid
-WHERE D.item_id=? ORDER BY D.slotstart
+WHERE O.item_id=? ORDER BY O.slotstart
 EOS;
-$data = $utils->SafeGet($sql,array($item_id));
+//AND O.active=1 N/A for non-repeat bookings?
+$data = $utils->SafeGet($sql, array($item_id));
 if ($data) {
-	$utils->GetUserProperties($this,$data);
+	$utils->GetUserProperties($this, $data);
 }
 /* NO PROCESSING OF ANCESTOR-GROUP NON-REPEATS HERE ?
 $groups = $utils->GetItemGroups($this,$item_id);
 if ($groups) {
 	$fillers = str_repeat('?,',count($groups)-1).'?';
 	$sql = <<<EOS
-SELECT D.bkg_id,D.item_id,D.booker_id,D.slotstart,D.slotlen,D.paid,COALESCE(A.name,B.name,'') AS name,B.publicid
-FROM $this->DataTable D
-JOIN $this->BookerTable B ON D.booker_id=B.booker_id
+SELECT O.bkg_id,O.booker_id,O.item_id,O.slotstart,O.slotlen,O.statpay,COALESCE(A.name,B.name,'') AS name,B.publicid
+FROM $this->OnceTable O
+JOIN $this->BookerTable B ON O.booker_id=B.booker_id
 LEFT JOIN $this->AuthTable A ON B.publicid=A.publicid
-WHERE D.item_id IN ({$fillers})
-ORDER BY D.slotstart
+WHERE O.item_id IN ({$fillers})
+ORDER BY O.slotstart
 EOS;
 	$data2 = $utils->SafeGet($sql,$groups);
 	if ($data2) {
@@ -206,9 +246,9 @@ EOS;
 if ($tell) {
 	$what = '{'.$this->Lang('item').'}';
 	$on = '{'.$this->Lang('date').'}';
-	$detail = $this->Lang('whatovrday',$what,$on);
-	$notify = $this->Lang('email_change',$detail); //ETC
-	$delete = $this->Lang('email_cancel',$detail);
+	$detail = $this->Lang('whatovrday', $what, $on);
+	$notify = $this->Lang('email_change', $detail); //ETC
+	$delete = $this->Lang('email_cancel', $detail);
 	$jsfuncs[] = <<<EOS
 function modalsetup(\$tg,btn) {
  var action,msg,clue;
@@ -273,10 +313,10 @@ EOS;
 
 //some of these values will be tailored as needed
 $linkparms = array(
-	'item_id'=>$item_id,
-	'bkg_id'=>0,
-	'resume'=>$resume,
-	'task'=>$params['task']
+	'item_id' => $item_id,
+	'bkg_id' => 0,
+	'resume' => $resume,
+	'task' => $params['task']
 );
 //if ($pmod) {
 //	$linkparms['bookedit'] = 1;
@@ -297,7 +337,7 @@ if ($data) {
 	$bfmt = $dfmt.' '.$tfmt;
 	$rfmt = $this->Lang('showrange');
 
-	$dtw = new DateTime('@0',NULL);
+	$dtw = new DateTime('@0', NULL);
 
 	foreach ($data as &$one) {
 		$bkgid = (int)$one['bkg_id'];
@@ -308,37 +348,42 @@ if ($data) {
 		$stt = $dtw->format($tfmt);
 		$dtw->setTimestamp($one['slotstart'] + $one['slotlen']);
 		$nd = $dtw->format($dfmt);
-		if ($st == $nd)
+		if ($st == $nd) {
 			$nd = $dtw->format($tfmt);
-		else
+		} else {
 			$nd .= ' '.$dtw->format($tfmt);
+		}
 		$st .= ' '.$stt;
-		$period = sprintf($rfmt,$st,$nd);
+		$period = sprintf($rfmt, $st, $nd);
 
 		$linkparms['bkg_id'] = $bkgid;
-		if ($pmod) //edit mode
-			$oneset->time = $this->CreateLink($id,'openbooking','',$period,$linkparms);
-		else
+		if ($pmod) { //edit mode
+			$oneset->time = $this->CreateLink($id, 'openbooking', '', $period, $linkparms);
+		} else {
 			$oneset->time = $period;
+		}
 		if ($one['item_id'] != $item_id) { //this one from a group?
 			$from_group = TRUE;
 			$oneset->time .= ' &Dagger;';
 		}
 		$oneset->name = $one['name'];
-		if ($funcs->MaybePayable($this,$utils,$item_id))
-			$oneset->paid = ($one['paid']) ? $yes:$no;
-		else
+		if ($funcs->MaybePayable($this, $utils, $item_id)) {
+			$oneset->paid = paid_status($one['statpay'], $yes, $no);
+		} else {
 			$oneset->paid = '';
-		$oneset->open = $this->CreateLink($id,'openbooking','',$icon_open,$linkparms);
-		$oneset->export = $this->CreateLink($id,'exportbooking','',$icon_export,
-			array('item_id'=>$item_id,'bkg_id'=>$bkgid,'task'=>$params['task']));
-		if ($tell)
-		 $oneset->tell = $this->CreateLink($id,'notifybooker','',$icon_tell,
-				array('item_id'=>$item_id,'bkg_id'=>$bkgid,'task'=>$params['task']));
-		if ($pmod)
-		 $oneset->delete = $this->CreateLink($id,'itembookings','',$icon_delete,
-			array('item_id'=>$item_id,'bkg_id'=>$bkgid,'delete1'=>1));
-		$oneset->selected = $this->CreateInputCheckbox($id,'sel[]',$bkgid,-1);
+		}
+		$oneset->open = $this->CreateLink($id, 'openbooking', '', $icon_open, $linkparms);
+		$oneset->export = $this->CreateLink($id, 'exportbooking', '', $icon_export,
+			array('item_id' => $item_id, 'bkg_id' => $bkgid, 'task' => $params['task']));
+		if ($tell) {
+			$oneset->tell = $this->CreateLink($id, 'notifybooker', '', $icon_tell,
+				array('item_id' => $item_id, 'bkg_id' => $bkgid, 'task' => $params['task']));
+		}
+		if ($pmod) {
+			$oneset->delete = $this->CreateLink($id, 'itembookings', '', $icon_delete,
+			array('item_id' => $item_id, 'bkg_id' => $bkgid, 'delete1' => 1));
+		}
+		$oneset->selected = $this->CreateInputCheckbox($id, 'sel[]', $bkgid, -1);
 		$rows[] = $oneset;
 	}
 	unset($one);
@@ -349,26 +394,28 @@ $rc = count($rows);
 $tplvars['ocount'] = $rc;
 if ($rc) {
 	//TODO make page-rows count window-size-responsive
-	$pagerows = $this->GetPreference('pagerows',10);
+	$pagerows = $this->GetPreference('pagerows', 10);
 	if ($pagerows && $rc > $pagerows) {
 		$tplvars['hasnav'] = 1;
 		//setup for SSsort
 		$choices = array(strval($pagerows) => $pagerows);
 		$f = ($pagerows < 4) ? 5 : 2;
 		$n = $pagerows * $f;
-		if ($n < $rc)
+		if ($n < $rc) {
 			$choices[strval($n)] = $n;
+		}
 		$n *= 2;
-		if ($n < $rc)
+		if ($n < $rc) {
 			$choices[strval($n)] = $n;
+		}
 		$choices[$this->Lang('all')] = 0;
 		$tplvars['rowchanger'] =
-			$this->CreateInputDropdown($id,'pagerows',$choices,-1,$pagerows,
+			$this->CreateInputDropdown($id, 'pagerows', $choices, -1, $pagerows,
 			'onchange="pagerows(this);"').'&nbsp;&nbsp;'.$this->Lang('pagerows');
-		$curpg='<span id="cpage">1</span>';
-		$totpg='<span id="tpage">'.ceil($rc/$pagerows).'</span>';
+		$curpg = '<span id="cpage">1</span>';
+		$totpg = '<span id="tpage">'.ceil($rc / $pagerows).'</span>';
 		$tplvars += array(
-			'pageof' => $this->Lang('pageof',$curpg,$totpg),
+			'pageof' => $this->Lang('pageof', $curpg, $totpg),
 			'first' => '<a href="javascript:pagefirst()">'.$this->Lang('first').'</a>',
 			'prev' => '<a href="javascript:pageback()">'.$this->Lang('previous').'</a>',
 			'next' => '<a href="javascript:pageforw()">'.$this->Lang('next').'</a>',
@@ -417,7 +464,7 @@ function select_all(cb) {
 }
 EOS;
 		$tplvars['header_checkbox'] =
-			$this->CreateInputCheckbox($id,'selectall',TRUE,FALSE,'onclick="select_all(this);"');
+			$this->CreateInputCheckbox($id, 'selectall', TRUE, FALSE, 'onclick="select_all(this);"');
 	}
 
 	$jsfuncs[] = <<<EOS
@@ -426,23 +473,22 @@ function any_selected() {
  return (cb.length > 0);
 }
 EOS;
-	$tplvars['export'] = $this->CreateInputSubmit($id,'export',$this->Lang('export'),
+	$tplvars['export'] = $this->CreateInputSubmit($id, 'export', $this->Lang('export'),
 		'title="'.$this->Lang('tip_export_selected_records').'"');
 
 	if ($pmod) {
-
-		$tplvars['delete'] = $this->CreateInputSubmit($id,'delete',$this->Lang('delete'),
+		$tplvars['delete'] = $this->CreateInputSubmit($id, 'delete', $this->Lang('delete'),
 		'title="'.$this->Lang('tip_delsel_items').'"');
 
 		if ($tell) {
-			$tplvars['notify'] = $this->CreateInputSubmit($id,'notify',$this->Lang('notify'),
+			$tplvars['notify'] = $this->CreateInputSubmit($id, 'notify', $this->Lang('notify'),
 			'title="'.$this->Lang('tip_notify_selected_records').'"');
 
 			$t = $this->Lang('title_feedback3');
 			$jsloads[] = <<<EOS
  $('#{$id}moduleform_1 #{$id}delete').click(function() {
   if (any_selected()) {
-    deferbutton(this,'$t');
+	deferbutton(this,'$t');
   }
   return false;
  });
@@ -464,11 +510,11 @@ EOS;
  });
 EOS;
 		} else { //no Notifier module
-			$t = $this->Lang('confirm_delete_type',$this->Lang('booking'),'%s');
+			$t = $this->Lang('confirm_del_type', $this->Lang('booking'), '%s');
 			$jsloads[] = <<<EOS
  $('#{$id}moduleform_1 #{$id}delete').click(function() {
   if (any_selected()) {
-   var msg = '{$this->Lang('delsel_confirm',$this->Lang('booking_multi'))}';
+   var msg = '{$this->Lang('confirm_del_sel', $this->Lang('booking_multi'))}';
    confirmclick(this,msg);
   }
   return false;
@@ -489,11 +535,11 @@ EOS;
 
 if ($pmod) {
 	$t = $this->Lang('addbooking');
-	$icon_add = $theme->DisplayImage('icons/system/newobject.gif',$t,'','','systemicon');
+	$icon_add = $theme->DisplayImage('icons/system/newobject.gif', $t, '', '', 'systemicon');
 	$linkparms['bkg_id'] = -1; //signal new item
-	$tplvars['iconlinkadd'] = $this->CreateLink($id,'openbooking','',$icon_add,$linkparms);
-	$tplvars['textlinkadd'] = $this->CreateLink($id,'openbooking','',$t,$linkparms);
-	$tplvars['importbbtn'] = $this->CreateInputSubmit($id,'importbkg',$this->Lang('import'),
+	$tplvars['iconlinkadd'] = $this->CreateLink($id, 'openbooking', '', $icon_add, $linkparms);
+	$tplvars['textlinkadd'] = $this->CreateLink($id, 'openbooking', '', $t, $linkparms);
+	$tplvars['importbbtn'] = $this->CreateInputSubmit($id, 'importbkg', $this->Lang('import'),
 		'title="'.$this->Lang('tip_importbkg').'"');
 }
 
@@ -508,20 +554,21 @@ if ($pmod) {
 $tplvars['item_title2'] = $this->Lang('title_repeats');
 
 $sql = <<<EOS
-SELECT R.bkg_id,R.item_id,R.booker_id,R.formula,R.subgrpcount,R.paid,COALESCE(A.name,B.name,'') AS name,B.publicid
+SELECT R.bkg_id,R.booker_id,R.item_id,R.subgrpcount,R.formula,R.statpay,COALESCE(A.name,B.name,'') AS name,B.publicid
 FROM $this->RepeatTable R
 JOIN $this->BookerTable B ON R.booker_id=B.booker_id
 LEFT JOIN $this->AuthTable A ON B.publicid=A.publicid
 WHERE R.item_id=? AND R.active=1
 EOS;
-$data = $db->GetArray($sql,array($item_id));
+//CHECKME ORDER BY ?
+$data = $db->GetArray($sql, array($item_id));
 if ($data) {
-	$utils->GetUserProperties($this,$data);
+	$utils->GetUserProperties($this, $data);
 }
 /* NO PROCESSING OF ANCESTOR-GROUP REPEATS HERE ?
 if ($groups) {
 	$sql = <<<EOS
-SELECT R.bkg_id,R.item_id,R.booker_id,R.formula,R.subgrpcount,R.paid,COALESCE(A.name,B.name,'') AS name,B.publicid
+SELECT R.bkg_id,R.booker_id,R.item_id,R.subgrpcount,R.formula,R.statpay,COALESCE(A.name,B.name,'') AS name,B.publicid
 FROM $this->RepeatTable R
 JOIN $this->BookerTable B ON R.booker_id=B.booker_id
 LEFT JOIN $this->AuthTable A ON B.publicid=A.publicid
@@ -537,6 +584,10 @@ EOS;
 $linkparms['repeat'] = 1; //rest of links are for repeat bookings
 $rows = array();
 if ($data) {
+	if ($pmod) {
+		$t = $this->Lang('tip_refresh');
+		$icon_fresh = '<img src="'.$baseurl.'/images/refresh.png" alt="'.$t.'" title="'.$t.'" border="0" />';
+	}
 	//titles array same order as displayed columns
 	$titles = array( $this->Lang('description'));
 	$titles[] = $this->Lang('title_user');
@@ -552,10 +603,11 @@ if ($data) {
 		$oneset = new stdClass();
 
 		$linkparms['bkg_id'] = $bkgid;
-		if ($pmod)
-			$oneset->desc = $this->CreateLink($id,'openbooking','',$one['formula'],$linkparms);
-		else
+		if ($pmod) {
+			$oneset->desc = $this->CreateLink($id, 'openbooking', '', $one['formula'], $linkparms);
+		} else {
 			$oneset->desc = $one['formula'];
+		}
 		if ($one['item_id'] != $item_id) { //this one from a group?
 			$from_group = TRUE;
 			$oneset->desc .= ' &Dagger;';
@@ -564,20 +616,25 @@ if ($data) {
 		if ($is_group) {
 			$oneset->count = $one['subgrpcount'];
 		}
-		if ($funcs->MaybePayable($this,$utils,$item_id))
-			$oneset->paid = ($one['paid']) ? $yes:$no;
-		else
+		if ($funcs->MaybePayable($this, $utils, $item_id)) {
+			$oneset->paid = paid_status($one['statpay'], $yes, $no);
+		} else {
 			$oneset->paid = '';
-		$oneset->open = $this->CreateLink($id,'openbooking','',$icon_open,$linkparms);
-		$oneset->export = $this->CreateLink($id,'exportbooking','',$icon_export,
-			array('item_id'=>$item_id,'bkg_id'=>$bkgid,'task'=>$params['task']));
-		if ($tell)
-			$oneset->tell = $this->CreateLink($id,'notifybooker','',$icon_tell,
-				array('item_id'=>$item_id,'bkg_id'=>$bkgid,'task'=>$params['task']));
-		if ($pmod)
-			$oneset->delete = $this->CreateLink($id,'itembookings','',$icon_delete,
-				array('item_id'=>$item_id,'bkg_id'=>$bkgid,'delete1'=>1,'repeat'=>1));
-		$oneset->selected = $this->CreateInputCheckbox($id,'sel[]',$bkgid,-1);
+		}
+		$oneset->open = $this->CreateLink($id, 'openbooking', '', $icon_open, $linkparms);
+		$oneset->export = $this->CreateLink($id, 'exportbooking', '', $icon_export,
+			array('item_id' => $item_id, 'bkg_id' => $bkgid, 'task' => $params['task']));
+		if ($tell) {
+			$oneset->tell = $this->CreateLink($id, 'notifybooker', '', $icon_tell,
+				array('item_id' => $item_id, 'bkg_id' => $bkgid, 'task' => $params['task']));
+		}
+		if ($pmod) {
+			$oneset->refresh = $this->CreateLink($id, 'itembookings', '', $icon_fresh,
+				array('item_id' => $item_id, 'bkg_id' => $bkgid, 'refresh1' => 1, 'repeat' => 1));
+		}
+		$oneset->delete = $this->CreateLink($id, 'itembookings', '', $icon_delete,
+				array('item_id' => $item_id, 'bkg_id' => $bkgid, 'delete1' => 1, 'repeat' => 1));
+		$oneset->selected = $this->CreateInputCheckbox($id, 'sel[]', $bkgid, -1);
 		$rows[] = $oneset;
 	}
 	unset($one);
@@ -596,7 +653,7 @@ function any_selected2() {
 EOS;
 	if ($pmod) {
 		if ($rc > 1) {
-				//assume small no. of bookings, so no pagination
+			//assume small no. of bookings, so no pagination
 			$jsloads[] = <<<EOS
  $('#repeats').addClass('table_sort').SSsort({
   sortClass: 'SortAble',
@@ -614,11 +671,11 @@ function select_all2(cb) {
 }
 EOS;
 			$tplvars['header_checkbox2'] =
-				$this->CreateInputCheckbox($id,'selectall',TRUE,FALSE,'onclick="select_all2(this);"');
+				$this->CreateInputCheckbox($id, 'selectall', TRUE, FALSE, 'onclick="select_all2(this);"');
 		}
 
 		if ($tell) {
-			$tplvars['notify2'] = $this->CreateInputSubmit($id,'notify',$this->Lang('notify'),
+			$tplvars['notify2'] = $this->CreateInputSubmit($id, 'notify', $this->Lang('notify'),
 			 'title="'.$this->Lang('tip_notify_selected_records').'"');
 
 			$t = $this->Lang('title_feedback3');
@@ -637,14 +694,33 @@ EOS;
 EOS;
 		}
 
-		$tplvars['delete2'] = $this->CreateInputSubmit($id,'delete',$this->Lang('delete'),
+		$tplvars['refresh2'] = $this->CreateInputSubmit($id, 'refresh', $this->Lang('refresh'),
+		 'title="'.$this->Lang('tip_refresh_sel').'"');
+		$t = $this->Lang('confirm_fresh_type', $this->Lang('booking'), '%s');
+		$jsloads[] = <<<EOS
+ $('#{$id}moduleform_2 #{$id}refresh').click(function() {
+  if (any_selected2()) {
+   var msg = '{$this->Lang('confirm_fresh_sel', $this->Lang('booking_multi'))}';
+   confirmclick(this,msg);
+  }
+  return false;
+ });
+ $('#repeats .bkrfresh > a').click(function(ev) {
+  var n = $(this.parentNode).siblings(':first').children(':first').text(),
+   msg = '$t'.replace('%s',n);
+  var tg = ev.target || ev.srcElement;
+  confirmclick(tg,msg);
+  return false;
+ });
+EOS;
+		$tplvars['delete2'] = $this->CreateInputSubmit($id, 'delete', $this->Lang('delete'),
 		 'title="'.$this->Lang('tip_delsel_items').'"');
 
-		$t = $this->Lang('confirm_delete_type',$this->Lang('booking'),'%s');
+		$t = $this->Lang('confirm_del_type', $this->Lang('booking'), '%s');
 		$jsloads[] = <<<EOS
  $('#{$id}moduleform_2 #{$id}delete').click(function() {
   if (any_selected2()) {
-   var msg = '{$this->Lang('delsel_confirm',$this->Lang('booking_multi'))}';
+   var msg = '{$this->Lang('confirm_del_sel', $this->Lang('booking_multi'))}';
    confirmclick(this,msg);
   }
   return false;
@@ -664,10 +740,10 @@ EOS;
 
 if ($pmod) {
 	$t = $this->Lang('addbooking2');
-	$icon_add = $theme->DisplayImage('icons/system/newobject.gif',$t,'','','systemicon');
+	$icon_add = $theme->DisplayImage('icons/system/newobject.gif', $t, '', '', 'systemicon');
 	$linkparms['bkg_id'] = -1;
-	$tplvars['iconlinkadd2'] = $this->CreateLink($id,'openbooking','',$icon_add,$linkparms);
-	$tplvars['textlinkadd2'] = $this->CreateLink($id,'openbooking','',$t,$linkparms);
+	$tplvars['iconlinkadd2'] = $this->CreateLink($id, 'openbooking', '', $icon_add, $linkparms);
+	$tplvars['textlinkadd2'] = $this->CreateLink($id, 'openbooking', '', $t, $linkparms);
 }
 
 if ($from_group) {
@@ -675,7 +751,7 @@ if ($from_group) {
 }
 
 $have = $tplvars['ocount'] > 0 || $tplvars['rcount'] > 0;
-if ($have && $pmod)
+if ($have && $pmod) {
 	$jsfuncs[] = <<<EOS
 function confirmclick(tg,msg) {
  $.alertable.confirm(msg,{
@@ -686,24 +762,26 @@ function confirmclick(tg,msg) {
  });
 }
 EOS;
+}
 
 if ($have) {
 	$jsincs[] = <<<EOS
 <script type="text/javascript" src="{$baseurl}/lib/js/jquery.metadata.min.js"></script>
 <script type="text/javascript" src="{$baseurl}/lib/js/jquery.SSsort.min.js"></script>
 EOS;
-	if ($pmod || $tell)
+	if ($pmod || $tell) {
 		$jsincs[] = <<<EOS
 <script type="text/javascript" src="{$baseurl}/lib/js/jquery.alertable.min.js"></script>
 EOS;
+	}
 }
 
-$jsall = $utils->MergeJS($jsincs,$jsfuncs,$jsloads);
+$jsall = $utils->MergeJS($jsincs, $jsfuncs, $jsloads);
 unset($jsincs);
 unset($jsfuncs);
 unset($jsloads);
 
-echo Booker\Utils::ProcessTemplate($this,'bookings.tpl',$tplvars);
+echo Booker\Utils::ProcessTemplate($this, 'bookings.tpl', $tplvars);
 if ($jsall) {
 	echo $jsall; //inject constructed js after other content
 }
