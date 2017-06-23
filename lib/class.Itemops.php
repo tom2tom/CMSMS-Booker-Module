@@ -17,11 +17,12 @@ class Itemops
 	*/
 	private function ClearItem(&$mod, &$utils, $item_id)
 	{
+		//TODO also process OnceTable
 		$db = $mod->dbHandle;
 		//resource-localize 'now'
 		$idata = $utils->GetItemProperties($mod,$item_id,'timezone');
 		$limit = $utils->GetZoneTime($idata['timezone']);
-		$sql = 'SELECT * FROM '.$mod->DataTable.' WHERE item_id=? AND slotstart>=?';
+		$sql = 'SELECT * FROM '.$mod->DispTable.' WHERE item_id=? AND slotstart>=?';
 		$rows = $utils->SafeGet($sql,array($item_id,$limit));
 		if ($rows) {
 			foreach ($rows as $one) {
@@ -30,8 +31,8 @@ class Itemops
 		}
 		if ($utils->GetInterval($mod,$item_id,'keep') > 0) { //past data still needed
 			$sql = array(
-				'DELETE FROM '.$mod->DataTable.' WHERE item_id=? AND slotstart>=?',
-				'UPDATE '.$mod->DataTable.' SET status='.\Booker::STATGONE.' WHERE item_id=? AND slotstart<?',
+				'DELETE FROM '.$mod->DispTable.' WHERE item_id=? AND slotstart>=?',
+				'UPDATE '.$mod->DispTable.' SET status='.\Booker::STATGONE.' WHERE item_id=? AND slotstart<?',
 				'UPDATE '.$mod->ItemTable.' SET active=-1 WHERE item_id=?'
 			);
 			$args = array(
@@ -41,7 +42,7 @@ class Itemops
 			);
 		} else {
 			$sql = array(
-				'DELETE FROM '.$mod->DataTable.' WHERE item_id=?',
+				'DELETE FROM '.$mod->DispTable.' WHERE item_id=?',
 				'DELETE FROM '.$mod->ItemTable.' WHERE item_id=?'
 			);
 			$args = array(
