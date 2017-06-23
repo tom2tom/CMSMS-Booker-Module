@@ -74,6 +74,7 @@ $lang['change'] = 'Change';
 $lang['close'] = 'Close';
 $lang['compulsory_items'] = 'Properties marked with a <strong>*</strong> are compulsory.' ;
 $lang['confirm']='Are you sure?';
+$lang['confirm_cancel'] = 'Remove your booking(s)?';
 //$lang['confirm_delete_record']='Are you sure you want to delete this booking?';
 //$lang['confirm_delete_sel']='Are you sure you want to delete the selected bookings?';
 $lang['confirm_del'] = 'Are you sure you want to delete %s?';
