@@ -3,7 +3,7 @@
 <h3 style="margin-left:2%;">{$title}</h3>
 {$startform}
 {if $dcount > 0}
- {if !empty($hasnav)}<div>{$first}&nbsp;|&nbsp;{$prev}&nbsp;&lt;&gt;&nbsp;{$next}&nbsp;|&nbsp;{$last}&nbsp;({$pageof})&nbsp;&nbsp;{$rowchanger}</div>
+ {if !empty($hasnav)}<div class="browsenav">{$first}&nbsp;|&nbsp;{$prev}&nbsp;&lt;&gt;&nbsp;{$next}&nbsp;|&nbsp;{$last}&nbsp;({$pageof})&nbsp;&nbsp;{$rowchanger}</div>
  {/if}
   <div style="overflow:auto;">
    <table id="datatable" class="{if $dcount > 1}table_sort {/if}leftwards pagetable">
@@ -23,7 +23,7 @@
     </tbody>
    </table>
   </div>
- {if !empty($hasnav)}<div>{$first}&nbsp;|&nbsp;{$prev}&nbsp;&lt;&gt;&nbsp;{$next}&nbsp;|&nbsp;{$last}</div>{/if}
+ {if !empty($hasnav)}<div class="browsenav">{$first}&nbsp;|&nbsp;{$prev}&nbsp;&lt;&gt;&nbsp;{$next}&nbsp;|&nbsp;{$last}</div>{/if}
 {else}
   <br />
   <p class="pageinput">{$nodata}</p>

@@ -23,7 +23,7 @@
 <div style="float:left;">{$carticon}</div>
 <div class="helptoggle">{$carthelp}</div>
 <div style="margin-top:0.5em;">
-{$submit}{if isset($cart)}&nbsp;{$cart}{/if}&nbsp;{$cancel}{if isset($choose)}&nbsp;{$choose}{/if}
+{$submit}{if isset($cart)}&nbsp;{$cart}{/if}{if isset($delete)}&nbsp;{$delete}{/if}&nbsp;{$cancel}
 <div style="float:right;">{$register}&nbsp;{$change}</div>
 <div style="clear:both;"></div>
 </div>
