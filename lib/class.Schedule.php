@@ -88,17 +88,17 @@ class Schedule
 	/*
 	ScheduleOne:
 	Process a request for a single resource
-	Updates DataTable and/or request status-flag, upstream must respond to the latter.
+	Updates DispTable (not Once/RepeatTable), and some of @reqdata,
+	 upstream must respond to the latter.
 	@mod: reference to current Booker module object
 	@utils: reference to Booker\Utils object
-	@reqdata: reference to array of data from, or equivalent to [some of], a HistoryTable row
+	@reqdata: reference to array of data from, or equivalent to [some of], a OnceTable row
 	@item_id: resource-identifier
-	@bulk_id: repeat- or group-booking identifier, or 0
 	@session_id: identifier for cache-interrogation
 	@is_repeat: boolean whether this is for a repeat-booking
 	Returns: boolean indicating success
 	*/
-	private function ScheduleOne(&$mod, &$utils, &$reqdata, $item_id, $bulk_id, $session_id, $is_repeat)
+	private function ScheduleOne(&$mod, &$utils, &$reqdata, $item_id, $session_id, $is_repeat)
 	{
 		$idata = $utils->GetItemProperties($mod,$item_id,
 			array('slottype','slotcount','leadtype','leadcount','bookcount','timezone'),TRUE);
@@ -124,7 +124,6 @@ class Schedule
 			return FALSE;
 		}
 
-		$bookerid = (int)$reqdata['booker_id'];
 		//TODO use cache that's public
 		$slotstatus = self::GetSlotStatus($mod,$utils,$session_id,$item_id,$bs,$be);
 		$cando = (($slotstatus & 7) == 0); //slot not busy, and available, and not booked
@@ -134,31 +133,24 @@ class Schedule
 			if (!in_array($sig,$this->slotsdone)) {
 				$this->slotsdone[] = $sig;
 				//record booking
-				$bkgid = $mod->dbHandle->GenID($mod->DataTable.'_seq');
-				$pay = !empty($reqdata['paid']);
-				$stat = \Booker::STATOK; //TODO or STATNOTPAID etc
+				$sql = <<<EOS
+INSERT INTO $mod->DispTable (data_id,bkg_id,booker_id,item_id,slotstart,slotlen,bulk) VALUES (?,?,?,?,?,?,?)
+EOS;
+				$did = $mod->dbHandle->GenID($mod->DispTable.'_seq');
+				$bulk = ($is_repeat) ? 20:0;
 				$args = array(
-					$bkgid,
-					$bulk_id,
+					$did,
+					(int)$reqdata['bkg_id'],
+					(int)$reqdata['booker_id'],
 					$item_id,
 					$bs, //slotstart
-					$be-$bs-1, //slotlen, 'used interval'
-					$bookerid,
-					$stat,
-					$pay
+					$be-$bs, //slotlen, 'used interval'
+					$bulk
 				);
-				$sql = 'INSERT INTO '.$mod->DataTable.
-' (bkg_id,bulk_id,item_id,slotstart,slotlen,booker_id,status,paid) VALUES (?,?,?,?,?,?,?,?)';
 				if ($utils->SafeExec($sql,$args)) {
-					if ($reqdata['subgrpcount'] == 1) { //if we're doing a 1-item group, revert to specific resource
-						$reqdata['item_id'] = $item_id;
-						$idata = $utils->GetItemProperties($mod,$item_id,array('item_id','name','timezone'));
-						$reqdata['item_name'] = $utils->GetItemName($mod,$idata);
-						$reqdata['approved'] = $utils->GetZoneTime($idata['timezone']);
-					}
 					$reqdata['slotstart'] = $bs;
 					$reqdata['slotlen'] = $be-$bs;
-					$reqdata['status'] = $stat;
+					$reqdata['status'] = \Booker::STATOK; //upsteam may adjust this
 					return TRUE;
 				} else {
 					$reqdata['status'] = \Booker::STATERR; //system error? RETRY?
@@ -217,7 +209,7 @@ class Schedule
 
 	/*
 	Get indices in @imin..@imax in @likes, for at least @mincount and at most @prefcount
-	adjacent bookable items 
+	adjacent bookable items
 	Returns: indices array or FALSE
 	*/
 	private function BigCluster(&$mod, &$utils, $session_id, $likes, $imin, $imax, $mincount, $prefcount, &$ret, $bs, $be)
@@ -417,6 +409,8 @@ class Schedule
 				}
 				ksort($ret,SORT_NUMERIC);
 				return $ret;
+			} else {
+				break;
 			}
 		}
 		return FALSE;
@@ -425,7 +419,8 @@ class Schedule
 	/*
 	ScheduleMulti:
 	Register as many as possible of bookings in @reqdata, for resource-group @item_id.
-	Updates DataTable and/or request(s) status-flag, upstream must respond to the latter.
+	Updates DispTable (not OnceTable/RepeatTable) and probably some of @reqdata,
+	upstream must respond to the latter and deal with other table(s).
 
 	If a group-booking-request involves just 1 resource (i.e. it's not really a
 	group booking), the request's item_id is replaced by the one for the resource
@@ -438,16 +433,14 @@ class Schedule
 	are allocated wherever a vacancy is found.
 	@mod: reference to current Booker module object
 	@utils: reference to Utils-class object
-	@reqdata: reference to array of row(s) of HistoryTable data (or contructed
-	and sufficiently like such rows)
+	@reqdata: reference to array of row(s) of OnceTable data, or constructed-equivalent
 	@item_id: group identifier
 	@session_id: identifier for cache-interrogation
-	@bulk_id: repeat- or group-booking identifier, or 0
 	@is_repeat: boolean whether this is for a repeat-booking
 	Returns: boolean indicating complete success. @reqdata contents will usually
 	be modified e.g. status values
 	*/
-	private function ScheduleMulti(&$mod, &$utils, &$reqdata, $item_id, $bulk_id, $session_id, $is_repeat)
+	private function ScheduleMulti(&$mod, &$utils, &$reqdata, $item_id, $session_id, $is_repeat)
 	{
 		$likes = self::MembersLike($mod,$item_id);
 		if (!$likes) {
@@ -495,7 +488,9 @@ class Schedule
 					}
 					$items = self::ClusterPick($mod,$utils,$session_id,$likes,$bs,$be,1,$idata['subgrpalloc'],$allocdata);
 					if ($items) {
-						if (!self::ScheduleOne($mod,$utils,$one,$items[0],$bulk_id,$session_id,$is_repeat)) {
+						if (self::ScheduleOne($mod,$utils,$one,$items[0],$session_id,$is_repeat)) {
+							$one['item_id'] = $items[0];
+						} else {
 							$ret = FALSE;
 						}
 					} else {
@@ -540,48 +535,37 @@ class Schedule
 					//record booking
 					$allsql = array();
 					$allargs = array();
-					$sql = 'INSERT INTO '.$mod->DataTable.
-' (bkg_id,bulk_id,item_id,slotstart,slotlen,booker_id,status,paid) VALUES (?,?,?,?,?,?,?,?)';
+					$bkgid = (int)$one['bkg_id'];
 					$bookerid = (int)$one['booker_id'];
-					$pay = !empty($one['paid']);
-					$stat = \Booker::STATOK; //TODO or STATNOTPAID etc
-					if (!$is_repeat) {
-						$allsql[] = $sql;
-						$bkgid = $mod->dbHandle->GenID($mod->DataTable.'_seq');
-						$allargs[] = array(
-							$bkgid,
-							$bulk_id,
-							$item_id,
-							$bs, //slotstart
-							$be-$bs-1, //slotlen, 'used interval'
-							$bookerid,
-							$stat,
-							$pay
-						);
+					if ($one['subgrpcount'] > 1) {
+						$bulk = ($is_repeat) ? 21:1;
+					} else {
+						$bulk = ($is_repeat) ? 20:0;
 					}
+					$sql = <<<EOS
+INSERT INTO $mod->DispTable (data_id,bkg_id,booker_id,item_id,slotstart,slotlen,bulk) VALUES (?,?,?,?,?,?,?)
+EOS;
 					foreach ($items as $memberid) {
 						//signature = string form of long numbers
 						$this->slotsdone[] = $memberid.$bs.$be;
 
 						$allsql[] = $sql;
-						$bkgid = $mod->dbHandle->GenID($mod->DataTable.'_seq');
+						$did = $mod->dbHandle->GenID($mod->DispTable.'_seq');
 						$allargs[] = array(
+							$did,
 							$bkgid,
-							$bulk_id,
+							$bookerid,
 							$memberid,
 							$bs, //slotstart
-							$be-$bs-1, //slotlen, 'used interval'
-							$bookerid,
-							$stat,
-							$pay
+							$be-$bs, //slotlen, 'used interval'
+							$bulk
 						);
 					}
 
 					if ($utils->SafeExec($allsql,$allargs)) {
-						$one['approved'] = $utils->GetZoneTime($idata['timezone']);
 						$one['slotstart'] = $bs;
-						$one['slotlen'] = $be-$bs+1;
-						$one['status'] = $stat;
+						$one['slotlen'] = $be-$bs;
+						$one['status'] = \Booker::STATOK; //upstream may adjust this
 					} else {
 						$one['status'] = \Booker::STATERR; //system error? RETRY?
 						$ret = FALSE;
@@ -610,7 +594,7 @@ class Schedule
 	/*
 	RecordRepeats:
 	Interpret relevant repeat-booking for one specified resource into specific
-	bookings in DataTable
+	bookings in DispTable
 	@mod: reference to current Booker module
 	@utils: reference to Utils object
 	@reps: reference to WhenRules-class object
@@ -635,7 +619,6 @@ class Schedule
 			//TODO support forced update of all data in interval
 			//TODO diff against slots already processed
 			$blocks->MergeBlocks($starts,$ends);
-			$bkgid = (int)$row['bkg_id'];
 			if (!$row['subgrpcount']) {
 				if ($item_id < \Booker::MINGRPID)
 					$row['subgrpcount'] = 1;
@@ -644,29 +627,28 @@ class Schedule
 			}
 			$session_id = Cache::GetKey(\Booker::SESSIONKEY);//identifier for cached slotstatus data
 			foreach ($starts as $i=>$st) {
-				//data to mimic a request, some HistoryTable fields
-				//recreate whole data array cuz downstream messes with it
-				//CHECKME ok to bundle all requests at different times?
+				//data array to mimic a request, like some of a OnceTable row
+				//recreate whole array inside loop cuz downstream messes with it
 				list($st,$nd) = $utils->TuneBlock($idata['slottype'],$idata['slotcount'],$st,$ends[$i]);
-				$ps = ($row['paid']) ? \Booker::STATPAID : \Booker::STATNOTPAID; //TODO if free-to-use
 				$reqdata = array(
-				 'subgrpcount'=>(int)$row['subgrpcount'],
+				 'bkg_id'=>(int)$row['bkg_id'],
 				 'booker_id'=>(int)$row['booker_id'],
+				 'subgrpcount'=>(int)$row['subgrpcount'],
 				 'slotstart'=>$st,
 				 'slotlen'=>$nd-$st,
-				 'payment'=>$ps
 				);
 				if ($reqdata['subgrpcount'] < 2) {
-					if (!self::ScheduleOne($mod,$utils,$reqdata,$item_id,$bkgid,$session_id,TRUE)) {
+					if (!self::ScheduleOne($mod,$utils,$reqdata,$item_id,$session_id,TRUE)) {
 						$ret = FALSE;
 					}
 				} else {
 					$reqdata = array($reqdata);
-					if (!self::ScheduleMulti($mod,$utils,$reqdata,$item_id,$bkgid,$session_id,TRUE)) {
+					if (!self::ScheduleMulti($mod,$utils,$reqdata,$item_id,$session_id,TRUE)) {
 						$ret = FALSE;
 					}
 				}
-				//TODO modify stuff to reflect status values in $reqdata[]
+				//CHECKME modify RepeatTable stuff to reflect $reqdata['status'] value
+				//upstream modifies checkedfrom, checkedto
 			}
 		}
 		return $ret;
@@ -674,13 +656,13 @@ class Schedule
 
 	/**
 	ScheduleResource:
-	Register as many as possible of bookings in @reqdata, for a single resource @item_id.
+	Register as many as possible of (onetime) bookings in @reqdata, for a single resource @item_id.
 	The status field in each @reqdata member will be updated to indicate what
 	precisely has been done, the subgrpcount field will be added if absent
 	@mod: reference to current Booker module object
 	@utils: reference to Booker\Utils object
 	@item_id: item identifier
-	@reqdata: reference to row of data from HistoryTable, or array of them
+	@reqdata: reference to some/all data from a OnceTable row or constructed-equivalent, or array of them
 	Returns: boolean indicating complete success
 	*/
 	public function ScheduleResource(&$mod, &$utils, $item_id, &$reqdata)
@@ -709,7 +691,7 @@ class Schedule
 		$session_id = Cache::GetKey(\Booker::SESSIONKEY); //identifier for cached slotstatus data
 		foreach ($reqdata as &$one) {
 			$one['subgrpcount'] = 1; //force this
-			if (!self::ScheduleOne($mod,$utils,$one,$item_id,0,$session_id,FALSE)) {
+			if (!self::ScheduleOne($mod,$utils,$one,$item_id,$session_id,FALSE)) {
 				$res = FALSE;
 			}
 		}
@@ -724,13 +706,13 @@ class Schedule
 
 	/**
 	ScheduleGroup:
-	Register as many as possible of bookings in @reqdata, for resource-group @item_id.
+	Register as many as possible of (onetime) bookings in @reqdata, for resource-group @item_id.
 	The status field in each @reqdata member will be updated to reflect what was done,
 	the subgrpcount field will have been added or updated if empty on arrival.
 	@mod: reference to current Booker module object
 	@utils: reference to Utils-class object
 	@item_id: group identifier
-	@reqdata: reference to array of some/all data from a HistoryTable row, or array of them
+	@reqdata: reference to array of some/all data from a OnceTable row or constructed-equivalent, or array of them
 	Returns: boolean indicating complete success. @reqdata contents may be modified
 	*/
 	public function ScheduleGroup(&$mod, &$utils, $item_id, &$reqdata)
@@ -771,9 +753,8 @@ class Schedule
 
 		self::UpdateRepeats($mod,$utils,$item_id,$bs,$be);
 
-		$bulk_id = $mod->dbHandle->GenID($mod->DataTable.'_seq');
 		$session_id = Cache::GetKey(\Booker::SESSIONKEY); //identifier for cached slotstatus data
-		$res = self::ScheduleMulti($mod,$utils,$reqdata,$item_id,$bulk_id,$session_id,FALSE);
+		$res = self::ScheduleMulti($mod,$utils,$reqdata,$item_id,$session_id,FALSE);
 		if ($unarray)
 			$reqdata = $reqdata[0];
 		return $res;
@@ -781,8 +762,8 @@ class Schedule
 
 	/**
 	UpdateRepeats:
-	Interpret any relevant repeat-booking for the specified resource(s) into
-	 specific bookings in bookings table, and do consequential stuff
+	Interpret relevant repeat-booking(s) for the specified resource(s) into
+	 specific bookings in DispTable, and do consequential stuff
 	@mod: reference to current Booker module
 	@utils: reference to Utils-class object
 	@item: resource or group identifier (a.k.a. item_id), or array of them
@@ -831,7 +812,7 @@ class Schedule
 							return ($ka-$kb);
 						}
 					}
-					return ($b['paid'] - $a['paid']); //paid-first
+					return ($b['statpay'] - $a['statpay']); //TODO paid-first, maybe compare ['status']
 				});
 
 				foreach ($all as &$row) {
@@ -976,18 +957,18 @@ class Schedule
 		if ($is_group) {
 			$all = $utils->GetGroupItems($mod,$item_id);
 			$fillers = str_repeat('?,',count($all)-1);
-			$sql = 'SELECT DISTINCT item_id FROM '.$mod->DataTable.' WHERE item_id IN('.$fillers.'?)';
+			$sql = 'SELECT DISTINCT item_id FROM '.$mod->DispTable.' WHERE item_id IN('.$fillers.'?)';
 			$args = $all;
 		} else {
-			$sql = 'SELECT bkg_id FROM '.$mod->DataTable.' WHERE item_id=?';
+			$sql = 'SELECT bkg_id FROM '.$mod->DispTable.' WHERE item_id=?';
 			$args = array($item_id);
 		}
 		if ($bkgid) {
 			$sql .= ' AND bgk_id!=?';
 			$args[] = (int)$bkgid;
 		}
-		//ignore possible 1-sec overlaps
 		$sql .= ' AND slotstart < ? AND (slotstart + slotlen) > ?';
+		//ignore possible 1-sec overlaps
 		$args[] = $be+1;
 		$args[] = $bs;
 		if ($is_group) {
