@@ -29,28 +29,32 @@ function delTree($dir)
 $pre = cms_db_prefix();
 $dict = NewDataDictionary($db);
 // remove table indices
-$sql = $dict->DropIndexSQL('idx_'.$this->GroupTable, $this->GroupTable);
-$dict->ExecuteSQLArray($sql);
+$sqlarray = $dict->DropIndexSQL('idx_'.$this->GroupTable, $this->GroupTable);
+$dict->ExecuteSQLArray($sqlarray);
+$sqlarray = $dict->DropIndexSQL('idx1_'.$this->DispTable, $this->DispTable);
+$dict->ExecuteSQLArray($sqlarray);
+$sqlarray = $dict->DropIndexSQL('idx2_'.$this->DispTable, $this->DispTable);
+$dict->ExecuteSQLArray($sqlarray);
 
 // remove database tables
-$sql = $dict->DropTableSQL($this->BookerTable);
-$dict->ExecuteSQLArray($sql);
-$sql = $dict->DropTableSQL($this->DispTable);
-$dict->ExecuteSQLArray($sql);
-$sql = $dict->DropTableSQL($this->FeeTable);
-$dict->ExecuteSQLArray($sql);
-$sql = $dict->DropTableSQL($this->GroupTable);
-$dict->ExecuteSQLArray($sql);
-$sql = $dict->DropTableSQL($this->ItemTable);
-$dict->ExecuteSQLArray($sql);
-$sql = $dict->DropTableSQL($this->OnceTable);
-$dict->ExecuteSQLArray($sql);
-$sql = $dict->DropTableSQL($this->CreditTable);
-$dict->ExecuteSQLArray($sql);
-$sql = $dict->DropTableSQL($this->RepeatTable);
-$dict->ExecuteSQLArray($sql);
-$sql = $dict->DropTableSQL($pre.'module_bkr_cache');
-$dict->ExecuteSQLArray($sql);
+$sqlarray = $dict->DropTableSQL($this->BookerTable);
+$dict->ExecuteSQLArray($sqlarray);
+$sqlarray = $dict->DropTableSQL($this->DispTable);
+$dict->ExecuteSQLArray($sqlarray);
+$sqlarray = $dict->DropTableSQL($this->FeeTable);
+$dict->ExecuteSQLArray($sqlarray);
+$sqlarray = $dict->DropTableSQL($this->GroupTable);
+$dict->ExecuteSQLArray($sqlarray);
+$sqlarray = $dict->DropTableSQL($this->ItemTable);
+$dict->ExecuteSQLArray($sqlarray);
+$sqlarray = $dict->DropTableSQL($this->OnceTable);
+$dict->ExecuteSQLArray($sqlarray);
+$sqlarray = $dict->DropTableSQL($this->CreditTable);
+$dict->ExecuteSQLArray($sqlarray);
+$sqlarray = $dict->DropTableSQL($this->RepeatTable);
+$dict->ExecuteSQLArray($sqlarray);
+$sqlarray = $dict->DropTableSQL($pre.'module_bkr_cache');
+$dict->ExecuteSQLArray($sqlarray);
 // remove sequences
 $db->DropSequence($this->BookerTable.'_seq');
 $db->DropSequence($this->DispTable.'_seq');
