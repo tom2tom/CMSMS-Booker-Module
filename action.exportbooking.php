@@ -15,7 +15,7 @@ if ($this->_CheckAccess('admin') || $this->_CheckAccess('see')) {
 		$bkgid = (int)$params['bkg_id'];
 	else {
 		$utils = new Booker\Utils();
-		$sql = 'SELECT bkg_id FROM '.$mod->DataTable.' WHERE item_id=?';
+		$sql = 'SELECT bkg_id FROM '.$mod->DispTable.' WHERE item_id=?';
 		$bkgid = $utils->SafeGet($sql,array($params['item_id']),'col');
 		if (!$bkgid) {
 			$name = $utils->GetItemNameForID($mod,$params['item_id']);
