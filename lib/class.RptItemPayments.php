@@ -46,7 +46,7 @@ class RptItemPayments extends Report
 	*/
 	public function GetReportData($showfrom = FALSE, $showto = FALSE)
 	{
-		//TODO support RepeatsTable too - algorithm for payment-splitting across bookings
+		//TODO support RepeatsTable too - algorithm for splitting payment across bookings
 		$sql =<<<EOS
 SELECT D.item_id,D.slotstart,O.fee,O.feepaid,1 AS bkg
 FROM {$this->mod->DispTable} D
