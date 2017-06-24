@@ -1,7 +1,7 @@
 <?php
 #----------------------------------------------------------------------
 # Module: Booker - a resource booking module
-# Action: requestbooking
+# Action: dobooking
 # Request/record/cart/delete a booking
 #----------------------------------------------------------------------
 # See file Booker.module.php for full details of copyright, licence, etc.
@@ -443,7 +443,7 @@ $hidden = $utils->FilterParameters($params,$localparams);
 //if (!empty($params['bkgid'])) not in localparams
 //	$hidden['bkgid'] = $params['bkgid'];
 
-$tplvars['startform'] = $this->CreateFormStart($id,'requestbooking',$returnid,'POST','','','',$hidden);
+$tplvars['startform'] = $this->CreateFormStart($id,'dobooking',$returnid,'POST','','','',$hidden);
 $tplvars['endform'] = $this->CreateFormEnd();
 
 $t = $idata['bulletin'];
@@ -673,7 +673,7 @@ $oneset->class = 'hide1';
 $oneset->ttl = $this->Lang('title_account');
 $oneset->mst = 1;
 $t = (!empty($params['account'])) ? $params['account']:'';
-$oneset->inp = $this->CreateInputText($id,'account',$t,15,20);
+$oneset->inp = $this->CreateInputText($id,'account',$t,20,30);
 $items[] = $oneset;
 
 $oneset = new stdClass();
@@ -920,7 +920,7 @@ unset($jsincs);
 unset($jsfuncs);
 unset($jsloads);
 
-echo Booker\Utils::ProcessTemplate($this,'requestbooking.tpl',$tplvars);
+echo Booker\Utils::ProcessTemplate($this,'dobooking.tpl',$tplvars);
 if ($jsall) {
 	echo $jsall; //inject constructed js after other content
 }
