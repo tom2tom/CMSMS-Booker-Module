@@ -1154,8 +1154,8 @@ $tplvars['showto'] = str_replace('class="','class="dateinput ',$t);
 $tplvars['helpto'] = $this->Lang('help_reportto');
 //for date-picker
 $jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/lib/js/pikaday.min.js"></script>
-<script type="text/javascript" src="{$baseurl}/lib/js/pikaday.jquery.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/pikamonth.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/pikamonth.jquery.min.js"></script>
 <script type="text/javascript" src="{$baseurl}/lib/js/php-date-formatter.min.js"></script>
 EOS;
 
@@ -1184,7 +1184,7 @@ $jsloads[] = <<<EOS
    return Math.floor(number % 100 / 10) === 1 || !suffixes[n] ? 'th' : suffixes[n];
   }
  });
- $('.dateinput').pikaday({
+ $('.dateinput').pikamonth({
   format: 'Y-m',
   reformat: function(target,f) {
    return fmt.formatDate(target,f);
@@ -1192,12 +1192,12 @@ $jsloads[] = <<<EOS
   getdate: function(target,f) {
    return fmt.parseDate(target,f);
   },
+  abbr: true,
   i18n: {
    previousMonth: '$prevm',
    nextMonth: '$nextm',
    months: [$mnames],
-   weekdays: [$dnames],
-   weekdaysShort: [$sdnames]
+   monthsShort: [$smnames]
   }
  });
 EOS;
