@@ -162,6 +162,7 @@ if ($data) {
 	$dt = new DateTime('@0', $tz);
 	$funcs = new Booker\Status();
 	$statnames = $funcs->GetStatusChoices($this, 5); //1|4
+	$staticons = array(NULL, $iconyes, $iconno);
 
 	foreach ($data as &$row) {
 		$one = new stdClass();
@@ -183,17 +184,8 @@ if ($data) {
 		if ($one->status === FALSE) {
 			$one->status = $t;
 		}
-		switch ($row['statpay']) {
-		 case Booker::STATFREE:
-			$one->paid = NULL;
-			break;
-		 case Booker::STATPAID:
-			$one->paid = $iconyes;
-			break;
-		 default:
-			$one->paid = $iconno;
-			break;
-		}
+		$t = $funcs->PaidStatus($row['statpay'], 1, 2);
+		$one->paid = $staticons[(int)$t];
 		$t = $row['comment'];
 		if ($t && strlen($t) > 8) {
 			$t = substr($t, 0, 8).'...';
