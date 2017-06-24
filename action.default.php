@@ -144,7 +144,7 @@ if (isset($params['request'])) { //'book' button clicked or cell double-clicked
 		$st = (int)($st/$slen) * $slen + $slen + 3600;
 	}
 	$newparms['bkr_bookat'] = $st;
-	$this->Redirect($id,'requestbooking',$returnid,$newparms);
+	$this->Redirect($id,'dobooking',$returnid,$newparms);
 } elseif (isset($params['find'])) {
 	if (!empty($params['clickat'])) {
 		$dtw->modify($params['clickat']);

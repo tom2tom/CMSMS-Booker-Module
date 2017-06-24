@@ -461,9 +461,9 @@ EOS;
 			$node = $manager->sureGetNodeByAlias($pageid);
 			if ($node) {
 				$onpage = $node->getID();
-				$this->RegisterRoute('/[Bb]ook(ings?|er)?\/(?P<item>.+)\/submit$/',array('action'=>'requestbooking','bookat'=>-1,'returnid'=>$onpage));
+				$this->RegisterRoute('/[Bb]ook(ings?|er)?\/(?P<item>.+)\/submit$/',array('action'=>'dobooking','bookat'=>-1,'returnid'=>$onpage));
 				$this->RegisterRoute('/[Bb]ook(ings?|er)?\/(?P<item>.+)$/',array('action'=>'default','returnid'=>$onpage));
-				$this->RegisterRoute('/[Bb]ook(ings?|er)?\/submit$/',array('action'=>'requestbooking','bookwhat'=>-1,'returnid'=>$onpage));
+				$this->RegisterRoute('/[Bb]ook(ings?|er)?\/submit$/',array('action'=>'dobooking','bookwhat'=>-1,'returnid'=>$onpage));
 			}
 		}
 		$this->RegisterRoute('/[Bb]ook(ings?|er)?\/(?P<returnid>[0-9]+)\/(?P<item>.+)$/',array('action'=>'default'));
@@ -507,6 +507,7 @@ EOS;
 		 case 'default':
 		 case 'defaultadmin':
 		 case 'delete':
+		 case 'dobooking':
 		 case 'exportbooking':
 		 case 'findbooking':
 		 case 'import':
@@ -514,7 +515,6 @@ EOS;
 		 case 'openbooker':
 		 case 'openbooking':
 		 case 'openrequest':
-		 case 'requestbooking':
 		 case 'auth':
 		 case 'openfees':
 		 case 'opencart':

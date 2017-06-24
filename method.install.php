@@ -147,7 +147,7 @@ if ($sqlarray == FALSE || $dict->ExecuteSQLArray($sqlarray, FALSE) != 2) {
 /*
 requests and non-repeated bookings-data table schema:
 NB Booker\CSV::ImportBookings must conform to this
-NB action.requestbooking.php etc must conformed to this
+NB action.dobooking.php etc must conformed to this
  bkg_id: unique identifier
  booker_id: identifier
  item_id: resource or group identifier
