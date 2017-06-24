@@ -113,4 +113,22 @@ class Status
 		//stage,payable,paid,will-pay,overdue etc
 		return \Booker::STATOK; //TODO
 	}
+
+	/**
+	PaidStatus:
+	@statpay: enum Booker::STATFREE .. Booker::STATMAXPAY
+	@yes: mixed, value to return if @statpay = Booker::STATPAID
+	@no: mixed, value to return if @statpay neither Booker::STATFREE or Booker::STATPAID
+	Returns: NULL or @yes or @no
+	*/
+	function PaidStatus($statpay, $yes, $no)
+	{
+		switch ($statpay) {
+			case \Booker::STATFREE:
+				return NULL;
+			case \Booker::STATPAID:
+				return $yes;
+		}
+		return $no;
+	}
 }
