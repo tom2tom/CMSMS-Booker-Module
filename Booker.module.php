@@ -81,10 +81,10 @@ class Booker extends CMSModule
 	const STATMAXBAD = 39;//last-recognised request-bad value
 	//statpay codes
 	const STATFREE = 40;//no fee for use
-	const STATPAYABLE = 41;//fee applies, none yet paid
-	const STATPAID = 42;//fee pre- or post-paid
-	const STATPARTPAID = 43;//fee not yet fully paid
-	const STATCREDITED = 44;//fee to be paid upon request
+	const STATPAID = 41;//fee pre- or post-paid
+	const STATCREDITED = 42;//fee to be paid upon request
+	const STATPAYABLE = 43;//fee applies, none yet paid
+	const STATPARTPAID = 44;//fee not yet fully paid
  	const STATNOTPAID = 45;//payable but unpaid for some non-credit-related reason
 	const STATOVRDUE = 46;//payment overdue
 	const STATMAXPAY = 49;//last-recognised statpay value
