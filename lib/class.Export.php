@@ -30,31 +30,37 @@ class Export
 		}
 		switch ($mode) {
 		 case 'item':
-		 	if ($id)
-				$name = $utils->GetItemNameForID($mod,$id);
-			else
+			if ($id) {
+				$name = $utils->GetItemNameForID($mod, $id);
+			} else {
 				$name = $mod->Lang('title_items');
+			}
 			break;
 		 case 'booker':
-		 	if ($id)
+			if ($id) {
 				$name = 'Booker'.$id; //TODO
-			else
+			}
+			else {
 				$name = $mod->Lang('title_bookers');
+			}
 			break;
 		 case 'booking':
-		 	if ($id) {
-				if (is_numeric($id))
-					$name = trim($mod->Lang('title_booksfor',$utils->GetItemNameForID($mod,$id),''));
-				else
+			if ($id) {
+				if (is_numeric($id)) {
+					$name = trim($mod->Lang('title_booksfor', $utils->GetItemNameForID($mod, $id), ''));
+				} else {
 					$name = $id;
-			} else
+				}
+			} else {
 				$name = $mod->Lang('title_bookings');
+			}
 			break;
 		 case 'fee':
-		 	if ($id)
+			if ($id) {
 				$name = $mod->Lang('title_fee').$id;
-			else
+			} else {
 				$name = $mod->Lang('title_fees');
+			}
 			break;
 		 default:
 			$name = '';
@@ -72,7 +78,7 @@ class Export
 	private function FullName(&$mod, $detail)
 	{
 		$name = $mod->GetName().$mod->Lang('export');
-		$detail = preg_replace('/\W/','_',$detail);
+		$detail = preg_replace('/\W/', '_', $detail);
 		$when = date('Y-m-d-H-i');
 		return $name.'-'.$detail.'-'.$when.'.csv';
 	}
@@ -86,15 +92,17 @@ class Export
 	*/
 	private function ExportContent(&$mod, $fname, $csv)
 	{
+		//TODO use fputcsv ($fh, $fields ,$sep);
 		$config = \cmsms()->GetConfig();
-		if (!empty($config['default_encoding']))
+		if (!empty($config['default_encoding'])) {
 			$defchars = trim($config['default_encoding']);
-		else
+		} else {
 			$defchars = 'UTF-8';
+		}
 
 		if (ini_get('mbstring.internal_encoding') !== FALSE) { //conversion is possible
-			$expchars = $mod->GetPreference('exportencoding','UTF-8');
-			$convert = (strcasecmp ($expchars,$defchars) != 0);
+			$expchars = $mod->GetPreference('exportencoding', 'UTF-8');
+			$convert = (strcasecmp ($expchars, $defchars) != 0);
 		} else {
 			$expchars = $defchars;
 			$convert = FALSE;
@@ -105,36 +113,41 @@ class Export
 			$updir = $utils->GetUploadsPath($mod);
 			if ($updir) {
 				$filepath = $updir.DIRECTORY_SEPARATOR.$fname;
-				$fh = fopen($filepath,'w');
+				$fh = fopen($filepath, 'w');
 				if ($fh) {
-					if ($convert)
-						$csv = mb_convert_encoding($csv,$expchars,$defchars);
-					$res = fwrite($fh,$csv);
+					if ($convert) {
+						$csv = mb_convert_encoding($csv, $expchars, $defchars);
+					}
+					$res = fwrite($fh, $csv);
 					fclose($fh);
 					if ($res) {
 						return array(TRUE,'');
-					} else
+					} else {
 						return array(FALSE,'err_system');
-				} else
+					}
+				} else {
 					return array(FALSE,'err_perm');
-			} else
+				}
+			} else {
 				return array(FALSE,'err_system');
+			}
 		} else {
 			@ob_clean();
 			@ob_clean();
 			header('Pragma: public');
 			header('Expires: 0');
 			header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
-			header('Cache-Control: private',FALSE);
+			header('Cache-Control: private', FALSE);
 			header('Content-Description: File Transfer');
 			//note: some older HTTP/1.0 clients did not deal properly with an explicit charset parameter
 			header('Content-Type: text/csv; charset='.$expchars);
 			header('Content-Length: '.strlen($csv));
 			header('Content-Disposition: attachment; filename='.$fname);
-			if ($convert)
-				echo mb_convert_encoding($csv,$expchars,$defchars);
-			else
+			if ($convert) {
+				echo mb_convert_encoding($csv, $expchars, $defchars);
+			} else {
 				echo $csv;
+			}
 			return array(TRUE,'');
 		}
 	}
@@ -150,14 +163,15 @@ class Export
 	@sep: optional field-separator for exported content, assumed single-byte ASCII, default ','
 	Returns: 2-member array, [0]=T/F indicating success, [1]='' or lang key for message
 	*/
-	public function ExportItems(&$mod, $item_id, $sep=',')
+	public function ExportItems(&$mod, $item_id, $sep = ',')
 	{
-		if (!$item_id)
+		if (!$item_id) {
 			return array(FALSE,'err_system');
+		}
 
 		$sql = 'SELECT * FROM '.$mod->ItemTable;
 		if (is_array($item_id)) {
-			$fillers = str_repeat('?,',count($item_id)-1);
+			$fillers = str_repeat('?,', count($item_id) - 1);
 			$sql .= ' WHERE item_id IN('.$fillers.'?) ORDER BY name';
 			$args = $item_id;
 		} elseif ($item_id == '*') {
@@ -168,9 +182,9 @@ class Export
 			$args = array($item_id);
 		}
 		$utils = new Utils();
-		$all = $utils->SafeGet($sql,$args);
+		$all = $utils->SafeGet($sql, $args);
 		if ($all) {
-			$sep2 = ($sep != ' ')?' ':',';
+			$sep2 = ($sep != ' ') ? ' ' : ',';
 			switch ($sep) {
 			 case '&':
 				$r = '%38%';
@@ -196,53 +210,53 @@ EOS;
 			$strip = $mod->GetPreference('stripexport');
 			//file-column-name to fieldname translation
 			$translates = array(
-			 '#Isgroup'=>'isgroup', //not a real field
-			 'Alias'=>'alias',
-			 '#Name'=>'name',
-			 'Description'=>'description',
-			 'Keywords'=>'keywords',
-			 'Membersnamed'=>'membersname',
-			 'Choosername'=>'pickname',
-			 'Inchooser'=>'pickthis',
-			 'Choosemembers'=>'pickmembers',
-			 'Image'=>'image',
-			 'Available'=>'available',
-			 'Slottype'=>'slottype',
-			 'Slotcount'=>'slotcount',
-			 'BookingSlots'=>'bookcount',
-			 'Leadtype'=>'leadtype',
-			 'Leadcount'=>'leadcount',
-			 'Rationcount'=>'rationcount',
-			 'Keeptype'=>'keeptype',
-			 'Keepcount'=>'keepcount',
-			 'Grossfees'=>'grossfees',
-			 'Taxrate'=>'taxrate',
-			 'PayInterface'=>'paymentiface',
-			 'Latitude'=>'latitude',
-			 'Longitude'=>'longitude',
-			 'Timezone'=>'timezone',
-			 'Dateformat'=>'dateformat',
-			 'Timeformat'=>'timeformat',
-			 'Listformat'=>'listformat',
-			 'Stylesfile'=>'stylesfile',
-			 'Approver'=>'approver',
-			 'Approvercontact'=>'approvercontact',
-			 'SMSprefix'=>'smsprefix',
-			 'SMSpattern'=>'smspattern',
-			 'FormInterface'=>'formiface',
-			 'Feugroup'=>'feugroup',
-			 'Owner'=>'owner',
-			 'Cleargroup'=>'cleargroup',
-			 'Allocategroup'=>'subgrpalloc',
-			 'Ingroups'=>'ingroups', //not a real field
-			 'Update'=>'item_id' //not a real field
+			 '#Isgroup' => 'isgroup', //not a real field
+			 'Alias' => 'alias',
+			 '#Name' => 'name',
+			 'Description' => 'description',
+			 'Keywords' => 'keywords',
+			 'Membersnamed' => 'membersname',
+			 'Choosername' => 'pickname',
+			 'Inchooser' => 'pickthis',
+			 'Choosemembers' => 'pickmembers',
+			 'Image' => 'image',
+			 'Available' => 'available',
+			 'Slottype' => 'slottype',
+			 'Slotcount' => 'slotcount',
+			 'BookingSlots' => 'bookcount',
+			 'Leadtype' => 'leadtype',
+			 'Leadcount' => 'leadcount',
+			 'Rationcount' => 'rationcount',
+			 'Keeptype' => 'keeptype',
+			 'Keepcount' => 'keepcount',
+			 'Grossfees' => 'grossfees',
+			 'Taxrate' => 'taxrate',
+			 'PayInterface' => 'paymentiface',
+			 'Latitude' => 'latitude',
+			 'Longitude' => 'longitude',
+			 'Timezone' => 'timezone',
+			 'Dateformat' => 'dateformat',
+			 'Timeformat' => 'timeformat',
+			 'Listformat' => 'listformat',
+			 'Stylesfile' => 'stylesfile',
+			 'Approver' => 'approver',
+			 'Approvercontact' => 'approvercontact',
+			 'SMSprefix' => 'smsprefix',
+			 'SMSpattern' => 'smspattern',
+			 'FormInterface' => 'formiface',
+			 'Feugroup' => 'feugroup',
+			 'Owner' => 'owner',
+			 'Cleargroup' => 'cleargroup',
+			 'Allocategroup' => 'subgrpalloc',
+			 'Ingroups' => 'ingroups', //not a real field
+			 'Update' => 'item_id' //not a real field
 			);
 			/* non-public fields
 			'subgrpdata'
 			'active'
 			*/
 			//header line
-			$outstr = implode($sep,array_keys($translates));
+			$outstr = implode($sep, array_keys($translates));
 			$outstr .= "\n";
 			//data lines(s)
 			foreach ($all as $data) {
@@ -256,9 +270,10 @@ EOS;
 							 case 'name':
 							 case 'description':
 							 case 'pickname':
-								if ($strip)
+								if ($strip) {
 									$fv = strip_tags($fv);
-								$fv = preg_replace('/[\n\t\r]/',$sep2,$fv);
+								}
+								$fv = preg_replace('/[\n\t\r]/', $sep2, $fv);
 							 case 'alias':
 							 case 'keywords':
 							 case 'available':
@@ -267,13 +282,13 @@ EOS;
 							 case 'approver':
 							 case 'approvercontact':
 							 case 'smspattern':
-								$fv = str_replace($sep,$r,$fv);
+								$fv = str_replace($sep, $r, $fv);
 								break;
 							 case 'slottype':
 							 case 'keeptype':
 							 case 'leadtype':
-							 	$fv = $periods[$fv];
-							 	break;
+								$fv = $periods[$fv];
+								break;
 							 case 'item_id':
 							 case 'pickthis':
 							 case 'pickmembers':
@@ -295,12 +310,12 @@ EOS;
 					} else {
 						switch ($one) {
 						 case 'isgroup':
-							$fv = ($data['item_id'] >= \Booker::MINGRPID) ? 'YES':'';
+							$fv = ($data['item_id'] >= \Booker::MINGRPID) ? 'YES' : '';
 							break;
 						 case 'ingroups':
-							$parents = $utils->SafeGet($sql,array($data['item_id']),'col');
+							$parents = $utils->SafeGet($sql, array($data['item_id']), 'col');
 							if ($parents) {
-								$fv = implode('||',$parents); //$r-separator N/A in import-func
+								$fv = implode('||', $parents); //$r-separator N/A in import-func
 							} else {
 								$fv = '';
 							}
@@ -312,11 +327,11 @@ EOS;
 					$stores[] = $fv;
 				} //foreach $translates
 				//TODO fees and fee-conditions to be appended
-				$outstr .= implode($sep,$stores)."\n";
+				$outstr .= implode($sep, $stores)."\n";
 			} //foreach $all
-			$detail = self::NameDetail($mod,$utils,$item_id,'item');
-			$fname = self::FullName($mod,$detail);
-			return self::ExportContent($mod,$fname,$outstr);
+			$detail = self::NameDetail($mod, $utils, $item_id, 'item');
+			$fname = self::FullName($mod, $detail);
+			return self::ExportContent($mod, $fname, $outstr);
 		} //$all
 		return array(FALSE,'err_data');
 	}
@@ -332,7 +347,7 @@ EOS;
 	@sep: optional field-separator for exported content, assumed single-byte ASCII, default ','
 	Returns: 2-member array, [0]=T/F indicating success, [1]='' or lang key for message
 	*/
-	public function ExportFees(&$mod, $feeid, $sep=',')
+	public function ExportFees(&$mod, $feeid, $sep = ',')
 	{
 		if (!$feeid) {
 			return array(FALSE,'err_system');
@@ -342,7 +357,7 @@ SELECT F.*,I.name FROM $mod->FeeTable F
 JOIN $mod->ItemTable I ON F.item_id=I.item_id
 EOS;
 		if (is_array($feeid)) {
-			$fillers = str_repeat('?,',count($feeid)-1);
+			$fillers = str_repeat('?,', count($feeid) - 1);
 			$sql .= ' WHERE F.fee_id IN('.$fillers.'?) ORDER BY F.item_id,F.condorder';
 			$args = $feeid;
 		} elseif ($feeid == '*') {
@@ -353,9 +368,9 @@ EOS;
 			$args = array($feeid);
 		}
 		$utils = new Utils();
-		$all = $utils->SafeGet($sql,$args);
+		$all = $utils->SafeGet($sql, $args);
 		if ($all) {
-			$sep2 = ($sep != ' ')?' ':',';
+			$sep2 = ($sep != ' ') ? ' ' : ',';
 			switch ($sep) {
 			 case '&':
 				$r = '%38%';
@@ -374,14 +389,14 @@ EOS;
 			$strip = $mod->GetPreference('stripexport');
 			//file-column-name to fieldname translation
 			$translates = array(
-			 '#ID'=>'name',
-			 'Description'=>'description',
-			 'Duration'=>'slottype', //interpreted
-			 'Count'=>'slotcount',
-			 '#Fee'=>'fee',
-			 'Condition'=>'feecondition',
-			 'Type'=>'usercondition',
-			 'Update'=>'fee_id' //not real
+			 '#ID' => 'name',
+			 'Description' => 'description',
+			 'Duration' => 'slottype', //interpreted
+			 'Count' => 'slotcount',
+			 '#Fee' => 'fee',
+			 'Condition' => 'feecondition',
+			 'Type' => 'usercondition',
+			 'Update' => 'fee_id' //not real
 			);
 			/* non-public fields
 			'item_id'
@@ -391,7 +406,7 @@ EOS;
 			*/
 			$periods = $utils->TimeIntervals();
 			//header line
-			$outstr = implode($sep,array_keys($translates));
+			$outstr = implode($sep, array_keys($translates));
 			$outstr .= "\n";
 			//data lines(s)
 			foreach ($all as $data) {
@@ -402,11 +417,11 @@ EOS;
 					switch ($one) {
 					 case 'name':
 					 case 'description':
-						$fv = preg_replace('/[\n\t\r]/',$sep2,$fv);
+						$fv = preg_replace('/[\n\t\r]/', $sep2, $fv);
 						//no break here
 					 case 'feecondition':
 					 case 'usercondition':
-						$fv = str_replace($sep,$r,$fv);
+						$fv = str_replace($sep, $r, $fv);
 						break;
 					 case 'fee':
 						$fv = (float)$fv;
@@ -421,11 +436,11 @@ EOS;
 					}
 					$stores[] = $fv;
 				} //foreach $translates
-				$outstr .= implode($sep,$stores)."\n";
+				$outstr .= implode($sep, $stores)."\n";
 			} //foreach $all
-			$detail = self::NameDetail($mod,$utils,$feeid,'fee');
-			$fname = self::FullName($mod,$detail);
-			return self::ExportContent($mod,$fname,$outstr);
+			$detail = self::NameDetail($mod, $utils, $feeid, 'fee');
+			$fname = self::FullName($mod, $detail);
+			return self::ExportContent($mod, $fname, $outstr);
 		} //$all
 		return array(FALSE,'err_data');
 	}
@@ -441,7 +456,7 @@ EOS;
 	@sep: optional field-separator for exported content, assumed single-byte ASCII, default ','
 	Returns: 2-member array, [0]=T/F indicating success, [1]='' or lang key for message
 	*/
-	public function ExportBookers(&$mod, $bookerid, $sep=',')
+	public function ExportBookers(&$mod, $bookerid, $sep = ',')
 	{
 		if (!$bookerid) {
 			return array(FALSE,'err_system');
@@ -454,7 +469,7 @@ FROM $mod->BookerTable B
 LEFT JOIN $mod->AuthTable A ON B.publicid=A.publicid
 EOS;
 		if (is_array($bookerid)) {
-			$fillers = str_repeat('?,',count($bookerid)-1);
+			$fillers = str_repeat('?,', count($bookerid) - 1);
 			$sql .= ' WHERE booker_id IN('.$fillers.'?) ORDER BY name';
 			$args = $bookerid;
 		} elseif ($bookerid == '*') {
@@ -465,10 +480,10 @@ EOS;
 			$args = array($bookerid);
 		}
 		$utils = new Utils();
-		$all = $utils->SafeGet($sql,$args);
+		$all = $utils->SafeGet($sql, $args);
 		if ($all) {
-			$utils->GetUserProperties($mod,$all);
-			$sep2 = ($sep != ' ')?' ':',';
+			$utils->GetUserProperties($mod, $all);
+			$sep2 = ($sep != ' ') ? ' ' : ',';
 			switch ($sep) {
 			 case '&':
 				$r = '%38%';
@@ -487,24 +502,24 @@ EOS;
 			$strip = $mod->GetPreference('stripexport');
 			//file-column-name to fieldname translation
 			$translates = array(
-			 '#Name'=>'name',
-			 '#Email'=>'address',
-			 'Phone'=>'phone',
-			 'Login'=>'publicid',
-			 'Password'=>'password', //not real field
-			 'Passhash'=>'passhash',
-			 'Usertype'=>'type',
-			 'Postpayer'=>'poster', //not real
-			 'Recorder'=>'recorder', //not real
-			 'Displaytype'=>'displayclass',
-			 'Update'=>'booker_id' //not real
+			 '#Name' => 'name',
+			 '#Email' => 'address',
+			 'Phone' => 'phone',
+			 'Login' => 'publicid',
+			 'Password' => 'password', //not real field
+			 'Passhash' => 'passhash',
+			 'Usertype' => 'type',
+			 'Postpayer' => 'poster', //not real
+			 'Recorder' => 'recorder', //not real
+			 'Displaytype' => 'displayclass',
+			 'Update' => 'booker_id' //not real
 			);
 			/* non-public fields
 			 'addwhen'
 			 'active'
 			 */
 			//header line
-			$outstr = implode($sep,array_keys($translates));
+			$outstr = implode($sep, array_keys($translates));
 			$outstr .= "\n";
 			//data lines(s)
 			foreach ($all as $data) {
@@ -517,12 +532,12 @@ EOS;
 							switch ($one) {
 							 case 'name':
 							 case 'address':
-								$fv = preg_replace('/[\n\t\r]/',$sep2,$fv);
+								$fv = preg_replace('/[\n\t\r]/', $sep2, $fv);
 							 case 'publicid':
-								$fv = str_replace($sep,$r,$fv);
+								$fv = str_replace($sep, $r, $fv);
 								break;
 							 case 'passhash':
-								$fv = unpack('H*',$fv);
+								$fv = unpack('H*', $fv);
 								break;
 							 case 'type':
 								$fv	= $fv % 10; //base type
@@ -539,11 +554,11 @@ EOS;
 						switch ($one) {
 						 case 'poster':
 							$flags = (int)($data['type'] / 10);
-							$fv = ($flags & 0x1) ? 'YES':''; //post-payment allowed
+							$fv = ($flags & 0x1) ? 'YES' : ''; //post-payment allowed
 							break;
 						 case 'recorder':
 							$flags = (int)($data['type'] / 10);
-							$fv = ($flags & 0x2) ? 'YES':''; //record-booking allowed
+							$fv = ($flags & 0x2) ? 'YES' : ''; //record-booking allowed
 							break;
 						 default:
 							$fv = '';
@@ -551,24 +566,24 @@ EOS;
 					}
 					$stores[] = $fv;
 				} //foreach $translates
-				$outstr .= implode($sep,$stores)."\n";
+				$outstr .= implode($sep, $stores)."\n";
 			} //foreach $all
-			$detail = self::NameDetail($mod,$utils,$bookerid,'booker');
-			$fname = self::FullName($mod,$detail);
-			return self::ExportContent($mod,$fname,$outstr);
+			$detail = self::NameDetail($mod, $utils, $bookerid, 'booker');
+			$fname = self::FullName($mod, $detail);
+			return self::ExportContent($mod, $fname, $outstr);
 		} //$all
 		return array(FALSE,'err_data');
 	}
 
-	private function ExtraSQL($bkgid, $bookerid, $xtra=TRUE)
+	private function ExtraSQL($bkgid, $bookerid, $xtra = TRUE)
 	{
 		$sql = '';
-		$joiner = ($xtra) ? 'AND':'WHERE';
+		$joiner = ($xtra) ? 'AND' : 'WHERE';
 		$args = array();
 		if (is_array($bkgid)) {
-			$fillers = str_repeat('?,',count($bkgid)-1);
+			$fillers = str_repeat('?,', count($bkgid) - 1);
 			$sql .= ' '.$joiner.' bkg_id IN('.$fillers.'?)';
-			$args = array_merge($args,$bgk_id);
+			$args = array_merge($args, $bgk_id);
 			$joiner = 'AND';
 		} elseif ($bkgid && $bkgid != '*') {
 			$sql .= ' '.$joiner.' bkg_id=?';
@@ -576,9 +591,9 @@ EOS;
 			$joiner = 'AND';
 		}
 		if (is_array($bookerid)) {
-			$fillers = str_repeat('?,',count($bookerid)-1);
+			$fillers = str_repeat('?,', count($bookerid) - 1);
 			$sql .= ' '.$joiner.' booker_id IN('.$fillers.'?)';
-			$args = array_merge($args,$bookerid);
+			$args = array_merge($args, $bookerid);
 		} elseif ($bookerid && $bookerid != '*') {
 			$sql .= ' '.$joiner.' booker_id=?';
 			$args[] = $bookerid;
@@ -603,26 +618,27 @@ EOS;
 	 [0] = boolean indicating success
 	 [1] = '' or lang key for message
 	*/
-	public function ExportBookings(&$mod, $item_id=FALSE, $bkgid=FALSE, $bookerid=FALSE, $sep=',')
+	public function ExportBookings(&$mod, $item_id = FALSE, $bkgid = FALSE, $bookerid = FALSE, $sep = ',')
 	{
-		if (!($item_id || $bkgid || $bookerid))
+		if (!($item_id || $bkgid || $bookerid)) {
 			return array(FALSE,'err_system');
+		}
 		$all = FALSE;
 		$sql = 'SELECT bkg_id FROM '.$mod->OnceTable;
- 		if ($item_id) {
+		if ($item_id) {
 			if (is_array($item_id)) {
-				$fillers = str_repeat('?,',count($item_id)-1);
+				$fillers = str_repeat('?,', count($item_id) - 1);
 				$sql .= ' WHERE item_id IN ('.$fillers.'?)';
 				$args = $item_id;
 				if ($bkgid || $bookerid) {
-					list($xql,$xarg) = self::ExtraSQL($bkgid,$bookerid);
+					list($xql, $xarg) = self::ExtraSQL($bkgid, $bookerid);
 					$sql .= $xql;
-					$args = array_merge($args,$xarg);
+					$args = array_merge($args, $xarg);
 				}
 				$sql .= ' ORDER BY item_id,slotstart';
 			} elseif ($item_id == '*') {
 				if ($bkgid || $bookerid) {
-					list($xql,$args) = self::ExtraSQL($bkgid,$bookerid,FALSE);
+					list($xql, $args) = self::ExtraSQL($bkgid, $bookerid, FALSE);
 					$sql .= $xql;
 				} else {
 					$args = array();
@@ -632,9 +648,9 @@ EOS;
 				$sql .= ' WHERE item_id=?';
 				$args = array($item_id);
 				if ($bkgid || $bookerid) {
-					list($xql,$xarg) = self::ExtraSQL($bkgid,$bookerid);
+					list($xql, $xarg) = self::ExtraSQL($bkgid, $bookerid);
 					$sql .= $xql;
-					$args = array_merge($args,$xarg);
+					$args = array_merge($args, $xarg);
 				}
 				$sql .= ' ORDER BY slotstart';
 			}
@@ -642,14 +658,15 @@ EOS;
 		if (!$item_id && $bkgid) {
 			if (is_array($bkgid)) {
 				if ($bookerid) {
-					list($xql,$xarg) = self::ExtraSQL(FALSE,$bookerid,FALSE);
+					list($xql, $xarg) = self::ExtraSQL(FALSE, $bookerid, FALSE);
 					$sql .= $xql.' ORDER BY booker_id,slotstart';
-					$args = array_merge($bkgid,$xarg);
-				} else
+					$args = array_merge($bkgid, $xarg);
+				} else {
 					$all = $bkgid;
+				}
 			} elseif ($bkgid == '*') {
 				if ($bookerid) {
-					list($xql,$args) = self::ExtraSQL(FALSE,$bookerid,FALSE);
+					list($xql, $args) = self::ExtraSQL(FALSE, $bookerid, FALSE);
 					$sql .= $xql.' ORDER BY booker_id,slotstart';
 				} else {
 					$args = array();
@@ -657,16 +674,17 @@ EOS;
 				}
 			} else {
 				if ($bookerid) {
-					list($xql,$xarg) = self::ExtraSQL(FALSE,$bookerid,FALSE);
+					list($xql, $xarg) = self::ExtraSQL(FALSE, $bookerid, FALSE);
 					$sql .= $xql.' ORDER BY booker_id,slotstart';
-					$args = array_merge($args,$xarg);
-				} else
+					$args = array_merge($args, $xarg);
+				} else {
 					$all = array($bkgid);
+				}
 			}
 		}
 		if (!$item_id && $bookerid) {
 			if (is_array($bookerid)) {
-				$fillers = str_repeat('?,',count($bookerid)-1);
+				$fillers = str_repeat('?,', count($bookerid) - 1);
 				$sql .= ' WHERE booker_id IN ('.$fillers.'?)';
 				$args = $bookerid;
 				$sql .= ' ORDER BY booker_id,slotstart';
@@ -682,11 +700,11 @@ EOS;
 
 		$utils = new Utils();
 		if (!$all) {
-			$all = $utils->SafeGet($sql,$args,'col');
+			$all = $utils->SafeGet($sql, $args, 'col');
 		}
 
 		if ($all) {
-			$sep2 = ($sep != ' ')?' ':',';
+			$sep2 = ($sep != ' ') ? ' ' : ',';
 			switch ($sep) {
 			 case '&':
 				$r = '%38%';
@@ -705,28 +723,28 @@ EOS;
 			$strip = $mod->GetPreference('stripexport');
 			//file-column-name to fieldname translation
 			$translates = array(
-			 '#ID'=>'item_id', //intepreted
-			 'Count'=>'subgrpcount',
-			 'Lodged'=>'lodged', //ditto
-			 'Approved'=>'approved', //ditto
-			 'Removed'=>'removed', //ditto
-			 '#Start'=>'slotstart', //ditto
-			 'End'=>'slotlen', //ditto
-			 'Bookingstatus'=>'status',
-			 '#User'=>'name',
-			 'Usercomment'=>'comment',
-			 'Feedue'=>'fee',
-		 	 'Feepaid'=>'feepaid',
-			 'Feestatus'=>'statpay',
-			 'Active'=>'active',
-			 'Transaction'=>'gatetransaction',
-			 'Update'=>'bkg_id' //not real
+			 '#ID' => 'item_id', //intepreted
+			 'Count' => 'subgrpcount',
+			 'Lodged' => 'lodged', //ditto
+			 'Approved' => 'approved', //ditto
+			 'Removed' => 'removed', //ditto
+			 '#Start' => 'slotstart', //ditto
+			 'End' => 'slotlen', //ditto
+			 'Bookingstatus' => 'status',
+			 '#User' => 'name',
+			 'Usercomment' => 'comment',
+			 'Feedue' => 'fee',
+			 'Feepaid' => 'feepaid',
+			 'Feestatus' => 'statpay',
+			 'Active' => 'active',
+			 'Transaction' => 'gatetransaction',
+			 'Update' => 'bkg_id' //not real
 			);
 			/* non-public fields
 			*/
-			$dt = new \DateTime('@0',NULL);
+			$dt = new \DateTime('@0', NULL);
 			//header line
-			$outstr = implode($sep,array_keys($translates));
+			$outstr = implode($sep, array_keys($translates));
 			$outstr .= $sep."\n";
 			$sql = <<<EOS
 SELECT O.*,COALESCE(A.name,B.name,'') AS name,B.publicid
@@ -737,21 +755,22 @@ WHERE O.bkg_id=?
 EOS;
 			//data line(s)
 			foreach ($all as $one) {
-				$data = $utils->SafeGet($sql,array($one),'row');
-				$utils->GetUserProperties($mod,$data);
+				$data = $utils->SafeGet($sql, array($one), 'row');
+				$utils->GetUserProperties($mod, $data);
 				$stores = array();
 				foreach ($translates as $one) {
 					$fv = $data[$one];
 					switch ($one) {
 					 case 'item_id':
-					  $fv = $utils->GetItemNameForID($mod,$fv);
-						if ($strip)
+					  $fv = $utils->GetItemNameForID($mod, $fv);
+						if ($strip) {
 							$fv = strip_tags($fv);
-						$fv = str_replace($sep,$r,$fv);
-					 	break;
-			 		 case 'lodged':
-			 		 case 'approved':
-			 		 case 'removed':
+						}
+						$fv = str_replace($sep, $r, $fv);
+						break;
+					 case 'lodged':
+					 case 'approved':
+					 case 'removed':
 						if (!$fv) {
 							$fv = '';
 							break;
@@ -760,17 +779,17 @@ EOS;
 					 case 'slotstart':
 						$dt->setTimestamp($fv);
 						$fv = $dt->format('Y-n-j G:i');
-					 	break;
+						break;
 					 case 'slotlen':
-						$dt->setTimestamp($fv+$data['slotstart']);
+						$dt->setTimestamp($fv + $data['slotstart']);
 						$fv = $dt->format('Y-n-j G:i');
-					 	break;
+						break;
 					 case 'name':
-					 	if ($data['publicid']) {
+						if ($data['publicid']) {
 							$fv = $data['publicid']; //prefer login identifier
 						}
-						$fv = str_replace($sep,$r,$fv);
-					 	break;
+						$fv = str_replace($sep, $r, $fv);
+						break;
 					 case 'fee':
 					 case 'feepaid':
 						$fv = (float)$fv;
@@ -784,30 +803,32 @@ EOS;
 					 case 'status':
 					 case 'statpay':
 					 case 'bkg_id':
-					 	$fv = (int)$fv;
-					 	break;
+						$fv = (int)$fv;
+						break;
 					 case 'active':
-					 	$fv = ($fv) ? 'YES':'';//no translation
-					 	break;
+						$fv = ($fv) ? 'YES' : '';//no translation
+						break;
 					}
-					$stores[] = preg_replace('/[\n\t\r]/',$sep2,$fv);
+					$stores[] = preg_replace('/[\n\t\r]/', $sep2, $fv);
 				}
-				$outstr .= implode($sep,$stores)."\n";
+				$outstr .= implode($sep, $stores)."\n";
 			}
 
-			if($item_id) {
-				$detail = self::NameDetail($mod,$utils,$item_id,'item');
-				if($bookerid)
-					$detail .= '_'.self::NameDetail($mod,$utils,$bookerid,'booker');
-				if($bkgid)
-					$detail .= '_'.self::NameDetail($mod,$utils,$bkgid,'booking');
+			if ($item_id) {
+				$detail = self::NameDetail($mod, $utils, $item_id, 'item');
+				if ($bookerid) {
+					$detail .= '_'.self::NameDetail($mod, $utils, $bookerid, 'booker');
+				}
+				if ($bkgid) {
+					$detail .= '_'.self::NameDetail($mod, $utils, $bkgid, 'booking');
+				}
+			} elseif ($bookerid) {
+				$detail = self::NameDetail($mod, $utils, $bookerid, 'booker');
+			} elseif ($bkgid) {
+				$detail = self::NameDetail($mod, $utils, $bkgid, 'booking');
 			}
-			elseif($bookerid)
-				$detail = self::NameDetail($mod,$utils,$bookerid,'booker');
-			elseif($bkgid)
-				$detail = self::NameDetail($mod,$utils,$bkgid,'booking');
-			$fname = self::FullName($mod,$detail);
-			return self::ExportContent($mod,$fname,$outstr);
+			$fname = self::FullName($mod, $detail);
+			return self::ExportContent($mod, $fname, $outstr);
 		}
 		return array(FALSE,'err_data');
 	}
@@ -817,13 +838,50 @@ EOS;
 	@mod: reference to current Booker module object
 	@sep: optional field-separator for exported content, assumed single-byte ASCII, default ','
 	@title: displayable title for the report as used in UI
-	@datalines: array of value-arrays, 1st member has titles
+	@all: array of value-arrays, 1st member has titles
+	@sep: optional field-separator for exported content, assumed single-byte ASCII, default ','
 	Returns: 2-member array,
 	 [0] = boolean indicating success
 	 [1] = '' or lang key for message
 	*/
-	public function ExportReport(&$mod, $title, $datalines, $sep=',')
+	public function ExportReport(&$mod, $title, $all, $sep = ',')
 	{
-		//TODO
+		if ($all) {
+			switch ($sep) {
+			 case '&':
+				$r = '%38%';
+				break;
+			 case '#':
+				$r = '%35%';
+				break;
+			 case ';':
+				$r = '%59%';
+				break;
+			 default:
+				$r = '&#'.ord($sep).';';
+				break;
+			}
+			$sep2 = ($sep != ' ') ? ' ' : ',';
+			$strip = $mod->GetPreference('stripexport');
+
+			$outstr = '';
+
+			foreach ($all as &$one) {
+				foreach ($one as &$fv) {
+					if ($strip) {
+						$fv = strip_tags($fv);
+					}
+					$fv = str_replace($sep, $r, $fv);
+					preg_replace('/[\n\t\r]/', $sep2, $fv);
+				}
+				$outstr .= implode($sep, $one)."\n";
+			}
+			unset($one);
+			unset($fv);
+
+			$fname = self::FullName($mod, $title);
+			return self::ExportContent($mod, $fname, $outstr);
+		}
+		return array(FALSE, 'err_data');
 	}
 }
