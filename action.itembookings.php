@@ -7,7 +7,7 @@
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
 
-if (!function_exists('paid_status')) {
+if (!function_exists('paid_status')) { //c.f. Status::PaidStatus()
  function paid_status($statpay, $yes, $no)
  {
 	switch ($statpay) {
