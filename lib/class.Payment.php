@@ -209,6 +209,21 @@ class Payment
 	}
 
 	/**
+	GetFeeSignature:
+	Get identifier usable for cross-resource fee-comparisons
+	@row: array of fee-data including members: slottype,slotcount,fee,feecondition
+	Returns: 32-bit integer
+	*/
+	public function GetFeeSignature($row)
+	{
+		$sig = '';
+		foreach (array('slottype','slotcount','fee','feecondition') as $k) {
+			$sig .= (isset($row[$k]) && $row[$k] !== NULL) ? $row[$k] : 'NULL';
+		}
+		return crc32($sig);
+	}
+
+	/**
 	UsageFee:
 	Get gross fee for use of @item_id
 	@mod: reference to Booker module object
@@ -364,21 +379,6 @@ class Payment
 		} else {
 			return \Booker::STATFREE;
 		}
-	}
-
-	/**
-	GetFeeSignature:
-	Get identifier usable for cross-resource fee-comparisons
-	@row: array of fee-data including members: slottype,slotcount,fee,feecondition
-	Returns: 32-bit integer
-	*/
-	public function GetFeeSignature($row)
-	{
-		$sig = '';
-		foreach (array('slottype','slotcount','fee','feecondition') as $k) {
-			$sig .= (isset($row[$k]) && $row[$k] !== NULL) ? $row[$k] : 'NULL';
-		}
-		return crc32($sig);
 	}
 
 	/**
