@@ -1,15 +1,14 @@
 <div id="needjs">{$needjs}</div>
 {if !empty($message)}<p class="pagemessage">{$message}</p>{/if}
 <h4 class="bkgtitle">{$title}: {$textwhat}</h4>
-{if isset($desc)}<p class="bkgdesc">{$desc}</p><br /><br />{/if}
-{if isset($pictures)}<div class="bkgimg">
+{if !empty($desc)}<p class="bkgdesc">{$desc}</p>{/if}
+{if !empty($pictures)}<div class="bkgimg">
 {foreach from=$pictures item=pic}
 <img src="{$pic->url}"{if !empty($pic->ttl)} alt="{$pic->ttl}"{/if} />
 {/foreach}
-</div><br /><br />{/if}
-{if !empty($bulletin)}<h5>{$bulletin}</h5><br />{/if}
-{if isset($membermsg)}<p>{$membermsg}</p>{/if}
-{if isset($currentmsg)}<p>{$currentmsg}</p>{/if}
+</div><br />{/if}
+{if !empty($bulletin)}<p class="bkgnotice">{$bulletin}</p>{/if}
+{if !empty($currentmsg)}<p>{$currentmsg}</p>{/if}
 <p>{$mustmsg}</p>
 {$startform}
 {$hidden}
