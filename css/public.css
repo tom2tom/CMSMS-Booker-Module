@@ -11,9 +11,16 @@
 }
 /* div containing item description */
 .bkgdesc{
+ margin-bottom:0.5em;
 }
 /* div containing item image(s) */
 .bkgimg{
+}
+/* para containing custom notice on booking-start page */
+.bkgnotice{
+ margin:0.5em 0;
+ font-weight:bold;
+ color:#F00;
 }
 /* [un]displayable div containing help */
 div.helptoggle {
