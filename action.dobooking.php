@@ -315,7 +315,7 @@ if (isset($params['cart'])) {
 			}
 			$record = $funcs->HasRight($this,$bookerid,'record'); //before $funcs changes
 
-			$funcs = new Booker\Bookingops();
+			$funcs = new Booker\Schedule();
 			$bs = $params['slotstart'];
 			$be = $bs + $params['slotlen'];
 			$data = $funcs->CountBooked($this,$item_id,$bs,$be,$bookerid);
@@ -396,12 +396,14 @@ if (!isset($params['when'])) { //first-pass
 			$bdata['slotstart'] = time(); //TODO
 		}
 		$bdata['slotlen'] = $utils->GetInterval($this,$item_id,'slot');
+		$bdata['what'] = $utils->GetItemNameForID($this,$item_id);
 	} else {
 		//get some useful representative data
 		$bkgid = $params['bkgid'];
 		$sql = <<<EOS
-SELECT O.*,COALESCE(A.name,B.name,'') AS name,COALESCE(A.address,B.address,'') AS address,B.publicid,B.phone
+SELECT O.*,I.name AS what,COALESCE(A.name,B.name,'') AS name,COALESCE(A.address,B.address,'') AS address,B.publicid,B.phone
 FROM $this->OnceTable O
+JOIN $this->ItemTable I ON O.item_id=I.item_id
 JOIN $this->BookerTable B ON O.booker_id=B.booker_id
 LEFT JOIN $this->AuthTable A ON B.publicid=A.publicid
 WHERE O.bkg_id=?
@@ -471,29 +473,24 @@ if ($urls)
 
 $mcount = 0;
 $bcount = 0;
-$groupextra = FALSE;
+$fcount = 0;
 if (!$past) {
 	if ($is_group) {
 		$members = $utils->GetGroupItems($this,$item_id);
-		if ($members) {
-			$mcount = count($members);
-			if ($mcount > 1) {
-				$mname = $idata['membersname'];
-				if (!$mname)
-					$mname = $this->Lang('itemv_multi');
-				$tplvars['membermsg'] = $this->Lang('help_memcount',$mcount,$mname);
-			}
-
-			$nowbooked = array();
-			$funcs = new Booker\Bookingops();
-			$allbooked = $funcs->GetBooked($this,$members,$bdata['slotstart'],$bdata['slotstart']+$bdata['slotlen']-1);
-			$bcount = count($allbooked); //TODO maybe Schedule::ItemVacantCount()
-			foreach ($allbooked as $one) {
-				$what = $one['what'] ? $one['what']:$utils->GetItemNameForID($this,$one['item_id']);
-				$nowbooked[$what] = $one['name'];
-			}
-			$groupextra = $mcount > count($nowbooked);
+		$mcount = count($members);
+		if ($mcount > 0) {
+			$funcs = new Booker\Schedule();
+			$fcount = $funcs->ItemVacantCount($this,$item_id,$bdata['slotstart'],$be-1);
+			$bcount = $mcount - $fcount;
 		}
+		$mname = $idata['membersname'];
+		if (!$mname) {
+			$mname = $this->Lang('itemv_multi');
+		}
+	} else {
+		$funcs = new Booker\Schedule();
+		$fcount = $funcs->ItemVacantCount($this,$item_id,$bdata['slotstart'],$be-1);
+		$bcount = $mcount - $fcount;
 	}
 }
 
@@ -538,17 +535,24 @@ $until = $utils->IntervalFormat($this,$dte,$idata['dateformat'],TRUE).' '.$dte->
 
 if ($past) {
 	$tplvars['currentmsg'] = $this->Lang('nopastdesc');
-} else {
-	if (/*isset($params['bkgid']) && */$bcount) {
-		if ($is_group) {
-			$tplvars['nowbooked'] = $nowbooked;
-			$d = $this->Lang('currentdesc3').Booker\Utils::ProcessTemplate($this,'currentbookings.tpl',$tplvars);
-		} elseif ($choosend)
-			$d = $this->Lang('currentdesc2',$bdata['name'],$when,$until);
-		else
-			$d = $this->Lang('currentdesc',$bdata['name'],$when);
-		$tplvars['currentmsg'] = $d;
+} elseif ($is_group) {
+	if ($mcount > 1 && $mcount == $fcount) { //>1 member, all available
+		$d = $this->Lang('currentdesc4',$mcount);
+	} elseif ($mcount > 1 && $fcount > 1) { //>1 member, >1 available
+		$d = $this->Lang('currentdesc5',$fcount,$mcount);
+	} elseif ($fcount == 1) { //any members, 1 available
+		$d = $this->Lang('currentdesc6',$mcount);
+	} else { //any members, 0 available
+		$d = $this->Lang('currentdesc7',$mcount);
 	}
+} elseif ($bcount) {
+	$what = ($bdata['what']) ? $bdata['what'] : $utils->GetItemNameForID($this,$item_id);
+	if ($choosend) {
+		$t = $this->Lang('currentdesc2',$what,$when,$until);
+	} else {
+		$t = $this->Lang('currentdesc',$what);
+	}
+	$tplvars['currentmsg'] = $t;
 }
 
 $items = array();
@@ -556,7 +560,7 @@ $items = array();
 if ($past) {
 	$ob = $this->Lang('reqnotice');
 } elseif (isset($params['bkgid']) && $bcount) { // !$past && set $params['bkgid']
-	if ($groupextra) {
+	if ($fcount > 0) {
 		$choices = array($this->Lang('reqadd')=>Booker::STATNEW);
 		$sel = Booker::STATNEW;
 	} else {
@@ -582,17 +586,17 @@ if ($ob) {
 	$items[] = $oneset;
 }
 
-if (isset($tplvars['membermsg'])) {
+if ($mcount > 0) {
 	$oneset = new stdClass();
 	$oneset->class = NULL;
 	$oneset->ttl = $this->Lang('title_howmany',$mname);
 	if ($past) {
 		$oneset->mst = NULL;
-		$oneset->inp = $mcount;
+		$oneset->inp = $d;
 	} elseif ($mcount > 1) {
 		$oneset->mst = 1;
 		$t = (empty($params['subgrpcount'])) ? 1 : $params['subgrpcount'];
-		$oneset->inp = $this->CreateInputText($id,'subgrpcount',$t,3,5);
+		$oneset->inp = $this->CreateInputText($id,'subgrpcount',$t,3,5).' '.$d;
 	}
 	$items[] = $oneset;
 }
@@ -844,7 +848,7 @@ $jsloads[] = <<<EOS
 EOS;
 
 $funcs = new Booker\Verify();
-$checkdates = !($past || (isset($params['bkgid']) && !$groupextra)); //$bcount?
+$checkdates = !($past || (isset($params['bkgid']) && $fcount == 0)); //$bcount?
 $jsfuncs[] = $funcs->VerifyScript($this,$utils,$id,$item_id,$checkdates,FALSE,$idata['timezone'],FALSE);
 //for email-validator & alerter
 $jsincs[] = <<<EOS
