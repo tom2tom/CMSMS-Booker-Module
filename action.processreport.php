@@ -218,37 +218,24 @@ $tplvars['showto'] = str_replace('class="','class="dateinput ',$t);
 $tplvars['helpto'] = $this->Lang('help_reportto');
 //for date-picker
 $jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/lib/js/pikaday.min.js"></script>
-<script type="text/javascript" src="{$baseurl}/lib/js/pikaday.jquery.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/pikamonth.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/pikamonth.jquery.min.js"></script>
 <script type="text/javascript" src="{$baseurl}/lib/js/php-date-formatter.min.js"></script>
 EOS;
 
-$prevm = $this->Lang('prevm');
-$nextm = $this->Lang('nextm');
+$prevyr = $this->Lang('prevy');
+$nextyr = $this->Lang('nexty');
 //js wants quoted period-names
 $t = $this->Lang('longmonths');
 $mnames = "'".str_replace(",","','",$t)."'";
 $t = $this->Lang('shortmonths');
 $smnames = "'".str_replace(",","','",$t)."'";
-$t = $this->Lang('longdays');
-$dnames = "'".str_replace(",","','",$t)."'";
-$t = $this->Lang('shortdays');
-$sdnames = "'".str_replace(",","','",$t)."'";
-$t = $this->Lang('meridiem');
-$meridiem = "'".str_replace(",","','",$t)."'";
 $jsloads[] = <<<EOS
  var fmt = new DateFormatter({
-  longDays: [$dnames],
-  shortDays: [$sdnames],
   longMonths: [$mnames],
   shortMonths: [$smnames],
-  meridiem: [$meridiem],
-  ordinal: function (number) {
-   var n = number % 10, suffixes = {1: 'st', 2: 'nd', 3: 'rd'};
-   return Math.floor(number % 100 / 10) === 1 || !suffixes[n] ? 'th' : suffixes[n];
-  }
  });
- $('.dateinput').pikaday({
+ $('.dateinput').pikamonth({
   format: 'Y-m',
   reformat: function(target,f) {
    return fmt.formatDate(target,f);
@@ -257,11 +244,10 @@ $jsloads[] = <<<EOS
    return fmt.parseDate(target,f);
   },
   i18n: {
-   previousMonth: '$prevm',
-   nextMonth: '$nextm',
+   previousYear: '$prevyr',
+   nextYear: '$nextyr',
    months: [$mnames],
-   weekdays: [$dnames],
-   weekdaysShort: [$sdnames]
+   monthsShort: [$smnames]
   }
  });
 EOS;
