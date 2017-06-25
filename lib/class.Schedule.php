@@ -982,4 +982,43 @@ EOS;
 			return ($used) ? 0:1;
 		}
 	}
+
+	/**
+	CountBooked:
+	Determine whether, or how many members of, the item represented by @item_id is/are
+	already booked by @bkrid, during part or all of @bs..@be inclusive
+	@mod reference to current module-object
+	@item_id: resource or group identifier
+	@bs: UTC timestamp for start of interval
+	@be: ditto for end (NOT 1-past-end)
+	@bkrid: optional booker id or array of them or FALSE for any booker, default FALSE
+	Returns: associative array or FALSE
+	*/
+	public function CountBooked(&$mod, $item_id, $bs, $be, $bkrid=FALSE)
+	{
+		$utils = new Utils();
+		$is_group = ($item_id >= \Booker::MINGRPID);
+		if ($is_group) {
+			$all = $utils->GetGroupItems($mod,$item_id);
+			$fillers = str_repeat('?,',count($all)-1);
+			$sql = 'SELECT bkg_id,booker_id,item_id FROM '.$mod->DispTable.' WHERE item_id IN('.$fillers.'?)';
+			$args = $all;
+		} else {
+			$sql = 'SELECT bkg_id,booker_id,item_id FROM '.$mod->DispTable.' WHERE item_id=?';
+			$args = array($item_id);
+		}
+		if (is_array($bkrid)) {
+			$fillers = str_repeat('?,',count($bkrid)-1);
+			$sql .= ' AND booker_id IN('.$fillers.'?)';
+			$args = array_merge($args,$bkrid);
+		} elseif ($bkrid) {
+			$sql .= ' AND booker_id=?';
+			$args[] = (int)$bkrid;
+		}
+		$sql .= ' AND slotstart < ? AND (slotstart + slotlen) > ? ORDER BY item_id,booker_id';
+		//ignore possible 1-sec overlaps
+		$args[] = $be+1;
+		$args[] = $bs;
+		return $utils->SafeGet($sql,$args);
+	}
 }
