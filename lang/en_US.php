@@ -90,9 +90,12 @@ $lang['copy_type'] = 'Copy of %s';
 $lang['count'] = 'Count';
 $lang['countof'] = '%d of %d';
 $lang['countof2'] = '%d of %s';
-$lang['currentdesc'] = 'There already is a booking at the selected time, in the name of <strong>%s</strong>.';
-$lang['currentdesc2'] = 'There already is a booking in the name of <strong>%s</strong>, starting <strong>%s</strong> and ending <strong>%s</strong>.';
-$lang['currentdesc3'] = 'There already are booking(s) at the selected time';
+$lang['currentdesc'] = '<strong>%s is already booked</strong> at the selected time.';
+$lang['currentdesc2'] = '<strong>%s is already booked</strong>, from %s to %s.';
+$lang['currentdesc4'] = 'all %d are available';
+$lang['currentdesc5'] = '%d of the %d are available';
+$lang['currentdesc6'] = '1 of the %d is available';
+$lang['currentdesc7'] = 'none of the %d is available';
 $lang['date'] = 'date';
 $lang['day'] = 'day';
 $lang['delete'] = 'Delete';
@@ -302,7 +305,11 @@ $lang['help_lead'] = 'How far ahead of the current time that a booking may be in
 $lang['help_members'] = '<strong>DO NOT</strong> select any member which is also a selected parent-group (below).';
 $lang['help_members2'] = 'The displayed order defines the \'similarity\' of group members, used for clustering multiple-bookings and selecting alternatives.';
 $lang['help_membersname'] = 'Used in messages to/from resource users';
+
+
 $lang['help_memcount'] = 'There are %d %s in the group.';
+
+
 $lang['help_passnew'] = 'Replace existing password';
 $lang['help_passwd'] = 'A password must be provided for a registered booker';
 $lang['help_paymentiface'] = 'CMSMS module to be used for making online payments';
