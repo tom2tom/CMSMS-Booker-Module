@@ -826,7 +826,9 @@ $lang['meridiem'] = 'AM,PM'; //upper-case, comma-separated, ante-first
 
 //popup calendar titles
 $lang['nextm'] = 'Next Month';
+$lang['nexty'] = 'Next Year';
 $lang['prevm'] = 'Previous Month';
+$lang['prevy'] = 'Previous Year';
 //$lang['title_year'] = 'Year';
 //longform daynames - must be Sunday first, comma-separated, no whitespace
 $lang['longdays'] = 'Sunday,Monday,Tuesday,Wednesday,Thursday,Friday,Saturday';
