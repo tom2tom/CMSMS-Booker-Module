@@ -10,47 +10,21 @@ namespace Booker;
 class Bookingops
 {
 	/**
-	GetBkgData:
-	Get row(s) of data for @bkgid from DataTable
-	@mod: reference to current Booker module
-	@bkgid: booking identifier, or array of them
-	*/
-	public function GetBkgData(&$mod, $bkgid)
-	{
-		$sql = <<<EOS
-SELECT D.*,COALESCE(A.name,B.name,'') AS name,COALESCE(A.address,B.address,'') AS address,B.publicid,B.phone,B.displayclass
-FROM $mod->DataTable D
-JOIN $mod->BookerTable B ON D.booker_id=B.booker_id
-LEFT JOIN $mod->AuthTable A ON B.publicid=A.publicid
-WHERE D.bkg_id
-EOS;
-		if (is_array($bkgid)) {
-			$sql .= ' IN ('.str_repeat('?,',count($bkgid)-1).'?)';
-			$data = $mod->dbHandle->GetAssoc($sql,$bkgid);
-		} else {
-			$sql .= '=?';
-			$data = $mod->dbHandle->GetAssoc($sql,array($bkgid));
-		}
-		if ($data) {
-			$utils = new Utils();
-			$utils->GetUserProperties($mod,$data);
-		}
-		return $data;
-	}
-
-	/**
 	ExportBkg:
 	Export data for one or more bookings
 	@mod: reference to current Booker module
 	@bkgid: booking identifier, or array of them, or '*'
-	Returns: 2-member array, 1st is T/F indicating success, 2nd '' or error message
+	Returns: 2-member array,
+	 [0] = boolean indicating success
+	 [1] = '' or error message
 	*/
 	public function ExportBkg(&$mod, $bkgid)
 	{
 		$funcs = new Export();
-		list($res,$key) = $funcs->ExportBookings($mod,FALSE,$bkgid);
-		if ($res)
+		list($res, $key) = $funcs->ExportBookings($mod, FALSE, $bkgid);
+		if ($res) {
 			return array(TRUE,'');
+		}
 		return array(FALSE,$mod->Lang($key));
 	}
 
@@ -60,11 +34,13 @@ EOS;
 	@mod: reference to current Booker module
 	@bkgid: resource- or group-booking identifier, or array of them
 	@custommsg: text entered by user, to replace square-bracketed content of the message 'template'
-	Returns: 2-member array, 1st is T/F indicating success, 2nd '' or error message
+	Returns: 2-member array,
+	 [0] = boolean indicating success
+	 [1] = '' or error message
 	*/
 	public function DeleteBkg(&$mod, $bkgid, $custommsg)
 	{
-		$rows = self::GetBkgData($mod,$bkgid);
+		$rows = self::GetBkgMessageData($mod, $bkgid);
 		if ($rows) {
 			if ($mod->havenotifier) {
 				$funcs = new Messager();
@@ -76,31 +52,32 @@ EOS;
 				$msg = FALSE;
 			}
 
+//TODO CHECK set active=0 instead of delete, iff keeptime > 0?
+//TODO consequent DispTable change(s)
 			$utils = new Utils();
-			$sql = 'DELETE FROM '.$mod->DataTable.' WHERE bkg_id=? OR bulk_id=?';
-//TODO CHECK set active=0 instead of delete iff keeptime > 0?
-//TODO CHECK any change to HistoryTable e.g. was deleted 'now'
-			foreach ($rows as $bid=>$one) {
-				if ($utils->SafeExec($sql,array($bid,$bid))) {
+			$sql = 'DELETE FROM '.$mod->OnceTable.' WHERE bkg_id=?';
+			foreach ($rows as $bid => $one) {
+				if ($utils->SafeExec($sql, array($bid))) {
 					if ($funcs && $one['status'] !== \Booker::STATOK) {
 						//notify user
 						$item_id = $one['item_id'];
 						if (!isset($propstore[$item_id])) {
-							$propstore[$item_id] = array('item_id'=>$item_id,'approvertell'=>FALSE) //no message to sender
-								+ $utils->GetItemProperties($mod,$item_id,
-									array('name','membersname','smspattern','smsprefix'));
+							$propstore[$item_id] = array('item_id' => $item_id,'approvertell' => FALSE) //no message to sender
+								+ $utils->GetItemProperties($mod, $item_id,
+									array('name', 'membersname', 'smspattern', 'smsprefix'));
 						}
 						$idata = $propstore[$item_id];
-						list($res,$msg1) = $funcs->StatusMessage($mod,$utils,$idata,$one,\Booker::STATCANCEL,$custommsg,$sndr);
-						if (!$res)
+						list($res, $msg1) = $funcs->StatusMessage($mod, $utils, $idata, $one, \Booker::STATCANCEL, $custommsg, $sndr);
+						if (!$res) {
 							$msg[] = $msg1;
+						}
 					}
 				} else {
 					return array(FALSE,$mod->Lang('err_data'));
 				}
 			}
 			if ($msg) {
-				return array(FALSE,implode('<br />',array_unique($msg,SORT_STRING)));
+				return array(FALSE,implode('<br />', array_unique($msg, SORT_STRING)));
 			}
 			return array(TRUE,'');
 		}
@@ -112,7 +89,9 @@ EOS;
 	Delete one or more 'repeat' bookings
 	@mod: reference to current Booker module
 	@bkgid: repeat-booking identifier, or array of them
-	Returns: 2-member array, 1st is T/F indicating success, 2nd '' or error message
+	Returns: 2-member array,
+	 [0] = boolean indicating success
+	 [1] = '' or error message
 	TODO periodic cleanup of inactive repeats with no remaining history
 	*/
 	public function DeleteRepeat(&$mod, $bkgid)
@@ -120,55 +99,123 @@ EOS;
 		$utils = new Utils();
 		$sql = 'SELECT bkg_id,item_id FROM '.$mod->RepeatTable.' WHERE bkg_id';
 		if (is_array($bkgid)) {
-			$sql .= ' IN ('.str_repeat('?,',count($bkgid)-1).'?)';
-			$rows = $utils->SafeGet($sql,$bkgid,'assoc');
+			$sql .= ' IN ('.str_repeat('?,', count($bkgid) - 1).'?)';
+			$rows = $utils->SafeGet($sql, $bkgid, 'assoc');
 		} else {
 			$sql .= '=?';
-			$rows = $utils->SafeGet($sql,array($bkgid),'assoc');
+			$rows = $utils->SafeGet($sql, array($bkgid), 'assoc');
 		}
 		if ($rows) {
-			$sql = 'DELETE FROM '.$mod->DataTable.' WHERE bulk_id=? AND slotstart>=?';
-			$sql2 = 'SELECT COUNT(1) AS num FROM '.$mod->DataTable.' WHERE bulk_id=? AND slotstart<?';
+//TODO CHECK set active=0 iff keeptime > 0?
+//TODO consequent DispTable change(s)
+//TODO CHECK slot end < cutoff?
+			$sql = 'DELETE FROM '.$mod->DispTable.' WHERE bkg_id=? AND slotstart>=?';
+			$sql2 = 'SELECT COUNT(1) AS num FROM '.$mod->DispTable.' WHERE bkg_id=? AND slotstart<?';
 			$sql3 = 'UPDATE '.$mod->RepeatTable.' SET active=0 WHERE bkg_id=?';
 			$sql4 = 'DELETE FROM '.$mod->RepeatTable.' WHERE bkg_id=?';
-//TODO CHECK set active=0 iff keeptime > 0?
-//TODO CHECK any change to HistoryTable e.g. was deleted 'now'
 			$propstore = array();
-$dtw = new \DateTime('@0',NULL); //DEBUG
-			foreach ($rows as $bid=>$one) {
+			$dtw = new \DateTime('@0', NULL); //DEBUG
+			foreach ($rows as $bid => $one) {
 				$item_id = (int)$one;
 				if (!isset($propstore[$item_id])) {
-					$idata = $utils->GetItemProperties($mod,$item_id,'timezone');
+					$idata = $utils->GetItemProperties($mod, $item_id, 'timezone');
 					$propstore[$item_id] = $utils->GetZoneTime($idata['timezone']);
 				}
-$dtw->setTimestamp($propstore[$item_id]); //DEBUG
+				$dtw->setTimestamp($propstore[$item_id]); //DEBUG
 				//if historic bookings exist, just flag stuff, don't delete yet
 				$args = array($bid,$propstore[$item_id]);
-				$count = $utils->SafeGet($sql2,$args,'one');
- 				$sql5 = ($count > 0) ? $sql3 : $sql4;
+				$count = $utils->SafeGet($sql2, $args, 'one');
+				$sql5 = ($count > 0) ? $sql3 : $sql4;
 				$allsql = array($sql,$sql5);
 				$allargs = array($args,array($bid));
-				if (!$utils->SafeExec($allsql,$allargs))
+				if (!$utils->SafeExec($allsql, $allargs)) {
 					return array(FALSE,$mod->Lang('err_data'));
+				}
 			}
 			return array(TRUE,'');
 		}
 		return array(FALSE,$mod->Lang('err_data'));
 	}
 
+	/**
+	ClearRepeat:
+	Clear From DispTable all 'repeat' bookings intesecting with the interval
+	  @st to @nd inclusive, and update RepeatTable scan-ranges accordingly
+	@mod: reference to current Booker module
+	@bkgid: repeat-booking identifier, or array of them
+	@st: range-start timestamp or -1 for 'now', default -1
+	@nd: range-end timestamp or -1 for 'now' or -2 for PHP_INT_MAX, default -2
+	*/
+	public function ClearRepeat(&$mod, $bkgid, $st=-1, $nd=-2)
+	{
+		if ($st == -1) {
+			$st = time();
+		}
+		if ($nd == -1) {
+			$nd = time();
+		} elseif ($st == -2) {
+			$st = PHP_INT_MAX;
+		}
+		if ($nd <= $st) {
+			return;
+		}
+
+		$utils = new Utils();
+		$sql1 = 'SELECT bkg_id,checkedfrom,checkedto FROM '.$mod->RepeatTable.' WHERE bkg_id';
+		if (is_array($bkgid)) {
+			$sql1 .= ' IN ('.str_repeat('?,', count($bkgid) - 1).'?)';
+			$rows = $utils->SafeGet($sql1,$bkgid,'assoc');
+		} else {
+			$sql1 .= '=?';
+			$rows = $utils->SafeGet($sql1,array($bkgid),'assoc');
+		}
+		if ($rows) {
+			$sql = array();
+			$args = array();
+			$sql1 = 'DELETE FROM '.$mod->DispTable.' WHERE bkg_id=?';
+			$sql2 = 'UPDATE '.$mod->RepeatTable.' SET checkedfrom=?,checkedto=? WHERE bkg_id=?';
+
+			foreach ($rows as $bid => $one) {
+				$from = $one['checkedfrom'];
+				$to = $one['checkedto'];
+				if ($to > $st && $from < $nd) {
+					if ($st > $from && $nd >= $to) {
+						$sql[] = $sql1.' AND slotstart>';
+						$args[] = array($bid,$st);
+						$sql[] = $sql2;
+						$args[] = array($from,$st,$bid);
+					} elseif ($st < $from && $nd <= $to) {
+						$sql[] = $sql1.' AND slotstart+slotlen<?';
+						$args[] = array($bid,$nd);
+						$sql[] = $sql2;
+						$args[] = array($nd,to,$bid);
+					} else {
+						$sql[] = $sql1;
+						$args[] = array($bid);
+						$sql[] = $sql2;
+						$args[] = array(0,0,$bid);
+					}
+				}
+			}
+			if ($sql) {
+				$utils->SafeExec($sql,$args);
+			}
+		}
+	}
+
 	/* *
-	SaveBkg:
-	Add to or update DataTable per data in @params, without any schedule-check
+	SaveBkg: NOW DONE IN SCHEDULE FUNCS
+	Upsert OnceTable per data in @params, without any schedule-check
 	@mod: reference to current Booker module
 	@params: reference to parameters array
 	@is_new: whether this is a new booking (hence add to table)
-	@bulk_id: optional repeat- or group-booking identifier, default 0
+	@bulk: optional repeat- or group-booking Booker:: BULK* enumerator {0,1,20,21}, default 0
 	Returns: boolean indicating successful completion
 	*/
-/*	public function SaveBkg(&$mod, &$params, $is_new, $bulk_id=0)
+/*	public function SaveBkg(&$mod, &$params, $is_new, $bulk=0)
 	{
 		if (empty($params['booker_id'])) {
-	 		$funcs = new Userops($mod);
+			 $funcs = new Userops($mod);
 			list($bookerid,$newbooker) = $funcs->GetParamsID($mod,$params);
 			if ($bookerid === FALSE) {
 				//TODO nicely handle bad password e.g. message
@@ -182,33 +229,34 @@ $dtw->setTimestamp($propstore[$item_id]); //DEBUG
 			if (isset($params['status'])) {
 				$stat = $params['status'];
 			} else {
-				$stat = ($params['paid']) ? \Booker::STATPAID : \Booker::STATNEW;
+				$stat = func($params['statpay']) ? \Booker::STATPAID : \Booker::STATNEW;
 			}
-			$sql = 'INSERT INTO '.$mod->DataTable.
-' (bkg_id,bulk_id,item_id,slotstart,slotlen,booker_id,status,paid) VALUES (?,?,?,?,?,?,?,?)';
-			$bkgid = $mod->dbHandle->GenID($mod->DataTable.'_seq');
+			$ps = func($params);
+			$sql = 'INSERT INTO '.$mod->OnceTable.
+' (bkg_id,booker_id,item_id,slotstart,slotlen,status,statpay) VALUES (?,?,?,?,?,?,?)';
+			$bkgid = $mod->dbHandle->GenID($mod->OnceTable.'_seq');
 			$args = array(
 				$bkgid,
-				$bulk_id,
+				$bookerid,
 				$params['item_id'],
 				$params['slotstart'],
 				$params['slotlen'],
-				$bookerid,
 				$stat,
-				$params['paid']
+				$ps
 			);
 		} else { //update
 			if (isset($params['status'])) {
 				$stat = $params['status'];
 			} else {
-				$stat = ($params['paid']) ? \Booker::STATPAID : \Booker::STATNEW;
+				$stat = (TODOfunc($params['statpay'])) ? \Booker::STATPAID : \Booker::STATNEW;
 			}
-			$sql = 'UPDATE '.$mod->DataTable.' SET slotstart=?,slotlen=?,status=?,paid=? WHERE bkg_id=?';
+			$ps = func($params);
+			$sql = 'UPDATE '.$mod->OnceTable.' SET slotstart=?,slotlen=?,status=?,statpay=? WHERE bkg_id=?';
 			$args = array(
 				$params['slotstart'],
 				$params['slotlen'],
 				$stat,
-				$params['paid'],
+				$ps,
 				$params['bkg_id']
 			);
 		}
@@ -217,20 +265,59 @@ $dtw->setTimestamp($propstore[$item_id]); //DEBUG
 	}
 */
 	/**
+	GetBkgMessageData:
+	Get row(s) of data each with fields from DispTable & related, for @bkgid
+	@mod: reference to current Booker module
+	@bkgid: booking identifier, or array of them
+	Returns: booking-id-keyed associative array, or FALSE
+	*/
+	public function GetBkgMessageData(&$mod, $bkgid)
+	{
+		$s = \Booker::STATNONE;		//default status
+		$sql = <<<EOS
+SELECT D.bkg_id,D.item_id,D.slotstart,
+COALESCE(O.slotcount,R.slotcount,1) AS slotcount,
+COALESCE(O.status,R.status,{$s}) AS status,
+COALESCE(A.name,B.name,'') AS name,
+COALESCE(A.address,B.address,'') AS address,B.publicid,B.phone
+FROM $mod->DispTable D
+LEFT JOIN $mod->OnceTable O ON D.bkg_id=O.bkg_id
+LEFT JOIN $mod->RepeatTable R ON D.bkg_id=R.bkg_id
+JOIN $mod->ItemTable I ON D.item_id=I.item_id
+JOIN $mod->BookerTable B ON D.booker_id=B.booker_id
+LEFT JOIN $mod->AuthTable A ON B.publicid=A.publicid
+WHERE D.bkg_id
+EOS;
+		if (is_array($bkgid)) {
+			$sql .= ' IN ('.str_repeat('?,', count($bkgid) - 1).'?)';
+			$data = $mod->dbHandle->GetAssoc($sql, $bkgid);
+		} else {
+			$sql .= '=?';
+			$data = $mod->dbHandle->GetAssoc($sql, array($bkgid));
+		}
+		if ($data) {
+			$utils = new Utils();
+			$utils->GetUserProperties($mod, $data);
+		}
+		return $data;
+	}
+
+	/* *
 	GetBooked:
-	Get data for bookings which cover any part of the interval
-	 @startstamp to @endstamp inclusive
+	Get some DispTable & related data for bookings which cover any part of the
+	 interval @startstamp to @endstamp inclusive
 	@mod: reference to current Booker module
 	@item: item identifier (a.k.a. item_id), or array or them
 	@startstamp: timestamp representing start of period to check
 	@endstamp: ditto for end of period
-	Returns: array, maybe empty
+	Returns: array of rows, each with members 'item_id','name','publicid','what',
+	 OR maybe empty
 	*/
-	public function GetBooked(&$mod, $item, $startstamp, $endstamp)
+/*	public function GetBooked(&$mod, $item, $startstamp, $endstamp)
 	{
 		$sql = <<<EOS
-SELECT D.*,COALESCE(A.name,B.name,'') AS name,B.publicid,I.name AS what
-FROM $mod->DataTable D
+SELECT D.item_id,COALESCE(A.name,B.name,'') AS name,B.publicid,I.name AS what
+FROM $mod->DispTable D
 LEFT JOIN $mod->BookerTable B ON D.booker_id=B.booker_id
 LEFT JOIN $mod->AuthTable A ON B.publicid=A.publicid
 LEFT JOIN $mod->ItemTable I ON D.item_id=I.item_id
@@ -238,15 +325,16 @@ WHERE D.item_id
 EOS;
 		if (is_array($item)) {
 			$args = $item;
-			$fillers = str_repeat('?,',count($args)-1);
+			$fillers = str_repeat('?,', count($args) - 1);
 			$sql .= ' IN('.$fillers.'?)';
 		} elseif ($item >= \Booker::MINGRPID) {
 			$utils = new Utils();
-			$args = $utils->GetGroupItems($mod,$item);
-			if (!$args)
+			$args = $utils->GetGroupItems($mod, $item);
+			if (!$args) {
 				return array();
+			}
 			unset($utils);
-			$fillers = str_repeat('?,',count($args)-1);
+			$fillers = str_repeat('?,', count($args) - 1);
 			$sql .= ' IN('.$fillers.'?)';
 		} else {
 			$args = array($item);
@@ -256,17 +344,17 @@ EOS;
 		$args[] = $startstamp;
 		$sql .= ' AND D.slotstart <= ? AND (D.slotstart+D.slotlen) >= ? ORDER BY I.name,D.slotstart';
 		$utils = new Utils();
-		$data = $utils->SafeGet($sql,$args);
+		$data = $utils->SafeGet($sql, $args);
 		if ($data) {
-			$utils->GetUserProperties($mod,$data);
+			$utils->GetUserProperties($mod, $data);
 		}
 		return $data;
 	}
-
+*/
 	/**
 	GetTableBooked:
-	Get data for bookings which cover any part of the interval
-	 @startstamp to @endstamp inclusive, to suit tabular display (no booker info)
+	Get some DispTable & related data for displaying bookings which cover any part of the
+	 interval @startstamp to @endstamp inclusive, to suit tabular display (no booker info)
 	@mod: reference to current Booker module
 	@item: item_identifier (a.k.a item_id), or array of them
 	@startstamp: timestamp representing start of period to check
@@ -280,23 +368,23 @@ EOS;
 		} else {
 			$args = array($item);
 		}
-		$fillers = str_repeat('?,',count($args)-1);
+		$fillers = str_repeat('?,', count($args) - 1);
 		$sql = <<<EOS
-SELECT D.bkg_id,D.item_id,D.slotstart,D.slotlen,D.booker_id,I.name FROM $mod->DataTable D
+SELECT D.bkg_id,D.booker_id,D.item_id,D.slotstart,D.slotlen,I.name FROM $mod->DispTable D
 JOIN $mod->ItemTable I ON D.item_id=I.item_id
-WHERE D.item_id IN ({$fillers}?) AND D.active>0 AND D.slotstart <= ? AND (D.slotstart+D.slotlen) >= ?
+WHERE D.item_id IN ({$fillers}?) AND D.displayed>0 AND D.slotstart <= ? AND (D.slotstart+D.slotlen) >= ?
 ORDER BY D.slotstart,I.name
 EOS;
 		$args[] = $endstamp;
 		$args[] = $startstamp;
 		$utils = new Utils();
-		return $utils->SafeGet($sql,$args);
+		return $utils->SafeGet($sql, $args);
 	}
 
 	/**
 	GetListBooked:
-	Get data for bookings which cover any part of the interval
-	 @startstamp to @endstamp inclusive, arranged to suit textform display
+	Get some DispTable & related data for displaying bookings which cover any part of the
+	 interval @startstamp to @endstamp inclusive, arranged to suit textform display
 	@mod: reference to current Booker module
 	@is_group: boolean, whether processing a resource-group
 	@item: item_identifier (a.k.a. item_id), or array of them
@@ -312,24 +400,26 @@ EOS;
 		} else {
 			$args = array($item);
 		}
-		$fillers = str_repeat('?,',count($args)-1);
+		$fillers = str_repeat('?,', count($args) - 1);
 		$sql = <<<EOS
-SELECT D.item_id,D.slotstart,D.slotlen,D.booker_id,COALESCE(A.name,B.name,'') AS name,B.publicid,I.name AS what
-FROM $mod->DataTable D
+SELECT D.booker_id,D.item_id,D.slotstart,D.slotlen,COALESCE(A.name,B.name,'') AS name,B.publicid,I.name AS what
+FROM $mod->DispTable D
 JOIN $mod->BookerTable B ON D.booker_id=B.booker_id
 LEFT JOIN $mod->AuthTable A ON B.publicid=A.publicid
 JOIN $mod->ItemTable I ON D.item_id=I.item_id
-WHERE D.item_id IN ({$fillers}?) AND D.slotstart <= ? AND (D.slotstart+D.slotlen) >= ?
+WHERE D.item_id IN ({$fillers}?) AND D.displayed>0 AND D.slotstart <= ? AND (D.slotstart+D.slotlen) >= ?
 ORDER BY
 EOS;
 		switch ($lfmt) {
 		 case \Booker::LISTUS:
-			$t = ($is_group) ? 'I.name,':'';
+			$t = ($is_group) ? 'I.name,' : '';
 			$sql .= ' B.name,'.$t.'D.slotstart';
 			break;
 		 case \Booker::LISTUR:
 			$sql .= ' B.name,D.slotstart';
-			if ($is_group) $sql .= ',I.name';
+			if ($is_group) {
+				$sql .= ',I.name';
+			}
 			break;
 		 case \Booker::LISTRS: //only for groups
 			$sql .= ' I.name,D.slotstart,B.name';
@@ -337,15 +427,17 @@ EOS;
 //	 case \Booker::LISTSU:
 		 default:
 			$sql .= ' D.slotstart,B.name';
-			if ($is_group) $sql .= ',I.name';
+			if ($is_group) {
+				$sql .= ',I.name';
+			}
 			break;
 		}
 		$args[] = $endstamp;
 		$args[] = $startstamp;
 		$utils = new Utils();
-		$data = $utils->SafeGet($sql,$args);
+		$data = $utils->SafeGet($sql, $args);
 		if ($data) {
-			$utils->GetUserProperties($mod,$data);
+			$utils->GetUserProperties($mod, $data);
 		}
 		return $data;
 	}
