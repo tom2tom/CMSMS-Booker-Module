@@ -374,7 +374,7 @@ if ($admin)  { //admin search
 }
 
  $stylers = <<<EOS
-<link rel="stylesheet" type="text/css" href="{$baseurl}/css/alertable.css" />
+<link rel="stylesheet" type="text/css" href="{$baseurl}/css/alertable.min.css" />
 EOS;
 
 $jsincs[] = <<<EOS
