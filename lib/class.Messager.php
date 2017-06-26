@@ -110,7 +110,7 @@ class Messager
 				if (is_array($what)) {
 					$shortwhat = reset($what).' .. '.end($what);
 					$what = implode(', ',$what);
-				} else {
+				} elseif ($reqdata['subgrpcount'] > 1) {
 					$what = FALSE;
 				}
 			}
