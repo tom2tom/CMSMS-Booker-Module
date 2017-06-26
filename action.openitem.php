@@ -584,7 +584,7 @@ $basic[] = array('ttl' => $t,
 );
 //------- description
 if ($pmod) {
-	$i = $this->CreateTextArea(TRUE, $id, $idata->description, 'description', '', '', '', '', 80, 5, '', '', 'style="height:12em;"');
+	$i = $this->CreateTextArea(TRUE, $id, $idata->description, 'description', '', '', '', '', 80, 5, '', '', 'style="height:10em;"');
 } elseif ($idata->description) {
 	$i = $utils->StripTags($idata->description, $cleartypes);
 } else {
@@ -626,6 +626,11 @@ if ($pmod) {
 $basic[] = array('ttl' => $cascade.$this->Lang('title_image'),
 'inp' => $i,
 'hlp' => $this->Lang('help_image')
+);
+//------- bulletin
+$basic[] = array('ttl' => $cascade.$this->Lang('title_bulletin'),
+'inp' => $this->CreateTextArea(TRUE, $id, $idata->bulletin, 'bulletin', '', '', '', '', 80, 3, '', '', 'style="height:5em;"'),
+'hlp' => NULL //$this->Lang('help_bulletin')
 );
 //------- membersname
 if ($is_group) {
