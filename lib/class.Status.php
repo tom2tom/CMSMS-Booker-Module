@@ -15,28 +15,37 @@ class Status
 		$stats = array(
 		 \Booker::STATNONE => 'stat_none',//unknown/normal/default
 		 \Booker::STATNEW => 'stat_new',//new, approver consideration pending
-		 \Booker::STATTELL => 'stat_tell',//further information submitted
 		 \Booker::STATCHG => 'stat_chg',//change request, approver consideration pending
-		 \Booker::STATDEFER => 'stat_defer',//request not yet processed cuz' too far ahead
 		 \Booker::STATDEL => 'stat_del',//delete request, approver consideration pending
-		 \Booker::STATTEMP => 'stat_temp',//user-recorded, pending admin confirmation
+		 \Booker::STATTELL => 'stat_tell',//further information submitted
 		 \Booker::STATASK => 'stat_ask',//booker queried, waiting for response
-		 \Booker::STATCANCEL => 'stat_cancel',//abandoned by user or admin on user's behalf
+		 \Booker::STATCANCEL => 'stat_cancel',//(request to be) abandoned by user, or admin on user's behalf
+		 \Booker::STATOK => 'stat_approved',//aka APPROVED done/processed
 		 \Booker::STATADMINREC => 'stat_rec',//booking recorded by admin
-		 \Booker::STATBIG => 'stat_big',//too many slots requested
+		 \Booker::STATSELFREC => 'stat_selfrec',//recorded by approved user (i.e. no request)
+		 \Booker::STATTEMP => 'stat_temp',//user-recorded, pending admin confirmation, or at least 'nfa' flag
 		 \Booker::STATDEFERRED => 'stat_defer',//booking to be re-scheduled, per user request or admin imposition
-		 \Booker::STATDUP => 'stat_dup',//duplicate request, cannot accept
-		 \Booker::STATERR => 'stat_err',//system error while processing
-		 \Booker::STATFAILED => 'stat_fail',//generic request-failure
 		 \Booker::STATGONE => 'stat_gone',//deletion pending, while its historical data needed
+		 \Booker::STATBIG => 'stat_big',//too many slots requested
+		 \Booker::STATDEFER => 'stat_early',//request not yet processed cuz' too far ahead
 		 \Booker::STATLATE => 'stat_late',//request past or not far-enough ahead
 		 \Booker::STATNA => 'stat_na',//resouce N/A at requested time, cannot accept
-		 \Booker::STATPERM=> 'stat_perm',//user not permitted
-		 \Booker::STATOK => 'stat_approved',//aka APPROVED done/processed
+		 \Booker::STATDUP => 'stat_dup',//duplicate request, cannot accept
+		 \Booker::STATPERM => 'stat_perm',//user not permitted
+		 \Booker::STATNFEE => 'stat_nfee',//request not (entirely) pre/post-paid
+		 \Booker::STATERR => 'stat_err',//system error while processing
 		 \Booker::STATRETRY => 'stat_retry',//some temporary problem, try again later
-		 \Booker::STATSELFREC => 'stat_selfrec'//recorded by approved user (i.e. no request)
+		 \Booker::STATFAILED => 'stat_fail',//generic request-failure
+
+		 \Booker::STATFREE => 'stat_free',//no fee for use
+		 \Booker::STATPAID => 'stat_paid',//fee pre- or post-paid
+		 \Booker::STATCREDITED => 'stat_cred',//fee to be paid upon request
+		 \Booker::STATPAYABLE => 'stat_topay',//fee applies, none yet paid
+		 \Booker::STATPARTPAID => 'stat_part',//fee not yet fully paid
+		 \Booker::STATNOTPAID => 'stat_unpaid',//payable but unpaid for some non-credit-related reason
+		 \Booker::STATOVRDUE => 'stat_ovrdue',//payment overdue
 		);
-	
+
 		if (is_array($wanted)) {
 			$ret = array();
 			foreach($wanted as $t) {
