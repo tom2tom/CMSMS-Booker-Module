@@ -30,11 +30,33 @@ if (!function_exists('http_response_code')) { //PHP<5.4
 }
 */
 
-if (!isset ($utils))
-	$utils = new Booker\Utils();
-$utils->UnFilterParameters($params);
+$utils = new Booker\Utils();
+$newparms = $params;
+if (!empty($params['paramskey'])) {
+	$olds = json_decode($params['paramskey']);
+	unset($params['paramskey']);
+	if ($olds) {
+		$arr = (array)$olds;
+		$utils->UnFilterParameters($arr);
+		$newparms = array_merge($newparms,$arr);
+	}
+}
+
 $funcs = new Booker\Requestops();
-list($res,$msg) = $funcs->FinishReq($this,$utils,$params,$params['success']);
+list($res,$msg) = $funcs->FinishReq($mod,$utils,$newparms,!empty($newparms['result']));
+if ($msg) {
+	if (!empty($params['message'])) {
+		$params['message'] .= '<br />'.$msg;
+	} else {
+		$params['message'] = $msg;
+	}
+}
+
+unset($params['result']); //CHECKME relevance for return?
+
+if (isset($olds)) {
+	$params = array_merge($params,(array)$olds);
+}
 
 /*
 http_response_code(200); //always signal success to webhook-source
