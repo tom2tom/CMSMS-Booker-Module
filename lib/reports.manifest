@@ -2,10 +2,11 @@
 ;class-order here determines UI picklist-order
 1 = RptItemSummary
 2 = RptItemPayments
-3 = RptItemStatus
-4 = RptBookerSummary
-5 = RptBookerPayments
-6 = RptBookerStatus
+3 = RptBookerSummary
+4 = RptBookerPayments
+5 = RptBookerStatus
+6 = RptBookerCredit
 7 = RptIntervalSummary
 8 = RptIntervalPayments
 9 = RptIntervalStatus
+10 = RptIntervalCredit
