@@ -278,6 +278,7 @@ class Bookingops
 SELECT D.bkg_id,D.item_id,D.slotstart,
 COALESCE(O.slotcount,R.slotcount,1) AS slotcount,
 COALESCE(O.status,R.status,{$s}) AS status,
+I.name AS what,
 COALESCE(A.name,B.name,'') AS name,
 COALESCE(A.address,B.address,'') AS address,B.publicid,B.phone
 FROM $mod->DispTable D
