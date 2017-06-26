@@ -49,7 +49,7 @@ class Booker extends CMSModule
 	const RANGEWEEK = 1;
 	const RANGEMTH = 2;
 	const RANGEYR = 3;
-	//OnceTable/RepeatTable status codes
+	//OnceTable/RepeatTable status codes (Status::StatusKeys() must conform to these)
 	const STATNONE = 0;//unknown/normal/default
 	//request-stage
 	const STATNEW = 1;//new, approver consideration pending
