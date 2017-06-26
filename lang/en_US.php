@@ -642,6 +642,7 @@ $lang['title_conformuser'] = 'Conform to this user';
 $lang['title_contact'] = 'Contact';
 $lang['title_contacthow'] = 'How we can contact you';
 $lang['title_count'] = 'Resources';
+$lang['title_credit'] = 'Credit';
 $lang['title_cssfile'] = 'File with CSS styles for displayed bookings';
 $lang['title_dateformat'] = 'Template for formatting displayed dates';
 $lang['title_days'] = 'Days';
