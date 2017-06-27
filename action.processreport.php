@@ -117,7 +117,7 @@ $jsfuncs = array();
 $jsloads = array();
 $baseurl = $this->GetModuleURLPath();
 
-$dc = count($output);
+$dc = ($output) ? count($output) : 0;
 $tplvars['dcount'] = $dc;
 if ($dc) {
 	$tplvars['data'] = $output;
