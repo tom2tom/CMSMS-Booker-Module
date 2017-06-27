@@ -123,6 +123,7 @@ EOS;
 
 		$row = reset($pivoted);
 		//interpet titles, and log row-indices of 'fee' fields
+		$coltitles = array();
 		$works = array();
 		foreach ($row as $t => $val) {
 			$parts = explode('\\', $t);
