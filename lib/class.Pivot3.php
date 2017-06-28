@@ -43,8 +43,13 @@ class Pivot3 extends PivotBase
 							$store += $v;
 							break;
 						case self::GRP_COUNT:
-							if ($v) {
+							if ($v || is_numeric($v)) {
 								$store++;
+							}
+							break;
+						case self::GRP_ANY:
+							if ($v && !$store) {
+								$store = $v;
 							}
 							break;
 						case self::GRP_MAX:
@@ -57,16 +62,13 @@ class Pivot3 extends PivotBase
 								$store = $v;
 							}
 							break;
-						case self::GRP_ANY:
 						case self::GRP_FIRST:
-							if ($v && !$store) {
+							if ($store === null) {
 								$store = $v;
 							}
 							break;
 						case self::GRP_LAST:
-							if ($v) {
-								$store = $v;
-							}
+							$store = $v;
 							break;
 					}
 				}
@@ -94,8 +96,13 @@ class Pivot3 extends PivotBase
 							$store += $v;
 							break;
 						case self::GRP_COUNT:
-							if ($v) {
+							if ($v || is_numeric($v)) {
 								$store++;
+							}
+							break;
+						case self::GRP_ANY:
+							if ($v && !$store) {
+								$store = $v;
 							}
 							break;
 						case self::GRP_MAX:
@@ -108,16 +115,13 @@ class Pivot3 extends PivotBase
 								$store = $v;
 							}
 							break;
-						case self::GRP_ANY:
 						case self::GRP_FIRST:
-							if ($v && !$store) {
+							if ($store === null) {
 								$store = $v;
 							}
 							break;
 						case self::GRP_LAST:
-							if ($v) {
-								$store = $v;
-							}
+							$store = $v;
 							break;
 					}
 				}
@@ -146,8 +150,13 @@ class Pivot3 extends PivotBase
 							$store += $v;
 							break;
 						case self::GRP_COUNT:
-							if ($v) {
+							if ($v || is_numeric($v)) {
 								$store++;
+							}
+							break;
+						case self::GRP_ANY:
+							if ($v && !$store) {
+								$store = $v;
 							}
 							break;
 						case self::GRP_MAX:
@@ -160,16 +169,13 @@ class Pivot3 extends PivotBase
 								$store = $v;
 							}
 							break;
-						case self::GRP_ANY:
 						case self::GRP_FIRST:
-							if ($v && !$store) {
+							if ($store === null) {
 								$store = $v;
 							}
 							break;
 						case self::GRP_LAST:
-							if ($v) {
-								$store = $v;
-							}
+							$store = $v;
 							break;
 					}
 				}
