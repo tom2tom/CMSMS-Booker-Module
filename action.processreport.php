@@ -47,7 +47,10 @@ if (!empty($params['showfrom'])) {
 	error_reporting($lvl);
 	if ($res) {
 		//TODO bounds check(s)
+		$params['showfrom'] = $dt->format('Y-m');
 		$after = $dt->getTimestamp();
+	} else {
+		$params['showfrom'] = FALSE;
 	}
 }
 if (!empty($params['showto'])) {
@@ -60,8 +63,11 @@ if (!empty($params['showto'])) {
 	error_reporting($lvl);
 	if ($res) {
 		//TODO bounds check(s)
+		$params['showto'] = $dt->format('Y-m');
 		$dt->modify('+1 month');
 		$before = $dt->getTimestamp() - 1;
+	} else {
+		$params['showto'] = FALSE;
 	}
 }
 $display = !isset($params['export']); //whether to populate for screen-display
@@ -102,8 +108,9 @@ if (!$display) { //i.e. isset($params['export']))
 $tplvars = array();
 $tplvars['pagenav'] = $utils->BuildNav($this,$id,$returnid,$params['action'],$params);
 $tplvars['startform'] = $this->CreateFormStart($id,'processreport',$returnid,'POST','','','',
-	array('task'=>$params['task'],'active_tab'=>$params['active_tab']));
-//TODO 'resume'=>$params[ 'resume' 'showfrom' 'showto'
+	array('task'=>$params['task'],'active_tab'=>$params['active_tab'],'alltypes'=>$params['alltypes'],
+	'showfrom'=>$params['showfrom'],'showto'=>$params['showto']));
+//TODO 'resume'=>$params['resume'
 $tplvars['endform'] = $this->CreateFormEnd();
 
 if (!empty($params['message'])) {
