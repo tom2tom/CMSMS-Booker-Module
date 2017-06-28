@@ -114,13 +114,26 @@ class Status
 
 	/**
 	GetStatus:
-	@params: variables to be used to determine the status
-	Returns: a suitable \Booker::STAT* constant
+	@mod: reference to current module-object
+	@statpay: enum Booker::STATFREE .. Booker::STATMAXPAY
+	@mode: enum 0,1,2 determines type of returned string
+	Returns: string
 	*/
-	public function GetStatus($params)
+	public function GetStatus(&$mod, $statpay, $mode=0)
 	{
-		//stage,payable,paid,will-pay,overdue etc
-		return \Booker::STATOK; //TODO
+		if ($mode == 0)
+			$key = $this->StatusKeys($statpay);
+		} else {
+			switch ($statpay) {
+				case \Booker::STATPAID:
+					$key = ($mode == 1) ? 'yes' : 'stat_paid';
+					break;
+				default:
+					$key = ($mode == 1) ? 'no' : 'stat_nfee';
+					break;
+			}
+		}
+		return $mod->Lang($key);
 	}
 
 	/**
