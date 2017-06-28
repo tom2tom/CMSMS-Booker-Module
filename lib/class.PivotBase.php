@@ -11,6 +11,15 @@ namespace Booker;
 class PivotBase
 {
 	const SEP = '\\'; //title-element separator
+	//field-value grouping-operation specifiers
+	const GRP_SUM = 0;
+	const GRP_COUNT = 1;
+	const GRP_ANY = 2;
+	const GRP_MAX = 3;
+	const GRP_MIN = 4;
+	const GRP_FIRST = 5;
+	const GRP_LAST = 6;
+	const GRP_CALL = 7;
 	//data-line type/content specifiers
 	const TYPE_LINE = 0;
 	const TYPE_PIVOT_TOTAL_LEVEL1 = 1;
@@ -21,8 +30,8 @@ class PivotBase
 	public $colPivot;
 	public $colGrouped;
 	public $colCalcs;
-	protected $colFuncs;
-	protected $colCounts;
+	protected $colOps; //self::GRP* enums for fields whose values are to be 'internally' processed
+	protected $colFuncs; //callables for GRP_CALL value determination
 	protected $pivotscount;
 	protected $groupscount;
 	protected $calcscount;
@@ -38,10 +47,16 @@ class PivotBase
 	 * @data array of associative arrays to be processed
 	 * @pivoton single, or 1..3-member array of, @data key name(s)
 	 * @group optional single, or 1..2-member array of, @data key name(s)
-	 *  whose values are to be grouped, default null
-	 * @groupvalue optional single, or array of, $@data key name(s)
-	 *  whose values are to be used in each group, and/or calculated key(s),
-	 *  default null
+	 *  whose values are to be grouped, default null (hence last @pivoton value is used)
+	 * @groupvalue optional single, or array of, 'process instructions' for the
+	 *  @data key name(s) whose values are to be used in each group, and/or
+	    calculated key(s) derived from the corresponding row of @data, default null
+	 *  Those instruction(s) may each be a scalar (in which case the field
+	 *  values will be summed), or a 2-member array. In the latter case, the
+	 *  1st member is the field-key, and the 2nd indicates how the field values
+	 *  are to be processed, EITHER:
+	 *  one of strings 'sum' (optional, defult),'count','any','max','min','first','last' OR
+	 *  a callable like func(a,b), where a = sum of field values, b = array of all corresponding sums
 	 * @showtype optional boolean, default false
 	 * @linetotal optional boolean, default false
 	 * @pivottotal optional boolean, default false
@@ -96,22 +111,50 @@ class PivotBase
 		//TODO confirm all colGrouped (if any) are self::Data keys
 		$this->pivotscount = count($this->colPivot);
 		$this->calcscount = ($this->colCalcs) ? count($this->colCalcs) : 0;
+		$this->colOps = array();
 		$this->colFuncs = array_fill(0, $this->calcscount, 0);
-		$this->colCounts = array_fill(0, $this->calcscount, 0);
 		for ($ic = 0; $ic < $this->calcscount; $ic++) {
 			$item = $this->colCalcs[$ic];
 			if (is_array($item)) {
 				$this->colCalcs[$ic] = $item[0];
-				if ($item[1] == 'count') {
-					$this->colCounts[$ic] = 1;
-				} elseif (is_callable($item[1], false, $callable_name)) {
-					if ($callable_name) {
-						$this->colFuncs[$ic] = $callable_name;
-					} else {
-						$this->colFuncs[$ic] = $item[1]; //anonymous?
-					}
+				switch ($item[1]) {
+					case 'count':
+						$v = self::GRP_COUNT;
+					case 'sum':
+						$v = self::GRP_SUM;
+						break;
+					case 'any':
+						$v = self::GRP_ANY;
+						break;
+					case 'max':
+						$v = self::GRP_MAX;
+						break;
+					case 'min':
+						$v = self::GRP_MIN;
+						break;
+					case 'first':
+						$v = self::GRP_FIRST;
+						break;
+					case 'last':
+						$v = self::GRP_LAST;
+						break;
+					default:
+						if (is_callable($item[1], false, $callable_name)) {
+							$v = self::GRP_CALL;
+							if ($callable_name) {
+								$this->colFuncs[$ic] = $callable_name;
+							} else {
+								$this->colFuncs[$ic] = $item[1]; //anonymous?
+							}
+						} else {
+							$v = self::GRP_SUM;
+						}
+						break;
 				}
+			} else {
+				$v = self::GRP_SUM;
 			}
+			$this->colOps[$ic] = $v;
 		}
 
 		$this->groupscount = count($this->colGrouped);

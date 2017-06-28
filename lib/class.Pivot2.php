@@ -27,18 +27,49 @@ class Pivot2 extends PivotBase
 				$k1 = $row[$p1];
 				for ($ic = 0; $ic < $this->calcscount; $ic++) {
 					$k = $this->colCalcs[$ic];
-					$Buckets[$k] = $k;
-					$v = $row[$k];
-					if ($this->colCounts[$ic]) {
-						$v = ($v) ? 1 : 0;
+					if (!isset($Buckets[$k])) {
+						$Buckets[$k] = $k;
 					}
-					if (isset($bktValues[$k0][$k1][$k])) {
-						$bktValues[$k0][$k1][$k] += $v;
-					} else {
-						$bktValues[$k0][$k1][$k] = $v;
+					if (!isset($bktValues[$k0][$k1][$k])) {
+						$bktValues[$k0][$k1][$k] = null;
+					}
+					$store = &$bktValues[$k0][$k1][$k];
+					$v = $row[$k];
+					switch ($this->colOps[$ic]) {
+						case self::GRP_SUM:
+						case self::GRP_CALL:
+							$store += $v;
+							break;
+						case self::GRP_COUNT:
+							if ($v) {
+								$store++;
+							}
+							break;
+						case self::GRP_MAX:
+							if ($v > $store) {
+								$store = $v;
+							}
+							break;
+						case self::GRP_MIN:
+							if ($store > $v || $store === null) {
+								$store = $v;
+							}
+							break;
+						case self::GRP_ANY:
+						case self::GRP_FIRST:
+							if ($v && !$store) {
+								$store = $v;
+							}
+							break;
+						case self::GRP_LAST:
+							if ($v) {
+								$store = $v;
+							}
+							break;
 					}
 				}
 			}
+			unset($store);
 		} elseif ($this->groupscount == 1) {
 			$g0 = $this->colGrouped[0];
 			foreach ($this->Data as &$row) {
@@ -46,18 +77,49 @@ class Pivot2 extends PivotBase
 				$k1 = $row[$p1];
 				for ($ic = 0; $ic < $this->calcscount; $ic++) {
 					$k = $this->colCalcs[$ic];
-					$Buckets[$row[$g0]][$k] = $k;
-					$v = $row[$k];
-					if ($this->colCounts[$ic]) {
-						$v = ($v) ? 1 : 0;
+					if (!isset($Buckets[$row[$g0]][$k])) {
+						$Buckets[$row[$g0]][$k] = $k;
 					}
-					if (isset($bktValues[$k0][$k1][$row[$g0]][$k])) {
-						$bktValues[$k0][$k1][$row[$g0]][$k] += $v;
-					} else {
-						$bktValues[$k0][$k1][$row[$g0]][$k] = $v;
+					if (!isset($bktValues[$k0][$k1][$row[$g0]][$k])) {
+						$bktValues[$k0][$k1][$row[$g0]][$k] = null;
+					}
+					$store = &$bktValues[$k0][$k1][$row[$g0]][$k];
+					$v = $row[$k];
+					switch ($this->colOps[$ic]) {
+						case self::GRP_SUM:
+						case self::GRP_CALL:
+							$store += $v;
+							break;
+						case self::GRP_COUNT:
+							if ($v) {
+								$store++;
+							}
+							break;
+						case self::GRP_MAX:
+							if ($v > $store) {
+								$store = $v;
+							}
+							break;
+						case self::GRP_MIN:
+							if ($store > $v || $store === null) {
+								$store = $v;
+							}
+							break;
+						case self::GRP_ANY:
+						case self::GRP_FIRST:
+							if ($v && !$store) {
+								$store = $v;
+							}
+							break;
+						case self::GRP_LAST:
+							if ($v) {
+								$store = $v;
+							}
+							break;
 					}
 				}
 			}
+			unset($store);
 		} else { //2 group-columns
 			$g0 = $this->colGrouped[0];
 			$g1 = $this->colGrouped[1];
@@ -66,18 +128,49 @@ class Pivot2 extends PivotBase
 				$k1 = $row[$p1];
 				for ($ic = 0; $ic < $this->calcscount; $ic++) {
 					$k = $this->colCalcs[$ic];
-					$Buckets[$row[$g0]][$row[$g1]][$k] = $k;
-					$v = $row[$k];
-					if ($this->colCounts[$ic]) {
-						$v = ($v) ? 1 : 0;
+					if (!isset($Buckets[$row[$g0]][$row[$g1]][$k])) {
+						$Buckets[$row[$g0]][$row[$g1]][$k] = $k;
 					}
-					if (isset($bktValues[$k0][$k1][$row[$g0]][$row[$g1]][$k])) {
-						$bktValues[$k0][$k1][$row[$g0]][$row[$g1]][$k] += $v;
-					} else {
-						$bktValues[$k0][$k1][$row[$g0]][$row[$g1]][$k] = $v;
+					if (!isset($bktValues[$k0][$k1][$row[$g0]][$row[$g1]][$k])) {
+						$bktValues[$k0][$k1][$row[$g0]][$row[$g1]][$k] = null;
+					}
+					$store = &$bktValues[$k0][$k1][$row[$g0]][$row[$g1]][$k];
+					$v = $row[$k];
+					switch ($this->colOps[$ic]) {
+						case self::GRP_SUM:
+						case self::GRP_CALL:
+							$store += $v;
+							break;
+						case self::GRP_COUNT:
+							if ($v) {
+								$store++;
+							}
+							break;
+						case self::GRP_MAX:
+							if ($v > $store) {
+								$store = $v;
+							}
+							break;
+						case self::GRP_MIN:
+							if ($store > $v || $store === null) {
+								$store = $v;
+							}
+							break;
+						case self::GRP_ANY:
+						case self::GRP_FIRST:
+							if ($v && !$store) {
+								$store = $v;
+							}
+							break;
+						case self::GRP_LAST:
+							if ($v) {
+								$store = $v;
+							}
+							break;
 					}
 				}
 			}
+			unset($store);
 		}
 		unset($row);
 
