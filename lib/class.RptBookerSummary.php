@@ -60,8 +60,8 @@ EOS;
 			$args[] = $showto;
 		}
 		$sql .= ' ORDER BY booker_id,slotstart';
-		$data = $this->mod->dbHandle->GetArray($sql, $args);
 
+		$data = $this->mod->dbHandle->GetArray($sql, $args);
 		if ($data) {
 			$dt = new \DateTime('@0', NULL);
 			$ic = count($data);
@@ -101,8 +101,9 @@ EOS;
 	 (as opposed to export), default TRUE
 	Returns: 2-member array,
 	 [0] = array of strings for table-column titles
-	 [1] = array of stdClass objects, each with member ->fields, and if
-	   @display == TRUE, xhtml-link-element ->view
+	 [1] = if @display == TRUE,
+	   array of stdClass objects, each with member ->fields and xhtml-link-element ->view
+	   otherwise, array of values
 	*/
 	public function PostProcessData($pivoted, $id, $linkaction, $display = TRUE)
 	{
@@ -185,6 +186,7 @@ EOS;
 			unset($row);
 		}
 		$subtotal = $this->mod->Lang('subtotal');
+//		$total = $this->mod->Lang('total');
 
 		$output = array();
 		$ic = count($pivoted);
@@ -199,6 +201,14 @@ EOS;
 				$row['month'] = $months[$row['month']];
 			} elseif (strpos($bid, $subtotal) !== FALSE) {
 				$row['booker_id'] = str_replace('booker_id',$current,$bid);
+/*				foreach ($works as $t) {
+					$row[$t] = NULL;
+				}
+			} elseif (strpos($bid, $total) !== FALSE) {
+				foreach ($works as $t) {
+					$row[$t] = NULL;
+				}
+*/
 			}
 			//interpret *\'slotlen'
 			foreach ($works as $t) {

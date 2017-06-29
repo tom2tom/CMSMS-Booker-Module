@@ -68,8 +68,8 @@ EOS;
 			$args[] = $showto;
 		}
 		$sql .= " HAVING status<={$m} OR status>{$x} ORDER BY D.slotstart";
-		$data = $this->mod->dbHandle->GetArray($sql,$args);
 
+		$data = $this->mod->dbHandle->GetArray($sql,$args);
 		if ($data) {
 			$dt = new \DateTime('@0', NULL);
 			$ic = count($data);
@@ -88,10 +88,10 @@ EOS;
 	*/
 	public function PivotReportData($data)
 	{
-		$pivoton = array('year','month','status');
-		$group = null;
+		$pivoton = array('year','month');
+		$group = 'status';
 		$groupvalue = array('bkg',array('statpay','count'));
-		$funcs = new Pivot3($data, $pivoton, $group, $groupvalue,
+		$funcs = new Pivot2($data, $pivoton, $group, $groupvalue,
 			TRUE, //include relevant Pivotbase::TYPE_*
 			FALSE, //exclude  per-line subtotals
 			TRUE, //include pivoted-field subtotals
@@ -110,8 +110,9 @@ EOS;
 	 (as opposed to export), default TRUE
 	Returns: 2-member array,
 	 [0] = array of strings for table-column titles
-	 [1] = array of stdClass objects, each with member ->fields, and if
-	   @display == TRUE, xhtml-link-element ->view
+	 [1] = if @display == TRUE,
+	   array of stdClass objects, each with member ->fields and xhtml-link-element ->view
+	   otherwise, array of values
 	*/
 	public function PostProcessData($pivoted, $id, $linkaction, $display = TRUE)
 	{
@@ -189,7 +190,7 @@ EOS;
 //				foreach ($works as $t) {
 //					$row[$t] = NULL;
 //				}
-//			} elseif (strpos($bid, $total) !== FALSE) {
+//			} elseif (strpos($yid, $total) !== FALSE) {
 //				foreach ($works as $t) {
 //					$row[$t] = NULL;
 //				}
