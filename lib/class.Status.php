@@ -60,7 +60,7 @@ class Status
 			return $stats[$wanted];
 		} else {
 			return 'err_parm';
-		}		
+		}
 	}
 
 	/**
@@ -121,10 +121,13 @@ class Status
 	*/
 	public function GetStatus(&$mod, $statpay, $mode=0)
 	{
-		if ($mode == 0)
+		if ($mode == 0) {
 			$key = $this->StatusKeys($statpay);
 		} else {
 			switch ($statpay) {
+				case \Booker::STATFREE:
+					$key = 'stat_free';
+					break;
 				case \Booker::STATPAID:
 					$key = ($mode == 1) ? 'yes' : 'stat_paid';
 					break;
