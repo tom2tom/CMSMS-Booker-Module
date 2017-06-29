@@ -73,7 +73,6 @@ class Pivot3 extends PivotBase
 					}
 				}
 			}
-			unset($store);
 		} elseif ($this->groupscount == 1) {
 			$g0 = $this->colGrouped[0];
 			foreach ($this->Data as &$row) {
@@ -126,7 +125,6 @@ class Pivot3 extends PivotBase
 					}
 				}
 			}
-			unset($store);
 		} else { //2 group-columns
 			$g0 = $this->colGrouped[0];
 			$g1 = $this->colGrouped[1];
@@ -180,8 +178,8 @@ class Pivot3 extends PivotBase
 					}
 				}
 			}
-			unset($store);
 		}
+		unset($store);
 		unset($row);
 
 		$out = array();
