@@ -17,7 +17,7 @@ class Pivot2 extends PivotBase
 	protected function populate($keytemplate)
 	{
 		// calculate relevant field-sums and field-counts (no callback calculations yet)
-		$Buckets = $bktValues = array();
+		$Buckets = $bktValues = [];
 		$p0 = $this->colPivot[0];
 		$p1 = $this->colPivot[1];
 
@@ -178,10 +178,10 @@ class Pivot2 extends PivotBase
 		unset($store);
 		unset($row);
 
-		$out = array();
+		$out = [];
 
 		if ($this->fullTotal) {
-			$fullTotals = array();
+			$fullTotals = [];
 			if ($this->groupscount == 0) {
 				for ($ic = 0; $ic < $this->calcscount; $ic++) {
 					$k = $this->colCalcs[$ic];
@@ -210,7 +210,7 @@ class Pivot2 extends PivotBase
 
 		foreach ($bktValues as $k0 => &$k0Values) {
 			if ($this->pivotTotal) {
-				$p1Totals = array();
+				$p1Totals = [];
 				if ($this->groupscount == 0) {
 					for ($ic = 0; $ic < $this->calcscount; $ic++) {
 						$k = $this->colCalcs[$ic];
@@ -227,7 +227,7 @@ class Pivot2 extends PivotBase
 			}
 
 			foreach ($k0Values as $k1 => &$k1Values) {
-				$out1 = array();
+				$out1 = [];
 				if ($this->typeMark) {
 					$out1[$this->typeName] = parent::TYPE_LINE;
 				}
@@ -236,7 +236,7 @@ class Pivot2 extends PivotBase
 				$out1[$p1] = $k1;
 
 				if ($this->lineTotal) {
-					$lineTotals = array();
+					$lineTotals = [];
 					for ($ic = 0; $ic < $this->calcscount; $ic++) {
 						$k = $this->colCalcs[$ic];
 						$lineTotals[$k] = 0;
@@ -327,7 +327,7 @@ class Pivot2 extends PivotBase
 			unset($k1Values);
 
 			if ($this->pivotTotal) {
-				$out1 = array();
+				$out1 = [];
 				if ($this->typeMark) {
 					$out1[$this->typeName] = parent::TYPE_PIVOT_TOTAL_LEVEL1;
 				}
@@ -336,7 +336,7 @@ class Pivot2 extends PivotBase
 				$out1[$p1] = ''; //null;
 
 				if ($this->lineTotal) {
-					$lineTotals = array();
+					$lineTotals = [];
 				}
 
 				if ($this->groupscount == 0) {
@@ -413,6 +413,6 @@ class Pivot2 extends PivotBase
 			}
 		}
 		unset($k0Values);
-		return array($out, $fullTotals);
+		return [$out, $fullTotals];
 	}
 }

@@ -23,7 +23,7 @@ class RptIntervalCredit extends Report
 	*/
 	public function Titles()
 	{
-		return array('rngcred', $this->PublicTitle());
+		return ['rngcred', $this->PublicTitle()];
 	}
 
 	/**
@@ -48,7 +48,7 @@ class RptIntervalCredit extends Report
 		$sql = <<<EOS
 SELECT updated,status,latest FROM {$this->mod->CreditTable} WHERE 1
 EOS;
-		$args = array();
+		$args = [];
 		if ($showfrom) {
 			$sql .= ' AND updated >= ?';
 			$args[] = $showfrom;
@@ -80,9 +80,9 @@ EOS;
 	*/
 	public function PivotReportData($data)
 	{
-		$pivoton = array('year','month');
+		$pivoton = ['year','month'];
 		$group = 'status';
-		$groupvalue = array('latest');
+		$groupvalue = ['latest'];
 		$funcs = new Pivot2($data, $pivoton, $group, $groupvalue,
 			TRUE, //include relevant Pivotbase::TYPE_*
 			FALSE, //exclude  per-line subtotals
@@ -108,13 +108,13 @@ EOS;
 	*/
 	public function PostProcessData($pivoted, $id, $linkaction, $display = TRUE)
 	{
-		$translates = array(
+		$translates = [
 			'latest'=>$this->mod->Lang('title_amount'),
 			'month'=>$this->mod->Lang('title_month'),
 			'status'=>$this->mod->Lang('status'),
 			//TODO others
-		);
-		$months = array();
+		];
+		$months = [];
 		foreach (explode(',',$this->mod->Lang('longmonths')) as $k => $val) {
 			$months['M'.$k] = $val;
 		}
@@ -122,7 +122,7 @@ EOS;
 
 		$row = reset($pivoted);
 		//interpet titles
-		$coltitles = array();
+		$coltitles = [];
 //		$works = array();
 		foreach ($row as $t => $val) {
 			$parts = explode('\\', $t);
@@ -154,15 +154,15 @@ EOS;
 			$icon_view = $theme->DisplayImage('icons/system/view.gif', $t, '', '', 'systemicon');
 		}
 */
-		$translates = array(
+		$translates = [
 			\Booker::CREDITADDED => $this->mod->Lang('stat_new'),
 			\Booker::CREDITUSED => $this->mod->Lang('balance'),
 			\Booker::CREDITEXPIRED => $this->mod->Lang('expired')
-		);
+		];
 		$subtotal = $this->mod->Lang('subtotal');
 //		$total = $this->mod->Lang('total');
 
-		$output = array();
+		$output = [];
 		$ic = count($pivoted);
 		for ($i = 0; $i < $ic; $i++) {
 			$row = $pivoted[$i];
@@ -175,7 +175,7 @@ EOS;
 				$cstat = $translates[$row['status']];
 				$row['status'] = $cstat;
 			} elseif (strpos($yid, $subtotal) !== FALSE) {
-				$row['year'] = str_replace(array('year','status'),array($current,$cstat),$yid);
+				$row['year'] = str_replace(['year','status'],[$current,$cstat],$yid);
 /*				foreach ($works as $t) {
 					$row[$t] = NULL;
 				}
@@ -197,6 +197,6 @@ EOS;
 				$output[] = array_values($row);
 			}
 		}
-		return array($coltitles,$output);
+		return [$coltitles,$output];
 	}
 }

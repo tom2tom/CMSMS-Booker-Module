@@ -157,12 +157,12 @@ class Booker extends CMSModule
 			$this->havenotifier = FALSE;
 		}
 
-		spl_autoload_register(array($this,'cmsms_spacedload'));
+		spl_autoload_register([$this,'cmsms_spacedload']);
 	}
 
 	public function __destruct()
 	{
-		spl_autoload_unregister(array($this,'cmsms_spacedload'));
+		spl_autoload_unregister([$this,'cmsms_spacedload']);
 		if (function_exists('parent::__destruct'))
 			parent::__destruct();
 	}
@@ -238,8 +238,8 @@ class Booker extends CMSModule
 		$fn = cms_join_path(__DIR__,'css','public.css');
 		$cont = @file_get_contents($fn);
 		if ($cont) {
-			$example = preg_replace(array('~\s?/\*(.*)?\*/~Usm','~\s?//.*$~m'),array('',''),$cont);
-			$example = str_replace(array("\n\n","\n","\t"),array('<br />','<br />',' '),trim($example));
+			$example = preg_replace(['~\s?/\*(.*)?\*/~Usm','~\s?//.*$~m'],['',''],$cont);
+			$example = str_replace(["\n\n","\n","\t"],['<br />','<br />',' '],trim($example));
 		} else {
 			$example = $this->Lang('missing');
 		}
@@ -332,7 +332,7 @@ EOS;
 	public function GetDependencies()
 	{
 //		return array('Auther'=>'0.2'); NOT YET
-		return array();
+		return [];
 	}
 
 	/*
@@ -461,12 +461,12 @@ EOS;
 			$node = $manager->sureGetNodeByAlias($pageid);
 			if ($node) {
 				$onpage = $node->getID();
-				$this->RegisterRoute('/[Bb]ook(ings?|er)?\/(?P<item>.+)\/submit$/',array('action'=>'dobooking','bookat'=>-1,'returnid'=>$onpage));
-				$this->RegisterRoute('/[Bb]ook(ings?|er)?\/(?P<item>.+)$/',array('action'=>'default','returnid'=>$onpage));
-				$this->RegisterRoute('/[Bb]ook(ings?|er)?\/submit$/',array('action'=>'dobooking','bookwhat'=>-1,'returnid'=>$onpage));
+				$this->RegisterRoute('/[Bb]ook(ings?|er)?\/(?P<item>.+)\/submit$/',['action'=>'dobooking','bookat'=>-1,'returnid'=>$onpage]);
+				$this->RegisterRoute('/[Bb]ook(ings?|er)?\/(?P<item>.+)$/',['action'=>'default','returnid'=>$onpage]);
+				$this->RegisterRoute('/[Bb]ook(ings?|er)?\/submit$/',['action'=>'dobooking','bookwhat'=>-1,'returnid'=>$onpage]);
 			}
 		}
-		$this->RegisterRoute('/[Bb]ook(ings?|er)?\/(?P<returnid>[0-9]+)\/(?P<item>.+)$/',array('action'=>'default'));
+		$this->RegisterRoute('/[Bb]ook(ings?|er)?\/(?P<returnid>[0-9]+)\/(?P<item>.+)$/',['action'=>'default']);
 	}
 
 	/*
@@ -487,10 +487,10 @@ EOS;
 	*/
 	public function get_tasks()
 	{
-		return array(
+		return [
 			new Booker\Cleanold_task(),
 			new Booker\Clearcache_task()
-		);
+		];
 	}
 
 	/**
@@ -713,7 +713,7 @@ EOS;
 					cms_utils::get_theme_object();
 				$imgstr = $theme->DisplayImage('icons/system/'.$iconfile,$text,'','','fakeicon systemicon');
 				//trim string like <img src="..." class="fakeicon systemicon" alt="$text" title="$text" />
-				$imgstr = str_replace(array('<img','/>'),array('',''),$imgstr);
+				$imgstr = str_replace(['<img','/>'],['',''],$imgstr);
 			} elseif ($p == 0) {
 				$imgstr = $this->GetModuleURLPath().$iconfile; } elseif (strpos($iconfile,'://',$p-1) === $p-1) {
 				$imgstr = $iconfile; } else {
@@ -746,7 +746,7 @@ EOS;
 	public function _ActivateItem($id, &$params, $returnid)
 	{
 		if (isset($params['item_id'])) {
-			$qdata = array();
+			$qdata = [];
 			if (isset($params['active'])) {
 				if ($params['active'] > 0) { //1 always; 2 inherit
 					$qdata[] = 0;
@@ -762,12 +762,12 @@ EOS;
 	    	$this->dbHandle->Execute($sql,$qdata);
 
 			if ($params['item_id'] < Booker::MINGRPID) {
-				$params = array('active_tab' => 'items');
+				$params = ['active_tab' => 'items'];
 			} else {
-				$params = array('active_tab' => 'groups');
+				$params = ['active_tab' => 'groups'];
 			}
 		} else {
-			$params = array('active_tab' => 'items');
+			$params = ['active_tab' => 'items'];
 		}
 	}
 }

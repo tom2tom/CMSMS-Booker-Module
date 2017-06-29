@@ -34,7 +34,7 @@ class WhenRules extends WhenRuleLexer
 		$sunny = FALSE;
 		if ($cond['T']) {
 			if (!is_array($cond['T']))
-				$cond['T'] = array($cond['T']);
+				$cond['T'] = [$cond['T']];
 			foreach ($cond['T'] as $one) {
 				if (is_array($one)) {
 					foreach ($one as $t) {
@@ -272,7 +272,7 @@ class WhenRules extends WhenRuleLexer
 			if ($timedata[0][0] == '!') {
 				$timedata[0] = substr($timedata[0],1);
 			}
-			$parts = array($timedata[0],$timedata[2]);
+			$parts = [$timedata[0],$timedata[2]];
 		} else { //use default block length
 			if ($timedata[0] == '!') {
 				$timedata = substr($timedata,1);
@@ -283,7 +283,7 @@ class WhenRules extends WhenRuleLexer
 				$t .= 's'; //pluralise
 			$dtw->modify($t);
 			$dtw->modify('-1 second');
-			$parts = array($timedata,$dtw->format('G:i'));
+			$parts = [$timedata,$dtw->format('G:i')];
 		}
 		//block-start
 		if (strpos($parts[0],'RS') !== FALSE) { //involves sunrise
@@ -333,8 +333,8 @@ class WhenRules extends WhenRuleLexer
 			$e -= $bs;
 		}
 		if ($e > $s)
-			return array($s,$e);
-		return array(FALSE,FALSE);
+			return [$s,$e];
+		return [FALSE,FALSE];
 	}
 
 	/*
@@ -384,8 +384,8 @@ class WhenRules extends WhenRuleLexer
 		$dtw->modify('+1 day');
 		$be = $dtw->getTimestamp() - 1;
 
-		$starts = array();
-		$ends = array();
+		$starts = [];
+		$ends = [];
 		foreach ($cond as $one) {
 			if (is_array($one)) {
 				if ($one[0][0] == '!') { //exclusive rule
@@ -403,8 +403,8 @@ class WhenRules extends WhenRuleLexer
 		if (count($starts) > 1)
 			$blocks->MergeBlocks($starts,$ends); //cleanup
 
-		$nots = array();
-		$note = array();
+		$nots = [];
+		$note = [];
 		foreach ($cond as $one) {
 			if (is_array($one)) {
 				if ($one[0][0] != '!') { //inclusive rule
@@ -424,7 +424,7 @@ class WhenRules extends WhenRuleLexer
 				$blocks->MergeBlocks($nots,$note); //cleanup
 			$blocks->DiffBlocks($starts,$ends,$nots,$note);
 		}
-		return array($starts,$ends);
+		return [$starts,$ends];
 	}
 
 //~~~~~~~~~~~~~~~~ PUBLIC INTERFACE ~~~~~~~~~~~~~~~~~~
@@ -454,14 +454,14 @@ class WhenRules extends WhenRuleLexer
 		if (!$zone)
 			$zone = $this->mod->GetPreference('timezone','UTC');
 
-		return array (
+		return  [
 		 'count'=>$num, //part default slot length, for DateTime modification
 		 'type'=>$type, //other part
 		 'sunny'=>FALSE, //whether sun-related calcs are needed
 		 'lat'=>(float)$idata['latitude'], //maybe 0.0
 		 'long'=>(float)$idata['longitude'], //ditto
 		 'zone'=>$zone
-		);
+		];
 	}
 
 	/**
@@ -480,8 +480,8 @@ class WhenRules extends WhenRuleLexer
 	*/
 	public function GetBlocks($bs, $be, &$timeparms, $defaultall=FALSE)
 	{
-		$starts = array();
-		$ends = array();
+		$starts = [];
+		$ends = [];
 		if ($bs < $be && $this->conds) {
 			$dtw = new \DateTime('@0',NULL);
 			//stamps for period limit checks
@@ -503,11 +503,11 @@ class WhenRules extends WhenRuleLexer
 				} else {
 					continue; //should never happen
 				}
-				$gets = array();
-				$gete = array();
+				$gets = [];
+				$gete = [];
 				self::PeriodBlocks($cond,$bs,$be,$dtw,$timeparms,$gets,$gete);
 				if ($gets) {
-					list($gets,$gete) = $blocks->IntersectBlocks(array($bs),array($be),$gets,$gete);
+					list($gets,$gete) = $blocks->IntersectBlocks([$bs],[$be],$gets,$gete);
 					if ($gets) {
 						if ($starts) {
 							$starts = array_merge($starts,$gets);
@@ -541,11 +541,11 @@ class WhenRules extends WhenRuleLexer
 					} else {
 						continue; //should never happen
 					}
-					$gets = array();
-					$gete = array();
+					$gets = [];
+					$gete = [];
 					self::PeriodBlocks($cond,$bs,$be,$dtw,$timeparms,$gets,$gete);
 					if ($gets) {
-						list($gets,$gete) = $blocks->IntersectBlocks(array($bs),array($be),$gets,$gete);
+						list($gets,$gete) = $blocks->IntersectBlocks([$bs],[$be],$gets,$gete);
 						if ($gets) {
 							list($starts,$ends) = $blocks->DiffBlocks($starts,$ends,$gets,$gete);
 							if (!$starts) //none of $bs..$be now covered
@@ -563,7 +563,7 @@ class WhenRules extends WhenRuleLexer
 			$starts[] = min($bs,$be);
 			$ends[] = max($bs,$be);
 		}
-		return array($starts,$ends);
+		return [$starts,$ends];
 	}
 
 	/**
@@ -590,7 +590,7 @@ class WhenRules extends WhenRuleLexer
 		//nothing to report
 		if ($defaultall) {
 			//limiting timestamps
-			return array(array($bs),array($be));
+			return [[$bs],[$be]];
 		}
 		return FALSE;
 	}
@@ -614,14 +614,14 @@ class WhenRules extends WhenRuleLexer
 			foreach ($starts as $i->$st) {
 				$nd = $st+$slotlen;
 				if ($ends[$i] >= $nd) {
-					return array($st,$nd);
+					return [$st,$nd];
 				}
 			}
 			return FALSE;
 		}
 		//limiting timestamps
 		if ($bs+$slotlen <= $be+1)
-			return array($bs,$bs+$slotlen);
+			return [$bs,$bs+$slotlen];
 		return FALSE;
 	}
 
@@ -640,7 +640,7 @@ class WhenRules extends WhenRuleLexer
 		$res = self::AllIntervals($descriptor,$bs,$be,$timeparms,TRUE);
 		if ($res) {
 			$blocks = new Blocks();
-			list($starts,$ends) = $blocks->DiffBlocks(array($bs),array($be),$res[0],$res[1]);
+			list($starts,$ends) = $blocks->DiffBlocks([$bs],[$be],$res[0],$res[1]);
 			return (count($starts) == 0); //none of the interval is not covered by $descriptor
 		}
 		return FALSE;

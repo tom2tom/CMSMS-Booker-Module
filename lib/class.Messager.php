@@ -65,7 +65,7 @@ class Messager
 		 default:
 		 	return FALSE; //error
 		}
-		return array($ktitle,$kbody1,$kbody2);
+		return [$ktitle,$kbody1,$kbody2];
 	}
 
 	/*
@@ -92,16 +92,16 @@ class Messager
 	private function MsgParms(&$mod, &$utils, &$idata, &$reqdata, $what, $custommsg, $etitlekey, $ebodykey, $tbodykey)
 	{
 		$from = FALSE; //always use default sender
-		$to = array();
+		$to = [];
 		if (isset($reqdata['contact'])) {
 			$val = trim($reqdata['contact']);
 			if ($val && preg_match(\Booker::PATNADDRESS,$val)) {
-				$to[] = array($val);
+				$to[] = [$val];
 			} elseif ($val) {
 				$to[] = $val;
 			}
 		} else {
-			$to[] = ($reqdata['address']) ? array($reqdata['name']=>$reqdata['address']):$reqdata['phone'];
+			$to[] = ($reqdata['address']) ? [$reqdata['name']=>$reqdata['address']]:$reqdata['phone'];
 		}
 
 		$shortwhat = FALSE;
@@ -133,44 +133,44 @@ class Messager
 		if ($ebodykey) {
 			$msg = $mod->Lang($ebodykey,$detail);
 			$msg = preg_replace('/\[.*\]/',$custommsg,$msg); //ok if no custommsg
-			$mailparms = array('subject'=>$mod->Lang($etitlekey),'body'=>$msg);
+			$mailparms = ['subject'=>$mod->Lang($etitlekey),'body'=>$msg];
 			$msg = $mod->Lang($tbodykey,$detail);
 			$msg = preg_replace('/\[.*\]/',$custommsg,$msg);
-			$tweetparms = array('body'=>$msg);
+			$tweetparms = ['body'=>$msg];
 			if ($shortwhat && strlen($msg) > 140) {
 				$msg = str_replace($what,$shortwhat,$msg);
 			}
-			$textparms = array('prefix'=>$idata['smsprefix'],
-				'pattern'=>$idata['smspattern'],'body'=>$msg);
+			$textparms = ['prefix'=>$idata['smsprefix'],
+				'pattern'=>$idata['smspattern'],'body'=>$msg];
 		} else {
 			if (!$etitlekey)
 				$etitlekey = 'title_bookings';
 			$msg = sprintf($custommsg,$what);
-			$mailparms = array('subject'=>$mod->Lang($etitlekey),'body'=>$msg);
-			$tweetparms = array('body'=>$msg);
+			$mailparms = ['subject'=>$mod->Lang($etitlekey),'body'=>$msg];
+			$tweetparms = ['body'=>$msg];
 			if ($shortwhat && strlen($msg) > 140) {
 				$msg = str_replace($what,$shortwhat,$msg);
 			}
-			$textparms = array('prefix'=>$idata['smsprefix'],
-				'pattern'=>$idata['smspattern'],'body'=>$msg);
+			$textparms = ['prefix'=>$idata['smsprefix'],
+				'pattern'=>$idata['smspattern'],'body'=>$msg];
 		}
 
 		if (!empty($idata['approvertell'])) {
 			$val = trim($idata['approvercontact']);
 			if ($val && preg_match(\Booker::PATNADDRESS,$val)) {
 				if ($to) {
-					$cc = array(array($idata['approver']=>$val));
+					$cc = [[$idata['approver']=>$val]];
 					//NOTE setting a 'bcc' address seems to prevent the bcc being sent! (mailer bug)
 					$mailparms['cc'] = $cc;
 				} else {
-					$to[] = array($idata['approver']=>$val);
+					$to[] = [$idata['approver']=>$val];
 				}
 			} elseif ($val) {
 				$to[] = $val;
 			}
 		}
 
-		return array($from,$to,$textparms,$mailparms,$tweetparms);
+		return [$from,$to,$textparms,$mailparms,$tweetparms];
 	}
 
 	/* *
@@ -364,9 +364,9 @@ class Messager
 			$fail = 'NOT YET SUPPORTED'; //TODO
 		}
 		if ($fail) {
-			return array(FALSE,$fail);
+			return [FALSE,$fail];
 		}
-		return array(TRUE,$sent);
+		return [TRUE,$sent];
 	}
 
 	/**
@@ -388,13 +388,13 @@ class Messager
 				list($etitlekey,$ebodykey,$tbodykey) = self::MsgKeys(\Booker::STATCHG);
 				$funcs = new \Notifier\MessageSender();
 				$utils = new Utils();
-				$propstore = array();
-				$msg = array();
+				$propstore = [];
+				$msg = [];
 				foreach ($rows as $bid=>$one) {
 					$item_id = $one['item_id'];
 					if (!isset($propstore[$item_id])) {
 						$propstore[$item_id] = $utils->GetItemProperties($mod,$item_id,
-							array('item_id','name','membersname','smspattern','smsprefix','approver','approvertell','approvercontact'));
+							['item_id','name','membersname','smspattern','smsprefix','approver','approvertell','approvercontact']);
 					}
 					$idata = $propstore[$item_id];
 					$what = (!empty($one['what'])) ? $one['what'] : FALSE;
@@ -405,13 +405,13 @@ class Messager
 						$msg[] = $msg1;
 				}
 				if ($msg) {
-					return array(FALSE,implode('<br />',array_unique($msg,SORT_STRING)));
+					return [FALSE,implode('<br />',array_unique($msg,SORT_STRING))];
 				}
-				return array(TRUE,'');
+				return [TRUE,''];
 			} else {
-				return array(FALSE,$mod->Lang('err_data'));
+				return [FALSE,$mod->Lang('err_data')];
 			}
 		}
-		return array(FALSE,$mod->Lang('tell_booker'));
+		return [FALSE,$mod->Lang('tell_booker')];
 	}
 }

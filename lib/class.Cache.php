@@ -26,7 +26,7 @@ class Cache
 	  default empty
 	  Returns: cache-object (after creating it if not already done) or NULL
 	 */
-	public static function GetCache(&$mod, $storage='auto', $settings=array())
+	public static function GetCache(&$mod, $storage='auto', $settings=[])
 	{
 //		if (self::$cache == NULL && isset($_SESSION['bkrcache']))
 //			self::$cache = $_SESSION['bkrcache'];
@@ -50,27 +50,27 @@ class Cache
 			$basedir = '';
 
 		$settings = array_merge(
-			array(
- 			'memcache' => array(
-			  array('host'=>'127.0.0.1','port'=>11211)
-			),
+			[
+ 			'memcache' => [
+			  ['host'=>'127.0.0.1','port'=>11211]
+			],
 /*			  'memcached' => array(
 			  array('host'=>$url,'port'=>11211,'persist'=>1)
 			  ),
 */
-			'redis' => array(
+			'redis' => [
 				'host' => $url //TODO CHECKME
-			),
-			'predis' => array(
+			],
+			'predis' => [
 				'host' => $url
-			),
-			'file' => array(
+			],
+			'file' => [
 				'path' => $basedir
-			),
-			'database' => array(
+			],
+			'database' => [
 				'table' => cms_db_prefix() . 'module_bkr_cache'
-			)
-			), $settings);
+			]
+			], $settings);
 
 		if ($storage) {
 			$storage = strtolower($storage);
@@ -83,7 +83,7 @@ class Cache
 		foreach ($types as $one) {
 			$one = trim($one);
 			if (!isset($settings[$one]))
-				$settings[$one] = array();
+				$settings[$one] = [];
 			if (empty($settings[$one]['namespace']))
 				$settings[$one]['namespace'] = $mod->GetName();
 			$class = 'MultiCache\Cache_' . $one;

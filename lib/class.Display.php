@@ -11,8 +11,8 @@ class Display
 {
 	private $mod; //Booker module-object reference
 	private $utils; //Utils-class object
-	protected $Langcache = array(); //translated-strings cache
-	protected $Usercache = array(); //user-names cache
+	protected $Langcache = []; //translated-strings cache
+	protected $Usercache = []; //user-names cache
 
 	public function __construct(&$mod)
 	{
@@ -40,7 +40,7 @@ class Display
 	private function DisplayTimes($dtw, $bs, $be, $seglen, $slen, $starts, $ends)
 	{
 		$dtw->setTimestamp($bs);
-		$rels = array('+1 day','+7 days','+1 month');
+		$rels = ['+1 day','+7 days','+1 month'];
 		$offs = $rels[$seglen];
 
 		if ($starts) {
@@ -48,16 +48,16 @@ class Display
 			$oe = 0;
 			$oa = $bs;
 			$si = 0;
-			$skips = array();
+			$skips = [];
 			$blocks = new Blocks();
 			$dte = clone $dtw;
 			$dte->setTimestamp($be);
 			while ($dtw < $dte) {
 				$ss = $dtw->getTimestamp();
-				$segs = array($ss);
+				$segs = [$ss];
 				$dtw->modify($offs);
 				$se = $dtw->getTimestamp()-1;
-				$sege = array($se);
+				$sege = [$se];
 				list($chks,$chke) = $blocks->DiffBlocks($segs,$sege,$starts,$ends);
 				if ($segs != $chks || $sege != $chke || !($chks || $chke)) {
 					$d = reset($chke) - $ss;
@@ -83,9 +83,9 @@ class Display
 			$dtw->modify($offs);
 			$oe = $dtw->getTimestamp() - $bs - 1;
 			$oa = $be;
-			$skips = array();
+			$skips = [];
 		}
-		return array($ob,$oe,$oa,$skips);
+		return [$ob,$oe,$oa,$skips];
 	}
 
 	/*
@@ -134,7 +134,7 @@ class Display
 		$ss = $dtw->getTimestamp();
 		$se = $ss + $offnd;
 		$ss += $offst;
-		$cells = array();
+		$cells = [];
 
 		while ($ss < $se) {
 			$dt2->setTimestamp($ss);
@@ -186,11 +186,11 @@ class Display
 		$dtw->setTimestamp($bs);
 		$dte = clone $dtw;
 		$dte->setTimestamp($be);
-		$titles = array();
+		$titles = [];
 		$fmt = $idata['dateformat'] ? $idata['dateformat'] : 'j M';
 		$shortday = (strpos($fmt,'D') !== FALSE);
 		$longday = (strpos($fmt,'l') !== FALSE);
-		$isos = array();
+		$isos = [];
 		$si = 0;
 		switch ($range) {
 		 case \Booker::RANGEDAY: //single-day-view
@@ -313,7 +313,7 @@ class Display
 			}
 			break;
 		}
-		return array($titles,$isos);
+		return [$titles,$isos];
 	}
 
 	//'naturally' compare strings $a, $b which may include numbers
@@ -392,11 +392,11 @@ class Display
 			$se = $dtw->getTimestamp();
 		}
 
-		$users = array(); //at most 2 members
+		$users = []; //at most 2 members
 		$displayclass = FALSE; //first-found class to be used
-		$resources = array(); //id(s) actually booked
-		$starts = array(); //booking-starts (automatically) sorted by increasing $bs
-		$ends = array();
+		$resources = []; //id(s) actually booked
+		$starts = []; //booking-starts (automatically) sorted by increasing $bs
+		$ends = [];
 		$spos = -1;
 		if ($iter && $position != -1) {
 			try {
@@ -489,7 +489,7 @@ class Display
 						return ($value == $n);
 					});
 					$what = array_keys($filtered);
-					usort ($what, array($this,'cmp_nat'));
+					usort ($what, [$this,'cmp_nat']);
 					if ($t) {
 						$t .= '&#013;';
 					}
@@ -504,7 +504,7 @@ class Display
 					$one->style = 'class="'.$type.'"';
 				}
 				$what = array_keys($resources);
-				usort ($what, array($this,'cmp_nat'));
+				usort ($what, [$this,'cmp_nat']);
 				$t = implode(',',$what);
 			}
 
@@ -531,7 +531,7 @@ class Display
 		if ($spos == -1 && $position != -1) {
 			$spos = $position;
 		}
-		return array($one,$spos,$position);
+		return [$one,$spos,$position];
 	}
 
 	/*
@@ -615,8 +615,8 @@ class Display
 			$timeparms = $funcs->TimeParms($idata);
 			list($starts,$ends) = $funcs->AllIntervals(reset($rules),$bs,$be,$timeparms); //proximal-rule-only, no ancestor-merging
 		} else { //all available
-			$starts = array();
-			$ends = array();
+			$starts = [];
+			$ends = [];
 		}
 		$dtw = clone $dts;
 
@@ -650,7 +650,7 @@ class Display
 		array_unshift($cells,$one);
 		$rc = count($cells); //includes header/titles row
 
-		$columns = array();
+		$columns = [];
 		$columns[] = $cells;
 		//populate titles array
 		list($titles,$isos) = self::GetTitles($idata,$dtw,$bs,$be,$range,$seglen,$skips);
@@ -675,12 +675,12 @@ class Display
 			$this->Langcache['various'] = $this->mod->Lang('title_various');
 		}
 
-		$rels = array('+1 day','+7 days','+1 month','+1 year');
+		$rels = ['+1 day','+7 days','+1 month','+1 year'];
 		$offs = $rels[$seglen]; //column-adjuster
 
 		//other column(s)
 		for ($c = 0; $c < $cc; $c++) {
-			$cells = array();
+			$cells = [];
 			//title
 			$one = new \stdClass();
 			$one->data = $titles[$c];
@@ -822,7 +822,7 @@ class Display
 			}
 			//merge adjacent slots
 			$utils = new Utils();
-			$propstore = array();
+			$propstore = [];
 			$ic = count($booked);
 			for($i=0; $i<$ic; $i++) {
 				$one = $booked[$i];
@@ -855,7 +855,7 @@ class Display
 				$one['slotlen'] = $sei - $ssi;
 			}
 
-			$sections = array();
+			$sections = [];
 			$title = chr(2).chr(3); //anything unused, not empty
 			$oneset = FALSE;
 			foreach ($booked as &$one) {
@@ -878,7 +878,7 @@ class Display
 							$oneset->ttl = $t;
 					} else
 						$oneset->ttl = ''; //no need for repeated date for a single day
-					$rows = array();
+					$rows = [];
 				}
 				//populate
 				$is_group = ($one['item_id'] >= \Booker::MINGRPID);

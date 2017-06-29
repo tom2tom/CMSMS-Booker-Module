@@ -121,15 +121,15 @@ class Export
 					$res = fwrite($fh, $csv);
 					fclose($fh);
 					if ($res) {
-						return array(TRUE,'');
+						return [TRUE,''];
 					} else {
-						return array(FALSE,'err_system');
+						return [FALSE,'err_system'];
 					}
 				} else {
-					return array(FALSE,'err_perm');
+					return [FALSE,'err_perm'];
 				}
 			} else {
-				return array(FALSE,'err_system');
+				return [FALSE,'err_system'];
 			}
 		} else {
 			@ob_clean();
@@ -148,7 +148,7 @@ class Export
 			} else {
 				echo $csv;
 			}
-			return array(TRUE,'');
+			return [TRUE,''];
 		}
 	}
 
@@ -166,7 +166,7 @@ class Export
 	public function ExportItems(&$mod, $item_id, $sep = ',')
 	{
 		if (!$item_id) {
-			return array(FALSE,'err_system');
+			return [FALSE,'err_system'];
 		}
 
 		$sql = 'SELECT * FROM '.$mod->ItemTable;
@@ -176,10 +176,10 @@ class Export
 			$args = $item_id;
 		} elseif ($item_id == '*') {
 			$sql .= ' ORDER BY name';
-			$args = array();
+			$args = [];
 		} else {
 			$sql .= ' WHERE item_id=?';
-			$args = array($item_id);
+			$args = [$item_id];
 		}
 		$utils = new Utils();
 		$all = $utils->SafeGet($sql, $args);
@@ -209,7 +209,7 @@ WHERE G.child=? ORDER BY G.proximity,G.likeorder
 EOS;
 			$strip = $mod->GetPreference('stripexport');
 			//file-column-name to fieldname translation
-			$translates = array(
+			$translates = [
 			 '#Isgroup' => 'isgroup', //not a real field
 			 'Alias' => 'alias',
 			 '#Name' => 'name',
@@ -250,7 +250,7 @@ EOS;
 			 'Allocategroup' => 'subgrpalloc',
 			 'Ingroups' => 'ingroups', //not a real field
 			 'Update' => 'item_id' //not a real field
-			);
+			];
 			/* non-public fields
 			'subgrpdata'
 			'active'
@@ -261,7 +261,7 @@ EOS;
 			//data lines(s)
 			foreach ($all as $data) {
 				//accumulator
-				$stores = array();
+				$stores = [];
 				foreach ($translates as $one) {
 					if (isset($data[$one])) {
 						$fv = $data[$one];
@@ -313,7 +313,7 @@ EOS;
 							$fv = ($data['item_id'] >= \Booker::MINGRPID) ? 'YES' : '';
 							break;
 						 case 'ingroups':
-							$parents = $utils->SafeGet($sql, array($data['item_id']), 'col');
+							$parents = $utils->SafeGet($sql, [$data['item_id']], 'col');
 							if ($parents) {
 								$fv = implode('||', $parents); //$r-separator N/A in import-func
 							} else {
@@ -333,7 +333,7 @@ EOS;
 			$fname = self::FullName($mod, $detail);
 			return self::ExportContent($mod, $fname, $outstr);
 		} //$all
-		return array(FALSE,'err_data');
+		return [FALSE,'err_data'];
 	}
 
 	/**
@@ -350,7 +350,7 @@ EOS;
 	public function ExportFees(&$mod, $feeid, $sep = ',')
 	{
 		if (!$feeid) {
-			return array(FALSE,'err_system');
+			return [FALSE,'err_system'];
 		}
 		$sql = <<<EOS
 SELECT F.*,I.name FROM $mod->FeeTable F
@@ -362,10 +362,10 @@ EOS;
 			$args = $feeid;
 		} elseif ($feeid == '*') {
 			$sql .= ' ORDER BY F.item_id,F.condorder';
-			$args = array();
+			$args = [];
 		} else {
 			$sql .= ' WHERE F.fee_id=?';
-			$args = array($feeid);
+			$args = [$feeid];
 		}
 		$utils = new Utils();
 		$all = $utils->SafeGet($sql, $args);
@@ -388,7 +388,7 @@ EOS;
 
 			$strip = $mod->GetPreference('stripexport');
 			//file-column-name to fieldname translation
-			$translates = array(
+			$translates = [
 			 '#ID' => 'name',
 			 'Description' => 'description',
 			 'Duration' => 'slottype', //interpreted
@@ -397,7 +397,7 @@ EOS;
 			 'Condition' => 'feecondition',
 			 'Type' => 'usercondition',
 			 'Update' => 'fee_id' //not real
-			);
+			];
 			/* non-public fields
 			'item_id'
 			'signature'
@@ -411,7 +411,7 @@ EOS;
 			//data lines(s)
 			foreach ($all as $data) {
 				//accumulator
-				$stores = array();
+				$stores = [];
 				foreach ($translates as $one) {
 					$fv = $data[$one];
 					switch ($one) {
@@ -442,7 +442,7 @@ EOS;
 			$fname = self::FullName($mod, $detail);
 			return self::ExportContent($mod, $fname, $outstr);
 		} //$all
-		return array(FALSE,'err_data');
+		return [FALSE,'err_data'];
 	}
 
 	/**
@@ -459,7 +459,7 @@ EOS;
 	public function ExportBookers(&$mod, $bookerid, $sep = ',')
 	{
 		if (!$bookerid) {
-			return array(FALSE,'err_system');
+			return [FALSE,'err_system'];
 		}
 		//get B.* except name,address
 		$sql = <<<EOS
@@ -474,10 +474,10 @@ EOS;
 			$args = $bookerid;
 		} elseif ($bookerid == '*') {
 			$sql .= ' ORDER BY name';
-			$args = array();
+			$args = [];
 		} else {
 			$sql .= ' WHERE booker_id=?';
-			$args = array($bookerid);
+			$args = [$bookerid];
 		}
 		$utils = new Utils();
 		$all = $utils->SafeGet($sql, $args);
@@ -501,7 +501,7 @@ EOS;
 
 			$strip = $mod->GetPreference('stripexport');
 			//file-column-name to fieldname translation
-			$translates = array(
+			$translates = [
 			 '#Name' => 'name',
 			 '#Email' => 'address',
 			 'Phone' => 'phone',
@@ -513,7 +513,7 @@ EOS;
 			 'Recorder' => 'recorder', //not real
 			 'Displaytype' => 'displayclass',
 			 'Update' => 'booker_id' //not real
-			);
+			];
 			/* non-public fields
 			 'addwhen'
 			 'active'
@@ -524,7 +524,7 @@ EOS;
 			//data lines(s)
 			foreach ($all as $data) {
 				//accumulator
-				$stores = array();
+				$stores = [];
 				foreach ($translates as $one) {
 					if (isset($data[$one])) {
 						$fv = $data[$one];
@@ -572,14 +572,14 @@ EOS;
 			$fname = self::FullName($mod, $detail);
 			return self::ExportContent($mod, $fname, $outstr);
 		} //$all
-		return array(FALSE,'err_data');
+		return [FALSE,'err_data'];
 	}
 
 	private function ExtraSQL($bkgid, $bookerid, $xtra = TRUE)
 	{
 		$sql = '';
 		$joiner = ($xtra) ? 'AND' : 'WHERE';
-		$args = array();
+		$args = [];
 		if (is_array($bkgid)) {
 			$fillers = str_repeat('?,', count($bkgid) - 1);
 			$sql .= ' '.$joiner.' bkg_id IN('.$fillers.'?)';
@@ -598,7 +598,7 @@ EOS;
 			$sql .= ' '.$joiner.' booker_id=?';
 			$args[] = $bookerid;
 		}
-		return array($sql,$args);
+		return [$sql,$args];
 	}
 
 	/**
@@ -621,7 +621,7 @@ EOS;
 	public function ExportBookings(&$mod, $item_id = FALSE, $bkgid = FALSE, $bookerid = FALSE, $sep = ',')
 	{
 		if (!($item_id || $bkgid || $bookerid)) {
-			return array(FALSE,'err_system');
+			return [FALSE,'err_system'];
 		}
 		$all = FALSE;
 		$sql = 'SELECT bkg_id FROM '.$mod->OnceTable;
@@ -641,12 +641,12 @@ EOS;
 					list($xql, $args) = self::ExtraSQL($bkgid, $bookerid, FALSE);
 					$sql .= $xql;
 				} else {
-					$args = array();
+					$args = [];
 				}
 				$sql .= ' ORDER BY item_id,slotstart';
 			} else {
 				$sql .= ' WHERE item_id=?';
-				$args = array($item_id);
+				$args = [$item_id];
 				if ($bkgid || $bookerid) {
 					list($xql, $xarg) = self::ExtraSQL($bkgid, $bookerid);
 					$sql .= $xql;
@@ -669,7 +669,7 @@ EOS;
 					list($xql, $args) = self::ExtraSQL(FALSE, $bookerid, FALSE);
 					$sql .= $xql.' ORDER BY booker_id,slotstart';
 				} else {
-					$args = array();
+					$args = [];
 					$sql .= ' ORDER BY slotstart';
 				}
 			} else {
@@ -678,7 +678,7 @@ EOS;
 					$sql .= $xql.' ORDER BY booker_id,slotstart';
 					$args = array_merge($args, $xarg);
 				} else {
-					$all = array($bkgid);
+					$all = [$bkgid];
 				}
 			}
 		}
@@ -689,11 +689,11 @@ EOS;
 				$args = $bookerid;
 				$sql .= ' ORDER BY booker_id,slotstart';
 			} elseif ($bookerid == '*') {
-				$args = array();
+				$args = [];
 				$sql .= ' ORDER BY booker_id,slotstart';
 			} else {
 				$sql .= ' WHERE booker_id=?';
-				$args = array($bookerid);
+				$args = [$bookerid];
 				$sql .= ' ORDER BY slotstart';
 			}
 		}
@@ -722,7 +722,7 @@ EOS;
 
 			$strip = $mod->GetPreference('stripexport');
 			//file-column-name to fieldname translation
-			$translates = array(
+			$translates = [
 			 '#ID' => 'item_id', //intepreted
 			 'Count' => 'subgrpcount',
 			 'Lodged' => 'lodged', //ditto
@@ -739,7 +739,7 @@ EOS;
 			 'Active' => 'active',
 			 'Transaction' => 'gatetransaction',
 			 'Update' => 'bkg_id' //not real
-			);
+			];
 			/* non-public fields
 			*/
 			$dt = new \DateTime('@0', NULL);
@@ -755,9 +755,9 @@ WHERE O.bkg_id=?
 EOS;
 			//data line(s)
 			foreach ($all as $one) {
-				$data = $utils->SafeGet($sql, array($one), 'row');
+				$data = $utils->SafeGet($sql, [$one], 'row');
 				$utils->GetUserProperties($mod, $data);
-				$stores = array();
+				$stores = [];
 				foreach ($translates as $one) {
 					$fv = $data[$one];
 					switch ($one) {
@@ -830,7 +830,7 @@ EOS;
 			$fname = self::FullName($mod, $detail);
 			return self::ExportContent($mod, $fname, $outstr);
 		}
-		return array(FALSE,'err_data');
+		return [FALSE,'err_data'];
 	}
 
 	/**
@@ -882,6 +882,6 @@ EOS;
 			$fname = self::FullName($mod, $title);
 			return self::ExportContent($mod, $fname, $outstr);
 		}
-		return array(FALSE, 'err_data');
+		return [FALSE, 'err_data'];
 	}
 }

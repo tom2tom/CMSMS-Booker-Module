@@ -23,32 +23,32 @@ class Itemops
 		$idata = $utils->GetItemProperties($mod,$item_id,'timezone');
 		$limit = $utils->GetZoneTime($idata['timezone']);
 		$sql = 'SELECT * FROM '.$mod->DispTable.' WHERE item_id=? AND slotstart>=?';
-		$rows = $utils->SafeGet($sql,array($item_id,$limit));
+		$rows = $utils->SafeGet($sql,[$item_id,$limit]);
 		if ($rows) {
 			foreach ($rows as $one) {
 			//TODO divert resource booking if possible & notify user
 			}
 		}
 		if ($utils->GetInterval($mod,$item_id,'keep') > 0) { //past data still needed
-			$sql = array(
+			$sql = [
 				'DELETE FROM '.$mod->DispTable.' WHERE item_id=? AND slotstart>=?',
 				'UPDATE '.$mod->DispTable.' SET status='.\Booker::STATGONE.' WHERE item_id=? AND slotstart<?',
 				'UPDATE '.$mod->ItemTable.' SET active=-1 WHERE item_id=?'
-			);
-			$args = array(
-				array($item_id,$limit),
-				array($item_id,$limit),
-				array($item_id)
-			);
+			];
+			$args = [
+				[$item_id,$limit],
+				[$item_id,$limit],
+				[$item_id]
+			];
 		} else {
-			$sql = array(
+			$sql = [
 				'DELETE FROM '.$mod->DispTable.' WHERE item_id=?',
 				'DELETE FROM '.$mod->ItemTable.' WHERE item_id=?'
-			);
-			$args = array(
-				array($item_id),
-				array($item_id)
-			);
+			];
+			$args = [
+				[$item_id],
+				[$item_id]
+			];
 		}
 		$utils->SafeExec($sql,$args);
 	}
@@ -62,7 +62,7 @@ class Itemops
 	private function ClearRecursive(&$mod, &$utils, $gid)
 	{
 		$db = $mod->dbHandle;
-		$members = $db->GetCol('SELECT child FROM '.$mod->GroupTable.' WHERE parent=? ORDER BY likeorder DESC',array($gid));
+		$members = $db->GetCol('SELECT child FROM '.$mod->GroupTable.' WHERE parent=? ORDER BY likeorder DESC',[$gid]);
 		if ($members) {
 			foreach ($members as $mid) {
 				if ($mid >= \Booker::MINGRPID) {
@@ -75,7 +75,7 @@ class Itemops
 					self::ClearItem($mod,$utils,$mid);
 
 			//TODO $utils->SafeExec()
-				$db->Execute('DELETE FROM '.$mod->GroupTable.' WHERE child=? AND parent=?',array($mid,$gid));
+				$db->Execute('DELETE FROM '.$mod->GroupTable.' WHERE child=? AND parent=?',[$mid,$gid]);
 			}
 			unset($members);
 		}
@@ -89,7 +89,7 @@ class Itemops
 	public function DeleteItem(&$mod, $item_id)
 	{
 		if (!is_array($item_id))
-			$item_id = array($item_id);
+			$item_id = [$item_id];
 		$utils = new Utils();
 		foreach ($item_id as $one) {
 			if ($one >= \Booker::MINGRPID) {
@@ -151,7 +151,7 @@ class Itemops
 	*/
 	public function ToggleItemActive(&$mod, $item_id)
 	{
-		$args = array();
+		$args = [];
 		if (!is_array($item_id)) {
 			$args[] = (int)$item_id;
 			$fillers = '?';

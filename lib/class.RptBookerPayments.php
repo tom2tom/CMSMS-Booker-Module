@@ -23,7 +23,7 @@ class RptBookerPayments extends Report
 	*/
 	public function Titles()
 	{
-		return array('bkrpay', $this->PublicTitle());
+		return ['bkrpay', $this->PublicTitle()];
 	}
 
 	/**
@@ -52,7 +52,7 @@ FROM {$this->mod->DispTable} D
 JOIN {$this->mod->OnceTable} O ON D.bkg_id=O.bkg_id
 WHERE D.displayed>0
 EOS;
-		$args = array();
+		$args = [];
 		if ($showfrom) {
 			$sql .= ' AND D.slotstart >= ?';
 			$args[] = $showfrom;
@@ -81,9 +81,9 @@ EOS;
 	*/
 	public function PivotReportData($data)
 	{
-		$pivoton = array('booker_id','month');
+		$pivoton = ['booker_id','month'];
 		$group = null;
-		$groupvalue = array('bkg','fee','feepaid');
+		$groupvalue = ['bkg','fee','feepaid'];
 		$funcs = new Pivot2($data, $pivoton, $group, $groupvalue,
 			TRUE, //include relevant Pivotbase::TYPE_*
 			FALSE, //exclude  per-line subtotals
@@ -109,14 +109,14 @@ EOS;
 	*/
 	public function PostProcessData($pivoted, $id, $linkaction, $display = TRUE)
 	{
-		$translates = array(
+		$translates = [
 			'booker_id'=>$this->mod->Lang('title_name'),
 			'bkg'=>$this->mod->Lang('count'),
 			'fee'=>$this->mod->Lang('title_fees'),
 			'feepaid'=>$this->mod->Lang('title_payments'),
 			'month'=>$this->mod->Lang('title_month')
-		);
-		$months = array();
+		];
+		$months = [];
 		foreach (explode(',',$this->mod->Lang('longmonths')) as $k => $val) {
 			$months['M'.$k] = $val;
 		}
@@ -124,8 +124,8 @@ EOS;
 
 		$row = reset($pivoted);
 		//interpet titles, and log row-indices of 'fee' fields
-		$coltitles = array();
-		$works = array();
+		$coltitles = [];
+		$works = [];
 		foreach ($row as $t => $val) {
 			$parts = explode('\\', $t);
 			foreach ($parts as $k => &$val) {
@@ -178,7 +178,7 @@ EOS;
 		}
 		$subtotal = $this->mod->Lang('subtotal');
 
-		$output = array();
+		$output = [];
 		$ic = count($pivoted);
 		for ($i = 0; $i < $ic; $i++) {
 			$row = $pivoted[$i];
@@ -203,12 +203,12 @@ EOS;
 				$oneset = new \stdClass();
 				$oneset->fields = array_values($row);
 				$oneset->view = ($dataline) ? $this->mod->CreateLink($id, $linkaction, '', $icon_view,
-					array('filter' => 1,'booker_id' => $bid)) : NULL; //TODO all link $params[] for payments
+					['filter' => 1,'booker_id' => $bid]) : NULL; //TODO all link $params[] for payments
 				$output[] = $oneset;
 			} else {
 				$output[] = array_values($row);
 			}
 		}
-		return array($coltitles,$output);
+		return [$coltitles,$output];
 	}
 }

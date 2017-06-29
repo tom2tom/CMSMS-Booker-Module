@@ -7,7 +7,7 @@
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
 //parameter keys filtered out before redirect etc
-$localparams = array(
+$localparams = [
 	'action',
 	'bkgid',
 	'cart',
@@ -26,12 +26,12 @@ $localparams = array(
 //	'view',
 	'zoomin',
 	'zoomout'
-);
+];
 
 $utils = new Booker\Utils();
 //$cache = Booker\Cache::GetCache($this);
 //params to scrub from the cache, if any, before merging that with current $params
-$scrubs = array('booker_id','fee');
+$scrubs = ['booker_id','fee'];
 if (!empty($params['showfrom'])) //keep current value of this
 	$scrubs[] = 'showfrom';
 if (!empty($params['itempick'])) //ditto
@@ -50,11 +50,11 @@ if (!empty($params['itempick'])) {
 	$item_id = FALSE;
 }
 if (!$item_id) {
-	$tplvars = array(
+	$tplvars = [
 		'title_error' => $this->Lang('error'),
 		'message' => $this->Lang('err_parm'),
 		'pagenav' => NULL
-	);
+	];
 	echo Booker\Utils::ProcessTemplate($this,'error.tpl',$tplvars);
 	return;
 }
@@ -94,9 +94,9 @@ if (!empty($params['clickat'])) { //table-cell clicked
 $dtw->modify('midnight'); //start of day
 $params['showfrom'] = $dtw->getTimestamp();
 
-$params['resume'] = array('default'); //redirects can [eventually] get back to here
+$params['resume'] = ['default']; //redirects can [eventually] get back to here
 
-$publicperiods = $utils->RangeNames($this,array(0,1,2,3));
+$publicperiods = $utils->RangeNames($this,[0,1,2,3]);
 
 if (isset($params['rangepick'])) //first pref, so we can detect changes
 	$range = $params['rangepick'];
@@ -187,16 +187,16 @@ if (!empty($params['newlist'])) {
 	$idata['listformat'] = $params['listformat'];
 }
 
-$jsfuncs = array(); //script accumulator
-$jsloads = array(); //document-ready funcs
-$jsincs = array(); //js includes
+$jsfuncs = []; //script accumulator
+$jsloads = []; //document-ready funcs
+$jsincs = []; //js includes
 $baseurl = $this->GetModuleURLPath();
 
 $jsloads[] = <<<EOS
  $('#needjs').css('display','none');
 EOS;
 
-$tplvars = array('needjs'=>$this->Lang('needjs'));
+$tplvars = ['needjs'=>$this->Lang('needjs')];
 
 if (isset($params['message']))
 	$tplvars['message'] = $params['message'];
@@ -205,8 +205,8 @@ $hidden = $utils->FilterParameters($params,$localparams);
 $tplvars['startform'] = $this->CreateFormStart($id,'default',$returnid,'POST','','','',$hidden);
 $tplvars['endform'] = $this->CreateFormEnd();
 
-$hidden = array();
-$names = array('showfrom');
+$hidden = [];
+$names = ['showfrom'];
 if ($showtable) {
 	$names[] = 'clickat';
 	$names[] = 'bkgid';
@@ -259,7 +259,7 @@ $intrvl = $publicperiods[$range];
 $mintrvl = $utils->RangeNames($this,$range,TRUE); //plural variant
 
 $tplvars['actionstitle'] = $this->Lang('display');
-$actions1 = array();
+$actions1 = [];
 $actions1[] = $this->CreateInputSubmit($id,'slide','+1','title="'.$this->Lang('tip_forw1',$intrvl).'"');
 if ($range == Booker::RANGEDAY)
 	$actions1[] = $this->CreateInputSubmit($id,'slide','+7', //NB numeric label value is used by action-processor
@@ -271,7 +271,7 @@ $xtra = ($range == Booker::RANGEDAY) ? ' disabled="disabled"' : '';
 $actions1[] = $this->CreateInputSubmit($id,'zoomin',$this->Lang('zoomin'),
 	'title="'.$this->Lang('tip_zoomin').'"'.$xtra);
 
-$choices = $utils->RangeNames($this,array(0,1,2,3),FALSE,TRUE); //capitalised
+$choices = $utils->RangeNames($this,[0,1,2,3],FALSE,TRUE); //capitalised
 $actions1[] = $this->CreateInputDropdown($id,'rangepick',array_flip($choices),-1,$range,'id="'.$id.'rangepick"');
 
 $jsloads[] = <<<EOS
@@ -331,7 +331,7 @@ $actions1[] = $this->CreateInputSubmit($id,'toggle',$t,
 	'title="'.$this->Lang('tip_otherview').'"');
 $tplvars['actions1'] = $actions1;
 
-$actions2 = array();
+$actions2 = [];
 $actions2[] = $this->CreateInputSubmit($id,'slide','-1',
  'title="'.$this->Lang('tip_back1',$intrvl).'"');
 if ($range == Booker::RANGEDAY)
@@ -349,18 +349,18 @@ if ($showtable)
 	$actions2[] = '';
 else {
 	if ($is_group) 	{
-		$choices = array(
+		$choices = [
 		$this->Lang('start+user')=>Booker::LISTSU,
 		$this->Lang('resource+start')=>Booker::LISTRS,
 		$this->Lang('user+resource')=>Booker::LISTUR,
 		$this->Lang('user+start')=>Booker::LISTUS
-		);
+		];
 	} else {
-		$choices = array(
+		$choices = [
 		$this->Lang('start+user')=>Booker::LISTSU,
 		$this->Lang('user+resource')=>Booker::LISTUR,
 		$this->Lang('user+start')=>Booker::LISTUS
-		);
+		];
 	}
 	$actions2[] = $this->CreateInputDropdown($id,'listformat',$choices,-1,$idata['listformat'],
 		'id="'.$id.'listformat" title="'.$this->Lang('tip_listtype').'"');
@@ -511,7 +511,7 @@ if (\$linklast.length) {
  \$head.append(linkadd);
 }
 EOS;
-echo $utils->MergeJS(FALSE,array($t),FALSE);
+echo $utils->MergeJS(FALSE,[$t],FALSE);
 
 $jsall = $utils->MergeJS($jsincs,$jsfuncs,$jsloads);
 unset($jsincs);

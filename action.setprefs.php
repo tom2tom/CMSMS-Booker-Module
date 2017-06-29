@@ -97,7 +97,7 @@ foreach ($updates as $k) {
 		$oldval = $this->GetPreference($k,0);
 		$val += 0;
 		if ($val != $oldval) {
-			$all = array(); //TODO get auther-id's of all registered users
+			$all = []; //TODO get auther-id's of all registered users
 			$funcs = new Auther\Utils();
 			$funcs->MoveContextUsers($all,$oldval,$val);
 			$this->SetPreference($k,$val);
@@ -108,4 +108,4 @@ foreach ($updates as $k) {
 	}
 }
 
-$this->Redirect($id,'defaultadmin','',array('active_tab'=>'settings'));
+$this->Redirect($id,'defaultadmin','',['active_tab'=>'settings']);

@@ -86,9 +86,9 @@ class PivotBase
 	public function setdata($data, $pivoton, $group = null, $groupvalue = null)
 	{
 		$this->Data = $data;
-		$this->colPivot = (is_array($pivoton)) ? $pivoton : array($pivoton);
-		$this->colGrouped = (is_array($group)) ? $group : (($group) ? array($group) : null);
-		$this->colCalcs = (is_array($groupvalue)) ? $groupvalue : (($groupvalue) ? array($groupvalue) : null);
+		$this->colPivot = (is_array($pivoton)) ? $pivoton : [$pivoton];
+		$this->colGrouped = (is_array($group)) ? $group : (($group) ? [$group] : null);
+		$this->colCalcs = (is_array($groupvalue)) ? $groupvalue : (($groupvalue) ? [$groupvalue] : null);
 	}
 
 	/*
@@ -99,7 +99,7 @@ class PivotBase
 	*/
 	protected function populate($keytemplate)
 	{
-		return array($out, $fullTotals);
+		return [$out, $fullTotals];
 	}
 
 	/**
@@ -111,7 +111,7 @@ class PivotBase
 		//TODO confirm all colGrouped (if any) are self::Data keys
 		$this->pivotscount = count($this->colPivot);
 		$this->calcscount = ($this->colCalcs) ? count($this->colCalcs) : 0;
-		$this->colOps = array();
+		$this->colOps = [];
 		$this->colFuncs = array_fill(0, $this->calcscount, 0);
 		for ($ic = 0; $ic < $this->calcscount; $ic++) {
 			$item = $this->colCalcs[$ic];
@@ -173,11 +173,11 @@ class PivotBase
 
 		list($out, $fullTotals) = $this->populate($keytemplate);
 		if (!$out) {
-			return array();
+			return [];
 		}
 
 		if ($this->fullTotal) {
-			$out1 = array();
+			$out1 = [];
 			if ($this->typeMark) {
 				$out1[$this->typeName] = self::TYPE_FULL_TOTAL;
 			}
@@ -191,7 +191,7 @@ class PivotBase
 			}
 
 			if ($this->lineTotal) {
-				$lineTotals = array();
+				$lineTotals = [];
 			}
 
 			if ($this->groupscount == 0) {

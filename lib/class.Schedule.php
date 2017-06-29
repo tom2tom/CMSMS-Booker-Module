@@ -9,7 +9,7 @@ namespace Booker;
 
 class Schedule
 {
-	private $slotsdone = array(); //which slots we've filled
+	private $slotsdone = []; //which slots we've filled
 
 	/*
 	Get value with status-flags for a slot
@@ -58,7 +58,7 @@ class Schedule
 	private function GetDisplayClass(&$mod, &$utils, $item_id, $user)
 	{
 		$sql = 'SELECT displayclass FROM '.$mod->BookerTable.' WHERE name=? OR publicid=?';
-		$r = $mod->dbHandle->GetOne($sql,array($user,$user));
+		$r = $mod->dbHandle->GetOne($sql,[$user,$user]);
 		if ($r)
 			return (int)$r;
 		return 1; //default
@@ -82,7 +82,7 @@ class Schedule
 				$max = $se;
 		}
 		unset($one);
-		return array($min,$max);
+		return [$min,$max];
 	}
 
 	/*
@@ -101,7 +101,7 @@ class Schedule
 	private function ScheduleOne(&$mod, &$utils, &$reqdata, $item_id, $session_id, $is_repeat)
 	{
 		$idata = $utils->GetItemProperties($mod,$item_id,
-			array('slottype','slotcount','leadtype','leadcount','bookcount','timezone'),TRUE);
+			['slottype','slotcount','leadtype','leadcount','bookcount','timezone'],TRUE);
 		$bs = $reqdata['slotstart'];
 		$slen = $utils->GetInterval($mod,$item_id,'slot');
 		if (empty($reqdata['slotlen']))
@@ -138,7 +138,7 @@ INSERT INTO $mod->DispTable (data_id,bkg_id,booker_id,item_id,slotstart,slotlen,
 EOS;
 				$did = $mod->dbHandle->GenID($mod->DispTable.'_seq');
 				$bulk = ($is_repeat) ? 20:0;
-				$args = array(
+				$args = [
 					$did,
 					(int)$reqdata['bkg_id'],
 					(int)$reqdata['booker_id'],
@@ -146,7 +146,7 @@ EOS;
 					$bs, //slotstart
 					$be-$bs, //slotlen, 'used interval'
 					$bulk
-				);
+				];
 				if ($utils->SafeExec($sql,$args)) {
 					$reqdata['slotstart'] = $bs;
 					$reqdata['slotlen'] = $be-$bs;
@@ -182,10 +182,10 @@ EOS;
 	*/
 	private function MembersLike(&$mod, $gid, $down=0)
 	{
-		$ids = array();
+		$ids = [];
 		$db = $mod->dbHandle;
 		$members = $db->GetCol('SELECT DISTINCT child FROM '.$mod->GroupTable.
-			' WHERE parent=? ORDER BY likeorder',array($gid));
+			' WHERE parent=? ORDER BY likeorder',[$gid]);
 		if ($members) {
 			foreach ($members as $mid) {
 				if ($mid < \Booker::MINGRPID)
@@ -216,7 +216,7 @@ EOS;
 	{
 		for ($i=$imin; $i<=$imax; $i++) {
 			$c = 0;
-			$found = array();
+			$found = [];
 			while ($i<=$imax) {
 				$item_id = $likes[$i];
 				$status = self::GetSlotStatus($mod,$utils,$session_id,$item_id,$bs,$be);
@@ -255,7 +255,7 @@ EOS;
 			$imin = 0;
 			$imax = $down;
 		}
-		$ret = array(); //best-found
+		$ret = []; //best-found
 		if (self::BigCluster($mod,$utils,$session_id,$likes,$imin,$imax,$mincount,$prefcount,$ret,$bs,$be)) {
 			return $ret;
 		}
@@ -281,7 +281,7 @@ EOS;
 	{
 		$e = $lcount - 1;
 		$upnext = ($down == 0 || ($up < $e && mt_rand(0, 3) > 1));
-		$ret = array();
+		$ret = [];
 		while (1) {
 			$i = ($upnext) ? $up : $down;
 			$item_id = $likes[$i];
@@ -402,7 +402,7 @@ EOS;
 			}
 			if ($found) {
 				//sort like $likes
-				$ret = array();
+				$ret = [];
 				foreach ($found as $item_id) {
 					$k = array_search($item_id,$likes);
 					$ret[$k] = $item_id;
@@ -448,7 +448,7 @@ EOS;
 		}
 
 		$idata = $utils->GetItemProperties($mod,$item_id,
-			array('slottype','slotcount','leadtype','leadcount','bookcount','timezone','subgrpalloc','subgrpdata'),TRUE);
+			['slottype','slotcount','leadtype','leadcount','bookcount','timezone','subgrpalloc','subgrpdata'],TRUE);
 		$slen = $utils->GetInterval($mod,$item_id,'slot');
 		$maxlen = $idata['bookcount'] * $slen;
 		if (!$is_repeat) {
@@ -533,8 +533,8 @@ EOS;
 					$one['subgrpcount'],$idata['subgrpalloc'],$allocdata);
 				if ($items) {
 					//record booking
-					$allsql = array();
-					$allargs = array();
+					$allsql = [];
+					$allargs = [];
 					$bkgid = (int)$one['bkg_id'];
 					$bookerid = (int)$one['booker_id'];
 					if ($one['subgrpcount'] > 1) {
@@ -551,7 +551,7 @@ EOS;
 
 						$allsql[] = $sql;
 						$did = $mod->dbHandle->GenID($mod->DispTable.'_seq');
-						$allargs[] = array(
+						$allargs[] = [
 							$did,
 							$bkgid,
 							$bookerid,
@@ -559,7 +559,7 @@ EOS;
 							$bs, //slotstart
 							$be-$bs, //slotlen, 'used interval'
 							$bulk
-						);
+						];
 					}
 
 					if ($utils->SafeExec($allsql,$allargs)) {
@@ -583,7 +583,7 @@ EOS;
 
 		if ($allocdata != $idata['subgrpdata']) {
 			$sql = 'UPDATE '.$mod->ItemTable.' SET subgrpdata=? WHERE item_id=?';
-			$utils->SafeExec($sql,array($allocdata,$item_id));
+			$utils->SafeExec($sql,[$allocdata,$item_id]);
 		}
 /*		if ($cache && $cache->
 		TODO clear any cached slotstatus data for this session
@@ -609,7 +609,7 @@ EOS;
 		$item_id = (int)$row['item_id'];
 		//get enough data for TimeParms()
 		$idata = $utils->GetItemProperties($mod,$item_id,
-			array('slottype','slotcount','timezone','latitude','longitude'),TRUE);
+			['slottype','slotcount','timezone','latitude','longitude'],TRUE);
 		$timeparms = $reps->TimeParms($idata);
 
 		$ret = TRUE;
@@ -630,19 +630,19 @@ EOS;
 				//data array to mimic a request, like some of a OnceTable row
 				//recreate whole array inside loop cuz downstream messes with it
 				list($st,$nd) = $utils->TuneBlock($idata['slottype'],$idata['slotcount'],$st,$ends[$i]);
-				$reqdata = array(
+				$reqdata = [
 				 'bkg_id'=>(int)$row['bkg_id'],
 				 'booker_id'=>(int)$row['booker_id'],
 				 'subgrpcount'=>(int)$row['subgrpcount'],
 				 'slotstart'=>$st,
 				 'slotlen'=>$nd-$st,
-				);
+				];
 				if ($reqdata['subgrpcount'] < 2) {
 					if (!self::ScheduleOne($mod,$utils,$reqdata,$item_id,$session_id,TRUE)) {
 						$ret = FALSE;
 					}
 				} else {
-					$reqdata = array($reqdata);
+					$reqdata = [$reqdata];
 					if (!self::ScheduleMulti($mod,$utils,$reqdata,$item_id,$session_id,TRUE)) {
 						$ret = FALSE;
 					}
@@ -682,7 +682,7 @@ EOS;
 			if (empty($reqdata['slotlen']))
 				$reqdata['slotlen'] = $slen;
 			$be = $bs + $reqdata['slotlen'] - 1;
-			$reqdata = array($reqdata);
+			$reqdata = [$reqdata];
 			$unarray = TRUE;
 		}
 		self::UpdateRepeats($mod,$utils,$item_id,$bs,$be);
@@ -747,7 +747,7 @@ EOS;
 			if (empty($reqdata['slotlen']))
 				$reqdata['slotlen'] = $slen;
 			$be = $bs + $reqdata['slotlen'] - 1;
-			$reqdata = array($reqdata);
+			$reqdata = [$reqdata];
 			$unarray = TRUE;
 		}
 
@@ -784,9 +784,9 @@ EOS;
 		}
 
 		if (!is_array($item)) {
-			$item = array($item);
+			$item = [$item];
 		}
-		$processed = array();
+		$processed = [];
 		list($bs,$be) = $utils->BlockWholeDays($bs,$be);
 		$whens = new WhenRules($mod);
 		$blocks = new Blocks();
@@ -877,7 +877,7 @@ EOS;
 				if ($sql == '') {
 					$sql = 'UPDATE '.$mod->RepeatTable.' SET checkedfrom=?,checkedto=? WHERE bkg_id=?';
 				}
-				$db->Execute($sql,array($row['checkedfrom'],$row['checkedto'],$row['bkg_id']));
+				$db->Execute($sql,[$row['checkedfrom'],$row['checkedto'],$row['bkg_id']]);
 				//TODO $utils->SafeExec()
 			}
 		}
@@ -909,15 +909,15 @@ EOS;
 */
 		}
 		$idata = $utils->GetItemProperties($mod,$item_id,
-			array('available','slottype','slotcount','timezone','latitude','longitude'),TRUE);
+			['available','slottype','slotcount','timezone','latitude','longitude'],TRUE);
 		if ($idata['available']) {
 			$funcs = new WhenRules($mod);
 			$timeparms = $funcs->TimeParms($idata);
 			list($starts,$ends) = $funcs->AllIntervals($idata['available'],$bs,$be,$timeparms); //proximal-rule-only, no ancestor-merging
 			//TODO deal with e.g. multi-day blocks when slotlen is <day  - ignore periods around midnight
 		} else {
-			$starts = array($bs);
-			$ends = array($be);
+			$starts = [$bs];
+			$ends = [$be];
 		}
 		if ($is_group) {
 			//TODO decide how to report on results
@@ -961,7 +961,7 @@ EOS;
 			$args = $all;
 		} else {
 			$sql = 'SELECT bkg_id FROM '.$mod->DispTable.' WHERE item_id=?';
-			$args = array($item_id);
+			$args = [$item_id];
 		}
 		if ($bkgid) {
 			$sql .= ' AND bgk_id!=?';
@@ -1005,7 +1005,7 @@ EOS;
 			$args = $all;
 		} else {
 			$sql = 'SELECT bkg_id,booker_id,item_id FROM '.$mod->DispTable.' WHERE item_id=?';
-			$args = array($item_id);
+			$args = [$item_id];
 		}
 		if (is_array($bkrid)) {
 			$fillers = str_repeat('?,',count($bkrid)-1);

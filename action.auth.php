@@ -47,7 +47,7 @@ if (!function_exists('SaveBookerParms')) {
 }
 
 //parameter keys filtered out before redirect etc
-$localparams = array(
+$localparams = [
 	'authdata',
 	'bulletin',
 	'cancel',
@@ -61,7 +61,7 @@ $localparams = array(
 //	'task',
 //	'token',
 //	'user_id' //etc as per authpanel feedback, above
-);
+];
 
 $utils = new Booker\Utils();
 
@@ -168,7 +168,7 @@ if (\$linklast.length) {
  \$head.append(linkadd);
 }
 EOS;
-echo $utils->MergeJS(FALSE,array($js),FALSE);
+echo $utils->MergeJS(FALSE,[$js],FALSE);
 
 $context = $this->GetPreference('authcontext',0);
 $task = (empty($params['task'])) ? 'login' : $params['task'];
@@ -185,7 +185,7 @@ if ($ob) {
 $funcs = new Auther\Setup();
 list($authhtm,$authjs) = $funcs->GetPanel($context, $task, ['Booker','auth',$id], TRUE, $token);
 
-$tplvars = array('authform' => $authhtm);
+$tplvars = ['authform' => $authhtm];
 
 switch ($task) {
  case 'register':

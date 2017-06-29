@@ -14,21 +14,21 @@ if (!function_exists('getfeedata')) {
 	if (!isset($params['fee_id'])) {
 		global $db;
 		$sql = 'SELECT * FROM '.$mod->FeeTable.' WHERE item_id=? ORDER BY condorder';
-		return $db->GetArray($sql,array($item_id));
+		return $db->GetArray($sql,[$item_id]);
 	}
 	return mergefeedata($params,$item_id);
  }
 
  function mergefeedata(&$params, $item_id)
  {
-	$fields = array('description','slottype','slotcount','fee','feecondition');
+	$fields = ['description','slottype','slotcount','fee','feecondition'];
 	if (!isset($params['active']))
-		$params['active'] = array();
+		$params['active'] = [];
 	$o = 1;
- 	$ret = array();
+ 	$ret = [];
 	foreach ($params['fee_id'] as $one) {
 		$fid = (int)$one;
-		$row = array('fee_id'=>$fid, 'item_id' => $item_id);
+		$row = ['fee_id'=>$fid, 'item_id' => $item_id];
 		foreach ($fields as $key) {
 			$row[$key] = $params[$key][$fid]; }
 		$row['condorder'] = $o++;
@@ -47,7 +47,7 @@ if (!function_exists('getfeedata')) {
  function addfeedata(&$params, $item_id, &$pdata)
  {
 	if (1) { //$pdata || $params['action'] == 'update') //came direct from action.openitem button-click
-		$blank = array(
+		$blank = [
 		 'fee_id' => -1,	//signal for attention before saving
 		 'item_id' => $item_id,
 		 'description' => '',
@@ -58,18 +58,18 @@ if (!function_exists('getfeedata')) {
 		 'usercondition' => '',
 //		 'condorder I(1) DEFAULT -1,
 		 'active' => 1
-		);
+		];
 		$pdata[] = $blank; //append new one
 	}
  }
 
  function delfeedata(&$params, $ids)
  {
-	$fields = array('fee_id','item_id','description','slottype','slotcount','fee','feecondition');
+	$fields = ['fee_id','item_id','description','slottype','slotcount','fee','feecondition'];
 	if (!isset($params['active']))
-		$params['active'] = array();
+		$params['active'] = [];
 	if (!is_array($ids))
-		$ids = array($ids);
+		$ids = [$ids];
 	foreach ($ids as $one) {
 		$i = array_search($one,$params['fee_id']);
 		if ($i !== FALSE) {
@@ -103,11 +103,11 @@ if (!function_exists('getfeedata')) {
 
  function FeeRedirParms($resume, &$params, $msg = FALSE)
  {
-	$pnew = array_intersect_key($params,array(
+	$pnew = array_intersect_key($params,[
 	'item_id'=>1,
 	'booker_id'=>1,
 	'task'=>1,
-	'active_tab'=>1));
+	'active_tab'=>1]);
 	if (!empty($params['resume']))
 		$pnew['resume'] = json_encode($params['resume']);
 	switch ($resume) {
@@ -127,12 +127,12 @@ if (!function_exists('getfeedata')) {
 }
 
 $utils = new Booker\Utils();
-$utils->DecodeParameters($params,array(
+$utils->DecodeParameters($params,[
 	'fee_id',
 	'description',
 	'fee',
 	'slotcount'
-));
+]);
 
 if (isset($params['resume'])) {
 	$params['resume'] = json_decode(html_entity_decode($params['resume'],ENT_QUOTES|ENT_HTML401));
@@ -219,17 +219,17 @@ usercondition=?,
 condorder=?,
 active=?
 WHERE fee_id=?';
-		$allsql = array();
-		$allargs = array();
+		$allsql = [];
+		$allargs = [];
 		//accumulate all remaining and tabled condition-id's in array data
-		$allids = array();
+		$allids = [];
 		foreach ($pdata as $one) {
 			if ($one['fee_id'] >= 0)
 				$allids[] = (int)$one;
 		}
 		//remove non-continuing conditions for $item_id
 		$t = 'DELETE FROM '.$this->FeeTable.' WHERE item_id=?';
-		$args = array($item_id);
+		$args = [$item_id];
 		if ($allids) {
 			$fillers = str_repeat('?,',count($allids)-1);
 			$t .= ' AND fee_id NOT IN('.$fillers.'?)';
@@ -261,7 +261,7 @@ WHERE fee_id=?';
 				if ($relfee)
 					$one['fee'] = NULL; //no basis for relative fee in new conditions
 				$sig = $funcs->GetFeeSignature($one);
-				$allargs[] = array(
+				$allargs[] = [
 				 $fid,
 				 $item_id,
 				 $sig,
@@ -273,7 +273,7 @@ WHERE fee_id=?';
 				 $one['usercondition'],
 				 $one['condorder'],
 				 $one['active'],
-				);
+				];
 			} else { //existing fee-item
 				$allsql[] = $sql2;
 				$fid = $one['fee_id'];
@@ -291,7 +291,7 @@ WHERE fee_id=?';
 						$one['fee'] = $now;
 				}
 				$sig = $funcs->GetFeeSignature($one);
-				$allargs[] = array(
+				$allargs[] = [
 				 $sig,
 				 $one['description'],
 				 $one['slottype'],
@@ -302,7 +302,7 @@ WHERE fee_id=?';
 				 $one['condorder'],
 				 $one['active'],
 				 $fid
-				);
+				];
 			}
 		}
 		unset($one);
@@ -318,7 +318,7 @@ WHERE fee_id=?';
 				foreach ($pdata as $one) {
 					$allsql[] = $sql1;
 					$fid = $db->GenID($this->FeeTable.'_seq');
-					$allargs[] = array(
+					$allargs[] = [
 					 $fid,
 					 $thisid,
 					 $one['description'],
@@ -328,7 +328,7 @@ WHERE fee_id=?';
 					 $one['feecondition'],
 					 $one['condorder'],
 					 $one['active'],
-					);
+					];
 				}
 			}
 		}
@@ -341,7 +341,7 @@ WHERE fee_id=?';
 			$utils->SafeExec($sql,$sel);
 		} else {
 			$sql = $sql0.'?)';
-			$utils->SafeExec($sql,array($item_id));
+			$utils->SafeExec($sql,[$item_id]);
 		}
 	}
 
@@ -382,16 +382,16 @@ if ($pmod) {
 
 $resume = json_encode($params['resume']);
 
-$hidden = array('item_id'=>$item_id,'resume'=>$resume);
+$hidden = ['item_id'=>$item_id,'resume'=>$resume];
 if ($sel) {
 	$hidden['sel'] = json_encode($sel);
 }
 
-$tplvars = array(
+$tplvars = [
 	'mod' => $pmod,
 	'startform' => $this->CreateFormStart($id,'openfees',$returnid,'POST','','','',$hidden),
 	'endform' => $this->CreateFormEnd(),
-);
+];
 
 $tplvars['pagenav'] = $utils->BuildNav($this,$id,$returnid,$params['action'],$params);
 
@@ -410,16 +410,16 @@ if ($pmod) {
 $t = $utils->GetItemNameForID($this,$item_id);
 $tplvars['title'] = $this->Lang($key,$t);
 
-$jsloads = array();
-$jsfuncs = array();
-$jsincs = array();
+$jsloads = [];
+$jsfuncs = [];
+$jsincs = [];
 $baseurl = $this->GetModuleURLPath();
 $theme = ($this->before20) ? cmsms()->get_variable('admintheme'):
 	cms_utils::get_theme_object();
 
 if ($pdata) {
 	$count = count($pdata);
-	$choices = array($this->Lang('anytime')=>-1) + array_flip(explode(',',$this->Lang('periods'))); //'minute,hour,day,week,month,year'
+	$choices = [$this->Lang('anytime')=>-1] + array_flip(explode(',',$this->Lang('periods'))); //'minute,hour,day,week,month,year'
 	if ($pmod) {
 		$tip_del = $this->Lang('tip_delfeetype',$typename);
 		$icondel = 'delete.gif';
@@ -436,8 +436,8 @@ if ($pdata) {
 	$r = 0;
 	$rc = $count - 1;
 
-	$feesnow = array();
-	$items = array();
+	$feesnow = [];
+	$items = [];
 	foreach ($pdata as $one) {
 		$oneset = new stdClass();
 		if ($pmod) {
@@ -522,7 +522,7 @@ EOS;
 EOS;
 	}
 
-	$tplvars += array(
+	$tplvars += [
 //	'intro' => $this->Lang('feeintro'),
 	'intro' => $this->Lang('help_fees').'<br />'.$this->Lang('help_feeconditions'),
 	'items' => $items,
@@ -533,7 +533,7 @@ EOS;
 	'usertext' => $this->Lang('title_usercondition'),
 	'activetext' => $this->Lang('title_active'),
 	'movetext' => $this->Lang('move')
-	);
+	];
 } else {
 	$count = 0;
 	$tplvars['hidden'] = NULL;

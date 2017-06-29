@@ -28,7 +28,7 @@ class Verify
 	*/
 	public function VerifyData(&$mod, &$utils, &$params, $item_id, $is_new, $admin)
 	{
-		$msg = array();
+		$msg = [];
 		$dtw = new \DateTime('@0', NULL);
 		$bs = 0;
 		$be = 0;
@@ -60,7 +60,7 @@ TODO support 'past' data without both date/time $params[]
 			$this->Crash();
 		}
 
-		$idata = $utils->GetItemProperties($mod, $item_id, array('slottype', 'slotcount', 'timezone'), TRUE);
+		$idata = $utils->GetItemProperties($mod, $item_id, ['slottype', 'slotcount', 'timezone'], TRUE);
 
 		if (isset($params['until'])) {
 			$fv = filter_var(trim($params['until']), FILTER_SANITIZE_STRING);
@@ -202,9 +202,9 @@ TODO support 'past' data without both date/time $params[]
 		}
 
 		if (!$msg) {
-			return array(TRUE,'');
+			return [TRUE,''];
 		}
-		return array(FALSE,$msg);
+		return [FALSE,$msg];
 	}
 
 	/*
@@ -267,7 +267,7 @@ TODO support 'past' data without both date/time $params[]
 		} else {
 			$pref = $tops;
 		}
-		$parts = array();
+		$parts = [];
 		$topdomains = self::ConvertDomains($pref);
 		//mailcheck requires domain-arrays, even if single-membered
 		if ($topdomains) {
@@ -327,7 +327,7 @@ EOS;
 				$dayfmt = '';
 				$timefmt = '';
 			} else {
-				$idata = $utils->GetItemProperties($mod, $item_id, array('dateformat', 'timeformat'));
+				$idata = $utils->GetItemProperties($mod, $item_id, ['dateformat', 'timeformat']);
 				$dayfmt = $idata['dateformat'];
 				$timefmt = $idata['timeformat'];
 			}

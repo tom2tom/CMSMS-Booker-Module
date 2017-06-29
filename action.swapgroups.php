@@ -12,11 +12,11 @@ $params['*item_id'] are id's of parent or child of that id, and for which a rele
  */
 //TODO support swapping not-yet-grouped items i.e. one or both not in GroupTable
 if (!isset($params['item_id']) || !isset($params['ref_id']))
-	$this->Redirect($id,'defaultadmin','',array('message'=>$this->Lang('err_parm')));
+	$this->Redirect($id,'defaultadmin','',['message'=>$this->Lang('err_parm')]);
 
 $item_id = $params['ref_id'];
-$otherargs = array($item_id);
-$newparms = array('item_id'=>$item_id,'task'=>'edit','active_tab'=>'advanced');
+$otherargs = [$item_id];
+$newparms = ['item_id'=>$item_id,'task'=>'edit','active_tab'=>'advanced'];
 
 if (isset($params['next_item_id']))
 	$otherargs[] = $params['next_item_id'];
@@ -37,15 +37,15 @@ if ($otherrow === FALSE) {
 	$this->Redirect($id,'openitem','',$newparms);
 }
 
-$thisargs = array($item_id,$params['item_id']);
+$thisargs = [$item_id,$params['item_id']];
 $thisrow = $db->GetRow($sql,$thisargs);
 if ($thisrow === FALSE) {
 	$newparms['message'] = $this->Lang('err_parm');
 	$this->Redirect($id,'openitem','',$newparms);
 }
 
-$thisargs = array(end($otherrow),$thisrow['gid']);
-$otherargs = array(end($thisrow),$otherrow['gid']);
+$thisargs = [end($otherrow),$thisrow['gid']];
+$otherargs = [end($thisrow),$otherrow['gid']];
 
 if ($thisargs[0] && $otherargs[0]) {
 	if ($params['change'] == 'parent')

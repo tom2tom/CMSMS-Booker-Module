@@ -11,13 +11,13 @@ $funcs = new Booker\Requestops();
 
 if (isset($params['cancel'])) {
 	if (!($p || $this->_CheckAccess())) exit;
-	$this->Redirect($id,'defaultadmin','',array('active_tab'=>$params['active_tab']));
+	$this->Redirect($id,'defaultadmin','',['active_tab'=>$params['active_tab']]);
 } elseif (isset($params['find'])) {
-	$newparms = array('resume'=>'defaultadmin','active_tab'=>$params['active_tab']);
+	$newparms = ['resume'=>'defaultadmin','active_tab'=>$params['active_tab']];
 	if (!empty($params['selreq'])) {
 		$sql = 'SELECT item_id FROM '.$this->OnceTable.' WHERE bkg_id=?';
 		$bid = reset($params['selreq']);
-		$item_id = $this->dbHandle->GetOne($sql,array($bid));
+		$item_id = $this->dbHandle->GetOne($sql,[$bid]);
 		$newparms['item_id'] = $item_id;
 	}
 	$this->Redirect($id,'findbooking','',$newparms);
@@ -27,15 +27,15 @@ if (isset($params['cancel'])) {
 	} elseif (!($p || $this->_CheckAccess('view'))) exit;
 
 	$params['active_tab'] = 'data';
-	$params['resume'] = json_encode(array('defaultadmin'));
+	$params['resume'] = json_encode(['defaultadmin']);
 	switch ($params['task']) {
 	 case 'see':
-		$this->Redirect($id,'openrequest','',array('bkg_id'=>$params['bkg_id'],
-			'resume'=>$params['resume'],'task'=>'see'));
+		$this->Redirect($id,'openrequest','',['bkg_id'=>$params['bkg_id'],
+			'resume'=>$params['resume'],'task'=>'see']);
 		break;
 	 case 'edit':
-		$this->Redirect($id,'openrequest','',array('bkg_id'=>$params['bkg_id'],
-			'resume'=>$params['resume'],'task'=>'edit'));
+		$this->Redirect($id,'openrequest','',['bkg_id'=>$params['bkg_id'],
+			'resume'=>$params['resume'],'task'=>'edit']);
 		break;
 /*	 case 'add':
 		$this->Redirect($id,'openrequest','',array('bkg_id'=>$params['bkg_id'],
@@ -57,7 +57,7 @@ if (isset($params['cancel'])) {
 	 default:
 	 	$res = TRUE;
 	}
-	$newparms = array('active_tab'=>$params['active_tab']);
+	$newparms = ['active_tab'=>$params['active_tab']];
 	if (!$res) {
 		$newparms['message'] = $msg;
 	}
@@ -67,13 +67,13 @@ $this->Crash();
 } elseif (isset($params['import'])) {
 	if (!$p) exit;
 	//was if (isset($params['importbkg']))
-	$this->Redirect($id,'import','',array(
+	$this->Redirect($id,'import','',[
 	//TODO
-	));
+	]);
 }
 
 if (!$p) exit; //NB permission for exports, too
-$newparms = array('active_tab'=>$params['active_tab']);
+$newparms = ['active_tab'=>$params['active_tab']];
 $sel = (isset($params['selreq'])) ? $params['selreq'] : FALSE;
 if ($sel) {
 	if (isset($params['approve'])) {
@@ -93,7 +93,7 @@ if ($sel) {
 		 'active_tab'=>$params['active_tab'],
 		 'message'=>$this->_PrettyMessage($key,FALSE)));
 */
-		list($res,$msg) = array(FALSE,$this->Lang('notyet')); //TODO
+		list($res,$msg) = [FALSE,$this->Lang('notyet')]; //TODO
 	} else {
 		$res = TRUE;
 	}

@@ -10,11 +10,11 @@
 if (!function_exists('ImportRedirParms')) {
  function ImportRedirParms($resume, &$params, $msg = FALSE)
  {
-	$pnew = array_intersect_key($params,array(
+	$pnew = array_intersect_key($params,[
 	'item_id'=>1,
 	'booker_id'=>1,
 	'task'=>1,
-	'active_tab'=>1));
+	'active_tab'=>1]);
 	if (!empty($params['resume']))
 		$pnew['resume'] = json_encode($params['resume']);
 /*	switch ($resume) {
@@ -37,7 +37,7 @@ if (isset($params['resume'])) {
 		array_pop($params['resume']);
 	}
 } else {
-	$params['resume'] = array('defaultadmin');
+	$params['resume'] = ['defaultadmin'];
 }
 
 if (isset($params['cancel'])) {
@@ -90,7 +90,7 @@ if (isset($_FILES) && isset($_FILES[$id.'csvfile'])) {
 	$this->Redirect($id,$resume,'',$newparms);
 }
 
-$tplvars = array();
+$tplvars = [];
 
 $from = end($params['resume']);
 
@@ -98,7 +98,7 @@ $utils = new Booker\Utils();
 $tplvars['pagenav'] = $utils->BuildNav($this,$id,$returnid,$params['action'],$params);
 $resume = json_encode($params['resume']);
 
-$hidden = array('resume'=>$resume);
+$hidden = ['resume'=>$resume];
 switch ($from) {
  case 'processrequest': //requests
  case 'adminbooking': //bookings

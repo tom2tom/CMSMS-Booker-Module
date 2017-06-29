@@ -66,7 +66,7 @@ class Blocks
 				$ends1[$i] = $t;
 			}
 		}
-		return array($starts1,$ends1);
+		return [$starts1,$ends1];
 	}
 
 	/**
@@ -85,8 +85,8 @@ class Blocks
 	*/
 	public function IntersectBlocks($starts1, $ends1, $starts2, $ends2)
 	{
-		$starts = array();
-		$ends = array();
+		$starts = [];
+		$ends = [];
 		$i = 0;
 		$ic = count($starts1);
 		$j = 0;
@@ -140,9 +140,9 @@ class Blocks
 				$starts = array_values($starts);
 				$ends = array_values($ends);
 			}
-			return array($starts,$ends);
+			return [$starts,$ends];
 		}
-		return array(FALSE,FALSE);
+		return [FALSE,FALSE];
 	}
 
 	/**

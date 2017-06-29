@@ -7,7 +7,7 @@
 #----------------------------------------------------------------------
 
 //parameter keys filtered out before redirect etc
-$localparams = array(
+$localparams = [
 	'action',
 	'cancel',
 	'cartcomment',
@@ -15,7 +15,7 @@ $localparams = array(
 	'delete',
 	'submit'
 //	'task'
-);
+];
 
 $utils = new Booker\Utils();
 $utils->UnFilterParameters($params);
@@ -108,9 +108,9 @@ if (isset($params['submit'])) {
 
 $utils->SaveCart($cart,$cache,$params);
 
-$jsloads = array();
-$jsfuncs = array();
-$jsincs = array();
+$jsloads = [];
+$jsfuncs = [];
+$jsincs = [];
 $baseurl = $this->GetModuleURLPath();
 
 $jsloads[] = <<<EOS
@@ -118,12 +118,12 @@ $jsloads[] = <<<EOS
 EOS;
 
 $hidden = $utils->FilterParameters($params,$localparams);
-$tplvars = array(
+$tplvars = [
 	'needjs' => $this->Lang('needjs'),
 	'startform' => $this->CreateFormStart($id,'opencart',$returnid,'POST','','','',$hidden),
 	'endform' => $this->CreateFormEnd(),
 	'title' => $this->Lang('title_cart')
-);
+];
 //$tplvars['desc'] = $this->Lang('DESC'); //help? if any
 
 if (!empty($params['message']))
@@ -135,7 +135,7 @@ if (!$cart->seemsEmpty()) {
 		return $item->getStatus() >= 0; //not flagged as deleted
 	});
 	//get supporting data for all carted item_ids
-	$itmids = array();
+	$itmids = [];
 	foreach ($pending as $item) {
 		$t = $item->getCartType(); //type property records item_id for carted item
 		$itmids[$t] = 1;
@@ -159,7 +159,7 @@ if (!$cart->seemsEmpty()) {
 
 	$nil = $this->Lang('nil');
 
-	$items = array();
+	$items = [];
 	foreach ($pending as $key=>$item) {
 		$oneset = new stdClass();
 		$item_id = $item->getCartType();
@@ -204,7 +204,7 @@ if (!$cart->seemsEmpty()) {
 		break;
 	}
 
-	$tplvars += array(
+	$tplvars += [
 		'items' => $items,
 		'count' => count($items),
 		'payable' => $pay,
@@ -219,7 +219,7 @@ if (!$cart->seemsEmpty()) {
 		'cancel' => $this->CreateInputSubmit($id,'cancel',$this->Lang($key1)),
 		'delete' => $this->CreateInputSubmit($id,'delete',$this->Lang('delete'),
 			'title="'.$this->Lang('tip_delseltype',$this->Lang('booking_multi')).'"')
-	);
+	];
 
 	$t = $this->Lang('confirm_del_sel',$this->Lang('booking_multi'));
 	$jsloads[] = <<<EOS
@@ -268,7 +268,7 @@ if (\$linklast.length) {
  \$head.append(linkadd);
 }
 EOS;
-echo $utils->MergeJS(FALSE,array($t),FALSE);
+echo $utils->MergeJS(FALSE,[$t],FALSE);
 
 $jsall = $utils->MergeJS($jsincs,$jsfuncs,$jsloads);
 unset($jsincs);

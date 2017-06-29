@@ -34,7 +34,7 @@ for all form-inputs here:
 */
 
 //parameter keys filtered out before redirect etc
-$localparams = array(
+$localparams = [
 	'account',
 	'action',
 //	'bookat', used after cancellation
@@ -59,7 +59,7 @@ $localparams = array(
 //	'task',
 	'until',
 	'when'
-);
+];
 
 $utils = new Booker\Utils();
 $utils->UnFilterParameters($params);
@@ -81,7 +81,7 @@ if (isset($params['cancel'])) {
 	$this->Redirect($id,$resume,$params['returnid'],$newparms);
 }
 
-$tplvars = array();
+$tplvars = [];
 
 if (isset($params['register']) || isset($params['recover']) || isset($params['change'])) {
 	$params['resume'][] = $params['action']; //cancellation comes back here
@@ -99,17 +99,17 @@ if (isset($params['register']) || isset($params['recover']) || isset($params['ch
 if (isset($params['item_id'])) {
 	$item_id = (int)$params['item_id'];
 } else {
-	$tplvars = array(
+	$tplvars = [
 		'title_error' => $this->Lang('error'),
 		'message' => $this->Lang('err_parm'),
 		'pagenav' => ''
-	);
+	];
 	echo Booker\Utils::ProcessTemplate($this,'error.tpl',$tplvars);
 	return;
 }
 
 //get item parameters for here or carting and/or scheduling and/or requesting
-$idata = $utils->GetItemProperties($this,$item_id,array(
+$idata = $utils->GetItemProperties($this,$item_id,[
 'name',
 'description',
 'image',
@@ -137,21 +137,21 @@ $idata = $utils->GetItemProperties($this,$item_id,array(
 'subgrpalloc',
 'subgrpdata',
 'bulletin'
-),TRUE);
+],TRUE);
 if ($idata) {
 	$idata['item_id'] = $item_id;
 } else {
-	$tplvars = array(
+	$tplvars = [
 		'title_error' => $this->Lang('error'),
 		'message' => $this->Lang('err_data'),
 		'pagenav' => NULL
-	);
+	];
 	echo Booker\Utils::ProcessTemplate($this,'error.tpl',$tplvars);
 	return;
 }
 
 $utils->DecodeParameters($params,
-	array('account','comment','contact','contactnew','name','passwd'));
+	['account','comment','contact','contactnew','name','passwd']);
 
 $is_group = ($item_id >= Booker::MINGRPID);
 $now = $utils->GetZoneTime($idata['timezone']);
@@ -322,7 +322,7 @@ if (isset($params['cart'])) {
 			if ($data) {
 				$funcs = new Booker\BookingChange();
 				$alldone = TRUE;
-				$allmsg = array();
+				$allmsg = [];
 				$bids = array_column($data,'bkg_id');
 				$cids = array_count_values($bids);
 				foreach ($cids as $bkg_id=>$num) {
@@ -332,7 +332,7 @@ if (isset($params['cart'])) {
 					if ($num < 1) {
 						$num = 1;
 					}
-					$reqdata = array(
+					$reqdata = [
 						'bkg_id' => $bkg_id,
 						'booker_id' => $bookerid,
 						'item_id' => $item_id,
@@ -340,7 +340,7 @@ if (isset($params['cart'])) {
 						'slotstart' => $bs,
 						'slotlen' => $params['slotlen'],
 						'comment' => $params['comment']
-					);
+					];
 					list($res,$msg) = $funcs->CancelBkg($this,$utils,$item_id,$reqdata,$record);
 					if (!$res) {
 						$alldone = FALSE;
@@ -381,7 +381,7 @@ if (isset($params['cart'])) {
 
 if (!isset($params['when'])) { //first-pass
 	if (empty($params['bkgid'])) { //not activated slot with current booking(s)
-		$bdata = array();
+		$bdata = [];
 		if (isset($params['bookat'])) {
 			if ($params['bookat'] > 0) {
 				$bdata['slotstart'] = $params['bookat'];
@@ -408,13 +408,13 @@ JOIN $this->BookerTable B ON O.booker_id=B.booker_id
 LEFT JOIN $this->AuthTable A ON B.publicid=A.publicid
 WHERE O.bkg_id=?
 EOS;
-		$bdata = $utils->SafeGet($sql,array($bkgid),'row');
+		$bdata = $utils->SafeGet($sql,[$bkgid],'row');
 		if ($bdata) {
 			$utils->GetUserProperties($this,$bdata);
 		}
 	}
 } else {
-	$bdata = array();
+	$bdata = [];
 	$dtw = new DateTime('@0',NULL);
 	$lvl = error_reporting(0);
 	$res = $dtw->modify($params['when']);
@@ -452,9 +452,9 @@ $t = $idata['bulletin'];
 $tplvars['bulletin'] = ($t) ? $t:NULL;
 
 //script accumulators
-$jsfuncs = array();
-$jsloads = array();
-$jsincs = array();
+$jsfuncs = [];
+$jsloads = [];
+$jsincs = [];
 $baseurl = $this->GetModuleURLPath();
 
 $jsloads[] = <<<'EOS'
@@ -498,7 +498,7 @@ $tplvars['mustmsg'] = '<img src="'.$baseurl.'/images/info-small.png" alt="info i
 	$this->Lang('title_must');
 
 $choosend = ($idata['bookcount'] != 1);
-$hidden = array();
+$hidden = [];
 
 $dtw = new DateTime('@'.$now,NULL);
 $example = $utils->IntervalFormat($this,$dtw,$idata['dateformat'],TRUE);
@@ -555,23 +555,23 @@ if ($past) {
 	$tplvars['currentmsg'] = $t;
 }
 
-$items = array();
+$items = [];
 
 if ($past) {
 	$ob = $this->Lang('reqnotice');
 } elseif (isset($params['bkgid']) && $bcount) { // !$past && set $params['bkgid']
 	if ($fcount > 0) {
-		$choices = array($this->Lang('reqadd')=>Booker::STATNEW);
+		$choices = [$this->Lang('reqadd')=>Booker::STATNEW];
 		$sel = Booker::STATNEW;
 	} else {
-		$choices = array();
+		$choices = [];
 		$sel = Booker::STATCHG;
 	}
-	$choices = $choices + array(
+	$choices = $choices + [
 		$this->Lang('reqchange')=>Booker::STATCHG,
 		$this->Lang('reqdelete')=>Booker::STATDEL,
 		$this->Lang('reqnotice')=>Booker::STATTELL
-	);
+	];
 	$ob = $this->CreateInputRadioGroup($id,'requesttype',$choices,$sel,'','<br />');
 } else { //!$past && !set $params['bkgid']
 	$ob = FALSE; //$this->Lang('title_request2',$idata['name']);
@@ -641,8 +641,8 @@ if ($choosend) {
 //$hidden[] = $this->CreateInputHidden($id,'passwd','');
 //$hidden[] = $this->CreateInputHidden($id,'contactnew','');
 //* DISABLE registered-user UI for now
-$choices = array($this->Lang('title_registered')=>1,
-	$this->Lang('title_occasional')=>2);
+$choices = [$this->Lang('title_registered')=>1,
+	$this->Lang('title_occasional')=>2];
 $t = (!empty($params['bookertype'])) ? (int)$params['bookertype']:1;
 $ob = $this->CreateInputRadioGroup($id,'bookertype',$choices,$t,'','|||');
 $btns = explode('|||',$ob);
@@ -917,7 +917,7 @@ if (\$linklast.length) {
  \$head.append(linkadd);
 }
 EOS;
-echo $utils->MergeJS(FALSE,array($t),FALSE);
+echo $utils->MergeJS(FALSE,[$t],FALSE);
 
 $jsall = $utils->MergeJS($jsincs,$jsfuncs,$jsloads);
 unset($jsincs);

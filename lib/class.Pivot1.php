@@ -17,7 +17,7 @@ class Pivot1 extends PivotBase
 	protected function populate($keytemplate)
 	{
 		// calculate relevant field-sums and field-counts (no callback calculations yet)
-		$Buckets = $bktValues = array();
+		$Buckets = $bktValues = [];
 		$p0 = $this->colPivot[0];
 
 		if ($this->groupscount == 0) {
@@ -174,10 +174,10 @@ class Pivot1 extends PivotBase
 		unset($store);
 		unset($row);
 
-		$out = array();
+		$out = [];
 
 		if ($this->fullTotal) {
-			$fullTotals = array();
+			$fullTotals = [];
 			if ($this->groupscount == 0) {
 				for ($ic = 0; $ic < $this->calcscount; $ic++) {
 					$k = $this->colCalcs[$ic];
@@ -205,7 +205,7 @@ class Pivot1 extends PivotBase
 		}
 
 		foreach ($bktValues as $k0 => &$k0Values) {
-			$out1 = array();
+			$out1 = [];
 			if ($this->typeMark) {
 				$out1[$this->typeName] = parent::TYPE_LINE;
 			}
@@ -213,7 +213,7 @@ class Pivot1 extends PivotBase
 			$out1[$p0] = $k0;
 
 			if ($this->lineTotal) {
-				$lineTotals = array();
+				$lineTotals = [];
 				for ($ic = 0; $ic < $this->calcscount; $ic++) {
 					$k = $this->colCalcs[$ic];
 					$lineTotals[$k] = 0;
@@ -293,6 +293,6 @@ class Pivot1 extends PivotBase
 			$out[] = $out1;
 		}
 		unset($k0Values);
-		return array($out, $fullTotals);
+		return [$out, $fullTotals];
 	}
 }

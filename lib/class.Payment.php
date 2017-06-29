@@ -79,12 +79,12 @@ class Payment
 	{
 		$funcs = new Blocks();
 		$funcs2 = new WhenRules($mod);
-		$propstore = array();
-		$chk0starts = array($bs);
-		$chk1ends = array($be);
-		$ret0starts = array();
-		$ret1ends = array();
-		$userules = array();
+		$propstore = [];
+		$chk0starts = [$bs];
+		$chk1ends = [$be];
+		$ret0starts = [];
+		$ret1ends = [];
+		$userules = [];
 		//TODO also support 'except' rules - subtract from blocks previously accepted and relative-rules
 		foreach ($dorules as $i) {
 			$one = $rules[$i];
@@ -93,7 +93,7 @@ class Payment
 					$item_id = $one['item_id'];
 					if (!isset($propstore[$item_id])) {
 						$idata = $utils->GetItemProperties($mod,$item_id,
-							array('slottype','slotcount','timezone','latitude','longitude'),TRUE);
+							['slottype','slotcount','timezone','latitude','longitude'],TRUE);
 						$propstore[$item_id] = $funcs2->TimeParms($idata);
 					}
 					$timeparms = $propstore[$item_id];
@@ -111,7 +111,7 @@ class Payment
 							array_multisort($ret0starts,SORT_ASC,SORT_NUMERIC,$ret1ends,$userules);
 							//if ($one['relative']) { TODO keep looking for absolute rule
 							//eliminate blocks already dealt with from further checks
-							list($chk0starts,$chk1ends) = $funcs->DiffBlocks(array($bs),array($be),$ret0starts,$ret1ends);
+							list($chk0starts,$chk1ends) = $funcs->DiffBlocks([$bs],[$be],$ret0starts,$ret1ends);
 						}
 					}
 				}
@@ -144,9 +144,9 @@ class Payment
 				$ret1ends = array_values($ret1ends);
 				$userules = array_values($userules);
 			}
-			return array($ret0starts,$ret1ends,$userules);
+			return [$ret0starts,$ret1ends,$userules];
 		}
-		return array(FALSE,FALSE,FALSE);
+		return [FALSE,FALSE,FALSE];
 	}
 
 	//Interpret $rule's slottype,slotcount parameters
@@ -217,7 +217,7 @@ class Payment
 	public function GetFeeSignature($row)
 	{
 		$sig = '';
-		foreach (array('slottype','slotcount','fee','feecondition') as $k) {
+		foreach (['slottype','slotcount','fee','feecondition'] as $k) {
 			$sig .= (isset($row[$k]) && $row[$k] !== NULL) ? $row[$k] : 'NULL';
 		}
 		return crc32($sig);
@@ -264,7 +264,7 @@ class Payment
 		} else {
 			$sql = 'SELECT item_id,slottype,slotcount,fee,feecondition,usercondition FROM '.$mod->FeeTable.
 			' WHERE item_id=? AND active=1 ORDER BY condorder';
-			$rules = $mod->dbHandle->GetArray($sql,array($item_id));
+			$rules = $mod->dbHandle->GetArray($sql,[$item_id]);
 		}
 
 		$grossfee = 0.0;
@@ -273,7 +273,7 @@ class Payment
 			//identify the relevant ones
 			$funcs = new Userops($mod);
 			$btype = $funcs->GetBaseType($mod,$bookerid);
-			$dorules = array();
+			$dorules = [];
 			foreach($rules as $i=>&$one)
 			{
 				$t = $one['usercondition'];
@@ -340,7 +340,7 @@ class Payment
 		}
 		$sql = 'SELECT 1 FROM '.$mod->FeeTable.' WHERE item_id'.$sql2.
 			' AND feecondition IS NOT NULL AND feecondition<>\'\' AND active=1';
-		$ruled = $mod->dbHandle->GetOne($sql,array($item_id));
+		$ruled = $mod->dbHandle->GetOne($sql,[$item_id]);
 		return ($ruled != FALSE);
 	}
 
@@ -392,7 +392,7 @@ class Payment
 		$amount = 0.0;
 		$sql = 'SELECT latest FROM '.$mod->CreditTable.
 		' WHERE booker_id=? AND status!='.\Booker::CREDITEXPIRED;
-		$data = $mod->dbHandle->GetCol($sql,array($bookerid));
+		$data = $mod->dbHandle->GetCol($sql,[$bookerid]);
 		if ($data) {
 			$funcs = new Crypter($mod);
 			foreach ($data as $one) {
@@ -416,13 +416,13 @@ class Payment
 ' (pay_id,booker_id,updated,original,latest) VALUES (?,?,?,?,?)';
 			$pid = $mod->dbHandle->GenID($mod->CreditTable.'_seq');
 			$val = $funcs->cloak_value($amount,16);
-			$args = array(
+			$args = [
 				$pid,
 				$bookerid,
 				time(),
 				$val,
 				$val
-			);
+			];
 			//TODO $utils->SafeExec()
 			$mod->dbHandle->Execute($sql,$args);
 		}
@@ -439,7 +439,7 @@ class Payment
 	{
 		$sql = 'SELECT pay_id,latest FROM '.$mod->CreditTable.
 		' WHERE booker_id=? AND status!='.\Booker::CREDITEXPIRED.' ORDER BY updated';
-		$data = $mod->dbHandle->GetArray($sql,array($bookerid));
+		$data = $mod->dbHandle->GetArray($sql,[$bookerid]);
 		if ($data) {
 			if ($amount < 0) {
 				$amount = -$amount;
@@ -460,7 +460,7 @@ class Payment
 					}
 					$latest = $funcs->cloak_value($now,16);
 					//TODO build arrays, then $utils->SafeExec($sql[],$args[]);
-					$mod->dbHandle->Execute($sql,array($latest,$row['pay_id']));
+					$mod->dbHandle->Execute($sql,[$latest,$row['pay_id']]);
 					if ($amount < 0.01) {
 						break;
 					}
@@ -489,11 +489,11 @@ class Payment
 		} elseif ($bookerid == '*') {
 			$sql = 'UPDATE '.$mod->CreditTable.' SET status='.\Booker::CREDITEXPIRED.
 			' WHERE status!='.\Booker::CREDITEXPIRED.' AND updated<?';
-			$args = array($before);
+			$args = [$before];
 		} else {
 			$sql = 'UPDATE '.$mod->CreditTable.' SET status='.\Booker::CREDITEXPIRED.
 			' WHERE booker_id=? AND status!='.\Booker::CREDITEXPIRED.' AND updated<?';
-			$args = array($bookerid,$before);
+			$args = [$bookerid,$before];
 		}
 		//TODO $utils->SafeExec()
 		$mod->dbHandle->Execute($sql,$args);

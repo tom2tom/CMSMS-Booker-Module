@@ -19,13 +19,13 @@ if (isset($params['bkg_id']))
 else {
 	$utils = new Booker\Utils();
 	$sql = 'SELECT bkg_id FROM '.$this->DispTable.' WHERE item_id=?';
-	$bkgid = $utils->SafeGet($sql,array($params['item_id']),'col');
+	$bkgid = $utils->SafeGet($sql,[$params['item_id']],'col');
 	if (!$bkgid) {
 		$name = $utils->GetItemNameForID($mod,$params['item_id']);
 		$msg = $this->Lang('nodata_one',$name);
 		$msg = $this->_PrettyMessage($msg,FALSE,FALSE);
 		$tab = ($params['item_id'] >= Booker::MINGRPID) ? 'groups':'items';
-		$this->Redirect($id,'defaultadmin','',array('active_tab'=>$tab,'message'=>$msg));
+		$this->Redirect($id,'defaultadmin','',['active_tab'=>$tab,'message'=>$msg]);
 	}
 }
 
@@ -43,14 +43,14 @@ if (isset($params['resume'])) {
 }
 switch ($resume) {
  case 'bookerbookings':
-	$newparms = array('item_id'=>$params['item_id'],'booker_id'=>$params['booker_id'],'task'=>$params['task']);
+	$newparms = ['item_id'=>$params['item_id'],'booker_id'=>$params['booker_id'],'task'=>$params['task']];
 	break;
  case 'itembookings':
-	$newparms = array('item_id'=>$params['item_id'],'task'=>$params['task']);
+	$newparms = ['item_id'=>$params['item_id'],'task'=>$params['task']];
 	break;
  case 'defaultadmin':
 	$t = ($params['item_id'] >= Booker::MINGRPID) ? 'groups':'items';
-	$newparms = array('active_tab'=>$t);
+	$newparms = ['active_tab'=>$t];
 	break;
  default:
 $this->Crash();

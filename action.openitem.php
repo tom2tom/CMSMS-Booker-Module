@@ -16,7 +16,7 @@ if (!function_exists('groupstable')) {
 	$rc = count($groups) - 1; //last index
 	$sel = is_array($relations);
 	$target = ($obname == 'members') ? 'child' : 'parent';
-	$rows = array();
+	$rows = [];
 	//NOTE action.sortlike table-data creation must conform with this
 	foreach ($groups as $k => &$name) {
 		$one = new stdClass();
@@ -29,9 +29,9 @@ if (!function_exists('groupstable')) {
 			//TODO action.swapgroups would work better with a $params['active_tab'] for returning!
 			//TODO mechanism to incrementally [de]select items and re-arrange the current selected bundle
 			$one->uplink = $mod->CreateLink($id, 'swapgroups', $returnid, $iconup,
-				array('item_id' => $k, 'prev_item_id' => $prevk, 'ref_id' => $item_id, 'change' => $target));
+				['item_id' => $k, 'prev_item_id' => $prevk, 'ref_id' => $item_id, 'change' => $target]);
 			$rows[$r - 1]->dnlink = $mod->CreateLink($id, 'swapgroups', $returnid, $icondn,
-				array('item_id' => $prevk, 'next_item_id' => $k, 'ref_id' => $item_id, 'change' => $target));
+				['item_id' => $prevk, 'next_item_id' => $k, 'ref_id' => $item_id, 'change' => $target]);
 			$prevk = $k;
 			if ($r == $rc) {
 				$one->dnlink = '';
@@ -83,8 +83,8 @@ if (!function_exists('groupsupdate')) {
 	$os = 1; //appended-row offsetter
 	$getby = ($parent) ? 'parent' : 'child'; //name of field to filter records
 	$sortby = ($parent) ? 'likeorder' : 'proximity';
-	$current = $db->GetAssoc("SELECT * FROM $mod->GroupTable WHERE $getby=? ORDER BY $sortby", array($item_id));
-	$new = array();
+	$current = $db->GetAssoc("SELECT * FROM $mod->GroupTable WHERE $getby=? ORDER BY $sortby", [$item_id]);
+	$new = [];
 	if ($parent) { //we're processing members of group $item_id
 		foreach ($sel as $oneid) {
 			if ($current) {
@@ -100,7 +100,7 @@ if (!function_exists('groupsupdate')) {
 				$p = Booker::MINGRPID + $os++;
 			}
 			//add new member in lowest likeorder
-			$new[] = array('child' => $oneid,'parent' => $item_id,'likeorder' => $o++,'proximity' => $p);
+			$new[] = ['child' => $oneid,'parent' => $item_id,'likeorder' => $o++,'proximity' => $p];
 		}
 	} else { //we're processing groups of which $item_id is a member
 		foreach ($sel as $oneid) {
@@ -118,7 +118,7 @@ if (!function_exists('groupsupdate')) {
 				//$p = maxfield($current,'proximity','parent',$oneid) + $os++;
 				$p = Booker::MINGRPID + $os++;
 			}
-			$new[] = array('child' => $item_id,'parent' => $oneid,'likeorder' => $p,'proximity' => $o++);
+			$new[] = ['child' => $item_id,'parent' => $oneid,'likeorder' => $p,'proximity' => $o++];
 		}
 	}
 	$db = $mod->dbHandle;
@@ -128,12 +128,12 @@ if (!function_exists('groupsupdate')) {
 		$db->Execute('SET TRANSACTION ISOLATION LEVEL SERIALIZABLE'); //this isn't perfect!
 		$db->StartTrans();
 		if ($current) {
-			$db->Execute("DELETE FROM $mod->GroupTable WHERE $getby=?", array($item_id)); //start afresh
+			$db->Execute("DELETE FROM $mod->GroupTable WHERE $getby=?", [$item_id]); //start afresh
 		}
 		if ($new) {
 			$sql = 'INSERT INTO '.$mod->GroupTable.' (child,parent,likeorder,proximity) VALUES (?,?,?,?)';
 			foreach ($new as &$row) {
-				$db->Execute($sql, array($row['child'], $row['parent'], $row['likeorder'], $row['proximity']));
+				$db->Execute($sql, [$row['child'], $row['parent'], $row['likeorder'], $row['proximity']]);
 			}
 			unset($row);
 		}
@@ -191,7 +191,7 @@ $is_group = ($item_id >= Booker::MINGRPID || $item_id == -Booker::MINGRPID);
 
 if (isset($params['cancel'])) {
 	$resume = array_pop($params['resume']);
-	$newparms = array('resume' => json_encode($params['resume'])); //TODO etc
+	$newparms = ['resume' => json_encode($params['resume'])]; //TODO etc
 	switch ($resume) {
 	 case 'defaultadmin':
 		$t = ($is_group) ? 'groups' : 'items';
@@ -215,14 +215,14 @@ $msg = (isset($params['message'])) ? $params['message'] : '';
 
 if (isset($params['submit']) || isset($params['apply'])) {
 	//$params not wanted in sql
-	$excludes = array(
+	$excludes = [
 	'action' => 1,
 	'active_tab' => 1,
 	'apply' => 1,
 	'resume' => 1,
 	'submit' => 1,
 	'task' => 1
-	);
+	];
 	$fields = array_diff_key($params, $excludes);
 	if ($fields['name'] == FALSE) {
 		$fields['name'] = '<'.$this->Lang('noname').$item_id.'>';
@@ -236,7 +236,7 @@ if (isset($params['submit']) || isset($params['apply'])) {
 		$fields['active'] = 0;
 	}
 	//radios, prevent NULL'd values
-	foreach (array('bookertell','grossfees','pickthis','pickmembers','cleargroup','approvertell')
+	foreach (['bookertell','grossfees','pickthis','pickmembers','cleargroup','approvertell']
 		as $t) {
 		if ($fields[$t] == '') {
 			$fields[$t] = 0;
@@ -259,7 +259,7 @@ if (isset($params['submit']) || isset($params['apply'])) {
 		} elseif ($item_id >= Booker::MINGRPID) {
 			$sql = 'DELETE FROM '.$this->GroupTable.' WHERE parent=?';
 			//TODO $utils->SafeExec()
-			$db->Execute($sql, array($item_id));
+			$db->Execute($sql, [$item_id]);
 		}
 	}
 	//(parent) groups
@@ -280,7 +280,7 @@ if (isset($params['submit']) || isset($params['apply'])) {
 	} elseif ($item_id > 0 && $item_id < Booker::MINGRPID) {
 		$sql = 'DELETE FROM '.$this->GroupTable.' WHERE child=?';
 		//TODO $utils->SafeExec()
-		$db->Execute($sql, array($item_id));
+		$db->Execute($sql, [$item_id]);
 	}
 	//stylesfile
 	if (isset($fields['stylesdelete'])) {
@@ -425,7 +425,7 @@ if (isset($params['submit']) || isset($params['apply'])) {
 
 	if (isset($params['submit'])) {
 		$t = ($is_group) ? 'groups' : 'items';
-		$this->Redirect($id, 'defaultadmin', '', array('active_tab' => $t));
+		$this->Redirect($id, 'defaultadmin', '', ['active_tab' => $t]);
 	}
 
 	$task = 'edit'; //in case was 'add'
@@ -435,7 +435,7 @@ if (isset($params['submit']) || isset($params['apply'])) {
 $utils = new Booker\Utils();
 //$idata = $utils->GetItem($this,$item_id,FALSE);
 $sql = 'SELECT * FROM '.$this->ItemTable.' WHERE item_id=?';
-$row = $db->GetRow($sql, array($item_id));
+$row = $db->GetRow($sql, [$item_id]);
 if ($row) {
 	$idata = (object) $row; //TODO CHECKME need matched pairs like 'slottype'+'slotcount' ?
 	//cleanups
@@ -476,7 +476,7 @@ $iconinfo = $theme->DisplayImage('icons/system/info.gif', $this->Lang('showhelp'
 
 $cascade = '&#8225; '; //label prefix
 $notyet = ' '.$this->Lang('notyet'); //development pending
-$cleartypes = array('p'); //for StripTags()
+$cleartypes = ['p']; //for StripTags()
 
 //NB all objects' (except ingroups) name-field is used directly for dbase field names!
 
@@ -495,7 +495,7 @@ if (!$pmod) {
 }
 
 // setup variables for the view-template
-$tplvars = array('mod' => $pmod);
+$tplvars = ['mod' => $pmod];
 
 $seetab = (!empty($params['active_tab'])) ? $params['active_tab'] : 'basic'; //default shown tab
 
@@ -505,7 +505,7 @@ $resume = json_encode($params['resume']);
 
 //multipart form needed for file uploads
 $tplvars['startform'] = $this->CreateFormStart($id, 'openitem', $returnid, 'POST', 'multipart/form-data', '', '',
-	array('item_id' => $item_id, 'task' => $task, 'resume' => $resume, 'active_tab' => ''));
+	['item_id' => $item_id, 'task' => $task, 'resume' => $resume, 'active_tab' => '']);
 $tplvars['endform'] = $this->CreateFormEnd();
 $tplvars['tab_headers'] = $this->StartTabHeaders().
 	$this->SetTabHeader('basic', $this->Lang('basic'), ($seetab == 'basic')).
@@ -514,13 +514,13 @@ $tplvars['tab_headers'] = $this->StartTabHeaders().
 	$this->EndTabHeaders().
 	$this->StartTabContent();
 //workaround CMSMS2 crap 'auto-end', EndTab() & EndTabContent() before [1st] StartTab()
-$tplvars += array(
+$tplvars += [
 	'end_tab' => $this->EndTab(),
 	'tab_footers' => $this->EndTabContent(),
 	'start_basic_tab' => $this->StartTab('basic'),
 	'start_adv_tab' => $this->StartTab('advanced'),
 	'start_fmt_tab' => $this->StartTab('formats')
-);
+];
 
 $tplvars['title'] = ($is_group) ? $this->Lang('title_group_page') : $this->Lang('title_item_page');
 $s = ($is_group) ? $this->Lang('group') : $this->Lang('item');
@@ -535,9 +535,9 @@ $inherit = $this->Lang('inherit');
 $yes = $this->Lang('yes');
 $no = $this->Lang('no');
 //script accumulators
-$jsfuncs = array();
-$jsloads = array();
-$jsincs = array();
+$jsfuncs = [];
+$jsloads = [];
+$jsincs = [];
 
 $jsloads[] = <<<EOS
  $('p.help').hide();
@@ -547,9 +547,9 @@ $jsloads[] = <<<EOS
 EOS;
 
 //construct arrays of UI-items, in display-order
-$basic = array();
-$advanced = array();
-$formats = array();
+$basic = [];
+$advanced = [];
+$formats = [];
 //------- active
 if ($pmod) {
 	$i = $this->CreateInputCheckbox($id, 'active', 1, $idata->active);
@@ -558,10 +558,10 @@ if ($pmod) {
 } else {
 	$i = $no;
 }
-$basic[] = array('ttl' => $this->Lang('title_active'),
+$basic[] = ['ttl' => $this->Lang('title_active'),
 'inp' => $i,
 'hlp' => NULL
-);
+];
 //------- name
 $t = $this->Lang('title_name');
 if ($pmod) {
@@ -577,11 +577,11 @@ if ($pmod) {
 $h = ($pmod) ?
 	$this->Lang('help_use_smarty')/*.', '.$this->Lang('label_usage')*/ :
 	NULL;
-$basic[] = array('ttl' => $t,
+$basic[] = ['ttl' => $t,
 'mst' => $pmod,
 'inp' => $i,
 'hlp' => $h
-);
+];
 //------- description
 if ($pmod) {
 	$i = $this->CreateTextArea(TRUE, $id, $idata->description, 'description', '', '', '', '', 80, 5, '', '', 'style="height:10em;"');
@@ -591,17 +591,17 @@ if ($pmod) {
 	$i = $none;
 }
 $h = ($pmod) ? $this->Lang('help_use_smarty') : NULL;
-$basic[] = array('ttl' => $this->Lang('title_long_desc'),
+$basic[] = ['ttl' => $this->Lang('title_long_desc'),
 'inp' => $i,
 'hlp' => $h
-);
+];
 //------- image
 if ($pmod) {
 	$i = $this->CreateInputText($id, 'image', $idata->image, 60, 128);
 	$files = $utils->GetUploadedFiles($this, 'jpg,jpeg,gif,png,svg');
 	if ($files) {
 		$files = array_combine($files, $files); //keys match values
-		$files = array_merge(array($this->Lang('select') => ''), $files);
+		$files = array_merge([$this->Lang('select') => ''], $files);
 		$i .= '<br />'.$this->CreateInputDropdown($id, 'imgsel', $files, -1, -1, 'onchange="imgfile_selected(this)"'); //TODO onchange set textinput if empty
 	}
 	$i .= '<br />'.$this->CreateInputFile($id, 'imgfile', 'image/*', 30, 'id="'.$id.'imgfile" title="'.
@@ -623,15 +623,15 @@ if ($pmod) {
 } else {
 	$i = $none;
 }
-$basic[] = array('ttl' => $cascade.$this->Lang('title_image'),
+$basic[] = ['ttl' => $cascade.$this->Lang('title_image'),
 'inp' => $i,
 'hlp' => $this->Lang('help_image')
-);
+];
 //------- bulletin
-$basic[] = array('ttl' => $cascade.$this->Lang('title_bulletin'),
+$basic[] = ['ttl' => $cascade.$this->Lang('title_bulletin'),
 'inp' => $this->CreateTextArea(TRUE, $id, $idata->bulletin, 'bulletin', '', '', '', '', 80, 3, '', '', 'style="height:5em;"'),
 'hlp' => NULL //$this->Lang('help_bulletin')
-);
+];
 //------- membersname
 if ($is_group) {
 	if ($pmod) {
@@ -641,10 +641,10 @@ if ($is_group) {
 	} else {
 		$i = $none;
 	}
-	$basic[] = array('ttl' => $cascade.$this->Lang('title_membersname'),
+	$basic[] = ['ttl' => $cascade.$this->Lang('title_membersname'),
 	'inp' => $i,
 	'hlp' => $this->Lang('help_membersname')
-	);
+	];
 }
 //------- pickname
 if ($pmod) {
@@ -654,10 +654,10 @@ if ($pmod) {
 } else {
 	$i = $none;
 }
-$basic[] = array('ttl' => $cascade.$this->Lang('title_pickname'),
+$basic[] = ['ttl' => $cascade.$this->Lang('title_pickname'),
 'inp' => $i,
 'hlp' => $this->Lang('help_pickname')
-);
+];
 //------- slotcount, slottype (c.f. TimeIntervals())
 $alltypes = explode(',', $this->Lang('periods')); //'minute,hour,day,week,month,year'
 if ($pmod) {
@@ -667,11 +667,11 @@ if ($pmod) {
 } else {
 	$i = $idata->slotcount.' '.$alltypes[$idata->slottype];
 }
-$basic[] = array('ttl' => $cascade.$this->Lang('title_slotlength'),
+$basic[] = ['ttl' => $cascade.$this->Lang('title_slotlength'),
 'mst' => $pmod,
 'inp' => $i,
 'hlp' => NULL //$this->Lang('help_slotlength')
-);
+];
 //------- max slots per booking
 if ($pmod) {
 	$i = $this->CreateInputText($id, 'bookcount', $idata->bookcount, 3, 3);
@@ -680,13 +680,13 @@ if ($pmod) {
 } else {
 	$i = $nolimit;
 }
-$basic[] = array('ttl' => $cascade.$this->Lang('title_bookcount'),
+$basic[] = ['ttl' => $cascade.$this->Lang('title_bookcount'),
 'inp' => $i,
 'hlp' => $this->Lang('help_bookcount')
-);
+];
 //------- confirmation to booker
 if ($pmod && $padm) {
-	$choices = array($inherit => -1,$no => 0,$yes => 1);
+	$choices = [$inherit => -1,$no => 0,$yes => 1];
 	$sel = is_null($idata->bookertell) ? -1 : (int)$idata->bookertell;
 	$i = $this->CreateInputRadioGroup($id, 'bookertell', $choices, $sel, '', '&nbsp;&nbsp;');
 	//override crappy default label-layout
@@ -700,15 +700,15 @@ if ($pmod && $padm) {
 		$i = $no;
 	}
 }
-$basic[] = array('ttl' => $this->Lang('bookertell'),
+$basic[] = ['ttl' => $this->Lang('bookertell'),
 'inp' => $i,
 'hlp' => NULL
-);
+];
 //------- fees
 $sql = 'SELECT description,fee,feecondition FROM '.$this->FeeTable.' WHERE item_id=? AND active=1 ORDER BY condorder';
-$sel = $db->GetArray($sql, array($item_id));
+$sel = $db->GetArray($sql, [$item_id]);
 if ($sel) {
-	$fees = array();
+	$fees = [];
 	foreach ($sel as &$one) {
 		$oneset = new stdClass();
 		$oneset->desc = $one['description'];
@@ -755,13 +755,13 @@ function confirm_saved(btn) {
 }
 EOS;
 }
-$basic[] = array('ttl' => $cascade.$this->Lang('title_feeusage'),
+$basic[] = ['ttl' => $cascade.$this->Lang('title_feeusage'),
 'inp' => $i,
 'hlp' => $h
-);
+];
 //------- gross or pretax fees
 if ($pmod && $padm) {
-	$choices = array($inherit => -1,$no => 0,$yes => 1);
+	$choices = [$inherit => -1,$no => 0,$yes => 1];
 	$sel = is_null($idata->grossfees) ? -1 : (int)$idata->grossfees;
 	$i = $this->CreateInputRadioGroup($id, 'grossfees', $choices, $sel, '', '&nbsp;&nbsp;');
 	//override crappy default label-layout
@@ -775,10 +775,10 @@ if ($pmod && $padm) {
 		$i = $no;
 	}
 }
-$basic[] = array('ttl' => $this->Lang('title_grossfees'),
+$basic[] = ['ttl' => $this->Lang('title_grossfees'),
 'inp' => $i,
 'hlp' => NULL
-);
+];
 //--------- tax rate
 //TODO
 //============ ADVANCED TAB
@@ -794,10 +794,10 @@ if ($pdev && $pmod) {
 	}
 	$h = NULL;
 }
-$advanced[] = array('ttl' => $this->Lang('title_alias', $s),
+$advanced[] = ['ttl' => $this->Lang('title_alias', $s),
 'inp' => $i,
 'hlp' => $h
-);
+];
 //------- keywords
 if ($pdev && $pmod) {
 	$i = $this->CreateTextArea(FALSE, $id, $idata->keywords, 'keywords', '', '', '', '', 50, 4, '', '', 'style="height:4em;"');
@@ -812,13 +812,13 @@ if ($pdev && $pmod) {
 	}
 	$h = NULL;
 }
-$advanced[] = array('ttl' => $cascade.$this->Lang('title_keywords'),
+$advanced[] = ['ttl' => $cascade.$this->Lang('title_keywords'),
 'inp' => $i,
 'hlp' => $h
-);
+];
 //------- pickthis
 if ($pmod) {
-	$choices = array($inherit => -1,$no => 0,$yes => 1);
+	$choices = [$inherit => -1,$no => 0,$yes => 1];
 	$sel = is_null($idata->pickthis) ? -1 : (int)$idata->pickthis;
 	$i = $this->CreateInputRadioGroup($id, 'pickthis', $choices, $sel, '', '&nbsp;&nbsp;');
 	//override crappy default label-layout
@@ -832,15 +832,15 @@ if ($pmod) {
 		$i = $no;
 	}
 }
-$advanced[] = array('ttl' => $this->Lang('title_pickthis'),
+$advanced[] = ['ttl' => $this->Lang('title_pickthis'),
 'inp' => $i,
 'hlp' => NULL
-);
+];
 //------- members
 if ($is_group) {
 	//TODO get this into a scrollable div
 	$sql = 'SELECT item_id,name FROM '.$this->ItemTable.' WHERE item_id!=? ORDER BY item_id DESC';
-	$allitems = $db->GetArray($sql, array($item_id));
+	$allitems = $db->GetArray($sql, [$item_id]);
 	if ($allitems) {
 		$itypename = FALSE;
 		$gtypename = FALSE;
@@ -903,7 +903,7 @@ if ($is_group) {
 	$rc = 0;
 	if ($item_id > 0) { //i.e. not new
 		$sql = 'SELECT child FROM '.$this->GroupTable.' WHERE parent=? ORDER BY likeorder';
-		$relations = $db->GetCol($sql, array($item_id));
+		$relations = $db->GetCol($sql, [$item_id]);
 		$rc = count($relations);
 		if ($rc > 0) {
 			$t = implode(',', $relations);
@@ -949,14 +949,14 @@ if ($is_group) {
 		$h = $this->Lang('help_members');
 	}
 
-	$advanced[] = array('ttl' => $this->Lang('title_members'),
+	$advanced[] = ['ttl' => $this->Lang('title_members'),
 	'inp' => $i,
 	'hlp' => $h
-	);
+	];
 
 	if ($rc > 1) {
 		$t = $this->Lang('err_server');
-		$u = $this->create_url($id, 'sortlike', '', array('item_id' => $item_id, 'first_id' => ''));
+		$u = $this->create_url($id, 'sortlike', '', ['item_id' => $item_id, 'first_id' => '']);
 		$offs = strpos($u, '?mact=');
 		$u = str_replace('&amp;', '&', substr($u, $offs + 1));
 		$jsloads[] = <<<EOS
@@ -988,7 +988,7 @@ EOS;
 	} //$rc>1
 //------- pickmembers
 	if ($pmod) {
-		$choices = array($inherit => -1,$no => 0,$yes => 1);
+		$choices = [$inherit => -1,$no => 0,$yes => 1];
 		$sel = is_null($idata->pickmembers) ? -1 : (int)$idata->pickmembers;
 		$i = $this->CreateInputRadioGroup($id, 'pickmembers', $choices, $sel, '', '&nbsp;&nbsp;');
 		//override crappy default label-layout
@@ -1002,14 +1002,14 @@ EOS;
 			$i = $no;
 		}
 	}
-	$advanced[] = array('ttl' => $this->Lang('title_pickmembers'),
+	$advanced[] = ['ttl' => $this->Lang('title_pickmembers'),
 	'inp' => $i,
 	'hlp' => NULL
-	);
+	];
 //------- cleargroup
 //if ($is_group) {
 	if ($pmod && $padm) {
-		$choices = array($inherit => -1,$no => 0,$yes => 1);
+		$choices = [$inherit => -1,$no => 0,$yes => 1];
 		$sel = is_null($idata->cleargroup) ? -1 : (int)$idata->cleargroup;
 		$i = $this->CreateInputRadioGroup($id, 'cleargroup', $choices, $sel, '', '&nbsp;&nbsp;');
 		//override crappy default label-layout
@@ -1023,23 +1023,23 @@ EOS;
 			$i = $no;
 		}
 	}
-	$advanced[] = array('ttl' => $this->Lang('title_cleargroup2'),
+	$advanced[] = ['ttl' => $this->Lang('title_cleargroup2'),
 	'inp' => $i,
 	'hlp' => NULL
-	);
+	];
 } // $is_group
 //------- groups
 $rc = 0;
 $sql = 'SELECT item_id,name FROM '.$this->ItemTable.' WHERE item_id>='.Booker::MINGRPID.' AND item_id<>? ORDER BY name';
-$allgrps = $db->GetAssoc($sql, array($item_id));
+$allgrps = $db->GetAssoc($sql, [$item_id]);
 if ($allgrps) {
 	if ($item_id > 0) { //i.e. not new
 		$sql = 'SELECT parent FROM '.$this->GroupTable.' WHERE child=? ORDER BY proximity DESC';
-		$relations = $db->GetCol($sql, array($item_id));
+		$relations = $db->GetCol($sql, [$item_id]);
 		$rc = count($relations);
 		if ($rc > 0) {
 			//get selected items 1st, in order
-			$sel = array();
+			$sel = [];
 			foreach ($relations as $k) {
 				$offset = array_search($k, array_keys($allgrps));
 				$sel += array_slice($allgrps, $offset, 1, TRUE);
@@ -1078,13 +1078,13 @@ if ($allgrps) {
 	if ($pmod && count($allgrps) > 1) {
 		$h .= '<span class="dndhelp">'.$this->Lang('help_dnd').'</span>';
 	}
-	$advanced[] = array('ttl' => $this->Lang('title_groups2', $s),
+	$advanced[] = ['ttl' => $this->Lang('title_groups2', $s),
 	'inp' => $i,
 	'hlp' => $h
-	);
+	];
 
 	$t = $this->Lang('err_server');
-	$u = $this->create_url($id, 'sortlike', '', array('item_id' => $item_id, 'sort' => ''));
+	$u = $this->create_url($id, 'sortlike', '', ['item_id' => $item_id, 'sort' => '']);
 	$offs = strpos($u, '?mact=');
 	$u = str_replace('&amp;', '&', substr($u, $offs + 1)); //'groups' or 'members' will be appended at runtime
 
@@ -1187,28 +1187,28 @@ if ($pmod) {
 } else {
 	$i = $this->Lang('always');
 }
-$advanced[] = array('ttl' => $cascade.$this->Lang('title_available'),
+$advanced[] = ['ttl' => $cascade.$this->Lang('title_available'),
 'inp' => $i,
 'hlp' => $this->Lang('help_intervals')
-);
+];
 if ($is_group) {
 	//-------- sub-group allocation mode
-	$choices = array(
+	$choices = [
 		$this->Lang('assignnone') => Booker::ALLOCNONE,
 		$this->Lang('assignfirst') => Booker::ALLOCFIRST,
 		$this->Lang('assignrandom') => Booker::ALLOCRAND,
 		$this->Lang('assignrotate') => Booker::ALLOCROTE,
 		$this->Lang('assignchoose') => Booker::ALLOCCHOOSE
-	);
+	];
 	if ($pmod) {
 		$t = (int)$idata->subgrpalloc;
 		$i = $this->CreateInputDropdown($id, 'subgrpalloc', $choices, -1, $t);
 	} else {
 		$i = array_search($idata->subgrpalloc, $choices);
 	}
-	$advanced[] = array('ttl' => $cascade.$this->Lang('title_subgrpalloc'),
+	$advanced[] = ['ttl' => $cascade.$this->Lang('title_subgrpalloc'),
 	'inp' => $i,
-	'hlp' => $this->Lang('help_subgrpalloc'));
+	'hlp' => $this->Lang('help_subgrpalloc')];
 }
 //------- leadcount, leadtype
 if ($pmod) {
@@ -1219,10 +1219,10 @@ if ($pmod) {
 } else {
 	$i = $idata->leadcount.' '.$alltypes[$idata->leadtype];
 }
-$advanced[] = array('ttl' => $cascade.$this->Lang('title_lead'),
+$advanced[] = ['ttl' => $cascade.$this->Lang('title_lead'),
 'inp' => $i,
 'hlp' => $this->Lang('help_lead')
-);
+];
 //------- keepcount, keeptype
 if ($pmod && $padm) {
 	$choices = array_flip($alltypes);
@@ -1233,18 +1233,18 @@ if ($pmod && $padm) {
 } else {
 	$i = $idata->keepcount.' '.$alltypes[$idata->keeptype];
 }
-$advanced[] = array('ttl' => $cascade.$this->Lang('title_keep'),
+$advanced[] = ['ttl' => $cascade.$this->Lang('title_keep'),
 'inp' => $i,
 'hlp' => $this->Lang('help_keep')
-);
+];
 //------- rationcount
 $i = ($pmod) ?
 	$this->CreateInputText($id, 'rationcount', $idata->rationcount, 3, 3) :
 	$idata->rationcount;
-$advanced[] = array('ttl' => $cascade.$this->Lang('title_ration'),
+$advanced[] = ['ttl' => $cascade.$this->Lang('title_ration'),
 'inp' => $i,
 'hlp' => $this->Lang('help_ration')
-);
+];
 //------- approver
 if ($pmod) {
 	$i = $this->CreateInputText($id, 'approver', $idata->approver, 30, 64);
@@ -1253,10 +1253,10 @@ if ($pmod) {
 } else {
 	$i = $none;
 }
-$advanced[] = array('ttl' => $cascade.$this->Lang('approver'),
+$advanced[] = ['ttl' => $cascade.$this->Lang('approver'),
 'inp' => $i,
 'hlp' => NULL
-);
+];
 //------- contact
 if ($pmod) {
 	$i = $this->CreateInputText($id, 'approvercontact', $idata->approvercontact, 40, 128);
@@ -1265,13 +1265,13 @@ if ($pmod) {
 } else {
 	$i = $none;
 }
-$advanced[] = array('ttl' => $cascade.$this->Lang('approvercontact'),
+$advanced[] = ['ttl' => $cascade.$this->Lang('approvercontact'),
 'inp' => $i,
 'hlp' => NULL
-);
+];
 //------- messages to contact
 if ($pmod && $padm) {
-	$choices = array($inherit => -1,$no => 0,$yes => 1);
+	$choices = [$inherit => -1,$no => 0,$yes => 1];
 	$sel = is_null($idata->approvertell) ? -1 : (int)$idata->approvertell;
 	$i = $this->CreateInputRadioGroup($id, 'approvertell', $choices, $sel, '', '&nbsp;&nbsp;');
 	//override crappy default label-layout
@@ -1285,10 +1285,10 @@ if ($pmod && $padm) {
 		$i = $no;
 	}
 }
-$advanced[] = array('ttl' => $this->Lang('approvertell'),
+$advanced[] = ['ttl' => $this->Lang('approvertell'),
 'inp' => $i,
 'hlp' => NULL
-);
+];
 //------- owner
 $sql = 'SELECT user_id,first_name,last_name FROM '.$this->UserTable.' WHERE active=1 ORDER BY last_name,first_name';
 $allusers = $db->GetAssoc($sql);
@@ -1301,20 +1301,20 @@ if ($pmod) {
 	}
 	$allusers = array_flip($allusers);
 	//prepend other choices NB something changes index 0 to '', even if done postflip()
-	$allusers = array(
+	$allusers = [
 		$inherit => -1,
 		$none => 0
-	) + $allusers;
+	] + $allusers;
 	$i = $this->CreateInputDropdown($id, 'owner', $allusers, -1, $idata->owner);
 } elseif ($idata->owner) {
 	$i = $allusers[$idata->owner];
 } else {
 	$i = $none;
 }
-$advanced[] = array('ttl' => $cascade.$this->Lang('title_owner'),
+$advanced[] = ['ttl' => $cascade.$this->Lang('title_owner'),
 'inp' => $i,
 'hlp' => NULL
-);
+];
 //------- feugroup (savers)
 $ob = cms_utils::get_module('FrontEndUsers');
 if (is_object($ob)) {
@@ -1342,20 +1342,20 @@ P.permission_name IN ('{$this->PermAddName}','{$this->PermAdminName}','{$this->P
 ORDER BY U.last_name,U.first_name
 EOS;
 */
-		$allusers = array($none => 0) + $allusers;
+		$allusers = [$none => 0] + $allusers;
 		$i = $this->CreateInputDropdown($id, 'feugroup', $allusers, -1, $idata->feugroup);
 	} elseif ($rc && $idata->feugroup) {
 		$i = array_search($idata->feugroup, $allusers);
 	} else {
 		$i = $none;
 	}
-	$advanced[] = array('ttl' => $cascade.$this->Lang('title_feugroup'),
+	$advanced[] = ['ttl' => $cascade.$this->Lang('title_feugroup'),
 	'inp' => $i,
 	'hlp' => $this->Lang('help_feugroup')
-	);
+	];
 }
 //------- payments interface
-$choices = array();
+$choices = [];
 $allmodules = $this->GetModulesWithCapability('GatePayer');
 foreach ($allmodules as $name) {
 	$ob = cms_utils::get_module($name);
@@ -1366,7 +1366,7 @@ foreach ($allmodules as $name) {
 	}
 }
 asort($choices);
-$choices = array($none => '',	$inherit => '-1') + $choices;
+$choices = [$none => '',	$inherit => '-1'] + $choices;
 if ($pmod) {
 	$i = $this->CreateInputDropdown($id, 'paymentiface', $choices, -1, $idata->paymentiface);
 } elseif ($idata->paymentiface) {
@@ -1374,10 +1374,10 @@ if ($pmod) {
 } else {
 	$i = $none;
 }
-$advanced[] = array('ttl' => $cascade.$this->Lang('title_paymentiface'),
+$advanced[] = ['ttl' => $cascade.$this->Lang('title_paymentiface'),
 'inp' => $i,
 'hlp' => $this->Lang('help_paymentiface')
-);
+];
 //------- custom-forms interface
 if ($pmod) {
 	$i = $this->CreateInputText($id, 'formiface', $idata->formiface, 30, 48);
@@ -1386,10 +1386,10 @@ if ($pmod) {
 } else {
 	$i = $none;
 }
-$advanced[] = array('ttl' => $cascade.$this->Lang('title_formiface').$notyet,
+$advanced[] = ['ttl' => $cascade.$this->Lang('title_formiface').$notyet,
 'inp' => $i,
 'hlp' => $this->Lang('help_formiface')
-);
+];
 //============ FORMATS TAB
 //------- timezone
 if ($pmod) {
@@ -1399,26 +1399,26 @@ if ($pmod) {
 } else {
 	$i = $none;
 }
-$formats[] = array('ttl' => $cascade.$this->Lang('title_zone'),
+$formats[] = ['ttl' => $cascade.$this->Lang('title_zone'),
 'inp' => $i,
 'hlp' => $this->Lang('help_zone')
-);
+];
 //------- latitude
 $i = ($pmod) ?
 	$this->CreateInputText($id, 'latitude', $idata->latitude, 8, 8) :
 	$idata->latitude;
-$formats[] = array('ttl' => $cascade.$this->Lang('latitude'),
+$formats[] = ['ttl' => $cascade.$this->Lang('latitude'),
 'inp' => $i,
 'hlp' => $this->Lang('help_latitude')
-);
+];
 //------- longitude
 $i = ($pmod) ?
 	$this->CreateInputText($id, 'longitude', $idata->longitude, 8, 8) :
 	$idata->longitude;
-$formats[] = array('ttl' => $cascade.$this->Lang('longitude'),
+$formats[] = ['ttl' => $cascade.$this->Lang('longitude'),
 'inp' => $i,
 'hlp' => $this->Lang('help_longitude')
-);
+];
 //-------- SMS prefix, pattern
 if ($pmod) {
 	$i = $this->CreateInputText($id, 'smsprefix', $idata->smsprefix, 4, 8);
@@ -1427,10 +1427,10 @@ if ($pmod) {
 } else {
 	$i = $none;
 }
-$formats[] = array('ttl' => $cascade.$this->Lang('title_smsprefix'),
+$formats[] = ['ttl' => $cascade.$this->Lang('title_smsprefix'),
 'inp' => $i,
 'hlp' => $this->Lang('help_smsprefix')
-);
+];
 if ($pmod) {
 	$i = $this->CreateInputText($id, 'smspattern', $idata->smspattern, 20, 32);
 } elseif ($idata->smspattern) {
@@ -1438,10 +1438,10 @@ if ($pmod) {
 } else {
 	$i = $none;
 }
-$formats[] = array('ttl' => $cascade.$this->Lang('title_smspattern'),
+$formats[] = ['ttl' => $cascade.$this->Lang('title_smspattern'),
 'inp' => $i,
 'hlp' => $this->Lang('help_smspattern')
-);
+];
 //------- dateformat
 if ($pmod) {
 	$i = $this->CreateInputText($id, 'dateformat', $idata->dateformat, 10, 12);
@@ -1450,10 +1450,10 @@ if ($pmod) {
 } else {
 	$i = $none;
 }
-$formats[] = array('ttl' => $cascade.$this->Lang('title_dateformat'),
+$formats[] = ['ttl' => $cascade.$this->Lang('title_dateformat'),
 'inp' => $i,
 'hlp' => $this->Lang('help_date')
-);
+];
 //------- timeformat
 if ($pmod) {
 	$i = $this->CreateInputText($id, 'timeformat', $idata->timeformat, 8, 12);
@@ -1462,26 +1462,26 @@ if ($pmod) {
 } else {
 	$i = $none;
 }
-$formats[] = array('ttl' => $cascade.$this->Lang('title_timeformat'),
+$formats[] = ['ttl' => $cascade.$this->Lang('title_timeformat'),
 'inp' => $i,
 'hlp' => $this->Lang('help_time')
-);
+];
 //------- listformat
 if ($is_group) {
-	$choices = array(
+	$choices = [
 	$inherit => -1,
 	$this->Lang('start+user') => Booker::LISTSU,
 	$this->Lang('resource+start') => Booker::LISTRS,
 	$this->Lang('user+resource') => Booker::LISTUR,
 	$this->Lang('user+start') => Booker::LISTUS
-	);
+	];
 } else {
-	$choices = array(
+	$choices = [
 	$inherit => -1,
 	$this->Lang('start+user') => Booker::LISTSU,
 	$this->Lang('user+resource') => Booker::LISTUR,
 	$this->Lang('user+start') => Booker::LISTUS
-	);
+	];
 }
 
 if ($pmod) {
@@ -1490,10 +1490,10 @@ if ($pmod) {
 } else {
 	$i = array_search($idata->listformat, $choices);
 }
-$formats[] = array('ttl' => $cascade.$this->Lang('listformat'),
+$formats[] = ['ttl' => $cascade.$this->Lang('listformat'),
 'inp' => $i,
 'hlp' => NULL //$this->Lang('help_')
-);
+];
 //------- stylesfile
 //remember this, to support incremental change
 $hidden = $this->CreateInputHidden($id, 'oldstyles', $idata->stylesfile);
@@ -1503,7 +1503,7 @@ if ($pmod) {
 	$files = $utils->GetUploadedFiles($this, 'css');
 	if ($files) {
 		$files = array_combine($files, $files); //keys match values
-		$files = array_merge(array($this->Lang('select') => ''), $files);
+		$files = array_merge([$this->Lang('select') => ''], $files);
 		$i .= '<br />'.$this->CreateInputDropdown($id, 'stylessel', $files, -1, -1, 'onchange="stylefile_selected(this)"'); //TODO onchange set textinput if empty
 	}
 	$i .= '<br />'.$this->CreateInputFile($id, 'stylesfile', 'text/css', 36, 'id="'.$id.'stylesfile" title="'.
@@ -1518,18 +1518,18 @@ if ($pmod) {
 }
 
 //$h = $this->Lang('help_upload',$this->Lang('apply'),$this->Lang('submit'));
-$formats[] = array('ttl' => $cascade.$this->Lang('title_styles', $s),
+$formats[] = ['ttl' => $cascade.$this->Lang('title_styles', $s),
 'inp' => $i,
 'hlp' => NULL
-);
+];
 //-------
 
-$tplvars += array(
+$tplvars += [
 	'basic' => $basic,
 	'advanced' => $advanced,
 	'formats' => $formats,
 	'showtip' => $iconinfo
-);
+];
 
 if ($pmod) {
 	$tplvars['apply'] = $this->CreateInputSubmit($id, 'apply', $this->Lang('apply'), 'onclick="current_tab()"');

@@ -6,9 +6,9 @@
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
 
-$taboptarray = array(
+$taboptarray = [
  'mysql' => 'ENGINE MyISAM CHARACTER SET utf8 COLLATE utf8_general_ci',
- 'mysqli' => 'ENGINE MyISAM CHARACTER SET utf8 COLLATE utf8_general_ci');
+ 'mysqli' => 'ENGINE MyISAM CHARACTER SET utf8 COLLATE utf8_general_ci'];
 $dict = NewDataDictionary($db);
 $pre = cms_db_prefix();
 $errmsg = 'Installation failure'; //no translation
@@ -116,7 +116,7 @@ $db->CreateSequence($this->ItemTable.'_gseq', Booker::MINGRPID); //group id's st
 // default group usable by all resources
 $gid = $db->GenID($this->ItemTable.'_gseq');
 $sql = 'INSERT INTO '.$this->ItemTable.' (item_id,name) VALUES (?,?)'; //TODO more fields
-$db->Execute($sql, array($gid, $this->Lang('groupdefault')));
+$db->Execute($sql, [$gid, $this->Lang('groupdefault')]);
 
 /*
 group-relationships table schema:
@@ -263,7 +263,7 @@ if ($sqlarray == FALSE || $dict->ExecuteSQLArray($sqlarray, FALSE) != 2) {
 }
 //indices
 $sqlarray = $dict->CreateIndexSQL('idx1_'.$this->DispTable, $this->DispTable, 'data_id',
-	array('UNIQUE'));
+	['UNIQUE']);
 if ($sqlarray == FALSE || $dict->ExecuteSQLArray($sqlarray, FALSE) != 2) {
 	return $errmsg;
 }
@@ -450,7 +450,7 @@ $cfuncs->encrypt_preference('masterpass', base64_decode('U3VjayBpdCB1cCwgY3JhY2t
 
 $format = get_site_preference('defaultdateformat');
 if ($format) {
-	$strftokens = array(
+	$strftokens = [
 	// Day - no strf eq : S
 	'a' => 'D', 'A' => 'l', 'd' => 'd', 'e' => 'j', 'j' => 'z', 'u' => 'N', 'w' => 'w',
 	// Week - no date eq : %U, %W
@@ -461,7 +461,7 @@ if ($format) {
 	'G' => 'o', 'y' => 'y', 'Y' => 'Y',
 	// Full Date / Time - no strf eq : c, r; no date eq : %c
 	's' => 'U', 'D' => 'j/n/y', 'F' => 'Y-m-d', 'x' => 'j F Y'
-	);
+	];
 	$format = str_replace('%', '', $format);
 	$parts = explode(' ', $format);
 	foreach ($parts as $i => $fmt) {

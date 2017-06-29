@@ -13,15 +13,15 @@ if (isset($params['X'])) {
 
 $utils = new Booker\Utils();
 
-$hidden = array('item_id'=>$item_id); //TODO MORE
+$hidden = ['item_id'=>$item_id]; //TODO MORE
 
-$tplvars = array(
+$tplvars = [
 	'mod' => $pmod,
 	'startform' => $this->CreateFormStart($id,'openfees',$returnid,'POST','','','',$hidden),
 	'endform' => $this->CreateFormEnd(),
 	'hidden' => NULL,
 	'title' => $this->Lang('TODO')
-);
+];
 if (isset($params['message']))
 	$tplvars['message'] = $params['message'];
 
@@ -52,7 +52,7 @@ if ($pmod) {
 
 
 $bdata = $db->GetArray($slq,$args);
-$data = array();
+$data = [];
 foreach ($bdata as $one) {
 	$oneset = new stdClass();
 

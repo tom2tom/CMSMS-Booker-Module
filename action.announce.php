@@ -7,11 +7,11 @@
 #----------------------------------------------------------------------
 
 //parameter keys filtered out before redirect etc
-$localparams = array(
+$localparams = [
 	'action',
 	'cancel',
 	'message'
-);
+];
 
 $utils = new Booker\Utils();
 $utils->UnFilterParameters($params);
@@ -23,12 +23,12 @@ if(isset($params['cancel']) || empty($params['message'])) {
 }
 
 $hidden = $utils->FilterParameters($params,$localparams);
-$tplvars = array(
+$tplvars = [
 //	'title' => $this->Lang('title_requeststatus'),
 	'message'=> html_entity_decode($params['message'],ENT_QUOTES|ENT_HTML401),
 	'startform' => $this->CreateFormStart($id,'findbooking',$returnid,'POST','','','',$hidden),
 	'endform' => $this->CreateFormEnd(),
 	'cancel' => $this->CreateInputSubmit($id,'cancel',$this->Lang('close'))
-);
+];
 
 echo Booker\Utils::ProcessTemplate($this,'announce.tpl',$tplvars);

@@ -42,7 +42,7 @@ class BookingChange
 		$bkg_id = (int)$reqdata['bkg_id'];
 		$data1 = $mod->dbHandle->GetRow(
 'SELECT * FROM '.$mod->OnceTable.' WHERE bkg_id=?',
-			array($bkg_id));
+			[$bkg_id]);
 		if ($data1) {
 			$pfuncs = new Payment();
 			$bs = $data1['slotstart'];
@@ -95,12 +95,12 @@ class BookingChange
 						//1st sub-block = current-booking truncated
 						$f = $A * $nold;
 						$p = max($f,$data1['feepaid']);
-						$local = array(
+						$local = [
 							'bkg_id'=>$bkg_id,
 							'slotstart'=>$ns,
 							'slotlen'=>$nl,
 							'fee'=>$f,
-							'feepaid'=>$p);
+							'feepaid'=>$p];
 						$funcs->SaveOnce($mod,$utils,$local,FALSE);
 						//2nd sub-block = new
 						$t = ($reqdata['comment']) ? $reqdata['comment'] : $data1['comment'];
@@ -110,7 +110,7 @@ class BookingChange
 							$p2 = 0.0;
 						}
 						$q = $this->PayStatus($f,$p2,$minpay);
-						$local = array(
+						$local = [
 							'booker_id'=>$data1['booker_id'],
 							'item_id'=>$item_id,
 							'subgrpcount'=>$nold,
@@ -122,18 +122,18 @@ class BookingChange
 							'feepaid'=>$p2,
 							'status'=>$data1['status'],
 							'statpay'=>$q,
-							'gatetransaction'=>$data1['gatetransaction']);
+							'gatetransaction'=>$data1['gatetransaction']];
 						$funcs->SaveOnce($mod,$utils,$local,TRUE);
 						//any leftover payment to extra credit
 						$X = $data1['feepaid'] - $p - $p2;
 					} else { //not the whole group
 						$f = $data1['fee'] * $nstet / $nold;
 						$p = max($f,$data1['feepaid']);
-						$local = array(
+						$local = [
 							'bkg_id'=>$bkg_id,
 							'subgrpcount'=>$nstet,
 							'fee'=>$f,
-							'feepaid'=>$p);
+							'feepaid'=>$p];
 						$funcs->SaveOnce($mod,$utils,$local,FALSE);
 						$f = $A * $ndel;
 						$p2 = max($f,$data1['feepaid']-$p);
@@ -142,7 +142,7 @@ class BookingChange
 						}
 						$q = $this->PayStatus($f,$p2,$minpay);
 						$at = time();
-						$local = array(
+						$local = [
 							'booker_id'=>$data1['booker_id'],
 							'item_id'=>$item_id,
 							'subgrpcount'=>$ndel,
@@ -154,7 +154,7 @@ class BookingChange
 							'feepaid'=>$p2,
 							'status'=>$data1['status'],
 							'statpay'=>$q,
-							'gatetransaction'=>$data1['gatetransaction']);
+							'gatetransaction'=>$data1['gatetransaction']];
 						$funcs->SaveOnce($mod,$utils,$local,TRUE);
 						$f = $B * $ndel;
 						$p3 = max($f,$data1['feepaid']-$p-$p2);
@@ -162,7 +162,7 @@ class BookingChange
 							$p3 = 0.0;
 						}
 						$q = $this->PayStatus($f,$p3,$minpay);
-						$local = array(
+						$local = [
 							'booker_id'=>$data1['booker_id'],
 							'item_id'=>$item_id,
 							'subgrpcount'=>$ndel,
@@ -174,7 +174,7 @@ class BookingChange
 							'feepaid'=>$p3,
 							'status'=>$data1['status'],
 							'statpay'=>$q,
-							'gatetransaction'=>$data1['gatetransaction']);
+							'gatetransaction'=>$data1['gatetransaction']];
 						$funcs->SaveOnce($mod,$utils,$local,TRUE);
 						$X = $data1['feepaid'] - $p - $p2 - $p3;
 					}
@@ -194,18 +194,18 @@ class BookingChange
 					if ($nstet <= 0) { //whole group
 						$mod->dbHandle->Execute(
 'DELETE FROM '.$mod->OnceTable.' WHERE bkg_id=?',
-						array($bkg_id));
+						[$bkg_id]);
 						$X = $data1['feepaid'];
 					} else {
 						$f = $data1['fee'] * $ndel / $nold;
 						$p = max($f,$data1['feepaid']);
 						$q = $this->PayStatus ($f,$p,$minpay);
-						$local = array(
+						$local = [
 						'subgrpcount'=>$nstet,
 						'fee'=>$f,
 						'feepaid'=>$p,
 						'statpay'=>$q,
-						'bkg_id'=>$bkg_id);
+						'bkg_id'=>$bkg_id];
 						$funcs->SaveOnce($mod,$utils,$local,FALSE);
 						$X = $data1['feepaid'] - $p;
 					}
@@ -220,25 +220,25 @@ class BookingChange
 						$f = $A * $nold;
 						$p = max($f,$data1['feepaid']);
 						$q = $this->PayStatus ($f,$p,$minpay);
-						$local = array(
+						$local = [
 							'slotstart'=>$ns,
 							'slotlen'=>$nl,
 							'fee'=>$f,
 							'feepaid'=>$p,
 							'statpay'=>$q,
-							'bkg_id'=>$bkg_id);
+							'bkg_id'=>$bkg_id];
 						$funcs->SaveOnce($mod,$utils,$local,FALSE);
 						$X = $data1['feepaid'] - $p;
 					} else {
 						$f = $data1['fee'] * $nstet / $nold;
 						$p = max($f,$data1['feepaid']);
 						$q = $this->PayStatus ($f,$p,$minpay);
-						$local = array(
+						$local = [
 							'subgrpcount'=>$nstet,
 							'fee'=>$f,
 							'feepaid'=>$p,
 							'statpay'=>$q,
-							'bkg_id'=>$bkg_id);
+							'bkg_id'=>$bkg_id];
 						$funcs->SaveOnce($mod,$utils,$local,FALSE);
 						$t = ($reqdata['comment']) ? $reqdata['comment'] : $data1['comment'];
 						$f = $A * $ndel;
@@ -247,7 +247,7 @@ class BookingChange
 							$p2 = 0.0001;
 						}
 						$q = $this->PayStatus ($f,$p,$minpay);
-						$local = array(
+						$local = [
 							'booker_id'=>$data1['booker_id'],
 							'item_id'=>$item_id,
 							'subgrpcount'=>$ndel,
@@ -259,7 +259,7 @@ class BookingChange
 							'feepaid'=>$p2,
 							'status'=>$data1['status'],
 							'statpay'=>$q,
-							'gatetransaction'=>$data1['gatetransaction']);
+							'gatetransaction'=>$data1['gatetransaction']];
 						$funcs->SaveOnce($mod,$utils,$local,TRUE);
 						$X = $data1['feepaid'] - $p - $p2;
 					}
@@ -282,7 +282,7 @@ class BookingChange
 					$reqdata['name'] = $funcs->GetName($mod,$reqdata['booker_id']);
 					$reqdata += $res;
 					$idata = $utils->GetItemProperties($mod,$item_id,
-						array('item_id','name','membersname','smspattern','smsprefix','approver','approvertell','approvercontact'));
+						['item_id','name','membersname','smspattern','smsprefix','approver','approvertell','approvercontact']);
 					$funcs = new Messager();
 				} else {
 					$funcs = FALSE;
@@ -295,9 +295,9 @@ class BookingChange
 				//TODO process/remove in likeness-order
 				$data2 = $mod->dbHandle->GetArray(
 'SELECT data_id,item_id,bulk,displayed FROM '.$mod->DispTable.' WHERE bkg_id=? ORDER BY item_id',
-				array($bkg_id));
+				[$bkg_id]);
 				$more = $ndel;
-				$items = array();
+				$items = [];
 				foreach ($data2 as $one) {
 					if ($more > 0) {
 						$more--;
@@ -308,19 +308,19 @@ class BookingChange
 					if ($split) {
 						$mod->dbHandle->Execute(
 'UPDATE '.$mod->DispTable.' SET slotstart=?,slotlen=?,bulk=1 WHERE data_id=?',
-							array($ns,$nl,$one['data_id']));
+							[$ns,$nl,$one['data_id']]);
 						$did = $mod->dbHandle->GenID($mod->DispTable.'_seq');
 						$mod->dbHandle->Execute('INSERT INTO '.$mod->DispTable.
 'data_id,bkg_id,booker_id,item_id,slotstart,slotlen,bulk,displayed VALUES (?,?,?,?,?,?,?,?)',
-							array($did,$bkg_id,$reqdata['booker_id'],$one['item_id'],$ns,$nl,1,$one['bulk']));
+							[$did,$bkg_id,$reqdata['booker_id'],$one['item_id'],$ns,$nl,1,$one['bulk']]);
 					} elseif ($kill) {
 						$mod->dbHandle->Execute(
 'DELETE FROM '.$mod->DispTable.' WHERE data_id=?',
-							array($one['data_id']));
+							[$one['data_id']]);
 					} else {
 						$mod->dbHandle->Execute(
 'UPDATE '.$mod->DispTable.' SET slotstart=?,slotlen=? WHERE data_id=?',
-							array($ns,$nl,$one['data_id']));
+							[$ns,$nl,$one['data_id']]);
 					}
 				}
 				$items = $utils->GetNamedItems($mod,$items);
@@ -337,7 +337,7 @@ class BookingChange
 					natsort($items); //TODO lazy
 					$msg = $mod->Lang('email_delete',implode(', ',$items));
 				}
-				return array(TRUE,$msg);
+				return [TRUE,$msg];
 			} else {
 				$t = $utils->GetItemNameForID($item_id);
 				if ($funcs) {
@@ -352,10 +352,10 @@ class BookingChange
 					}
 					$msg = $mod->Lang('email_reqdelete',$t);
 				}
-				return array(TRUE,$msg);
+				return [TRUE,$msg];
 			}
 		} else {
-			return array(FALSE,$mod->Lang('err_data'));
+			return [FALSE,$mod->Lang('err_data')];
 		}
 	}
 

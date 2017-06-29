@@ -16,13 +16,13 @@ if ($this->_CheckAccess('admin') || $this->_CheckAccess('see')) {
 	else {
 		$utils = new Booker\Utils();
 		$sql = 'SELECT bkg_id FROM '.$mod->DispTable.' WHERE item_id=?';
-		$bkgid = $utils->SafeGet($sql,array($params['item_id']),'col');
+		$bkgid = $utils->SafeGet($sql,[$params['item_id']],'col');
 		if (!$bkgid) {
 			$name = $utils->GetItemNameForID($mod,$params['item_id']);
 			$msg = $this->Lang('nodata_one',$name);
 			$msg = $this->_PrettyMessage($msg,FALSE,FALSE);
 			$tab = ($params['item_id'] >= Booker::MINGRPID) ? 'groups':'items';
-			$this->Redirect($id,'defaultadmin','',array('active_tab'=>$tab,'message'=>$msg));
+			$this->Redirect($id,'defaultadmin','',['active_tab'=>$tab,'message'=>$msg]);
 		}
 	}
 	$funcs = new Booker\Bookingops();
@@ -39,15 +39,15 @@ if ($this->_CheckAccess('admin') || $this->_CheckAccess('see')) {
 		}
 		switch ($resume) {
 		 case 'itembookings':
-			$newparms = array('item_id'=>$params['item_id'],'task'=>$params['task'],'message'=>$msg);
+			$newparms = ['item_id'=>$params['item_id'],'task'=>$params['task'],'message'=>$msg];
 			break;
 		 case 'bookerbookings':
-			$newparms = array('item_id'=>$params['item_id'],'booker_id'=>$params['booker_id'],
-			'task'=>$params['task'],'message'=>$msg);
+			$newparms = ['item_id'=>$params['item_id'],'booker_id'=>$params['booker_id'],
+			'task'=>$params['task'],'message'=>$msg];
 			break;
 		 case 'defaultadmin':
 			$t = ($params['item_id'] >= Booker::MINGRPID) ? 'groups':'items';
-			$newparms = array('active_tab'=>$t,'message'=>$msg);
+			$newparms = ['active_tab'=>$t,'message'=>$msg];
 			break;
 		 default:
 $this->Crash();

@@ -42,11 +42,11 @@ one of:
 if (!function_exists('RequestRedirParms')) {
  function RequestRedirParms($resume, &$params, $msg = FALSE)
  {
-	$pnew = array_intersect_key($params,array(
+	$pnew = array_intersect_key($params,[
 	'item_id'=>1,
 	'booker_id'=>1,
 	'task'=>1,
-	'active_tab'=>1));
+	'active_tab'=>1]);
 	if (!empty($params['resume']))
 		$pnew['resume'] = json_encode($params['resume']);
 	switch ($resume) {
@@ -68,14 +68,14 @@ if (!$this->_CheckAccess('admin')) {
 }
 
 $utils = new Booker\Utils();
-$utils->DecodeParameters($params,array(
+$utils->DecodeParameters($params,[
 	'contact',
 	'customentry',
 	'name',
 	'subgrpcount',
 	'until',
 	'when'
-));
+]);
 
 if (isset($params['resume'])) {
 	$params['resume'] = json_decode(html_entity_decode($params['resume'],ENT_QUOTES|ENT_HTML401));
@@ -107,7 +107,7 @@ if (isset($params['submit']) || isset($params['apply'])) {
 			$this->Redirect($id,$resume,'',$newparms,$msg);
 	} else {
 		$params['message'] = $msg;
-		$bdata = array(1); //to be populated from $params, later
+		$bdata = [1]; //to be populated from $params, later
 	}
 } elseif (isset($params['approve'])) {
 	list($res,$msg) = $funcs->ApproveReq($this,$params['bkg_id'],$params['custmsg']);
@@ -118,27 +118,27 @@ if (isset($params['submit']) || isset($params['apply'])) {
 		$this->Redirect($id,$resume,'',$newparms);
 	} else {
 		$params['message'] = $msg;
-		$bdata = array(1);
+		$bdata = [1];
 	}
 } elseif (isset($params['reject'])) {
 	list($res,$msg) = $funcs->RejectReq($this,$params['bkg_id'],$params['custmsg']);
 	if ($res) {
 		$resume = array_pop($params['resume']);
-		$newparms = array('resume'=>json_encode($params['resume'])); //TODO etc
+		$newparms = ['resume'=>json_encode($params['resume'])]; //TODO etc
 		$this->Redirect($id,$resume,'',$newparms);
 	} else {
 		$params['message'] = $msg;
-		$bdata = array(1);
+		$bdata = [1];
 	}
 } elseif (isset($params['ask'])) {
 	list($res,$msg) = $funcs->AskReq($this,$params['bkg_id'],$params['custmsg']);
 	if ($res) {
 		$resume = array_pop($params['resume']);
-		$newparms = array('resume'=>json_encode($params['resume'])); //TODO etc
+		$newparms = ['resume'=>json_encode($params['resume'])]; //TODO etc
 		$this->Redirect($id,$resume,'',$newparms);
 	} else {
 		$params['message'] = $msg;
-		$bdata = array(1);
+		$bdata = [1];
 	}
 } elseif (isset($params['notify'])) {
 	$mfuncs = new Booker\Messager();
@@ -146,21 +146,21 @@ if (isset($params['submit']) || isset($params['apply'])) {
 	list($res,$msg) = $mfuncs->NotifyBooker($this,$bkgid,$params['custmsg']);
 	if ($res) {
 		$resume = array_pop($params['resume']);
-		$newparms = array('resume'=>json_encode($params['resume'])); //TODO etc
+		$newparms = ['resume'=>json_encode($params['resume'])]; //TODO etc
 		$this->Redirect($id,$resume,'',$newparms);
 	} else {
 		$params['message'] = $msg;
-		$bdata = array(1);
+		$bdata = [1];
 	}
 } elseif (isset($params['find'])) {
 	$params['message'] = $this->Lang('notyet');
-	$bdata = array(1);
+	$bdata = [1];
 } elseif (isset($params['tableview'])) {
 	$params['message'] = $this->Lang('notyet');
-	$bdata = array(1);
+	$bdata = [1];
 } elseif (isset($params['listview'])) {
 	$params['message'] = $this->Lang('notyet');
-	$bdata = array(1);
+	$bdata = [1];
 }
 
 if (empty($bdata)) {
@@ -172,7 +172,7 @@ JOIN $this->BookerTable B ON O.booker_id=B.booker_id
 LEFT JOIN $this->AuthTable A ON B.publicid=A.publicid
 WHERE bkg_id=?
 EOS;
-	$bdata = $db->GetRow($sql,array($params['bkg_id']));
+	$bdata = $db->GetRow($sql,[$params['bkg_id']]);
 	if ($bdata) {
 		$utils->GetUserProperties($this,$bdata);
 	}
@@ -184,21 +184,21 @@ $item_id = (int)$bdata['item_id'];
 $is_group = ($item_id >= Booker::MINGRPID);
 $is_new = ($bdata['status'] == Booker::STATNEW); //TODO ETC?
 
-$tplvars = array(
+$tplvars = [
 	'mod' => $pmod
-);
+];
 
 $params['active_tab'] = 'data';
 $tplvars['pagenav'] = $utils->BuildNav($this,$id,$returnid,$params['action'],$params);
 $resume = json_encode($params['resume']);
 
-$hidden = array(
+$hidden = [
 	'item_id'=>$item_id,
 	'bkg_id'=>$params['bkg_id'],
 	'task'=>$params['task'],
 	'resume'=>$resume,
 	'custmsg'=>''
-);
+];
 $tplvars['startform'] = $this->CreateFormStart($id,'openrequest',$returnid,'POST','','','',$hidden);
 $tplvars['endform'] = $this->CreateFormEnd();
 /*
@@ -217,7 +217,7 @@ else
 	$missing = '&lt;'.$this->Lang('missing').'&gt;';
 
 $idata = $utils->GetItemProperties($this,$item_id,
-	array('name','description','bookcount','membersname','timezone'));
+	['name','description','bookcount','membersname','timezone']);
 
 $key = ($is_new) ? 'title_booknewfor':'title_bookfor';
 $typename = ($is_group) ? $this->Lang('group'):$this->Lang('item');
@@ -237,12 +237,12 @@ $tplvars['desc'] = $t;
 $baseurl = $this->GetModuleURLPath();
 $tplvars['baseurl'] = $baseurl;
 //script accumulators
-$jsincs = array();
-$jsfuncs = array();
-$jsloads = array();
+$jsincs = [];
+$jsfuncs = [];
+$jsloads = [];
 $choosend = ($idata['bookcount'] != 1);
 
-$vars = array();
+$vars = [];
 
 $dt = new DateTime('@'.$bdata['slotstart'],NULL);
 $fmt = 'Y-n-j G:i';

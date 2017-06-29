@@ -17,7 +17,7 @@ if (!function_exists('array_like')) {
 	*/
 	function simple_diff($a, $b)
 	{
-		$matrix = array();
+		$matrix = [];
 		$maxlen = 0;
 		foreach ($a as $oindex=>$ovalue) {
 			$nkeys = array_keys($b,$ovalue);
@@ -33,8 +33,8 @@ if (!function_exists('array_like')) {
 		}
 		if ($maxlen == 0) { //arrays are completely different
 			if ($a || $b)
-				return array(array('d'=>$a,'i'=>$b));
-			return array();
+				return [['d'=>$a,'i'=>$b]];
+			return [];
 		}
 		return array_merge(
 			simple_diff(array_slice($a,0,$omax),array_slice($b,0,$nmax)),
@@ -54,8 +54,8 @@ if (!function_exists('array_like')) {
 		if (!$a || !$b)
 			return 0.0;
 		$m = 0;
-		$ins = array();
-		$outs = array();
+		$ins = [];
+		$outs = [];
 		$parts = simple_diff($a,$b);
 		foreach ($parts as $i=>$one) {
 			if (is_array($one)) { //difference
@@ -101,7 +101,7 @@ if (!function_exists('array_like')) {
 */
 $utils = new Booker\Utils();
 $item_id = (int)$params['item_id'];
-$havegroups = array($item_id);
+$havegroups = [$item_id];
 $type = $params['sort'];
 if ($type == 'members')
 	$members = $utils->GetGroupItems($this,$item_id);
@@ -109,9 +109,9 @@ else
 	$members = $utils->GetItemGroups($this,$item_id);
 if ($members) {
 	if (count($members) > 1) {
-		$data = array();
+		$data = [];
 		foreach ($members as $i) {
-			$data[$i] = $utils->GetItemProperties($this,$i,array('name','description','keywords'));
+			$data[$i] = $utils->GetItemProperties($this,$i,['name','description','keywords']);
 			if (empty($data[$i]['name']))
 				$data[$i]['name'] = $utils->GetItemNameForID($this,$i);
 			if ($i >= Booker::MINGRPID)
@@ -122,10 +122,10 @@ if ($members) {
 		$fname = !empty($data[$first]['name']) ? str_split($data[$first]['name']) : FALSE;
 		$fdesc = !empty($data[$first]['description']) ? str_split($data[$first]['description']) : FALSE;
 		$fkeys = !empty($data[$first]['keywords']) ? explode(',',$data[$first]['keywords']) : FALSE;
-		$cmps = array();
+		$cmps = [];
 		foreach ($data as $i=>$one) {
 			if (!($i == $first || $i == $item_id)) {
-				$cmps[$i] = array('score'=>0.0,'name'=>'');
+				$cmps[$i] = ['score'=>0.0,'name'=>''];
 				if ($fname && !empty($data[$i]['name'])) {
 					$ref = str_split($data[$i]['name']);
 					$cmps[$i]['score'] += 1.0 - array_like($fname,$ref);
@@ -145,15 +145,15 @@ if ($members) {
 	} else {
 		$i = key($members);
 		if ($i != $first) {
-			$cmps = array($i=>array('score'=>30.0,'name'=>''));
+			$cmps = [$i=>['score'=>30.0,'name'=>'']];
 			if ($i >= Booker::MINGRPID)
 				$havegroups[] = $i;
 		}
 	}
-	$all = array($first=>array('score'=>50.0,'name'=>'')) + $cmps; //CHECKME why prepend?
+	$all = [$first=>['score'=>50.0,'name'=>'']] + $cmps; //CHECKME why prepend?
 	$chkname = ($type == 'members') ? $type : 'ingroups'; //kludge to conform
 
-	$sorted = array();
+	$sorted = [];
 	//NOTE must conform with action.openitem.php table-data creation, except -
 	//cuz' js & ajax are available, the up/down links will be hidden/irrelevant
 	foreach ($all as $i=>$one) {
@@ -178,10 +178,10 @@ if ($members) {
 		$oneset->check = $this->CreateInputCheckbox($id,$chkname.'[]',$i,-1);
 		$sorted[] = $oneset;
 	}
-	$tplvars = array(
+	$tplvars = [
 		'entries' => $sorted,
 		'cellclass' => $type
-	);
+	];
 	echo Booker\Utils::ProcessTemplate($this,'membersbody.tpl',$tplvars);
 } else
 	echo 0;

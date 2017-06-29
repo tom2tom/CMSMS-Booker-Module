@@ -30,7 +30,7 @@ EOS;
 			$fillers = str_repeat('?,',count($request)-1);
 			$data = $mod->dbHandle->GetAssoc($sql.' IN ('.$fillers.'?)',$request);
 		} else {
-			$data = $mod->dbHandle->GetAssoc($sql.'=?',array($request));
+			$data = $mod->dbHandle->GetAssoc($sql.'=?',[$request]);
 		}
 		if ($data) {
 			$utils = new Utils();
@@ -60,7 +60,7 @@ EOS;
 			//cluster the requests by id, for specific processing
 			krsort($rows,SORT_NUMERIC); //reverse, so groups-first
 			$m = -900; //unmatchable
-			$collect = array();
+			$collect = [];
 			foreach ($rows as $bkg_id=>&$one) {
 				switch ($one['status']) {
 				 case \Booker::STATDEL:
@@ -68,7 +68,7 @@ EOS;
 //CHECKME func('feepaid','statpay' etc) hence credit booker
 					$sql = 'DELETE FROM '.$mod->OnceTable.' WHERE bkg_id=?';
 //TODO $utils->SafeExec()
-					$db->Execute($sql,array($bkg_id));
+					$db->Execute($sql,[$bkg_id]);
 					break;
 				 case \Booker::STATCANCEL:
 				 case \Booker::STATBIG:
@@ -90,7 +90,7 @@ EOS;
 							} else {
 								$res = $sfuncs->ScheduleGroup($mod,$utils,$m,$collect);
 							}
-							$collect = array();
+							$collect = [];
 						}
 						$m = (int)$one['item_id'];
 					}
@@ -108,12 +108,12 @@ EOS;
 			}
 			if ($res) { //TODO handle collection members
 				//record new status etc in OnceTable
-				$sql = array();
-				$args = array();
+				$sql = [];
+				$args = [];
 				$sqlbase = 'UPDATE '.$mod->OnceTable.' SET ';
 				foreach ($rows as $bkg_id=>$one) {
 					$sql1 = $sqlbase;
-					$args1 = array();
+					$args1 = [];
 					if (isset($one['approved'])) {
 						$sql1 .= 'item_id=?,subgrpcount=?,approved=?,';
 						$args1[] = $one['item_id']; //downstream may have changed item_id (for a 1-member group booking)
@@ -132,13 +132,13 @@ EOS;
 					//notify lodger
 					$funcs = new Messager();
 					$sndr = new \Notifier\MessageSender();
-					$propstore = array();
-					$msgs = array();
+					$propstore = [];
+					$msgs = [];
 					foreach ($rows as $one) {
 						$item_id = $one['item_id'];
 						if (!isset($propstore[$item_id])) {
 							$propstore[$item_id] = $utils->GetItemProperties($mod,$item_id,
-								array('item_id','name','membersname','smspattern','smsprefix'));
+								['item_id','name','membersname','smspattern','smsprefix']);
 							$propstore[$item_id]['approvertell'] = FALSE; //no message to sender
 						}
 						$idata = $propstore[$item_id];
@@ -147,17 +147,17 @@ EOS;
 							$msgs[] = $msg1;
 					}
 					if ($msgs) {
-						return array(FALSE,implode('<br />',array_unique($msgs,SORT_STRING)));
+						return [FALSE,implode('<br />',array_unique($msgs,SORT_STRING))];
 					}
-					return array(TRUE,'');
+					return [TRUE,''];
 				} else {
-					return array(TRUE,$mod->Lang('tell_booker'));
+					return [TRUE,$mod->Lang('tell_booker')];
 				}
 			} else {
-				return array(FALSE,$mod->Lang('err_na'));
+				return [FALSE,$mod->Lang('err_na')];
 			}
 		} else
-			return array(FALSE,$mod->Lang('err_data'));
+			return [FALSE,$mod->Lang('err_data')];
 	}
 
 	/**
@@ -173,14 +173,14 @@ EOS;
 	{
 		$rows = self::GetReqData($mod,$request);
 		if ($rows) {
-			$sql = array();
-			$args = array();
+			$sql = [];
+			$args = [];
 			$sql1 = 'UPDATE '.$mod->OnceTable.' SET status='.\Booker::STATCANCEL.' WHERE bkg_id=?';
 			foreach ($rows as $bkg_id=>$one) {
 //CHECKME func('feepaid','statpay' etc) hence credit booker
 //then 'statpay' field to STATCREDITED
 				$sql[] = $sql1;
-				$args[] = array($bkg_id);
+				$args[] = [$bkg_id];
 			}
 			$utils = new Utils();
 			$utils->SafeExec($sql,$args);
@@ -189,13 +189,13 @@ EOS;
 				//notify lodgers
 				$funcs = new Messager();
 				$sndr = new \Notifier\MessageSender();
-				$propstore = array();
-				$msgs = array();
+				$propstore = [];
+				$msgs = [];
 				foreach ($rows as $bkg_id=>$one) {
 					$item_id = $one['item_id'];
 					if (!isset($propstore[$item_id])) {
 						$propstore[$item_id] = $utils->GetItemProperties($mod,$item_id,
-							array('item_id','name','membersname','smspattern','smsprefix'));
+							['item_id','name','membersname','smspattern','smsprefix']);
 						$propstore[$item_id]['approvertell'] = FALSE; //no message to sender
 					}
 					$idata = $propstore[$item_id];
@@ -204,14 +204,14 @@ EOS;
 						$msgs[] = $msg1;
 				}
 				if ($msgs) {
-					return array(FALSE,implode('<br />',array_unique($msgs,SORT_STRING)));
+					return [FALSE,implode('<br />',array_unique($msgs,SORT_STRING))];
 				}
-				return array(TRUE,'');
+				return [TRUE,''];
 			} else {
-				return array(TRUE,$mod->Lang('tell_booker'));
+				return [TRUE,$mod->Lang('tell_booker')];
 			}
 		} else
-			return array(FALSE,$mod->Lang('err_data'));
+			return [FALSE,$mod->Lang('err_data')];
 	}
 
 	/**
@@ -227,12 +227,12 @@ EOS;
 	{
 		$rows = self::GetReqData($mod,$request);
 		if ($rows) {
-			$sql = array();
-			$args = array();
+			$sql = [];
+			$args = [];
 			$sql1 = 'UPDATE '.$mod->OnceTable.' SET status='.\Booker::STATASK.' WHERE bkg_id=?';
 			foreach ($rows as $bkg_id=>$one) {
 				$sql[] = $sql1;
-				$args[] = array($bkg_id);
+				$args[] = [$bkg_id];
 			}
 			$utils = new Utils();
 			$utils->SafeExec($sql,$args);
@@ -241,13 +241,13 @@ EOS;
 				//notify lodgers
 				$funcs = new Messager();
 				$sndr = new \Notifier\MessageSender();
-				$propstore = array();
-				$msgs = array();
+				$propstore = [];
+				$msgs = [];
 				foreach ($rows as $bkg_id=>$one) {
 					$item_id = $one['item_id'];
 					if (!isset($propstore[$item_id])) {
 						$propstore[$item_id] = $utils->GetItemProperties($mod,$item_id,
-							array('item_id','name','membersname','smspattern','smsprefix'));
+							['item_id','name','membersname','smspattern','smsprefix']);
 						$propstore[$item_id]['approvertell'] = FALSE; //no message to sender
 					}
 					$idata = $propstore[$item_id];
@@ -256,14 +256,14 @@ EOS;
 						$msgs[] = $msg1;
 				}
 				if ($msgs) {
-					return array(FALSE,implode('<br />',array_unique($msgs,SORT_STRING)));
+					return [FALSE,implode('<br />',array_unique($msgs,SORT_STRING))];
 				}
-				return array(TRUE,'');
+				return [TRUE,''];
 			} else {
-				return array(TRUE,$mod->Lang('tell_booker'));
+				return [TRUE,$mod->Lang('tell_booker')];
 			}
 		} else
-			return array(FALSE,$mod->Lang('err_data'));
+			return [FALSE,$mod->Lang('err_data')];
 	}
 
 	/**
@@ -279,8 +279,8 @@ EOS;
 	{
 		$rows = self::GetReqData($mod,$request);
 		if ($rows) {
-			$sql = array();
-			$args = array();
+			$sql = [];
+			$args = [];
 			$sql1 = 'DELETE FROM '.$mod->OnceTable.' WHERE bkg_id=?';
 			$sql2 = 'UPDATE '.$mod->OnceTable.' SET status='.\Booker::STATGONE.' WHERE bkg_id=?';
 			foreach ($rows as $bkg_id=>$one) {
@@ -289,7 +289,7 @@ EOS;
 				} else {
 					$sql[] = $sql2;
 				}
-				$args[] = array($bkg_id);
+				$args[] = [$bkg_id];
 			}
 			$utils = new Utils();
 			$utils->SafeExec($sql,$args);
@@ -298,15 +298,15 @@ EOS;
 				//notify lodgers
 				$funcs = new Messager();
 				$sndr = new \Notifier\MessageSender();
-				$propstore = array();
-				$msgs = array();
+				$propstore = [];
+				$msgs = [];
 				foreach ($rows as $bkg_id=>$one) {
 					if ($one['status'] !== \Booker::STATOK) { //TODO others too
 						//notify lodger
 						$item_id = $one['item_id'];
 						if (!isset($propstore[$item_id])) {
 							$propstore[$item_id] = $utils->GetItemProperties($mod,$item_id,
-								array('item_id','name','membersname','smspattern','smsprefix'));
+								['item_id','name','membersname','smspattern','smsprefix']);
 							$propstore[$item_id]['approvertell'] = FALSE; //no message to sender
 						}
 						$idata = $propstore[$item_id];
@@ -317,14 +317,14 @@ EOS;
 				}
 				if ($msgs) {
 					$msgs = array_unique($msgs,SORT_STRING);
-					return array(FALSE,implode('<br />',$msgs));
+					return [FALSE,implode('<br />',$msgs)];
 				}
-				return array(TRUE,'');
+				return [TRUE,''];
 			} else {
-				return array(TRUE,$mod->Lang('tell_booker'));
+				return [TRUE,$mod->Lang('tell_booker')];
 			}
 		} else
-			return array(FALSE,$mod->Lang('err_data'));
+			return [FALSE,$mod->Lang('err_data')];
 	}
 
 	/**
@@ -343,7 +343,7 @@ EOS;
 		$cart = $utils->RetrieveCart($cache,$params);
 		if ($success) { //successful to now
 			if (!$cart || !($pending = $cart->getItems())) {
-				return array(FALSE,$mod->Lang('err_data'));
+				return [FALSE,$mod->Lang('err_data')];
 			}
 			$key = '';
 			$pfuncs = new Payment();
@@ -353,8 +353,8 @@ EOS;
 				$mfuncs = new Messager();
 				$sndr = new \Notifier\MessageSender(); //CHECKME relevance
 //				$propstore = array();
-				$msg = array();
-				$err = array();
+				$msg = [];
+				$err = [];
 			} else {
 				$mfuncs = FALSE;
 			}
@@ -486,14 +486,14 @@ EOS;
 		}
 		if (!$key) {
 			if ($err) {//comm error
-				return array(FALSE,implode('<br />',array_unique($err)));
+				return [FALSE,implode('<br />',array_unique($err))];
 			}
 			if ($msg) {
-				return array(TRUE,implode('<br />',array_unique($msg,SORT_STRING)));
+				return [TRUE,implode('<br />',array_unique($msg,SORT_STRING))];
 			}
-			return array(TRUE,'');
+			return [TRUE,''];
 		}
-		return array(FALSE,$mod->Lang($key));
+		return [FALSE,$mod->Lang($key)];
 	}
 
 	/**
@@ -552,13 +552,13 @@ OR
 			$params['bkg_id'] = $bid;
 			$bookerid = $params['booker_id'];
 			$idata = $utils->GetItemProperties($mod,$params['item_id'],'timezone');
-			$args = array(
+			$args = [
 				'bkg_id'=>$bid,
 				'booker_id'=>$bookerid,
 				'item_id'=>$params['item_id'],
-			);
+			];
 			//$params[] key to table-field translates
-			foreach (array(
+			foreach ([
 			 'subgrpcount'=>TRUE,
 			 'lodged'=>TRUE,
 			 'approved'=>TRUE,
@@ -573,7 +573,7 @@ OR
 			 'statpay'=>TRUE,
 			 'gatetransaction'=>TRUE,
 //			 'gatedata'=>TRUE,
-			) as $k=>$field) {
+			] as $k=>$field) {
 				if (!empty($params[$k])) {
 					switch ($k) {
 					 case 'subgrpcount':
@@ -618,8 +618,8 @@ OR
 //			return $utils->SafeExec($sql,$args);
 //			$db->Execute($sql,$args);
 		} else { //update
-			$args = array();
-			foreach (array(
+			$args = [];
+			foreach ([
 			 'booker_id'=>TRUE,
 			 'item_id'=>TRUE,
 			 'subgrpcount'=>TRUE,
@@ -635,7 +635,7 @@ OR
 			 'statpay'=>TRUE,
 			 'gatetransaction'=>TRUE,
 //			 'gatedata'=>TRUE,
-			) as $k=>$field) {
+			] as $k=>$field) {
 				if (!empty($params[$k])) {
 					switch ($k) {
 					 case 'requesttype':
@@ -742,7 +742,7 @@ OR
 		$stat = (!empty($params['requesttype'])) ? (int)$params['requesttype'] : \Booker::STATNEW; //TODO status method
 
 		//populate request data for later processing
-		$data->request = array(
+		$data->request = [
 		 'booker_id'=>(int)$params['booker_id'],
 		 'name'=>$name,
 		 'contact'=>$contact,
@@ -756,10 +756,10 @@ OR
 		 'feepaid'=>0.0,
 		 'status'=>$stat,
 		 'statpay'=>$spay
-		);
+		];
 		$data->itemdata = $idata;
 
 		$cart->addItem($item,$quantity);
-		return array(TRUE,'');
+		return [TRUE,''];
 	}
 }

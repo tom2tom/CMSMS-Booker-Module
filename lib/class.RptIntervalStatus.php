@@ -23,7 +23,7 @@ class RptIntervalStatus extends Report
 	*/
 	public function Titles()
 	{
-		return array('rngstat', $this->PublicTitle());
+		return ['rngstat', $this->PublicTitle()];
 	}
 
 	/**
@@ -58,7 +58,7 @@ LEFT JOIN {$this->mod->OnceTable} O ON D.bkg_id=O.bkg_id
 LEFT JOIN {$this->mod->RepeatTable} R ON D.bkg_id=R.bkg_id
 WHERE D.displayed>0
 EOS;
-		$args = array();
+		$args = [];
 		if ($showfrom) {
 			$sql .= ' AND D.slotstart >= ?';
 			$args[] = $showfrom;
@@ -88,9 +88,9 @@ EOS;
 	*/
 	public function PivotReportData($data)
 	{
-		$pivoton = array('year','month');
+		$pivoton = ['year','month'];
 		$group = 'status';
-		$groupvalue = array('bkg',array('statpay','count'));
+		$groupvalue = ['bkg',['statpay','count']];
 		$funcs = new Pivot2($data, $pivoton, $group, $groupvalue,
 			TRUE, //include relevant Pivotbase::TYPE_*
 			FALSE, //exclude  per-line subtotals
@@ -116,13 +116,13 @@ EOS;
 	*/
 	public function PostProcessData($pivoted, $id, $linkaction, $display = TRUE)
 	{
-		$translates = array(
+		$translates = [
 			'bkg'=>$this->mod->Lang('count'),
 			'month'=>$this->mod->Lang('title_month'),
 			'status'=>$this->mod->Lang('status'),
 			'statpay'=>$this->mod->Lang('title_payment')
-		);
-		$months = array();
+		];
+		$months = [];
 		foreach (explode(',',$this->mod->Lang('longmonths')) as $k => $val) {
 			$months['M'.$k] = $val;
 		}
@@ -130,8 +130,8 @@ EOS;
 
 		$row = reset($pivoted);
 		//interpet titles, and log row-indices of 'status' fields
-		$coltitles = array();
-		$works = array();
+		$coltitles = [];
+		$works = [];
 		foreach ($row as $t => $val) {
 			$parts = explode('\\', $t);
 			foreach ($parts as $k => &$val) {
@@ -168,7 +168,7 @@ EOS;
 		$subtotal = $this->mod->Lang('subtotal');
 		$total = $this->mod->Lang('total');
 
-		$output = array();
+		$output = [];
 		$ic = count($pivoted);
 		for ($i = 0; $i < $ic; $i++) {
 			$row = $pivoted[$i];
@@ -186,7 +186,7 @@ EOS;
 					}
 				}
 			} elseif (strpos($yid,$subtotal) !== FALSE) {
-				$row['year'] = str_replace(array('year','status'),array($current,$translates[$sid]),$yid);
+				$row['year'] = str_replace(['year','status'],[$current,$translates[$sid]],$yid);
 //				foreach ($works as $t) {
 //					$row[$t] = NULL;
 //				}
@@ -207,6 +207,6 @@ EOS;
 				$output[] = array_values($row);
 			}
 		}
-		return array($coltitles,$output);
+		return [$coltitles,$output];
 	}
 }

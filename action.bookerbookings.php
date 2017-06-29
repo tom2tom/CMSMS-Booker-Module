@@ -123,7 +123,7 @@ if ($params['task'] == 'see') {
 	exit;
 }
 
-$tplvars = array();
+$tplvars = [];
 $tplvars['pmod'] = (($pmod) ? 1 : 0);
 
 if (!empty($msg)) {
@@ -154,9 +154,9 @@ $tplvars['pagenav'] = $utils->BuildNav($this, $id, $returnid, $params['action'],
 $resume = json_encode($params['resume']);
 
 $tplvars['startform'] = $this->CreateFormStart($id, 'bookerbookings', $returnid, 'POST', '', '', '',
-	array('booker_id' => $bookerid, 'resume' => $resume, 'task' => $params['task'], 'custmsg' => ''));
+	['booker_id' => $bookerid, 'resume' => $resume, 'task' => $params['task'], 'custmsg' => '']);
 $tplvars['startform2'] = $this->CreateFormStart($id, 'bookerbookings', $returnid, 'POST', '', '', '',
-	array('booker_id' => $bookerid, 'resume' => $resume, 'task' => $params['task'], 'repeat' => 1));
+	['booker_id' => $bookerid, 'resume' => $resume, 'task' => $params['task'], 'repeat' => 1]);
 $tplvars['endform'] = $this->CreateFormEnd();
 
 if (!empty($params['message'])) {
@@ -185,9 +185,9 @@ $icon_export = $theme->DisplayImage('icons/system/export.gif', $this->Lang('expo
 $t = $this->Lang('tip_notifyuser');
 $icon_tell = '<img src="'.$baseurl.'/images/notice.png" alt="'.$t.'" title="'.$t.'" border="0" />';
 
-$jsfuncs = array(); //script accumulators
-$jsloads = array();
-$jsincs = array();
+$jsfuncs = []; //script accumulators
+$jsloads = [];
+$jsincs = [];
 
 $funcs = new Booker\Payment();
 
@@ -201,7 +201,7 @@ JOIN $this->BookerTable B ON O.booker_id=B.booker_id
 LEFT JOIN $this->AuthTable A ON B.publicid=A.publicid
 WHERE O.booker_id=? ORDER BY O.slotstart
 EOS;
-$data = $utils->SafeGet($sql, array($bookerid));
+$data = $utils->SafeGet($sql, [$bookerid]);
 if ($data) {
 	$utils->GetUserProperties($this, $data);
 }
@@ -231,26 +231,26 @@ EOS;
 */
 
 //some of these values will be tailored as needed
-$linkparms = array(
+$linkparms = [
 	'item_id' => 0,
 	'booker_id' => 0,
 	'bkg_id' => 0,
 	'resume' => $resume,
 	'task' => $params['task']
-);
+];
 //if ($pmod) {
 //	$linkparms['bookedit'] = 1;
 //}
 
-$rows = array();
+$rows = [];
 if ($data) {
 	$linkparms['booker_id'] = $data[0]['booker_id'];
 	$tplvars['item_title'] = $this->Lang('title_booksfor', $this->Lang('user'), $data[0]['name']);
-	$titles = array(
+	$titles = [
 		$this->Lang('title_when'),
 		$this->Lang('title_item'),
 		$this->Lang('title_paid')
-	);
+	];
 	$tplvars['colnames'] = $titles;
 	$tplvars['colsorts'] = $titles;
 
@@ -299,14 +299,14 @@ if ($data) {
 		}
 		$oneset->open = $this->CreateLink($id, 'openbooking', '', $icon_open, $linkparms);
 		$oneset->export = $this->CreateLink($id, 'exportbooking', '', $icon_export,
-			array('item_id' => $item_id, 'bkg_id' => $bkgid, 'task' => $params['task']));
+			['item_id' => $item_id, 'bkg_id' => $bkgid, 'task' => $params['task']]);
 		if ($tell) {
 			$oneset->tell = $this->CreateLink($id, 'notifybooker', '', $icon_tell,
-				array('item_id' => $item_id, 'bkg_id' => $bkgid, 'task' => $params['task']));
+				['item_id' => $item_id, 'bkg_id' => $bkgid, 'task' => $params['task']]);
 		}
 		if ($pmod) {
 			$oneset->delete = $this->CreateLink($id, 'itembookings', '', $icon_delete,
-			array('item_id' => $item_id, 'bkg_id' => $bkgid, 'delete1' => 1));
+			['item_id' => $item_id, 'bkg_id' => $bkgid, 'delete1' => 1]);
 		}
 		$oneset->selected = $this->CreateInputCheckbox($id, 'sel[]', $bkgid, -1);
 		$rows[] = $oneset;
@@ -323,7 +323,7 @@ if ($rc) {
 	if ($pagerows && $rc > $pagerows) {
 		$tplvars['hasnav'] = 1;
 		//setup for SSsort
-		$choices = array(strval($pagerows) => $pagerows);
+		$choices = [strval($pagerows) => $pagerows];
 		$f = ($pagerows < 4) ? 5 : 2;
 		$n = $pagerows * $f;
 		if ($n < $rc) {
@@ -339,13 +339,13 @@ if ($rc) {
 			'onchange="pagerows(this);"').'&nbsp;&nbsp;'.$this->Lang('pagerows');
 		$curpg = '<span id="cpage">1</span>';
 		$totpg = '<span id="tpage">'.ceil($rc / $pagerows).'</span>';
-		$tplvars += array(
+		$tplvars += [
 			'pageof' => $this->Lang('pageof', $curpg, $totpg),
 			'first' => '<a href="javascript:pagefirst()">'.$this->Lang('first').'</a>',
 			'prev' => '<a href="javascript:pageback()">'.$this->Lang('previous').'</a>',
 			'next' => '<a href="javascript:pageforw()">'.$this->Lang('next').'</a>',
 			'last' => '<a href="javascript:pagelast()">'.$this->Lang('last').'</a>'
-		);
+		];
 		$jsfuncs[] = <<<EOS
 function pagefirst() {
  $.SSsort.movePage($('#bookings')[0],false,true);
@@ -486,7 +486,7 @@ JOIN $this->BookerTable B ON R.booker_id=B.booker_id
 LEFT JOIN $this->AuthTable A ON B.publicid=A.publicid
 WHERE R.booker_id=? AND R.active=1
 EOS;
-$data = $db->GetArray($sql, array($bookerid));
+$data = $db->GetArray($sql, [$bookerid]);
 if ($data) {
 	$utils->GetUserProperties($this, $data);
 }
@@ -507,18 +507,18 @@ EOS;
 }
 */
 $linkparms['repeat'] = 1; //rest of links are for repeat bookings
-$rows = array();
+$rows = [];
 if ($data) {
 	if (!isset($tplvars['item_title'])) {
 		$tplvars['item_title'] = $this->Lang('title_booksfor', $this->Lang('user'), $data[0]['name']);
 	}
 	//titles array same order as displayed columns
-	$titles = array(
+	$titles = [
 	$this->Lang('description'),
 	$this->Lang('title_item'),
 	$this->Lang('title_gcount'),
 	$this->Lang('title_paid')
-	);
+	];
 	$tplvars['colnames2'] = $titles;
 	$tplvars['colsorts2'] = $titles;
 
@@ -551,17 +551,17 @@ if ($data) {
 		}
 		$oneset->open = $this->CreateLink($id, 'openbooking', '', $icon_open, $linkparms);
 		$oneset->export = $this->CreateLink($id, 'exportbooking', '', $icon_export,
-			array('item_id' => $item_id, 'bkg_id' => $bkgid, 'task' => $params['task']));
+			['item_id' => $item_id, 'bkg_id' => $bkgid, 'task' => $params['task']]);
 		if ($tell) {
 			$oneset->tell = $this->CreateLink($id, 'notifybooker', '', $icon_tell,
-				array('item_id' => $item_id, 'bkg_id' => $bkgid, 'task' => $params['task']));
+				['item_id' => $item_id, 'bkg_id' => $bkgid, 'task' => $params['task']]);
 		}
 		if ($pmod) {
 			$oneset->refresh = $this->CreateLink($id, 'itembookings', '', $icon_fresh,
-				array('item_id' => $item_id, 'bkg_id' => $bkgid, 'refresh1' => 1, 'repeat' => 1));
+				['item_id' => $item_id, 'bkg_id' => $bkgid, 'refresh1' => 1, 'repeat' => 1]);
 		}
 		$oneset->delete = $this->CreateLink($id, 'itembookings', '', $icon_delete,
-				array('item_id' => $item_id, 'bkg_id' => $bkgid, 'delete1' => 1, 'repeat' => 1));
+				['item_id' => $item_id, 'bkg_id' => $bkgid, 'delete1' => 1, 'repeat' => 1]);
 		$oneset->selected = $this->CreateInputCheckbox($id, 'sel[]', $bkgid, -1);
 		$rows[] = $oneset;
 	}

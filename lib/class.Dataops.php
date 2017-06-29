@@ -39,7 +39,7 @@ class Dataops
 			return $mod->Lang('bkgtype_all');
 		}
 
-		$and = array();
+		$and = [];
 		$fg = self::BKGFUTURE + self::BKGPAST;
 		if (($flags & $fg) == $fg) {
 			$flags &= ~$fg; //ignore both flags
@@ -138,9 +138,9 @@ class Dataops
 	*/
 	public function FilterData(&$mod, $flags, $itemid = FALSE, $bookerid = FALSE, $typeid = FALSE)
 	{
-		$and = array();
+		$and = [];
 //		$or = array();
-		$args = array();
+		$args = [];
 
 		$fg = self::BKGFUTURE + self::BKGPAST;
 		if (($flags & $fg) == $fg) {
@@ -177,17 +177,17 @@ class Dataops
 			}
 		}
 
-		$bulks = array();
+		$bulks = [];
 		$fg = self::BKGONCE + self::BKGREPT;
 		if (($flags & $fg) == $fg) {
 			$tfg = $fg; //preserve this
 			$flags &= ~$fg;
 		} elseif ($flags & self::BKGONCE) {
 			$tfg = self::BKGONCE;
-			$bulks = array(0,1);
+			$bulks = [0,1];
 		} elseif ($flags & self::BKGREPT) {
 			$tfg = self::BKGREPT;
-			$bulks = array(20,21);
+			$bulks = [20,21];
 		} else {
 			$tfg = $fg;
 		}
@@ -268,9 +268,9 @@ EOS;
 		}
 
 		if ($tfg == self::BKGREPT) {
-			$sql = str_replace(array($mod->OnceTable.' O','O.'),array($mod->RepeatTable.' R','R.'),$sql);
+			$sql = str_replace([$mod->OnceTable.' O','O.'],[$mod->RepeatTable.' R','R.'],$sql);
 		} elseif ($tfg == self::BKGONCE + self::BKGREPT) {
-			$sql .= ' UNION '.str_replace(array($mod->OnceTable.' O','O.'),array($mod->RepeatTable.' R','R.'),$sql);
+			$sql .= ' UNION '.str_replace([$mod->OnceTable.' O','O.'],[$mod->RepeatTable.' R','R.'],$sql);
 		}
 		$sql .= ' ORDER BY what,slotstart';
 
@@ -296,7 +296,7 @@ EOS;
 		if ($before) {
 		}
 		if (is_callable($booker)) {
-			$valid = array(); //OR just a counter
+			$valid = []; //OR just a counter
 			$all = self::GetBookings($params);
 			if ($all) {
 				foreach ($all as $one) {
@@ -329,7 +329,7 @@ EOS;
 		if ($before) {
 		}
 		if (is_callable($item)) {
-			$valid = array(); //OR just a counter
+			$valid = []; //OR just a counter
 			$all = self::GetBookings($params);
 			if ($all) {
 				foreach ($all as $one) {
@@ -362,7 +362,7 @@ EOS;
 		if ($before) {
 		}
 		if (is_callable($item)) {
-			$valid = array();
+			$valid = [];
 			$all = self::GetExtraData($params);
 			if ($all) {
 				foreach ($all as $one) {
@@ -385,7 +385,7 @@ EOS;
 			$count++;
 			$amount += $X;
 		}
-		return array($count,$amount);
+		return [$count,$amount];
 	}
 
 	/**
@@ -402,7 +402,7 @@ EOS;
 		if ($before) {
 		}
 		if (is_callable($booker)) {
-			$valid = array();
+			$valid = [];
 			$all = self::GetExtraData($params);
 			if ($all) {
 				foreach ($all as $one) {
@@ -425,7 +425,7 @@ EOS;
 			$count++;
 			$amount += $X;
 		}
-		return array($count,$amount);
+		return [$count,$amount];
 	}
 
 	/**
@@ -438,7 +438,7 @@ EOS;
 	public function TotalCredit(&$mod, $booker)
 	{
 		if (is_callable($booker)) {
-			$valid = array();
+			$valid = [];
 			$all = self::GetExtraData($params);
 			if ($all) {
 				foreach ($all as $one) {
@@ -501,7 +501,7 @@ EOS;
 	public function ExpireCredit(&$mod, $booker, $before)
 	{
 		if (is_callable($booker)) {
-			$valid = array();
+			$valid = [];
 			$all = self::GetExtraData($params);
 			if ($all) {
 				foreach ($all as $one) {
@@ -531,7 +531,7 @@ EOS;
 	public function ExpireCreditFor(&$mod, $booker)
 	{
 		if (is_callable($booker)) {
-			$valid = array();
+			$valid = [];
 			$all = self::GetExtraData($params);
 			if ($all) {
 				foreach ($all as $one) {
@@ -562,7 +562,7 @@ EOS;
 	public function ClearExtraData(&$mod, $booker, $before)
 	{
 		if (is_callable($booker)) {
-			$valid = array();
+			$valid = [];
 			$all = self::GetExtraData($params);
 			if ($all) {
 				foreach ($all as $one) {
@@ -592,7 +592,7 @@ EOS;
 	public function ClearExtraDataFor(&$mod, $booker)
 	{
 		if (is_callable($booker)) {
-			$valid = array();
+			$valid = [];
 			$all = self::GetExtraData($params);
 			if ($all) {
 				foreach ($all as $one) {

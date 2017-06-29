@@ -109,9 +109,9 @@ class Utils
 		if (is_array($jsincs)) {
 			$all = $jsincs;
 		} elseif ($jsincs) {
-			$all = array($jsincs);
+			$all = [$jsincs];
 		} else {
-			$all = array();
+			$all = [];
 		}
 		if ($jsfuncs || $jsloads) {
 			$all[] = <<<'EOS'
@@ -235,15 +235,15 @@ EOS;
 	{
 		$db = $mod->dbHandle;
 		if (is_numeric($clue)) {
-			if ($db->GetOne('SELECT 1 FROM '.$mod->ItemTable.' WHERE item_id=?', array($clue))) {
+			if ($db->GetOne('SELECT 1 FROM '.$mod->ItemTable.' WHERE item_id=?', [$clue])) {
 				return (int) $clue;
 			}
 		}
-		$t = $db->GetOne('SELECT item_id FROM '.$mod->ItemTable.' WHERE alias=?', array($clue));
+		$t = $db->GetOne('SELECT item_id FROM '.$mod->ItemTable.' WHERE alias=?', [$clue]);
 		if ($t) {
 			return (int) $t;
 		}
-		$t = $db->GetOne('SELECT item_id FROM '.$mod->ItemTable.' WHERE name=?', array($clue));
+		$t = $db->GetOne('SELECT item_id FROM '.$mod->ItemTable.' WHERE name=?', [$clue]);
 		if ($t) {
 			return (int) $t;
 		}
@@ -260,7 +260,7 @@ EOS;
 	public function GetBookingItemID(&$mod, $bkgid)
 	{
 		$sql = 'SELECT item_id FROM '.$mod->OnceTable.' WHERE bkg_id=?';
-		$t = self::SafeGet($sql, array($bkgid), 'one');
+		$t = self::SafeGet($sql, [$bkgid], 'one');
 		if ($t) {
 			return (int) $t;
 		}
@@ -279,14 +279,14 @@ EOS;
 	 */
 	public function GetItemPicker(&$mod, $id, $name, $alwayspick, $currentpick)
 	{
-		$groups = array();
+		$groups = [];
 		//TODO name fallback when pickname is FALSE/NULL
 		$sql = <<<EOS
 SELECT DISTINCT I.item_id,I.pickmembers FROM $mod->ItemTable I
 JOIN $mod->GroupTable G ON I.item_id=G.parent
 WHERE G.child=? AND I.pickthis>0 AND I.active>0 ORDER BY G.proximity,G.likeorder
 EOS;
-		$rows = $mod->dbHandle->GetArray($sql, array($currentpick));
+		$rows = $mod->dbHandle->GetArray($sql, [$currentpick]);
 
 		if ($rows) {
 			$sql1 = <<<EOS
@@ -316,7 +316,7 @@ EOS;
 SELECT {$currentpick} AS item_id,pickmembers FROM $mod->ItemTable
 WHERE item_id=?
 EOS;
-			$groups += $mod->dbHandle->GetArray($sql, array($currentpick));
+			$groups += $mod->dbHandle->GetArray($sql, [$currentpick]);
 		}
 
 		$choices = array_column($groups, 'item_id');
@@ -346,7 +346,7 @@ EOS;
 SELECT item_id,name,pickname FROM $mod->ItemTable WHERE item_id IN({$fillers}) AND active>0
 EOS;
 		$rows = $mod->dbHandle->GetAssoc($sql);
-		$picknames = array();
+		$picknames = [];
 		if ($rows) {
 			$iname = FALSE;
 			foreach ($rows as $iid => $one) {
@@ -368,7 +368,7 @@ EOS;
 			if (class_exists('Collator')) {
 				try {
 					$col = new \Collator(self::GetLocale());
-					uasort($picknames, array(new bkr_itemname_cmp($col), 'namecmp'));
+					uasort($picknames, [new bkr_itemname_cmp($col), 'namecmp']);
 //					$col->sort($picknames,SORT_STRING);
 					//TODO preserve keys like asort
 				} catch (\Exception $e) {
@@ -463,10 +463,10 @@ EOS;
 	 */
 	public function GetItemGroups(&$mod, $item_id)
 	{
-		$ret = array();
+		$ret = [];
 		$db = $mod->dbHandle;
 		$sql = 'SELECT DISTINCT parent FROM '.$mod->GroupTable.' WHERE child=? ORDER BY proximity,likeorder';
-		$all = $db->GetCol($sql, array($item_id));
+		$all = $db->GetCol($sql, [$item_id]);
 		while ($all) {
 			$ret = array_merge($ret, $all);
 			$fillers = str_repeat('?,', count($all) - 1);
@@ -492,11 +492,11 @@ EOS;
 	 */
 	public function GetGroupItems(&$mod, $gid, $withres = TRUE, $withgrps = FALSE, $down = 0)
 	{
-		$ids = array();
+		$ids = [];
 		if ($gid >= \Booker::MINGRPID) {
 			$db = $mod->dbHandle;
 			$members = $db->GetCol('SELECT DISTINCT child FROM '.$mod->GroupTable.
-				' WHERE parent=? ORDER BY proximity DESC', array($gid));
+				' WHERE parent=? ORDER BY proximity DESC', [$gid]);
 			if ($members) {
 				foreach ($members as $mid) {
 					if ($mid >= \Booker::MINGRPID) {
@@ -646,7 +646,7 @@ EOS;
 	private function collapse_links(&$rows, &$rels, $id)
 	{
 		if (!array_key_exists($id, $rels) || $rels[$id] == FALSE) {
-			$links = array();
+			$links = [];
 			foreach ($rows as &$row) {
 				if ($row['child'] == $id) {
 					$links[] = (int) $row['parent'];
@@ -659,14 +659,14 @@ EOS;
 				$rels[$id] = $links;
 				foreach ($links as $r) {
 					if (!array_key_exists($r, $rels)) {
-						$rels[$r] = array();
+						$rels[$r] = [];
 					} //placeholder for breadth-first scan
 				}
 				foreach ($links as $r) {
 					self::collapse_links($rows, $rels, $r); //recurse
 				}
 			} else {
-				$rels[$id] = array();
+				$rels[$id] = [];
 			}
 		}
 	}
@@ -684,16 +684,16 @@ EOS;
 		//init
 		$lookup = array_keys($relations);
 		if (!in_array($start, $lookup)) {
-			return array();
+			return [];
 		}
-		$visited = array();
+		$visited = [];
 		foreach ($lookup as $key) {
 			$visited[$key] = 0;
 		}
 		$visited[$start] = 1;
 		//enqueue starting vertex
-		$q = array($start);
-		$path = array($start);
+		$q = [$start];
+		$path = [$start];
 
 		while (count($q)) {
 			$t = array_shift($q);
@@ -725,10 +725,10 @@ EOS;
 			$wantedprops = explode(',', $wantedprops);
 		}
 		$getcols = implode(',', array_filter($wantedprops)); //no name-validation, only presence-checks
-		$getids = array($item_id);
+		$getids = [$item_id];
 		$db = $mod->dbHandle;
 		$sql = 'SELECT DISTINCT parent FROM '.$mod->GroupTable.' WHERE child=? ORDER BY proximity,likeorder';
-		$all = $db->GetCol($sql, array($item_id));
+		$all = $db->GetCol($sql, [$item_id]);
 		while ($all) {
 			$getids = array_merge($getids, $all);
 			$fillers = str_repeat('?,', count($all) - 1);
@@ -743,10 +743,10 @@ EOS;
 			$getcols = 'item_id,'.$getcols; //ensure that GetAssoc will work as needed
 			if ($paired) {
 				//ensure related-property pair(s)
-				foreach (array(
-					array('slottype','slotcount'),
-					array('leadtype','leadcount'),
-					array('keeptype','keepcount')) as $pair) {
+				foreach ([
+					['slottype','slotcount'],
+					['leadtype','leadcount'],
+					['keeptype','keepcount']] as $pair) {
 					$k = $pair[0];
 					$p = $pair[1];
 					if (strpos($getcols,$k) !== FALSE && strpos($getcols,$p) === FALSE) {
@@ -767,7 +767,7 @@ EOS;
 			}
 			if (!is_array(reset($found))) {
 				foreach ($found as &$val) {
-					$val = array($getcols => $val);
+					$val = [$getcols => $val];
 				}
 				unset($val);
 			}
@@ -785,9 +785,9 @@ EOS;
 			});
 			$prefs = reset($found);
 		} elseif ($getcols == '*') {
-			return array(); //sould never happen!
+			return []; //sould never happen!
 		} else {
-			$found = array();
+			$found = [];
 			$prefs = array_flip($wantedprops);
 		}
 
@@ -820,7 +820,7 @@ EOS;
 		if ($search) {
 			$found = $this->GetHeritableProps($mod, $item_id, $wantedprops, $paired);
 			if (!$found) {
-				return array();
+				return [];
 			}
 			if (!is_array($wantedprops)) {
 				$wantedprops = explode(',', $wantedprops);
@@ -833,12 +833,12 @@ EOS;
 				$gets = array_fill_keys(array_filter($wantedprops), NULL); //no name-validation, only presence-checks
 			}
 			if ($paired) {
-				$pairs = array(
-				array('slottype','slotcount'),
-				array('leadtype','leadcount'),
-				array('keeptype','keepcount'));
+				$pairs = [
+				['slottype','slotcount'],
+				['leadtype','leadcount'],
+				['keeptype','keepcount']];
 			}
-			$got = array();
+			$got = [];
 			$k = 'item_id';
 			if (array_key_exists($k, $gets)) {
 				$got[$k] = (int) $item_id;
@@ -871,11 +871,11 @@ EOS;
 
 			$db = $mod->dbHandle;
 			$sql = 'SELECT '.$getcols.' FROM '.$mod->ItemTable.' WHERE item_id=?';
-			$found = $db->GetRow($sql, array($item_id));
+			$found = $db->GetRow($sql, [$item_id]);
 			if ($found) {
 				return $found;
 			}
-			return array();
+			return [];
 		}
 	}
 
@@ -892,7 +892,7 @@ EOS;
 	public function GetHeritableProperty(&$mod, $item_id, $propname)
 	{
 		$propdata = $this->GetHeritableProps($mod, $item_id, $propname);
-		$ret = array();
+		$ret = [];
 		if ($propdata) {
 			foreach ($propdata as $one) {
 				$ret[] = $one[$propname]; //includes any flavour of FALSE
@@ -930,7 +930,7 @@ EOS;
 	{
 		$sql = 'SELECT item_id,name FROM '.$mod->ItemTable.' WHERE item_id IN('.implode(',', $items).')';
 		$rows = $mod->dbHandle->GetAssoc($sql);
-		$ret = array();
+		$ret = [];
 		if ($rows) {
 			$iname = FALSE;
 			foreach ($rows as $id => $name) {
@@ -959,7 +959,7 @@ EOS;
 	 */
 	public function GetItemNameForID(&$mod, $item_id)
 	{
-		$name = $this->GetNamedItems($mod, array($item_id));
+		$name = $this->GetNamedItems($mod, [$item_id]);
 		if ($name) {
 			return reset($name);
 		}
@@ -982,7 +982,7 @@ FROM $mod->BookerTable B
 LEFT JOIN $mod->AuthTable A ON B.publicid = A.publicid
 WHERE B.booker_id=?
 EOS;
-		$data = $mod->dbHandle->GetArray($sql,array($booker_id));
+		$data = $mod->dbHandle->GetArray($sql,[$booker_id]);
 		if ($data) {
 			$this->GetUserProperties($mod,$data);
 			if ($data[0]['name']) {
@@ -1017,8 +1017,8 @@ EOS;
 				$this->cfuncs = new Crypter($mod);
 			}
 
-			$regs = array();
-			$nonregs = array();
+			$regs = [];
+			$nonregs = [];
 
 			foreach ($data as &$row) {
 				if (!empty($row['publicid'])) {
@@ -1128,7 +1128,7 @@ EOS;
 			$this->cfuncs = new Crypter($mod);
 		}
 		//each row here has: [0]table(s)-field name,[1]enum 1..3 for booker,auther,both,[2]bool 0/1 for string field
-		$fields = array(
+		$fields = [
 			'name',		3,1,
 			'publicid',	3,1,
 			'password',	2,1,
@@ -1138,20 +1138,20 @@ EOS;
 			'type',		1,0,
 			'displayclass',1,0,
 			'active',	3,0,
-		);
+		];
 		$fc = count($fields);
 		$dt = FALSE;
 
 		reset($data);
 		if (!is_numeric(key($data))) { // single-row
-			$data = array($data);
+			$data = [$data];
 		}
 		foreach ($data as $row) {
-			$bookfields = array();
-			$bookargs = array();
+			$bookfields = [];
+			$bookargs = [];
 
 			if (!empty($row['publicid']) && $this->afuncs) {
-				$authfields = array();
+				$authfields = [];
 				for ($i=0; $i<$fc; $i+=3) {
 					$one = $fields[$i];
 					if (array_key_exists($one,$row)) {
@@ -1217,7 +1217,7 @@ EOS;
 					$name = !empty($authfields['name']) ? $authfields['name']:FALSE;
 					$address = !empty($authfields['address']) ? $authfields['address']:FALSE;
 					$active = !empty($authfields['active']) ? $authfields['active']:FALSE;
-					$res = $this->afuncs->ChangeUser($login,$password,FALSE,$name,$address,$active,array(),FALSE);
+					$res = $this->afuncs->ChangeUser($login,$password,FALSE,$name,$address,$active,[],FALSE);
 					if (!$res[0]) {
 					//TODO report error
 					}
@@ -1225,7 +1225,7 @@ EOS;
 					$name = !empty($authfields['name']) ? $authfields['name']:NULL;
 					$address = !empty($authfields['address']) ? $authfields['address']:NULL;
 //					$active = !empty($authfields['active']) ? $authfields['active']:1;
-					$res = $this->afuncs->AddUser($login,$password,$name,$address,array(),FALSE);
+					$res = $this->afuncs->AddUser($login,$password,$name,$address,[],FALSE);
 					if (!$res[0]) {
 					//TODO report error
 					}
@@ -1296,12 +1296,12 @@ EOS;
 	public function BuildResume($resume, &$params)
 	{
 		if (empty($params['resume'])) {
-			$params['resume'] = array($resume);
+			$params['resume'] = [$resume];
 		} elseif (!is_array($params['resume'])) {
 			if ($params['resume'] != $resume) {
-				$params['resume'] = array($params['resume'], $resume);
+				$params['resume'] = [$params['resume'], $resume];
 			} else {
-				$params['resume'] = array($resume);
+				$params['resume'] = [$resume];
 			}
 		} elseif (reset($params['resume']) != $resume) {
 			$params['resume'][] = $resume;
@@ -1331,18 +1331,18 @@ EOS;
 			 case 'defaultadmin':
 				$key = 'back_module';
 				if (empty($params['active_tab'])) {
-					$xtra = array();
+					$xtra = [];
 				} else {
-					$xtra = array('active_tab' => $params['active_tab']);
+					$xtra = ['active_tab' => $params['active_tab']];
 				}
 				break;
 			 case 'itembookings':
 				$key = 'title_bookings';
-				$xtra = array('item_id' => $params['item_id'], 'task' => $params['task']);
+				$xtra = ['item_id' => $params['item_id'], 'task' => $params['task']];
 				break;
 			 case 'bookerbookings':
 				$key = 'title_bookings';
-				$xtra = array('booker_id' => $params['booker_id'], 'task' => $params['task']);
+				$xtra = ['booker_id' => $params['booker_id'], 'task' => $params['task']];
 				break;
 			 default:
 				break 2;
@@ -1473,7 +1473,7 @@ EOS;
 		}
 		$name = htmlentities($name, ENT_QUOTES | ENT_XHTML, FALSE);
 		$title = $mod->Lang('picture_type', $name);
-		$all = array();
+		$all = [];
 		$parts = explode(',', $image);
 		foreach ($parts as &$one) {
 			$url = self::GetUploadURL($mod, $one);
@@ -1611,7 +1611,7 @@ EOS;
 	 */
 	public function GetTimeZones(&$mod, $withtime = FALSE)
 	{
-		static $regions = array(
+		static $regions = [
 			\DateTimeZone::AFRICA,
 			\DateTimeZone::AMERICA,
 			\DateTimeZone::ANTARCTICA,
@@ -1621,22 +1621,22 @@ EOS;
 			\DateTimeZone::EUROPE,
 			\DateTimeZone::INDIAN,
 			\DateTimeZone::PACIFIC,
-		);
+		];
 
-		$timezones = array();
+		$timezones = [];
 		foreach ($regions as $region) {
 			$timezones = array_merge($timezones, \DateTimeZone::listIdentifiers($region));
 		}
 		ksort($timezones);
 
 		$current = new \DateTime();
-		$timezone_offsets = array();
+		$timezone_offsets = [];
 		foreach ($timezones as $timezone) {
 			$tz = new \DateTimeZone($timezone);
 			$timezone_offsets[$timezone] = $tz->getOffset($current);
 		}
 
-		$timezone_list = array();
+		$timezone_list = [];
 		foreach ($timezone_offsets as $timezone => $offset) {
 			if ($withtime) {
 				$offset_prefix = $offset < 0 ? '-' : '+';
@@ -1674,7 +1674,7 @@ EOS;
 	 */
 	public function GetDefaultRange(&$mod, $item_id)
 	{
-		$idata = self::GetItemProperties($mod, $item_id, array('leadtype', 'leadcount'), TRUE);
+		$idata = self::GetItemProperties($mod, $item_id, ['leadtype', 'leadcount'], TRUE);
 		if ($idata && !is_null($idata['leadtype']) && !is_null($idata['leadcount'])) {
 			$c = (int) $idata['leadcount'];
 			switch ($idata['leadtype']) { //enum 0..5 consistent with TimeIntervals()
@@ -1750,7 +1750,7 @@ EOS;
 			$dte->modify('+1 year');
 			break;
 		}
-		return array($dts, $dte);
+		return [$dts, $dte];
 	}
 
 	/**
@@ -1811,7 +1811,7 @@ EOS;
 		if ($be - $st < $slen - 1) {
 			$be = $st + $slen - 1;
 		}
-		return array($st, $be);
+		return [$st, $be];
 	}
 
 	/**
@@ -1836,7 +1836,7 @@ EOS;
 		$dtw->setTime(0, 0, 0);
 		$dtw->modify('+1 day');
 		$be = $dtw->getTimestamp();
-		return array($bs, $be);
+		return [$bs, $be];
 	}
 
 /* applies to non-repeat bookings
@@ -1904,7 +1904,7 @@ EOS;
 	 */
 	public function GetInterval(&$mod, $item_id, $prefix, $default = 3600)
 	{
-		$idata = self::GetItemProperties($mod, $item_id, array($prefix.'type', $prefix.'count'), TRUE);
+		$idata = self::GetItemProperties($mod, $item_id, [$prefix.'type', $prefix.'count'], TRUE);
 		if ($idata && isset($idata[$prefix.'type']) && !is_null($idata[$prefix.'type'])
 		 && isset($idata[$prefix.'count']) && !is_null($idata[$prefix.'count'])) {
 			$c = (int) $idata[$prefix.'count'];
@@ -1956,7 +1956,7 @@ EOS;
 	 */
 	public function TimeIntervals()
 	{
-		return array('minute', 'hour', 'day', 'week', 'month', 'year');
+		return ['minute', 'hour', 'day', 'week', 'month', 'year'];
 	}
 
 	/**
@@ -1966,7 +1966,7 @@ EOS;
 	 */
 	public function DisplayIntervals()
 	{
-		return array('day', 'week', 'month', 'year');
+		return ['day', 'week', 'month', 'year'];
 	}
 
 	/**
@@ -1996,9 +1996,9 @@ EOS;
 		} else {
 			$format = 'j M Y';
 		}
-		$finds = array();
-		$placers = array();
-		$repls = array();
+		$finds = [];
+		$placers = [];
+		$repls = [];
 		if (strpos($format, 'D') !== FALSE) { //short dayname
 			$finds[] = '/(?<!\\\)D/';
 			$indx = $dt->format('w'); //0..6
@@ -2166,7 +2166,7 @@ EOS;
 			}
 			return '';
 		}
-		$ret = array();
+		$ret = [];
 		foreach ($which as $month) {
 			if ($month > 0 && $month < 13) {
 				$ret[$month] = $all[$month - 1];
@@ -2194,7 +2194,7 @@ EOS;
 			}
 			return '';
 		}
-		$ret = array();
+		$ret = [];
 		foreach ($which as $day) {
 			if ($day >= 0 && $day < $c) {
 				$ret[$day] = $all[$day];
@@ -2234,7 +2234,7 @@ EOS;
 			}
 			return '';
 		}
-		$ret = array();
+		$ret = [];
 		foreach ($which as $period) {
 			if ($period >= 0 && $period < $c) {
 				$ret[$period] = ($cap) ?
@@ -2336,14 +2336,14 @@ EOS;
 	public function FilterParameters(&$params, $except = FALSE)
 	{
 		if (!$except) {
-			$filter = array();
+			$filter = [];
 		} elseif (!is_array($except)) {
-			$filter = array($except);
+			$filter = [$except];
 		} else {
 			$filter = $except;
 		}
 		$filter = array_diff_key($params, array_flip($filter));
-		$keep = array();
+		$keep = [];
 		foreach ($filter as $k => $v) {
 			if (is_array($v)) {
 				$v = json_encode($v);
@@ -2364,7 +2364,7 @@ EOS;
 	 */
 	public function UnFilterParameters(&$params, $except = FALSE)
 	{
-		$keep = array();
+		$keep = [];
 		foreach ($params as $k => $v) {
 			if (strpos($k, 'bkr_') === 0) {
 				$kn = substr($k, 4);
@@ -2411,7 +2411,7 @@ EOS;
 				if ($include == '*') {
 					$include = array_keys($params);
 				} else {
-					$include = array($include);
+					$include = [$include];
 				}
 			}
 			$patn = '/[\'"] ?[Oo][Rr] ?["\']/';
@@ -2532,7 +2532,7 @@ EOS;
 			$handlerclass = $imod->GetPayer();
 			$ifuncs = new $handlerclass($mod, $imod);
 			if ($ifuncs->Furnish(
-				array( //these are handlerkey=>callerkey members of $params[]
+				[ //these are handlerkey=>callerkey members of $params[]
 				 'amount' => TRUE,
 				 'cancel' => TRUE,
 				 'payer' => 'who',
@@ -2544,9 +2544,9 @@ EOS;
 				 'transactid' => 'bkr_transaction',
 				 'receivedata' => 'bkr_gatedata',
 				 'passthru' => 'paramskey'
-				),
-				array($mod->GetName(), 'method.requestfinish'),
-				array($id, 'announce', $returnid)
+				],
+				[$mod->GetName(), 'method.requestfinish'],
+				[$id, 'announce', $returnid]
 			)) {
 				$name = $this->GetUserName($mod, $params['bkr_booker_id']);
 				$dtw = new \DateTime ('@'.$params['bkr_slotstart'],NULL);
@@ -2560,14 +2560,14 @@ EOS;
 				}
 				$preserve = json_encode($params);
 
-				$newparms = array(
+				$newparms = [
 				 'amount' => $cart->getTotal(),
 				 'cancel' => TRUE,
 //				 'surcharge'=>'3%' TODO UI & API for customizing this
 				 'who' => $name,
 				 'what' => $desc,
 				 'paramskey' => $preserve
-				);
+				];
 				$ifuncs->ShowForm($id, $returnid, $newparms); //redirects
 				exit;
 			}

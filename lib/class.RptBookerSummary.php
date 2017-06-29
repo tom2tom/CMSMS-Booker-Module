@@ -23,7 +23,7 @@ class RptBookerSummary extends Report
 	*/
 	public function Titles()
 	{
-		return array('bkrovr', $this->PublicTitle());
+		return ['bkrovr', $this->PublicTitle()];
 	}
 
 	/**
@@ -50,7 +50,7 @@ SELECT booker_id,(bulk=0) AS singl,(bulk=1) AS grp,(bulk>=20) AS rept,1 AS bkg,s
 FROM {$this->mod->DispTable}
 WHERE displayed>0
 EOS;
-		$args = array();
+		$args = [];
 		if ($showfrom) {
 			$sql .= ' AND slotstart >= ?';
 			$args[] = $showfrom;
@@ -79,9 +79,9 @@ EOS;
 	*/
 	public function PivotReportData($data)
 	{
-		$pivoton = array('booker_id','month');
+		$pivoton = ['booker_id','month'];
 		$group = null;
-		$groupvalue = array(array('singl','count'),array('rept','count'),'bkg','slotlen');
+		$groupvalue = [['singl','count'],['rept','count'],'bkg','slotlen'];
 		$funcs = new Pivot2($data, $pivoton, $group, $groupvalue,
 			TRUE, //include relevant Pivotbase::TYPE_*
 			FALSE, //exclude  per-line subtotals
@@ -118,7 +118,7 @@ EOS;
 		}
 		$rs->Close();
 
-		$translates = array(
+		$translates = [
 			'booker_id' => $this->mod->Lang('title_name'),
 			'bkg' => $this->mod->Lang('count'),
 			'grp' => $this->mod->Lang('bkgtype_grouped'),
@@ -126,8 +126,8 @@ EOS;
 			'rept' => $this->mod->Lang('bkgtype_repeated'),
 			'singl' => $this->mod->Lang('bkgtype_single'),
 			'slotlen' => $t
-		);
-		$months = array();
+		];
+		$months = [];
 		foreach (explode(',',$this->mod->Lang('longmonths')) as $k => $val) {
 			$months['M'.$k] = $val;
 		}
@@ -135,7 +135,7 @@ EOS;
 
 		$row = reset($pivoted);
 		//interpet titles, and log row-indices of slotlen fields
-		$works = array();
+		$works = [];
 		foreach ($row as $t => $val) {
 			$parts = explode('\\', $t);
 			foreach ($parts as $k => &$val) {
@@ -188,7 +188,7 @@ EOS;
 		$subtotal = $this->mod->Lang('subtotal');
 //		$total = $this->mod->Lang('total');
 
-		$output = array();
+		$output = [];
 		$ic = count($pivoted);
 		for ($i = 0; $i < $ic; $i++) {
 			$row = $pivoted[$i];
@@ -221,12 +221,12 @@ EOS;
 				$oneset = new \stdClass();
 				$oneset->fields = array_values($row);
 				$oneset->view = ($dataline) ? $this->mod->CreateLink($id, $linkaction, '', $icon_view,
-					array('filter' => 1,'booker_id' => $bid)) : NULL; //TODO all link $params[]
+					['filter' => 1,'booker_id' => $bid]) : NULL; //TODO all link $params[]
 				$output[] = $oneset;
 			} else {
 				$output[] = array_values($row);
 			}
 		}
-		return array($coltitles,$output);
+		return [$coltitles,$output];
 	}
 }

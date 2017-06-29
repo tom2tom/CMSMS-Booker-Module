@@ -419,7 +419,7 @@ class WhenRuleLexer
 		if ($getstr) {
 			return $parts[0].'..'.$parts[1];
 		} else {
-			return array($parts[0],'.',$parts[1]);
+			return [$parts[0],'.',$parts[1]];
 		}
 	}
 
@@ -446,14 +446,14 @@ class WhenRuleLexer
 	{
 		$work = trim($str, ' ()'); //strip surrounding brackets
 		if (!$work) {
-			return ($getstr) ? '' : array('');
+			return ($getstr) ? '' : [''];
 		}
 		$parts = explode(',', $work);
 		if (!isset($parts[1])) { //aka count($parts) == 1 i.e.singleton
 			if (strpos($work, '..') !== FALSE) {
 				$work = self::ParsePeriodSequence($work, $getstr);
 			} //reorder if appropriate
-			return ($getstr) ? $work : array($work);
+			return ($getstr) ? $work : [$work];
 		}
 		$val = $parts[0];
 		if (preg_match($this->dateptn, $val)) {
@@ -546,7 +546,7 @@ class WhenRuleLexer
 		}
 		$parts = array_unique($parts, SORT_REGULAR); //arrays too
 		if (count($parts) > 1) {
-			usort($parts, array($this, $cmp)); //keys now contiguous
+			usort($parts, [$this, $cmp]); //keys now contiguous
 		}
 		if ($getstr) {
 			return implode(',', $parts);
@@ -776,7 +776,7 @@ class WhenRuleLexer
 			return FALSE;
 		}
 		if ($parts[0] == $parts[1]) {
-			return ($getstr) ? $not.$parts[0] : array($not.$parts[0]);
+			return ($getstr) ? $not.$parts[0] : [$not.$parts[0]];
 		}
 
 		$lorise = (strpos($parts[0], 'RS') !== FALSE);
@@ -870,7 +870,7 @@ match-array(s) have
 			if ($getstr) {
 				return $not.$parts[0].'..'.$parts[1];
 			} else {
-				return array($not.$parts[0],'.',$parts[1]);
+				return [$not.$parts[0],'.',$parts[1]];
 			}
 		}
 		return FALSE;
@@ -899,7 +899,7 @@ match-array(s) have
 	{
 		$work = trim($str, ' @()'); //strip surrounding brackets etc
 		if (!$work) {
-			return ($getstr) ? '' : array('');
+			return ($getstr) ? '' : [''];
 		}
 		if ($work == 'SS..RS') {
 			$work = '0:00..RS,SS..23:59:59'; //special case for lazy admins
@@ -912,7 +912,7 @@ match-array(s) have
 			if ($getstr) {
 				return $work;
 			}
-			return array($work);
+			return [$work];
 		}
 
 		foreach ($parts as &$val) {
@@ -941,21 +941,21 @@ match-array(s) have
 		}
 		$parts = array_unique($parts, SORT_REGULAR);
 		if (count($parts) > 1) {
-			$sortable = array();
+			$sortable = [];
 			foreach ($parts as $val) {
 				if (is_array($val)) {
-					$sortable[] = array($val[0].'..'.$val[2],$val);
+					$sortable[] = [$val[0].'..'.$val[2],$val];
 				} else {
-					$sortable[] = array($val,$val);
+					$sortable[] = [$val,$val];
 				}
 			}
-			usort($sortable, array($this, 'cmp_times'));
-			$parts = array();
+			usort($sortable, [$this, 'cmp_times']);
+			$parts = [];
 			foreach ($sortable as $val) {
 				$parts[] = $val[1];
 			}
 		} else {
-			$parts = array(reset($parts)); //force key 0
+			$parts = [reset($parts)]; //force key 0
 		}
 		if ($getstr) {
 			return implode(',', $parts);
@@ -1160,12 +1160,12 @@ match-array(s) have
 	*/
 	private function DayNames($which, $full = TRUE)
 	{
-		$ret = array();
+		$ret = [];
 		//OK to use non-localised times in this context
 		$stamp = time();
 		$today = date('w', $stamp); //0 to 6 representing the day of the week Sunday = 0 .. Saturday = 6
 		if (!is_array($which)) {
-			$which = array($which);
+			$which = [$which];
 		}
 		$f = ($full) ? 'l' : 'D';
 		foreach ($which as $day) {
@@ -1196,12 +1196,12 @@ match-array(s) have
 	*/
 	private function MonthNames($which, $full = TRUE)
 	{
-		$ret = array();
+		$ret = [];
 		//OK to use non-localised times in this context
 		$stamp = time();
 		$thism = date('n', $stamp); //1 to 12 representing January .. December
 		if (!is_array($which)) {
-			$which = array($which);
+			$which = [$which];
 		}
 		$f = ($full) ? 'F' : 'M';
 		foreach ($which as $month) {
@@ -1268,7 +1268,7 @@ match-array(s) have
 		$shortmonths = self::MonthNames($gets, FALSE);
 		unset($gets);
 		//TODO caseless match for these, based on locale from somewhere
-		$specials = array(
+		$specials = [
 			$this->mod->Lang('to'),
 			$this->mod->Lang('not'),
 			$this->mod->Lang('except'),
@@ -1280,26 +1280,26 @@ match-array(s) have
 			$this->mod->Lang('week'), //OR Booker\Utils::RangeNames($this->mod,1)
 			$this->mod->Lang('month'), //for use with 'each' OR Booker\Utils::RangeNames($this->mod,2)
 			$this->mod->Lang('year'), //for use with 'each'
-		);
+		];
 /*		if ($oldloc)
 			setlocale(LC_TIME,$oldloc);
 */
 		//replacement tokens
-		$daytokes = array();
+		$daytokes = [];
 		for ($i = 1; $i < 8; $i++) {
 			$daytokes[] = 'D'.$i;
 		}
-		$monthtokes = array();
+		$monthtokes = [];
 		for ($i = 1; $i < 13; $i++) {
 			$monthtokes[] = 'M'.$i;
 		}
 		//2-char text-tokens to avoid name-conflicts e.g. sunrise-Sun,  extra 'S' or 'E' for recognition
-		$spectokes = array('..','!','!','EE','EE','RS','SS','DE','WE','ME','YE');
+		$spectokes = ['..','!','!','EE','EE','RS','SS','DE','WE','ME','YE'];
 		//long-forms before short- & specials last, for effective str_replace()
 		$finds = array_merge($longdays, $shortdays, $longmonths, $shortmonths,
-			$specials, array(' ', PHP_EOL));
+			$specials, [' ', PHP_EOL]);
 		$repls = array_merge($daytokes, $daytokes, $monthtokes, $monthtokes,
-			$spectokes, array('', ''));
+			$spectokes, ['', '']);
 		$descriptor = str_replace($finds, $repls, $descriptor);
 
 		//allowed content check
@@ -1308,7 +1308,7 @@ match-array(s) have
 		}
 		//check overall consistency (i.e. no unrecognised content, all brackets are valid)
 		//and separate into distinct comma-separated 'parts'
-		$parts = array();
+		$parts = [];
 		$storeseg = 0; //index of 1st array-element to merge & store
 		$clean = '';
 		$depth = 0;
@@ -1427,7 +1427,7 @@ match-array(s) have
 		//interpretation
 		$repeat = FALSE;
 		foreach ($parts as &$one) {
-			$parsed = array();
+			$parsed = [];
 			$p = strpos($one, '@'); //PERIOD-TIME separator present?
 			if ($p !== FALSE) {
 				$e = (strlen($one) == ($p + 1)); //trailing '@'
@@ -1562,7 +1562,7 @@ match-array(s) have
 
 		$n = count($this->conds);
 		if ($n > 1) {
-			usort($this->conds, array($this, 'cmp_periods'));
+			usort($this->conds, [$this, 'cmp_periods']);
 			//re-merge parts of same type
 			$p = 0;
 			while ($p < $n) {

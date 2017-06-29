@@ -86,7 +86,7 @@ class Report
 			$slen = 2592000;
 			$k = 'title_months';
 		}
-		return array($this->mod->Lang($k),$slen);
+		return [$this->mod->Lang($k),$slen];
 	}
 
 	/**
@@ -98,7 +98,7 @@ class Report
 	*/
 	public function Titles()
 	{
-		return array('internal','public');
+		return ['internal','public'];
 	}
 
 	/**
@@ -150,6 +150,6 @@ class Report
 	*/
 	public function PostProcessData($pivoted, $id, $linkaction, $display = TRUE)
 	{
-		return array($coltitles,$output);
+		return [$coltitles,$output];
 	}
 }

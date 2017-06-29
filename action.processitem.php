@@ -17,7 +17,7 @@ if (isset($params['task'])) { //clicked link
 	 case 'edit':
 	 case 'copy':
 	 case 'see':
-	 	$params['resume'] = json_encode(array('defaultadmin'));
+	 	$params['resume'] = json_encode(['defaultadmin']);
 		$this->Redirect($id,'openitem','',$params);
 		break;
 	 case 'delete':
@@ -30,7 +30,7 @@ if (isset($params['task'])) { //clicked link
 $this->Crash();
 		break;
 	}
-	$this->Redirect($id,'defaultadmin','',array('active_tab'=>$params['active_tab']));
+	$this->Redirect($id,'defaultadmin','',['active_tab'=>$params['active_tab']]);
 }
 
 if (isset($params['selitm']))
@@ -38,9 +38,9 @@ if (isset($params['selitm']))
 else if (isset($params['selgrp']))
 	$sel = $params['selgrp'];
 else
-	$this->Redirect($id,'defaultadmin','',array(
+	$this->Redirect($id,'defaultadmin','',[
 		'active_tab'=>$params['active_tab'],
-		'message'=>$this->_PrettyMessage('nosel',FALSE)));
+		'message'=>$this->_PrettyMessage('nosel',FALSE)]);
 
 if (isset($params['delete'])) {
 	if (!($this->_CheckAccess('admin') || $this->_CheckAccess('delete'))) exit;
@@ -54,17 +54,17 @@ if (isset($params['delete'])) {
 	list($res,$key) = $funcs->ExportItems($this,$sel);
 	if ($res)
 		exit;
-	$this->Redirect($id,'defaultadmin','',array(
+	$this->Redirect($id,'defaultadmin','',[
 		'active_tab'=>$params['active_tab'],
-		'message'=>$this->_PrettyMessage($key,FALSE)));
+		'message'=>$this->_PrettyMessage($key,FALSE)]);
 } else if (isset($params['exportbkg'])) {
 	$funcs = new Booker\Export();
 	list($res,$key) = $funcs->ExportBookings($this,$sel,'*','*');
 	if ($res)
 		exit;
-	$this->Redirect($id,'defaultadmin','',array(
+	$this->Redirect($id,'defaultadmin','',[
 	 'active_tab'=>$params['active_tab'],
-	 'message'=>$this->_PrettyMessage($key,FALSE)));
+	 'message'=>$this->_PrettyMessage($key,FALSE)]);
 }
 /*elseif (isset($params['setfees'])) {
 	diverted upstream
@@ -72,4 +72,4 @@ if (isset($params['delete'])) {
 }
 */
 
-$this->Redirect($id,'defaultadmin','',array('active_tab'=>$params['active_tab']));
+$this->Redirect($id,'defaultadmin','',['active_tab'=>$params['active_tab']]);

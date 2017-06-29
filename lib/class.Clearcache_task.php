@@ -75,7 +75,7 @@ class Clearcache_task implements \CmsRegularTask
 			}
 		}
 		$sql = 'DELETE FROM '.cms_db_prefix().'module_bkr_cache WHERE savetime+lifetime <?';
-		$mod->dbHandle->Execute($sql,array($time));
+		$mod->dbHandle->Execute($sql,[$time]);
 		return TRUE;
 	}
 

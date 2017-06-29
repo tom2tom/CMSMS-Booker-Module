@@ -23,7 +23,7 @@ class RptBookerCredit extends Report
 	*/
 	public function Titles()
 	{
-		return array('bkrcred', $this->PublicTitle());
+		return ['bkrcred', $this->PublicTitle()];
 	}
 
 	/**
@@ -48,7 +48,7 @@ class RptBookerCredit extends Report
 		$sql = <<<EOS
 SELECT booker_id,status,latest FROM {$this->mod->CreditTable} WHERE 1
 EOS;
-		$args = array();
+		$args = [];
 		if ($showfrom) {
 			$sql .= ' AND updated >= ?';
 			$args[] = $showfrom;
@@ -76,9 +76,9 @@ EOS;
 	*/
 	public function PivotReportData($data)
 	{
-		$pivoton = array('booker_id');
+		$pivoton = ['booker_id'];
 		$group = 'status';
-		$groupvalue = array('latest');
+		$groupvalue = ['latest'];
 		$funcs = new Pivot1($data, $pivoton, $group, $groupvalue,
 			TRUE, //include relevant Pivotbase::TYPE_*
 			FALSE, //exclude  per-line subtotals
@@ -104,16 +104,16 @@ EOS;
 	*/
 	public function PostProcessData($pivoted, $id, $linkaction, $display = TRUE)
 	{
-		$translates = array(
+		$translates = [
 			'booker_id'=>$this->mod->Lang('title_name'),
 			'latest'=>$this->mod->Lang('title_amount'),
 			'status'=>$this->mod->Lang('status'),
 			//TODO others
-		);
+		];
 
 		$row = reset($pivoted);
 		//interpet titles
-		$coltitles = array();
+		$coltitles = [];
 //		$works = array();
 		foreach ($row as $t => $val) {
 			$parts = explode('\\', $t);
@@ -163,15 +163,15 @@ EOS;
 			}
 			unset($row);
 		}
-		$types = array(
+		$types = [
 			\Booker::CREDITADDED => $this->mod->Lang('stat_new'),
 			\Booker::CREDITUSED => $this->mod->Lang('balance'),
 			\Booker::CREDITEXPIRED => $this->mod->Lang('expired')
-		);
+		];
 		$subtotal = $this->mod->Lang('subtotal');
 //		$total = $this->mod->Lang('total');
 
-		$output = array();
+		$output = [];
 		$ic = count($pivoted);
 		for ($i = 0; $i < $ic; $i++) {
 			$row = $pivoted[$i];
@@ -184,7 +184,7 @@ EOS;
 				$cstat = $types[$row['status']];
 				$row['status'] = $cstat;
 			} elseif (strpos($bid, $subtotal) !== FALSE) {
-				$row['booker_id'] = str_replace(array('booker_id','status'),array($current,$cstat),$bid);
+				$row['booker_id'] = str_replace(['booker_id','status'],[$current,$cstat],$bid);
 /*				foreach ($works as $t) {
 					$row[$t] = NULL;
 				}
@@ -206,6 +206,6 @@ EOS;
 				$output[] = array_values($row);
 			}
 		}
-		return array($coltitles,$output);
+		return [$coltitles,$output];
 	}
 }

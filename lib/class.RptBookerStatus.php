@@ -23,7 +23,7 @@ class RptBookerStatus extends Report
 	*/
 	public function Titles()
 	{
-		return array('bkrstat', $this->PublicTitle());
+		return ['bkrstat', $this->PublicTitle()];
 	}
 
 	/**
@@ -59,7 +59,7 @@ LEFT JOIN {$this->mod->OnceTable} O ON D.bkg_id=O.bkg_id
 LEFT JOIN {$this->mod->RepeatTable} R ON D.bkg_id=R.bkg_id
 WHERE D.displayed>0
 EOS;
-		$args = array();
+		$args = [];
 		if ($showfrom) {
 			$sql .= ' AND D.slotstart >= ?';
 			$args[] = $showfrom;
@@ -78,9 +78,9 @@ EOS;
 	*/
 	public function PivotReportData($data)
 	{
-		$pivoton = array('booker_id','status','statpay');
+		$pivoton = ['booker_id','status','statpay'];
 		$group = null;
-		$groupvalue = array('bkg');
+		$groupvalue = ['bkg'];
 		$funcs = new Pivot3($data, $pivoton, $group, $groupvalue,
 			TRUE, //include relevant Pivotbase::TYPE_*
 			FALSE, //exclude  per-line subtotals
@@ -106,17 +106,17 @@ EOS;
 	*/
 	public function PostProcessData($pivoted, $id, $linkaction, $display = TRUE)
 	{
-		$translates = array(
+		$translates = [
 			'booker_id'=>$this->mod->Lang('title_name'),
 			'bkg'=>$this->mod->Lang('count'),
 			'status'=>$this->mod->Lang('status'),
 			'statpay'=>$this->mod->Lang('title_payment')
-		);
+		];
 
 		$row = reset($pivoted);
 		//interpet titles, and log row-indices of 'status' fields
-		$coltitles = array();
-		$works = array();
+		$coltitles = [];
+		$works = [];
 		foreach ($row as $t => $val) {
 			$parts = explode('\\', $t);
 			foreach ($parts as $k => &$val) {
@@ -171,7 +171,7 @@ EOS;
 		$subtotal = $this->mod->Lang('subtotal');
 		$total = $this->mod->Lang('total');
 
-		$output = array();
+		$output = [];
 		$ic = count($pivoted);
 		for ($i = 0; $i < $ic; $i++) {
 			$row = $pivoted[$i];
@@ -189,7 +189,7 @@ EOS;
 					}
 				}
 			} elseif (strpos($bid, $subtotal) !== FALSE) {
-				$row['booker_id'] = str_replace(array('booker_id','status'),array($current,$types[$sid]),$bid);
+				$row['booker_id'] = str_replace(['booker_id','status'],[$current,$types[$sid]],$bid);
 //				foreach ($works as $t) {
 //					$row[$t] = NULL;
 //				}
@@ -210,6 +210,6 @@ EOS;
 				$output[] = array_values($row);
 			}
 		}
-		return array($coltitles,$output);
+		return [$coltitles,$output];
 	}
 }

@@ -28,7 +28,7 @@ OR admin action
 'action' => string 'adminbooking'
 */
 //parameter keys filtered out before redirect etc
-$localparams = array(
+$localparams = [
 	'action',
 	'cancel',
 	'findfirst',
@@ -40,7 +40,7 @@ $localparams = array(
 	'search',
 	'searchsel',
 	'submit'
-);
+];
 
 $utils = new Booker\Utils();
 $admin = isset($params['active_tab']); //TODO
@@ -71,7 +71,7 @@ if (isset($params['cancel'])) { //user cancelled
 		$newparms = $utils->FilterParameters($params,$localparams);
 		$this->Redirect($id,$resume,$params['returnid'],$newparms);
 	} else {
-		$newparms = array();
+		$newparms = [];
 		if (isset($params['active_tab']))
 			$newparms['active_tab'] = $params['active_tab'];
 		$this->Redirect($id,$params['resume'],'',$newparms);
@@ -85,7 +85,7 @@ if (isset($params['submit'])) {
 	if (!empty($params['searchsel'])) {
 		$use = (int)reset($params['searchsel']);
 		if ($use) {
-			$use = $db->GetOne('SELECT slotstart FROM '.$this->DispTable.' WHERE bkg_id=?',array($use));
+			$use = $db->GetOne('SELECT slotstart FROM '.$this->DispTable.' WHERE bkg_id=?',[$use]);
 			if ($use) {
 				$params['showfrom'] = (int)$use;
 			}
@@ -103,7 +103,7 @@ if (isset($params['submit'])) {
 }
 
 $overday = ($utils->GetInterval($this,$params['item_id'],'slot') >= 84600);
-$idata = $utils->GetItemProperties($this,$params['item_id'],array('dateformat','timeformat','timezone'));
+$idata = $utils->GetItemProperties($this,$params['item_id'],['dateformat','timeformat','timezone']);
 $now = $utils->GetZoneTime($idata['timezone']);
 $dts = new DateTime('@'.$now,NULL);
 if ($admin) {
@@ -121,9 +121,9 @@ if ($admin) {
 $datetimefmt = $utils->DateTimeFormat(FALSE,$admin,TRUE,!$overday,$dayfmt,$timefmt);
 
 //script accumulators
-$jsfuncs = array();
-$jsloads = array();
-$jsincs = array();
+$jsfuncs = [];
+$jsloads = [];
+$jsincs = [];
 $baseurl = $this->GetModuleURLPath();
 $tableid = 'details';
 
@@ -132,19 +132,19 @@ $jsloads[] = <<<EOS
 EOS;
 
 $hidden = $utils->FilterParameters($params,$localparams);
-$tplvars = array(
+$tplvars = [
 	'needjs' => $this->Lang('needjs'),
 	'startform' => $this->CreateFormStart($id,'findbooking',$returnid,'POST','','','',$hidden),
 	'endform' => $this->CreateFormEnd(),
 	'hidden' => NULL
-);
+];
 
 if (!empty($params['message']))
 	$tplvars['message'] = $params['message'];
 $tplvars['title'] = $this->Lang('title_find');
 
 //generate selectors
-$selects = array();
+$selects = [];
 
 $oneset = new stdClass();
 $oneset->ttl = $this->Lang('title_item');
@@ -179,7 +179,7 @@ $selects[] = $oneset;
 
 $oneset = new stdClass();
 $oneset->ttl = $this->Lang('title_user');
-$choices = array($this->Lang('is')=>1,$this->Lang('islike')=>2);
+$choices = [$this->Lang('is')=>1,$this->Lang('islike')=>2];
 
 // 'finduser' => string like 'Tom'
 $t1 = isset($params['findusertype']) ? $params['findusertype'] : 1;
@@ -200,7 +200,7 @@ if (isset($params['search'])) {
  'findusertype' => int 1 or 2 for exact or partial name-match
  'finduser' => string like 'Tom'
 */
-	$cond = array();
+	$cond = [];
 	$t = (int)$params['findpick'];
 	if ($t < Booker::MINGRPID) {
 		$cond[] = 'D.item_id='.$t;
@@ -244,7 +244,7 @@ EOS;
 		$sql .= ' ORDER BY D.slotstart,I.name';
 
 	$rs = $db->SelectLimit($sql,100);
-	$items = array();
+	$items = [];
 	if ($rs) {
 		$daynames = $utils->DayNames($this,range(0,6),TRUE); //onetime lookup short-form day-names, for speed
 		$class = 'row1';
@@ -280,7 +280,7 @@ EOS;
 			if ($pagerows && $count > $pagerows) {
 				$tplvars['hasnav'] = 1;
 				//setup for SSsort
-				$choices = array(strval($pagerows) => $pagerows);
+				$choices = [strval($pagerows) => $pagerows];
 				$f = ($pagerows < 4) ? 5 : 2;
 				$n = $pagerows * $f;
 				if ($n < $count)
@@ -294,13 +294,13 @@ EOS;
 					'onchange="pagerows(this);"').'&nbsp;&nbsp;'.$this->Lang('pagerows');
 				$curpg='<span id="cpage">1</span>';
 				$totpg='<span id="tpage">'.ceil($count/$pagerows).'</span>';
-				$tplvars += array(
+				$tplvars += [
 					'pageof' => $this->Lang('pageof',$curpg,$totpg),
 					'first' => '<a href="javascript:pagefirst()">'.$this->Lang('first').'</a>',
 					'prev' => '<a href="javascript:pageback()">'.$this->Lang('previous').'</a>',
 					'next' => '<a href="javascript:pageforw()">'.$this->Lang('next').'</a>',
 					'last' => '<a href="javascript:pagelast()">'.$this->Lang('last').'</a>'
-				);
+				];
 
 				$jsfuncs[] = <<<EOS
 function pagefirst() {
@@ -529,7 +529,7 @@ if (\$linklast.length) {
 }
 EOS;
 
-echo $utils->MergeJS(FALSE,array($t),FALSE);
+echo $utils->MergeJS(FALSE,[$t],FALSE);
 
 $jsall = $utils->MergeJS($jsincs,$jsfuncs,$jsloads);
 unset($jsincs);

@@ -23,9 +23,9 @@ class Bookingops
 		$funcs = new Export();
 		list($res, $key) = $funcs->ExportBookings($mod, FALSE, $bkgid);
 		if ($res) {
-			return array(TRUE,'');
+			return [TRUE,''];
 		}
-		return array(FALSE,$mod->Lang($key));
+		return [FALSE,$mod->Lang($key)];
 	}
 
 	/**
@@ -45,8 +45,8 @@ class Bookingops
 			if ($mod->havenotifier) {
 				$funcs = new Messager();
 				$sndr = new \Notifier\MessageSender();
-				$propstore = array();
-				$msg = array();
+				$propstore = [];
+				$msg = [];
 			} else {
 				$funcs = FALSE;
 				$msg = FALSE;
@@ -57,14 +57,14 @@ class Bookingops
 			$utils = new Utils();
 			$sql = 'DELETE FROM '.$mod->OnceTable.' WHERE bkg_id=?';
 			foreach ($rows as $bid => $one) {
-				if ($utils->SafeExec($sql, array($bid))) {
+				if ($utils->SafeExec($sql, [$bid])) {
 					if ($funcs && $one['status'] !== \Booker::STATOK) {
 						//notify user
 						$item_id = $one['item_id'];
 						if (!isset($propstore[$item_id])) {
-							$propstore[$item_id] = array('item_id' => $item_id,'approvertell' => FALSE) //no message to sender
+							$propstore[$item_id] = ['item_id' => $item_id,'approvertell' => FALSE] //no message to sender
 								+ $utils->GetItemProperties($mod, $item_id,
-									array('name', 'membersname', 'smspattern', 'smsprefix'));
+									['name', 'membersname', 'smspattern', 'smsprefix']);
 						}
 						$idata = $propstore[$item_id];
 						list($res, $msg1) = $funcs->StatusMessage($mod, $utils, $idata, $one, \Booker::STATCANCEL, $custommsg, $sndr);
@@ -73,15 +73,15 @@ class Bookingops
 						}
 					}
 				} else {
-					return array(FALSE,$mod->Lang('err_data'));
+					return [FALSE,$mod->Lang('err_data')];
 				}
 			}
 			if ($msg) {
-				return array(FALSE,implode('<br />', array_unique($msg, SORT_STRING)));
+				return [FALSE,implode('<br />', array_unique($msg, SORT_STRING))];
 			}
-			return array(TRUE,'');
+			return [TRUE,''];
 		}
-		return array(FALSE,$mod->Lang('err_data'));
+		return [FALSE,$mod->Lang('err_data')];
 	}
 
 	/**
@@ -103,7 +103,7 @@ class Bookingops
 			$rows = $utils->SafeGet($sql, $bkgid, 'assoc');
 		} else {
 			$sql .= '=?';
-			$rows = $utils->SafeGet($sql, array($bkgid), 'assoc');
+			$rows = $utils->SafeGet($sql, [$bkgid], 'assoc');
 		}
 		if ($rows) {
 //TODO CHECK set active=0 iff keeptime > 0?
@@ -113,7 +113,7 @@ class Bookingops
 			$sql2 = 'SELECT COUNT(1) AS num FROM '.$mod->DispTable.' WHERE bkg_id=? AND slotstart<?';
 			$sql3 = 'UPDATE '.$mod->RepeatTable.' SET active=0 WHERE bkg_id=?';
 			$sql4 = 'DELETE FROM '.$mod->RepeatTable.' WHERE bkg_id=?';
-			$propstore = array();
+			$propstore = [];
 			$dtw = new \DateTime('@0', NULL); //DEBUG
 			foreach ($rows as $bid => $one) {
 				$item_id = (int)$one;
@@ -123,18 +123,18 @@ class Bookingops
 				}
 				$dtw->setTimestamp($propstore[$item_id]); //DEBUG
 				//if historic bookings exist, just flag stuff, don't delete yet
-				$args = array($bid,$propstore[$item_id]);
+				$args = [$bid,$propstore[$item_id]];
 				$count = $utils->SafeGet($sql2, $args, 'one');
 				$sql5 = ($count > 0) ? $sql3 : $sql4;
-				$allsql = array($sql,$sql5);
-				$allargs = array($args,array($bid));
+				$allsql = [$sql,$sql5];
+				$allargs = [$args,[$bid]];
 				if (!$utils->SafeExec($allsql, $allargs)) {
-					return array(FALSE,$mod->Lang('err_data'));
+					return [FALSE,$mod->Lang('err_data')];
 				}
 			}
-			return array(TRUE,'');
+			return [TRUE,''];
 		}
-		return array(FALSE,$mod->Lang('err_data'));
+		return [FALSE,$mod->Lang('err_data')];
 	}
 
 	/**
@@ -167,11 +167,11 @@ class Bookingops
 			$rows = $utils->SafeGet($sql1,$bkgid,'assoc');
 		} else {
 			$sql1 .= '=?';
-			$rows = $utils->SafeGet($sql1,array($bkgid),'assoc');
+			$rows = $utils->SafeGet($sql1,[$bkgid],'assoc');
 		}
 		if ($rows) {
-			$sql = array();
-			$args = array();
+			$sql = [];
+			$args = [];
 			$sql1 = 'DELETE FROM '.$mod->DispTable.' WHERE bkg_id=?';
 			$sql2 = 'UPDATE '.$mod->RepeatTable.' SET checkedfrom=?,checkedto=? WHERE bkg_id=?';
 
@@ -181,19 +181,19 @@ class Bookingops
 				if ($to > $st && $from < $nd) {
 					if ($st > $from && $nd >= $to) {
 						$sql[] = $sql1.' AND slotstart>';
-						$args[] = array($bid,$st);
+						$args[] = [$bid,$st];
 						$sql[] = $sql2;
-						$args[] = array($from,$st,$bid);
+						$args[] = [$from,$st,$bid];
 					} elseif ($st < $from && $nd <= $to) {
 						$sql[] = $sql1.' AND slotstart+slotlen<?';
-						$args[] = array($bid,$nd);
+						$args[] = [$bid,$nd];
 						$sql[] = $sql2;
-						$args[] = array($nd,to,$bid);
+						$args[] = [$nd,to,$bid];
 					} else {
 						$sql[] = $sql1;
-						$args[] = array($bid);
+						$args[] = [$bid];
 						$sql[] = $sql2;
-						$args[] = array(0,0,$bid);
+						$args[] = [0,0,$bid];
 					}
 				}
 			}
@@ -294,7 +294,7 @@ EOS;
 			$data = $mod->dbHandle->GetAssoc($sql, $bkgid);
 		} else {
 			$sql .= '=?';
-			$data = $mod->dbHandle->GetAssoc($sql, array($bkgid));
+			$data = $mod->dbHandle->GetAssoc($sql, [$bkgid]);
 		}
 		if ($data) {
 			$utils = new Utils();
@@ -367,7 +367,7 @@ EOS;
 		if (is_array($item)) {
 			$args = $item;
 		} else {
-			$args = array($item);
+			$args = [$item];
 		}
 		$fillers = str_repeat('?,', count($args) - 1);
 		$sql = <<<EOS
@@ -399,7 +399,7 @@ EOS;
 		if (is_array($item)) {
 			$args = $item;
 		} else {
-			$args = array($item);
+			$args = [$item];
 		}
 		$fillers = str_repeat('?,', count($args) - 1);
 		$sql = <<<EOS

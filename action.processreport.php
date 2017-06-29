@@ -13,21 +13,21 @@ if (isset($params['resume'])) {
 		array_pop($params['resume']);
 	}
 } else {
-	$params['resume'] = array('defaultadmin'); //got here via link
+	$params['resume'] = ['defaultadmin']; //got here via link
 }
 
 if (isset($params['close'])) {
 	$resume = array_pop($params['resume']);
-	$this->Redirect($id,$resume,'',array('active_tab'=>$params['active_tab']));
+	$this->Redirect($id,$resume,'',['active_tab'=>$params['active_tab']]);
 }
 
 if (isset($params['filter'])) {
 	$params['resume'][] = $params['action'];
 	//TODO other filter-params
-	$this->Redirect($id,'filter','',array(
+	$this->Redirect($id,'filter','',[
 		'active_tab'=>$params['active_tab'],
 		'resume'=>json_encode($params['resume'])
-	));
+	]);
 }
 
 $choices = (array)json_decode($params['alltypes']);
@@ -93,7 +93,7 @@ $title = $funcs->PublicTitle($after, $before);
 
 if (!$display) { //i.e. isset($params['export']))
 	if ($output) {
-		$output = array(-1 => $coltitles) + $output;
+		$output = [-1 => $coltitles] + $output;
 		$funcs = new Booker\Export();
 		$res = $funcs->ExportReport($this, $title, $output);
 		if ($res[0]) {
@@ -105,11 +105,11 @@ if (!$display) { //i.e. isset($params['export']))
 	}
 }
 
-$tplvars = array();
+$tplvars = [];
 $tplvars['pagenav'] = $utils->BuildNav($this,$id,$returnid,$params['action'],$params);
 $tplvars['startform'] = $this->CreateFormStart($id,'processreport',$returnid,'POST','','','',
-	array('task'=>$params['task'],'active_tab'=>$params['active_tab'],'alltypes'=>$params['alltypes'],
-	'showfrom'=>$params['showfrom'],'showto'=>$params['showto']));
+	['task'=>$params['task'],'active_tab'=>$params['active_tab'],'alltypes'=>$params['alltypes'],
+	'showfrom'=>$params['showfrom'],'showto'=>$params['showto']]);
 //TODO 'resume'=>$params['resume'
 $tplvars['endform'] = $this->CreateFormEnd();
 
@@ -119,9 +119,9 @@ if (!empty($params['message'])) {
 $tplvars['title'] = $title;
 
 //script accumulators
-$jsincs = array();
-$jsfuncs = array();
-$jsloads = array();
+$jsincs = [];
+$jsfuncs = [];
+$jsloads = [];
 $baseurl = $this->GetModuleURLPath();
 
 $dc = ($output) ? count($output) : 0;
@@ -275,7 +275,7 @@ if (\$linklast.length) {
  \$head.append(linkadd);
 }
 EOS;
-	echo $utils->MergeJS(FALSE,array($t),FALSE);
+	echo $utils->MergeJS(FALSE,[$t],FALSE);
 }
 
 $jsall = $utils->MergeJS($jsincs,$jsfuncs,$jsloads);

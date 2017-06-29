@@ -29,7 +29,7 @@ $mod = $padm || $pmod;
 $bmod = $padm || $pbkg;
 $tell = $this->havenotifier;
 
-$tplvars = array(
+$tplvars = [
 //	'see' => $psee,
 	'add' => $padd,
 	'adm' => $padm,
@@ -40,7 +40,7 @@ $tplvars = array(
 	'per' => $pper,
 	'set' => $pset,
 	'tell' => $tell
-);
+];
 
 $baseurl = $this->GetModuleURLPath();
 
@@ -112,24 +112,24 @@ $tplvars['tab_footers'] = $this->EndTabContent();
 
 $cfuncs = new Booker\Crypter($this);
 $utils = new Booker\Utils();
-$resume = json_encode(array($params['action'])); //head of resumption Q
-$jsfuncs = array(); //script accumulators
-$jsloads = array();
-$jsincs = array();
+$resume = json_encode([$params['action']]); //head of resumption Q
+$jsfuncs = []; //script accumulators
+$jsloads = [];
+$jsincs = [];
 
 $jsincs[] = <<<EOS
 <script type="text/javascript" src="{$baseurl}/lib/js/jquery.alertable.min.js"></script>
 EOS;
-$tablerows = array();
+$tablerows = [];
 
 //BOOKINGS TAB (& FORM)
 $tplvars['startform1'] = $this->CreateFormStart($id, 'processrequest', $returnid,
-	'POST', '', '', '', array('active_tab' => 'data', 'resume' => $resume, 'custmsg' => ''));
+	'POST', '', '', '', ['active_tab' => 'data', 'resume' => $resume, 'custmsg' => '']);
 $tplvars['endform'] = $this->CreateFormEnd();
 $tplvars['start_data_tab'] = $this->StartTab('data');
 
 $tablerows[1] = 0;
-$pending = array();
+$pending = [];
 $t = Booker::STATMAXREQ;
 $s = Booker::STATMAXOK;
 $sql = <<<EOS
@@ -162,7 +162,7 @@ if ($data) {
 	$dt = new DateTime('@0', $tz);
 	$funcs = new Booker\Status();
 	$statnames = $funcs->GetStatusChoices($this, 5); //1|4
-	$staticons = array(NULL, $iconyes, $iconno);
+	$staticons = [NULL, $iconyes, $iconno];
 
 	foreach ($data as &$row) {
 		$one = new stdClass();
@@ -192,16 +192,16 @@ if ($data) {
 		}
 		$one->comment = $t;
 		$bid = (int)$row['bkg_id'];
-		$one->see = $this->CreateLink($id, 'processrequest', $returnid, $iconrsee, array('bkg_id' => $bid, 'task' => 'see'));
+		$one->see = $this->CreateLink($id, 'processrequest', $returnid, $iconrsee, ['bkg_id' => $bid, 'task' => 'see']);
 		if ($bmod) {
-			$one->edit = $this->CreateLink($id, 'processrequest', $returnid, $iconredit, array('bkg_id' => $bid, 'task' => 'edit'));
+			$one->edit = $this->CreateLink($id, 'processrequest', $returnid, $iconredit, ['bkg_id' => $bid, 'task' => 'edit']);
 			if (1) { //TODO if e.g. not an info-request
 				if (empty($row['approved'])) {
-					$one->approve = $this->CreateLink($id, 'processrequest', $returnid, $iconryes, array('bkg_id' => $bid, 'task' => 'approve'));
-					$one->reject = $this->CreateLink($id, 'processrequest', $returnid, $iconrno, array('bkg_id' => $bid, 'task' => 'reject'));
+					$one->approve = $this->CreateLink($id, 'processrequest', $returnid, $iconryes, ['bkg_id' => $bid, 'task' => 'approve']);
+					$one->reject = $this->CreateLink($id, 'processrequest', $returnid, $iconrno, ['bkg_id' => $bid, 'task' => 'reject']);
 				} else {
 					$one->approve = ''; //$yes;
-					$one->reject = $this->CreateLink($id, 'processrequest', $returnid, $iconrno, array('bkg_id' => $bid, 'task' => 'reject')); //TODO 'tip_reject2'
+					$one->reject = $this->CreateLink($id, 'processrequest', $returnid, $iconrno, ['bkg_id' => $bid, 'task' => 'reject']); //TODO 'tip_reject2'
 				}
 			} else {
 				$one->approve = '';
@@ -209,10 +209,10 @@ if ($data) {
 			}
 		}
 		if ($tell) {
-			$one->notice = $this->CreateLink($id, 'processrequest', $returnid, $icontell, array('bkg_id' => $bid, 'task' => 'ask'));
+			$one->notice = $this->CreateLink($id, 'processrequest', $returnid, $icontell, ['bkg_id' => $bid, 'task' => 'ask']);
 		}
 		if ($pdel) {
-			$one->delete = $this->CreateLink($id, 'processrequest', $returnid, $iconrdel, array('bkg_id' => $bid, 'task' => 'delete'));
+			$one->delete = $this->CreateLink($id, 'processrequest', $returnid, $iconrdel, ['bkg_id' => $bid, 'task' => 'delete']);
 		}
 		$one->sel = $this->CreateInputCheckbox($id, 'selreq[]', $bid, -1, 'title="'.$rtip.'"');
 		$pending[] = $one;
@@ -432,7 +432,7 @@ EOS;
 EOS;
 	}
 	//titles
-	$tplvars += array(
+	$tplvars += [
 		'pending' => $pending,
 		'title_lodger' => $this->Lang('title_lodger'),
 		'title_contact' => $this->Lang('title_contact'),
@@ -442,7 +442,7 @@ EOS;
 		'title_name' => $this->Lang('title_name'),
 		'title_start' => $this->Lang('start'),
 		'title_comment' => $this->Lang('title_comment')
-	);
+	];
 } else {
 	$tplvars['dcount'] = 0;
 	$tplvars['nodata'] = $this->Lang('nonew');
@@ -464,12 +464,12 @@ $now = $utils->GetZoneTime('UTC'); //timestamp with same zone as booking data
 
 //BOOKERS TAB (& FORM)
 $tplvars['startform2'] = $this->CreateFormStart($id, 'adminbooker', $returnid,
-	'POST', '', '', '', array('active_tab' => 'people', 'resume' => $resume, 'custmsg' => ''));
+	'POST', '', '', '', ['active_tab' => 'people', 'resume' => $resume, 'custmsg' => '']);
 $tplvars['start_people_tab'] = $this->StartTab('people');
 $tablerows[2] = 0;
 
 $xtradata = FALSE;
-$bkrs = array();
+$bkrs = [];
 $sql = <<<EOS
 SELECT B.booker_id,COALESCE(A.name,B.name,'') AS name,B.publicid,COALESCE(A.addwhen,B.addwhen,'') AS addwhen,B.active
 FROM $this->BookerTable B
@@ -511,7 +511,7 @@ EOS;
 		$one = new stdClass();
 		$nm = ($row['name']) ? $row['name'] : $row['publicid'];
 		$one->name = ($pper) ?
-			$this->CreateLink($id, 'adminbooker', $returnid, $nm, array('booker_id' => $bookerid, 'task' => 'edit')) :
+			$this->CreateLink($id, 'adminbooker', $returnid, $nm, ['booker_id' => $bookerid, 'task' => 'edit']) :
 			$nm;
 		$one->reg = ($row['publicid']) ? $iconyes : $iconno;
 		if ($pper) {
@@ -519,15 +519,15 @@ EOS;
 			switch ($row['active']) {
 			 case 1:
 				$one->act = $this->CreateLink($id, 'adminbooker', $returnid, $iconyes,
-					array('booker_id' => $bookerid, 'task' => 'toggle', 'active' => TRUE));
+					['booker_id' => $bookerid, 'task' => 'toggle', 'active' => TRUE]);
 				break;
 			 case 0:
 				$one->act = $this->CreateLink($id, 'adminbooker', $returnid, $iconno,
-					array('booker_id' => $bookerid, 'task' => 'toggle', 'active' => FALSE));
+					['booker_id' => $bookerid, 'task' => 'toggle', 'active' => FALSE]);
 				break;
 			 case -1:
 				$one->act = $this->CreateLink($id, 'adminbooker', $returnid, $icongone,
-					array('booker_id' => $bookerid, 'task' => 'toggle', 'active' => FALSE));
+					['booker_id' => $bookerid, 'task' => 'toggle', 'active' => FALSE]);
 				break;
 			}
 		} else {
@@ -586,21 +586,21 @@ EOS;
 		$one->future = $future;
 
 		$one->bsee = ($count) ?
-			$this->CreateLink($id, 'bookerbookings', $returnid, $icon1, array('booker_id' => $bookerid, 'task' => 'see')) :
+			$this->CreateLink($id, 'bookerbookings', $returnid, $icon1, ['booker_id' => $bookerid, 'task' => 'see']) :
 			NULL;
 		if ($bmod) {
 			$t = ($count) ? $icon3 : $icon2;
-			$one->bedit = $this->CreateLink($id, 'bookerbookings', $returnid, $t, array('booker_id' => $bookerid, 'task' => 'edit'));
+			$one->bedit = $this->CreateLink($id, 'bookerbookings', $returnid, $t, ['booker_id' => $bookerid, 'task' => 'edit']);
 		} else {
 			$one->bedit = NULL;
 		}
 		$one->export = ($count) ?
-			$this->CreateLink($id, 'adminbooker', $returnid, $icon4, array('booker_id' => $bookerid, 'task' => 'export')) :
+			$this->CreateLink($id, 'adminbooker', $returnid, $icon4, ['booker_id' => $bookerid, 'task' => 'export']) :
 			NULL;
-		$one->see = $this->CreateLink($id, 'adminbooker', $returnid, $icon5, array('booker_id' => $bookerid, 'task' => 'see'));
+		$one->see = $this->CreateLink($id, 'adminbooker', $returnid, $icon5, ['booker_id' => $bookerid, 'task' => 'see']);
 		if ($pper) {
-			$one->edit = $this->CreateLink($id, 'adminbooker', $returnid, $icon6, array('booker_id' => $bookerid, 'task' => 'edit'));
-			$one->delete = $this->CreateLink($id, 'adminbooker', $returnid, $icon7, array('booker_id' => $bookerid, 'task' => 'delete'));
+			$one->edit = $this->CreateLink($id, 'adminbooker', $returnid, $icon6, ['booker_id' => $bookerid, 'task' => 'edit']);
+			$one->delete = $this->CreateLink($id, 'adminbooker', $returnid, $icon7, ['booker_id' => $bookerid, 'task' => 'delete']);
 		} else {
 			$one->bedit = NULL;
 			$one->edit = NULL;
@@ -624,13 +624,13 @@ $tplvars['pcount'] = $pcount;
 		 array('bkg_id'=>-1,'task'=>'add'),'',FALSE,FALSE,'class="pageoptions"');
 */
 if ($pcount > 0) {
-	$tplvars += array(
+	$tplvars += [
 	 'bookers' => $bkrs,
 	 'title_person' => $this->Lang('title_name'),
 	 'title_reg' => $this->Lang('registered'),
 	 'title_active' => $this->Lang('title_active'),
 	 'title_added' => $this->Lang('title_commenced'),
-	);
+	];
 	if ($pcount > 1) {
 		$tplvars['selectall_bookers'] = $this->CreateInputCheckbox($id, 'booker', TRUE, FALSE, 'title="'.$this->Lang('selectall').'" onclick="select_all_bkr(this)"');
 		$jsfuncs[] = <<<EOS
@@ -683,17 +683,17 @@ EOS;
 if ($pper) {
 	$tplvars['addbooker'] = $this->CreateLink($id, 'adminbooker', $returnid,
 		 $theme->DisplayImage('icons/system/newobject.gif', $this->Lang('addbooker'), '', '', 'systemicon'),
-		 array('booker_id' => -1, 'task' => 'add'), '', FALSE, FALSE, '')
+		 ['booker_id' => -1, 'task' => 'add'], '', FALSE, FALSE, '')
 	 .' '.$this->CreateLink($id, 'adminbooker', $returnid,
 		 $this->Lang('addbooker'),
-		 array('booker_id' => -1, 'task' => 'add'), '', FALSE, FALSE, 'class="pageoptions"');
+		 ['booker_id' => -1, 'task' => 'add'], '', FALSE, FALSE, 'class="pageoptions"');
 	$tplvars['importbtn2'] = $this->CreateInputSubmit($id, 'importbkr', $this->Lang('import'),
 		'title="'.$this->Lang('tip_importbkr').'"');
 }
 
-$items = array();
+$items = [];
 $icount = 0;
-$groups = array();
+$groups = [];
 $gcount	= 0;
 $mingrp = Booker::MINGRPID;
 
@@ -748,7 +748,7 @@ EOS;
 		if ($mod) {
 			$one->name = $this->CreateLink($id, 'processitem', $returnid,
 				strip_tags($row['name']),
-				array('item_id' => $item_id, 'task' => 'edit'));
+				['item_id' => $item_id, 'task' => 'edit']);
 		} else {
 			$one->name	= strip_tags($row['name']);
 		}
@@ -827,12 +827,12 @@ EOS;
 
 			$t = sprintf($bseetip, ($isitem) ? $si : $sg);
 			$t = sprintf($iconbsee, $t, $t);
-			$one->bsee = $this->CreateLink($id, 'itembookings', '', $t, array('item_id' => $item_id, 'task' => 'see'));
+			$one->bsee = $this->CreateLink($id, 'itembookings', '', $t, ['item_id' => $item_id, 'task' => 'see']);
 
 			if ($mod && !$skip) {
 				$t = sprintf($bedittip, ($isitem) ? $si : $sg);
 				$t = sprintf($iconbedit, $t, $t);
-				$one->bedit = $this->CreateLink($id, 'itembookings', '', $t, array('item_id' => $item_id, 'task' => 'edit'));
+				$one->bedit = $this->CreateLink($id, 'itembookings', '', $t, ['item_id' => $item_id, 'task' => 'edit']);
 			} else {
 				$one->bedit = '';
 			}
@@ -840,7 +840,7 @@ EOS;
 			if ($isitem) {
 				$t = sprintf($exporttip, $si); //($isitem)?$si:$sg);
 				$t = sprintf($iconexport, $t, $t);
-				$one->export = $this->CreateLink($id, 'processitem', $returnid, $t, array('item_id' => $item_id, 'task' => 'export'));
+				$one->export = $this->CreateLink($id, 'processitem', $returnid, $t, ['item_id' => $item_id, 'task' => 'export']);
 			} else {
 				$one->export = '';
 			}
@@ -854,7 +854,7 @@ EOS;
 			if ($mod && !$skip) {
 				$t = sprintf($baddtip, ($isitem) ? $si : $sg);
 				$t = sprintf($iconbadd, $t, $t);
-				$one->bedit = $this->CreateLink($id, 'itembookings', '', $t, array('item_id' => $item_id, 'task' => 'edit'));
+				$one->bedit = $this->CreateLink($id, 'itembookings', '', $t, ['item_id' => $item_id, 'task' => 'edit']);
 			} else {
 				$one->bedit = '';
 			}
@@ -868,22 +868,22 @@ EOS;
 
 		$t = sprintf($seetip, ($isitem) ? $si : $sg);
 		$t = sprintf($iconsee, $t, $t);
-		$one->see = $this->CreateLink($id, 'processitem', $returnid, $t, array('item_id' => $item_id, 'task' => 'see'));
+		$one->see = $this->CreateLink($id, 'processitem', $returnid, $t, ['item_id' => $item_id, 'task' => 'see']);
 
 		if ($mod && !$skip) {
 			if ($row['active'] > 0) {
 				$one->active = $this->CreateLink($id, 'processitem', $returnid, $iconyes,
-					array('item_id' => $item_id, 'task' => 'toggle', 'active' => TRUE));
+					['item_id' => $item_id, 'task' => 'toggle', 'active' => TRUE]);
 			} elseif ($row['active'] == 0) { //it's inactive so create an activate-link
 				$one->active = $this->CreateLink($id, 'processitem', $returnid, $iconno,
-					array('item_id' => $item_id, 'task' => 'toggle', 'active' => FALSE));
+					['item_id' => $item_id, 'task' => 'toggle', 'active' => FALSE]);
 			} else {
 				$one->active = '';
 			} //fake-deleted
 
 			$t = sprintf($edittip, ($isitem) ? $si : $sg);
 			$t = sprintf($iconedit, $t, $t);
-			$one->edit = $this->CreateLink($id, 'processitem', $returnid, $t, array('item_id' => $item_id, 'task' => 'edit'));
+			$one->edit = $this->CreateLink($id, 'processitem', $returnid, $t, ['item_id' => $item_id, 'task' => 'edit']);
 		} else {
 			if ($row['active'] > 0) {
 				$one->active = $yes;
@@ -898,7 +898,7 @@ EOS;
 		if ($padd) {
 			$t = sprintf($copytip, ($isitem) ? $si : $sg);
 			$t = sprintf($iconcopy, $t, $t);
-			$one->copy = $this->CreateLink($id, 'processitem', $returnid, $t, array('item_id' => $item_id, 'task' => 'copy'));
+			$one->copy = $this->CreateLink($id, 'processitem', $returnid, $t, ['item_id' => $item_id, 'task' => 'copy']);
 		} else {
 			$one->copy = '';
 		}
@@ -907,7 +907,7 @@ EOS;
 			$s = ($isitem) ? $si : $sg;
 			$t = sprintf($deltip, $s);
 			$t = sprintf($icondel, $t, $t);
-			$one->delete = $this->CreateLink($id, 'processitem', $returnid, $t, array('item_id' => $item_id, 'task' => 'delete'));
+			$one->delete = $this->CreateLink($id, 'processitem', $returnid, $t, ['item_id' => $item_id, 'task' => 'delete']);
 		} else {
 			$one->delete = '';
 		}
@@ -941,7 +941,7 @@ if ($icount > 0 || $gcount > 0) {
 
 //RESOURCES TAB
 $tplvars['startform3'] = $this->CreateFormStart($id, 'processitem', $returnid,
-	'POST', '', '', '', array('active_tab' => 'items', 'resume' => $resume));
+	'POST', '', '', '', ['active_tab' => 'items', 'resume' => $resume]);
 $tplvars['start_items_tab'] = $this->StartTab('items');
 
 $tablerows[3] = $icount;
@@ -1012,10 +1012,10 @@ EOS;
 if ($padd) {
 	$tplvars['additem'] = $this->CreateLink($id, 'processitem', $returnid,
 		 $theme->DisplayImage('icons/system/newobject.gif', $this->Lang('additem'), '', '', 'systemicon'),
-		 array('item_id' => -1, 'task' => 'add'), '', FALSE, FALSE, '')
+		 ['item_id' => -1, 'task' => 'add'], '', FALSE, FALSE, '')
 	 .' '.$this->CreateLink($id, 'processitem', $returnid,
 		 $this->Lang('additem'),
-		 array('item_id' => -1, 'task' => 'add'), '', FALSE, FALSE, 'class="pageoptions"');
+		 ['item_id' => -1, 'task' => 'add'], '', FALSE, FALSE, 'class="pageoptions"');
 
 	$tplvars['importbtn3'] = $this->CreateInputSubmit($id, 'importitm', $this->Lang('import'),
 		'title="'.$this->Lang('tip_importitm').'"');
@@ -1026,7 +1026,7 @@ if ($padd) {
 //GROUPS TAB
 $tplvars['start_grps_tab'] = $this->StartTab('groups');
 $tplvars['startform4'] = $this->CreateFormStart($id, 'processitem', $returnid,
-	'POST', '', '', '', array('active_tab' => 'groups', 'resume' => $resume));
+	'POST', '', '', '', ['active_tab' => 'groups', 'resume' => $resume]);
 
 $tablerows[4] = $gcount;
 $tplvars['gcount'] = $gcount;
@@ -1098,10 +1098,10 @@ EOS;
 if ($mod) {
 	$tplvars['addgrp'] = $this->CreateLink($id, 'processitem', $returnid,
 		 $theme->DisplayImage('icons/system/newobject.gif', $this->Lang('addgroup'), '', '', 'systemicon'),
-		 array('item_id' => -$mingrp, 'task' => 'add'), '', FALSE, FALSE, '')
+		 ['item_id' => -$mingrp, 'task' => 'add'], '', FALSE, FALSE, '')
 	 .' '.$this->CreateLink($id, 'processitem', $returnid,
 		 $this->Lang('addgroup'),
-		 array('item_id' => -$mingrp, 'task' => 'add'), '', FALSE, FALSE, 'class="pageoptions"');
+		 ['item_id' => -$mingrp, 'task' => 'add'], '', FALSE, FALSE, 'class="pageoptions"');
 	$tplvars['importbtn4'] = $tplvars['importbtn3'];
 	$tplvars['fimportbtn4'] = $tplvars['fimportbtn3'];
 }
@@ -1109,7 +1109,7 @@ if ($mod) {
 //REPORTS TAB (&FORM)
 $tplvars['start_reports_tab'] = $this->StartTab('reports');
 
-$choices = array();
+$choices = [];
 $fp = $this->GetModulePath().DIRECTORY_SEPARATOR.'lib'.DIRECTORY_SEPARATOR;
 $reps = parse_ini_file($fp.'reports.manifest', FALSE, INI_SCANNER_RAW);
 if ($reps) {
@@ -1133,11 +1133,11 @@ if ($reps) {
 	}
 	$alltypes = array_combine(array_values($choices),$reps);
 } else {
-	$alltypes = array();
+	$alltypes = [];
 }
 
 $tplvars['startform5'] = $this->CreateFormStart($id,'processreport',$returnid,'POST','','','',
- array('active_tab' => 'reports','resume' => $resume,'alltypes' => json_encode($alltypes)));
+ ['active_tab' => 'reports','resume' => $resume,'alltypes' => json_encode($alltypes)]);
 
 $tplvars['report_type'] =  $this->Lang('title_selecttype');
 $tplvars['report_range'] = $this->Lang('title_interval');
@@ -1191,10 +1191,10 @@ EOS;
 
 //SETTINGS TAB
 $tplvars['startform6'] = $this->CreateFormStart($id, 'setprefs', $returnid,
-	'POST', '', '', '', array('active_tab' => 'settings', 'resume' => $resume));
+	'POST', '', '', '', ['active_tab' => 'settings', 'resume' => $resume]);
 $tplvars['start_settings_tab'] = $this->StartTab('settings');
 if ($pset) {
-	$settings = array();
+	$settings = [];
 
 	$t = $cfuncs->decrypt_preference('masterpass');
 	$one = new stdClass();
@@ -1228,7 +1228,7 @@ if ($pset) {
 		}
 		unset($t);
 		$allusers = array_flip($allusers);
-		$allusers = array($this->Lang('none') => 0) + $allusers; //prepend 'none'
+		$allusers = [$this->Lang('none') => 0] + $allusers; //prepend 'none'
 		$one->inp = $this->CreateInputDropdown($id, 'pref_owner', $allusers, -1, $this->GetPreference('owner'));
 		$settings[] = $one;
 	}
@@ -1301,12 +1301,12 @@ if ($pset) {
 
 	$one = new stdClass();
 	$one->ttl = $this->Lang('listformat');
-	$choices = array(
+	$choices = [
 		$this->Lang('start+user') => Booker::LISTSU,
 		$this->Lang('resource+start') => Booker::LISTRS,
 		$this->Lang('user+resource') => Booker::LISTUR,
 		$this->Lang('user+start') => Booker::LISTUS
-	);
+	];
 	$one->inp = $this->CreateInputDropdown($id, 'pref_listformat', $choices, -1, $this->GetPreference('listformat'));
 	$one->mst = 1;
 //	$one->hlp = $this->Lang('help_listformat');
@@ -1355,7 +1355,7 @@ P.permission_name IN('{$this->PermAddName}','{$this->PermAdminName}','{$this->Pe
 ORDER BY U.last_name,U.first_name
 EOS;
 */
-		$allusers = array($this->Lang('any') => -1,$this->Lang('none') => 0) + $allusers; //prepend 'none'
+		$allusers = [$this->Lang('any') => -1,$this->Lang('none') => 0] + $allusers; //prepend 'none'
 
 		$one = new stdClass();
 		$one->ttl = $this->Lang('title_feugroup');
@@ -1366,12 +1366,12 @@ EOS;
 
 	$one = new stdClass();
 	$one->ttl = $this->Lang('title_subgrpalloc');
-	$choices = array(
+	$choices = [
 		$this->Lang('assignnone') => Booker::ALLOCNONE,
 		$this->Lang('assignfirst') => Booker::ALLOCFIRST,
 		$this->Lang('assignrandom') => Booker::ALLOCRAND,
 		$this->Lang('assignrotate') => Booker::ALLOCROTE
-	);
+	];
 	$one->inp = $this->CreateInputDropdown($id, 'pref_subgrpalloc', $choices, -1, $this->GetPreference('subgrpalloc'));
 	$one->mst = 1;
 	$one->hlp = $this->Lang('help_subgrpalloc');
@@ -1406,7 +1406,7 @@ EOS;
 
 	$one = new stdClass();
 	$one->ttl = $this->Lang('title_paymentiface');
-	$choices = array();
+	$choices = [];
 	$allmodules = $this->GetModulesWithCapability('GatePayer');
 	if ($allmodules) {
 		foreach ($allmodules as $name) {
@@ -1419,7 +1419,7 @@ EOS;
 		}
 		asort($choices);
 	}
-	$choices = array($this->Lang('none') => '') + $choices;
+	$choices = [$this->Lang('none') => ''] + $choices;
 	$one->inp = $this->CreateInputDropdown($id, 'pref_paymentiface', $choices, -1,
 		$this->GetPreference('paymentiface'));
 	$one->hlp = $this->Lang('help_paymentiface');
@@ -1478,7 +1478,7 @@ EOS;
 		asort($allcontexts);
 		$choices = array_flip($allcontexts);
 	} else {
-		$choices = array();
+		$choices = [];
 	}
 	$one = new stdClass();
 	$one->ttl = $this->Lang('title_authcontext');
@@ -1531,7 +1531,7 @@ EOS;
 	if (ini_get('mbstring.internal_encoding') !== FALSE) { //PHP's encoding-conversion capability is installed
 		$one = new stdClass();
 		$one->ttl = $this->Lang('title_exportencoding');
-		$encodings = array('utf-8' => 'UTF-8','windows-1252' => 'Windows-1252','iso-8859-1' => 'ISO-8859-1');
+		$encodings = ['utf-8' => 'UTF-8','windows-1252' => 'Windows-1252','iso-8859-1' => 'ISO-8859-1'];
 		$expchars = $this->GetPreference('exportencoding', 'UTF-8');
 		$t = $this->CreateInputRadioGroup($id, 'pref_exportencoding', $encodings, $expchars, '', '&nbsp;&nbsp;');
 		//override crappy default label-layout
@@ -1583,8 +1583,8 @@ EOS;
 //js
 // TODO make page-rows count window-size-responsive
 $pagerows = $this->GetPreference('pagerows', 10);
-$tablevars = array(); //accumulator for relevant table-identifiers
-$pagerdata = array(); //accumulator for relevant js-object properties
+$tablevars = []; //accumulator for relevant table-identifiers
+$pagerdata = []; //accumulator for relevant js-object properties
 $include = FALSE;
 foreach ($tablerows as $i => $rc) {
 	if ($rc > $pagerows) {
@@ -1592,7 +1592,7 @@ foreach ($tablerows as $i => $rc) {
 		$curpg = '<span id="cpage'.$i.'">1</span>';
 		$totpg = '<span id="tpage'.$i.'">'.ceil($rc / $pagerows).'</span>';
 
-		$choices = array((string)$pagerows => $pagerows);
+		$choices = [(string)$pagerows => $pagerows];
 		$f = ($pagerows < 4) ? 5 : 2;
 		$n = $pagerows * $f;
 		if ($n < $rc) {
@@ -1604,7 +1604,7 @@ foreach ($tablerows as $i => $rc) {
 		}
 		$choices[$this->Lang('all')] = 0;
 
-		$tplvars += array(
+		$tplvars += [
 		 'hasnav'.$i => 1,
 		 'first'.$i => '<a href="javascript:pagefirst(tbl'.$i.')">'.$this->Lang('first').'</a>',
 		 'prev'.$i => '<a href="javascript:pageback(tbl'.$i.')">'.$this->Lang('previous').'</a>',
@@ -1613,7 +1613,7 @@ foreach ($tablerows as $i => $rc) {
 		 'pageof'.$i => $this->Lang('pageof', $curpg, $totpg),
 		 'rowchanger'.$i => $this->CreateInputDropdown($id, 'pagerows'.$i, $choices, -1, $pagerows,
 			'onchange="pagerows(tbl'.$i.',this);"').'&nbsp;&nbsp;'.$this->Lang('pagerows')
-		);
+		];
 		$tablevars[] = 'tbl'.$i;
 		$pagerdata[] = sprintf("{currentid:'cpage%d', countid:'tpage%d', paginate:true, pagesize:%d}", $i, $i, $pagerows);
 	} elseif ($rc > 1) {

@@ -12,7 +12,7 @@ class Status
 	//$wanted = single STAT* enum or array of those or '*'
 	private function StatusKeys($wanted)
 	{
-		$stats = array(
+		$stats = [
 		 \Booker::STATNONE => 'stat_none',//unknown/normal/default
 		 \Booker::STATNEW => 'stat_new',//new, approver consideration pending
 		 \Booker::STATCHG => 'stat_chg',//change request, approver consideration pending
@@ -44,10 +44,10 @@ class Status
 		 \Booker::STATPARTPAID => 'stat_part',//fee not yet fully paid
 		 \Booker::STATNOTPAID => 'stat_unpaid',//payable but unpaid for some non-credit-related reason
 		 \Booker::STATOVRDUE => 'stat_ovrdue',//payment overdue
-		);
+		];
 
 		if (is_array($wanted)) {
-			$ret = array();
+			$ret = [];
 			foreach($wanted as $t) {
 				if (array_key_exists($t,$stats)) {
 					$ret[$t] = $stats[$t];
@@ -92,7 +92,7 @@ class Status
 		if ($mode & 1) {
 			$wanted = range(\Booker::STATNONE,\Booker::STATMAXREQ);
 		} else {
-			$wanted = array();
+			$wanted = [];
 		}
 		if ($mode & 2) {
 			$wanted = array_merge($wanted,range(\Booker::STATMAXREQ+1,\Booker::STATMAXOK));

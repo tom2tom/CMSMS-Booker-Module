@@ -9,7 +9,7 @@
 //NB caller must be very careful that top-level dir is valid!
 function delTree($dir)
 {
-	$files = array_diff(scandir($dir), array('.', '..'));
+	$files = array_diff(scandir($dir), ['.', '..']);
 	if ($files) {
 		foreach ($files as $file) {
 			$fp = cms_join_path($dir, $file);

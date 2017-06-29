@@ -9,11 +9,11 @@
 if (!function_exists('BookerRedirParms')) {
  function BookerRedirParms($resume, &$params, $msg = FALSE)
  {
-	$pnew = array_intersect_key($params,array(
+	$pnew = array_intersect_key($params,[
 	'item_id'=>1,
 	'booker_id'=>1,
 	'task'=>1,
-	'active_tab'=>1));
+	'active_tab'=>1]);
 	if (!empty($params['resume']))
 		$pnew['resume'] = json_encode($params['resume']);
 	switch ($resume) {
@@ -41,7 +41,7 @@ if (isset($params['resume'])) {
 		array_pop($params['resume']);
 	}
 } else {
-	$params['resume'] = array('defaultadmin');
+	$params['resume'] = ['defaultadmin'];
 }
 
 $bookerid = (int)$params['booker_id'];
@@ -79,7 +79,7 @@ if (isset($params['submit']) || isset($params['apply'])) {
 	'type_type'
 */
 	//validation
-	$msg = array();
+	$msg = [];
 	$t = trim($params['name']);
 	if ($t) {
 		$params['name'] = $t;
@@ -114,7 +114,7 @@ if (isset($params['submit']) || isset($params['apply'])) {
 		if ($is_new && !$pw) {
 			$msg[] = $this->Lang('missing_type',$this->Lang('password'));
 		} else {
-			$checks = array('publicid'=>$t);
+			$checks = ['publicid'=>$t];
 			if ($pw) {
 				$checks['password'] = $pw;
 			}
@@ -180,11 +180,11 @@ if (isset($params['submit']) || isset($params['apply'])) {
 		$t = !empty($params['active']);
 		$sql = 'UPDATE '.$this->BookerTable.' SET type=?,displayclass=?,active=? WHERE booker_id=?';
 		//TODO $utils->SafeExec()
-		$db->Execute($sql,array($type,(int)$params['displayclass'],$t,$bookerid));
-		$rights = array(
+		$db->Execute($sql,[$type,(int)$params['displayclass'],$t,$bookerid]);
+		$rights = [
 			'record' => !empty($params['type_record']),
 			'postpay' => !empty($params['type_postpay'])
-		);
+		];
 		$ufuncs->SetRights($this,$bookerid,$rights,$type);
 
 		if (isset($params['submit'])) {
@@ -204,13 +204,13 @@ if (isset($params['submit']) || isset($params['apply'])) {
 	$params['task'] = 'edit'; //in case we we adding
 }
 
-$tplvars = array(
+$tplvars = [
 	'mod' => $pmod
-);
+];
 
 $tplvars['pagenav'] = $utils->BuildNav($this,$id,$returnid,$params['action'],$params);
 $resume = json_encode($params['resume']);
-$hidden = array('booker_id'=>$bookerid,'resume'=>$resume,'task'=>$params['task']);
+$hidden = ['booker_id'=>$bookerid,'resume'=>$resume,'task'=>$params['task']];
 
 //DEFER $tplvars['startform'] = $this->CreateFormStart($id,'openbooker',$returnid,'POST','','','',$hidden);
 $tplvars['endform'] = $this->CreateFormEnd();
@@ -225,15 +225,15 @@ if ($pmod) { //add/edit mode
 }
 
 //script accumulators
-$jsincs = array();
-$jsfuncs = array();
-$jsloads = array();
+$jsincs = [];
+$jsfuncs = [];
+$jsloads = [];
 $baseurl = $this->GetModuleURLPath();
 
 $ufuncs = new Booker\Userops($this);
 
 if ($is_new) {
-	$bdata = array(
+	$bdata = [
 	 'name'=>'',
 	 'publicid'=>'',
 	 'address'=>'',
@@ -241,7 +241,7 @@ if ($is_new) {
 	 'type'=>0,
 	 'displayclass'=>0,
 	 'active'=>1
-	);
+	];
 } else {
 	$sql = <<<EOS
 SELECT COALESCE(A.name,B.name,'') AS name,COALESCE(A.address,B.address,'') AS address,B.publicid,B.phone,B.type,B.displayclass,B.active
@@ -249,16 +249,16 @@ FROM $this->BookerTable B
 LEFT JOIN $this->AuthTable A ON B.publicid=A.publicid
 WHERE B.booker_id=?
 EOS;
-	$bdata = $db->GetRow($sql,array($bookerid));
+	$bdata = $db->GetRow($sql,[$bookerid]);
 	if ($bdata) {
 		$utils->GetUserProperties($this,$bdata);
 	} else {
 		$nav = $tplvars['pagenav'];
-		$tplvars = array(
+		$tplvars = [
 		 'title_error'=>$this->Lang('error'),
 		 'message'=>$this->Lang('err_data'),
 		 'pagenav'=>$nav
-		);
+		];
 		echo Booker\Utils::ProcessTemplate($this,'error.tpl',$tplvars);
 		return;
 	}
@@ -271,7 +271,7 @@ $tplvars['startform'] = $this->CreateFormStart($id,'openbooker',$returnid,'POST'
 $yes = $this->Lang('yes');
 $no = $this->Lang('no');
 
-$vars = array();
+$vars = [];
 // active
 $oneset = new stdClass();
 $state = (int)$bdata['active'];
