@@ -40,6 +40,7 @@ $lang['audit_installed'] = 'version %s installed';
 $lang['audit_uninstalled'] = 'uninstalled';
 $lang['audit_upgraded'] = 'upgraded to version %s';
 $lang['back_module'] = 'Module Main Page';
+$lang['balance'] = 'Balance';
 $lang['basic'] = 'Basic';
 
 $lang['bkgtype_all'] = 'All'; //see also 'all'
@@ -132,6 +133,7 @@ $lang['error'] = 'Error!';
 
 $lang['every'] = 'every';
 $lang['except'] = 'except';
+$lang['expired'] = 'Expired';
 $lang['export'] = 'Export';
 $lang['exportbook'] = 'Export Bookings';
 $lang['export_filename'] = '%s-Export-%s.csv';
@@ -305,11 +307,7 @@ $lang['help_lead'] = 'How far ahead of the current time that a booking may be in
 $lang['help_members'] = '<strong>DO NOT</strong> select any member which is also a selected parent-group (below).';
 $lang['help_members2'] = 'The displayed order defines the \'similarity\' of group members, used for clustering multiple-bookings and selecting alternatives.';
 $lang['help_membersname'] = 'Used in messages to/from resource users';
-
-
 $lang['help_memcount'] = 'There are %d %s in the group.';
-
-
 $lang['help_passnew'] = 'Replace existing password';
 $lang['help_passwd'] = 'A password must be provided for a registered booker';
 $lang['help_paymentiface'] = 'CMSMS module to be used for making online payments';
@@ -619,6 +617,7 @@ $lang['title_account'] = 'Account/login name';
 $lang['title_address'] = 'Contact';
 $lang['title_active'] = 'Activated';
 $lang['title_alias'] = 'Alias';
+$lang['title_amount'] = 'Amount';
 $lang['title_anytime'] = 'Anytime';
 $lang['title_atimes'] = 'Available times';
 $lang['title_bulletin'] = 'Notice for occasional display in frontend pages';
