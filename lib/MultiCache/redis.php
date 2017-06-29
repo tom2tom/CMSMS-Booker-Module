@@ -17,7 +17,7 @@ class Cache_redis extends CacheBase implements CacheInterface
 	'database' => int
 	'timeout' => float seconds
 	*/
-	public function __construct($config=array())
+	public function __construct($config=[])
 	{
 		if ($this->use_driver()) {
 			parent::__construct($config);
@@ -36,13 +36,13 @@ class Cache_redis extends CacheBase implements CacheInterface
 
 	public function connectServer()
 	{
-		$params = array_merge(array(
+		$params = array_merge([
 			'host' => '127.0.0.1',
 			'port'  => 6379,
 			'password' => '',
 			'database' => 0,
 			'timeout' => 0.0,
-			), $this->config);
+			], $this->config);
 
 		$this->client = new \Redis();
 		if (!$this->client->connect($params['host'],(int)$params['port'],(float)$params['timeout'])) {
@@ -59,7 +59,7 @@ class Cache_redis extends CacheBase implements CacheInterface
 	public function _newsert($keyword, $value, $lifetime=FALSE)
 	{
 		if (!$this->_has($keyword)) {
-			$ret = $this->client->set($keyword, $value, array('xx', 'ex' => $lifetime));
+			$ret = $this->client->set($keyword, $value, ['xx', 'ex' => $lifetime]);
 			return $ret;
 		}
 		return FALSE;
@@ -67,7 +67,7 @@ class Cache_redis extends CacheBase implements CacheInterface
 
 	public function _upsert($keyword, $value, $lifetime=FALSE)
 	{
-		$ret = $this->client->set($keyword, $value, array('xx', 'ex' => $lifetime));
+		$ret = $this->client->set($keyword, $value, ['xx', 'ex' => $lifetime]);
 		if ($ret === FALSE) {
 			$ret = $this->client->set($keyword, $value, $lifetime);
 		}

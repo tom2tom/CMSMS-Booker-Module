@@ -7,7 +7,7 @@ abstract class CacheBase
 	protected $config;	//array of runtime options, merged into driver-specific options (if any)
 	protected $keyspace; //string prepended to cache keys (kinda cache-namespace)
 
-	public function __construct($config=array())
+	public function __construct($config=[])
 	{
 		$this->config = $config;
 		$name = (isset($config['namespace'])) ? $config['namespace'] : '';

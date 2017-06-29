@@ -6,7 +6,7 @@ class Cache_apcu extends CacheBase implements CacheInterface
 {
 	protected $nativeiter; //which iter-API applies
 
-	public function __construct($config = array())
+	public function __construct($config = [])
 	{
 		if ($this->use_driver()) {
 			parent::__construct($config);
@@ -68,7 +68,7 @@ class Cache_apcu extends CacheBase implements CacheInterface
 
 	public function _getall($filter)
 	{
-		$items = array();
+		$items = [];
 		if ($this->nativeiter) {
 			$iter = new \APCUIterator();
 		} else {
@@ -108,7 +108,7 @@ class Cache_apcu extends CacheBase implements CacheInterface
 			$iter = new \APCIterator('user');
 		}
 		if ($iter) {
-			$items = array();
+			$items = [];
 			foreach ($iter as $keyword=>$value) {
 				if ($this->filterItem($filter,$keyword,$value)) {
 					$items[] = $keyword;

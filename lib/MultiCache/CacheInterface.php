@@ -4,7 +4,7 @@ namespace MultiCache;
 
 interface CacheInterface
 {
-	public function __construct($config=array());
+	public function __construct($config=[]);
 
 	/*
 	 * Check whether this cache driver can be used

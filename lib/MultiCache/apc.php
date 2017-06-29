@@ -4,7 +4,7 @@ namespace MultiCache;
 
 class Cache_apc extends CacheBase implements CacheInterface
 {
-	public function __construct($config = array())
+	public function __construct($config = [])
 	{
 		if ($this->use_driver()) {
 			parent::__construct($config);
@@ -59,7 +59,7 @@ class Cache_apc extends CacheBase implements CacheInterface
 
 	public function _getall($filter)
 	{
-		$items = array();
+		$items = [];
 		$iter = new \APCIterator();
 		if ($iter) {
 			foreach ($iter as $keyword=>$value) {
@@ -91,7 +91,7 @@ class Cache_apc extends CacheBase implements CacheInterface
 	{
 		$iter = new \APCIterator('user');
 		if ($iter) {
-			$items = array();
+			$items = [];
 			foreach ($iter as $keyword=>$value) {
 				if ($this->filterItem($filter,$keyword,$value)) {
 					$items[] = $keyword;

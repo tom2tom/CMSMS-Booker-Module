@@ -12,14 +12,14 @@ class BookingCart extends Cart implements \Serializable
 	/**
 	Overloaded cart-properties
 	*/
-	private $xtraprops = array();
+	private $xtraprops = [];
 
 	/**
 	Recognised properties of cart-items
 
 	@var array, members each an array propname=>additive, additive = FALSE returns mere count when totalled
 	*/
-	protected $properties = array('price'=>TRUE, 'tax'=>TRUE, 'status'=>FALSE, 'weight'=>TRUE, 'count'=>FALSE);
+	protected $properties = ['price'=>TRUE, 'tax'=>TRUE, 'status'=>FALSE, 'weight'=>TRUE, 'count'=>FALSE];
 
 	/**
 	Constructor
@@ -184,13 +184,13 @@ class BookingCart extends Cart implements \Serializable
 		if (!is_callable($filter)) {
 			throw new \InvalidArgumentException('Filter for getStatus method must be callable.');
 		}
-		$totals = array();
+		$totals = [];
 		foreach ($this->getItems($filter) as $item) {
 			$status = $item->getStatus();
 			if (isset($totals[$status])) {
 				$totals[$status][] = $item->getCartId();
 			} else {
-				$totals[$status] = array($item->getCartId());
+				$totals[$status] = [$item->getCartId()];
 			}
 		}
 		return $totals;

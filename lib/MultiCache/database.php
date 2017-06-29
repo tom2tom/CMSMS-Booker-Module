@@ -6,7 +6,7 @@ class Cache_database extends CacheBase implements CacheInterface
 {
 	protected $table;
 
-	public function __construct($config=array())
+	public function __construct($config=[])
 	{
 		$this->table = $config['table'];
 		if ($this->use_driver()) {
@@ -32,7 +32,7 @@ class Cache_database extends CacheBase implements CacheInterface
 	{
 		$db = \cmsms()->GetDb();
 		$sql = 'SELECT cache_id FROM '.$this->table.' WHERE keyword=?';
-		$id = $db->GetOne($sql,array($keyword));
+		$id = $db->GetOne($sql,[$keyword]);
 		if (!$id) {
 			$value = serialize($value);
 			$lifetime = (int)$lifetime;
@@ -40,7 +40,7 @@ class Cache_database extends CacheBase implements CacheInterface
 				$lifetime = NULL;
 			}
 			$sql = 'INSERT INTO '.$this->table.' (keyword,value,savetime,lifetime) VALUES (?,?,?,?)';
-			$db->Execute($sql,array($keyword,$value,time(),$lifetime));
+			$db->Execute($sql,[$keyword,$value,time(),$lifetime]);
 			$ret = ($db->Affected_Rows() > 0); //racy if returned directly? async issue?
 			return $ret;
 		}
@@ -51,7 +51,7 @@ class Cache_database extends CacheBase implements CacheInterface
 	{
 		$db = \cmsms()->GetDb();
 		$sql = 'SELECT cache_id FROM '.$this->table.' WHERE keyword=?';
-		$id = $db->GetOne($sql,array($keyword));
+		$id = $db->GetOne($sql,[$keyword]);
 		$value = serialize($value);
 		$lifetime = (int)$lifetime;
 		if ($lifetime <= 0) {
@@ -60,10 +60,10 @@ class Cache_database extends CacheBase implements CacheInterface
 		//upsert, sort-of
 		if ($id) {
 			$sql = 'UPDATE '.$this->table.' SET value=?,savetime=?,lifetime=? WHERE cache_id=?';
-			$db->Execute($sql,array($value,time(),$lifetime,$id));
+			$db->Execute($sql,[$value,time(),$lifetime,$id]);
 		} else {
 			$sql = 'INSERT INTO '.$this->table.' (keyword,value,savetime,lifetime) VALUES (?,?,?,?)';
-			$db->Execute($sql,array($keyword,$value,time(),$lifetime));
+			$db->Execute($sql,[$keyword,$value,time(),$lifetime]);
 		}
 		$ret = ($db->Affected_Rows() > 0); //racy if returned directly? async issue?
 		return $ret;
@@ -72,7 +72,7 @@ class Cache_database extends CacheBase implements CacheInterface
 	public function _get($keyword)
 	{
 		$db = \cmsms()->GetDb();
-		$row = $db->GetRow('SELECT value,savetime,lifetime FROM '.$this->table.' WHERE keyword=?',array($keyword));
+		$row = $db->GetRow('SELECT value,savetime,lifetime FROM '.$this->table.' WHERE keyword=?',[$keyword]);
 		if ($row) {
 			if (is_null($row['lifetime']) ||
 				 time() <= $row['savetime'] + $row['lifetime']) {
@@ -86,7 +86,7 @@ class Cache_database extends CacheBase implements CacheInterface
 
 	public function _getall($filter)
 	{
-		$items = array();
+		$items = [];
 		$db = \cmsms()->GetDb();
 		$info = $db->GetArray('SELECT * FROM '.$this->table);
 		if ($info) {
@@ -111,7 +111,7 @@ class Cache_database extends CacheBase implements CacheInterface
 	{
 		$db = \cmsms()->GetDb();
 		$sql = 'SELECT cache_id,savetime,lifetime FROM '.$this->table.' WHERE keyword=?';
-		$row = $db->GetRow($sql,array($keyword));
+		$row = $db->GetRow($sql,[$keyword]);
 		if ($row) {
 			if (is_null($row['lifetime']) ||
 			  time() <= $row['savetime'] + $row['lifetime']) {
@@ -124,7 +124,7 @@ class Cache_database extends CacheBase implements CacheInterface
 	public function _delete($keyword)
 	{
 		$db = \cmsms()->GetDb();
-		$db->Execute('DELETE FROM '.$this->table.' WHERE keyword=?',array($keyword));
+		$db->Execute('DELETE FROM '.$this->table.' WHERE keyword=?',[$keyword]);
 		$ret = ($db->Affected_Rows() > 0);
 		return $ret;
 	}
@@ -140,7 +140,7 @@ class Cache_database extends CacheBase implements CacheInterface
 				$keyword = $row['keyword'];
 				$value = (!is_null($row['value'])) ? unserialize($row['value']) : NULL;
 				if ($this->filterItem($filter,$keyword,$value)) {
-					$db->Execute($sql,array($row['cache_id']));
+					$db->Execute($sql,[$row['cache_id']]);
 					$ret = $ret && ($db->Affected_Rows() > 0);
 				}
 			}

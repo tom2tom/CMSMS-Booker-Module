@@ -8,7 +8,7 @@ class Cache_yac extends CacheBase implements CacheInterface
 {
 	protected $client;
 
-	public function __construct($config=array())
+	public function __construct($config=[])
 	{
 		if ($this->use_driver()) {
 			parent::__construct($config);
@@ -59,13 +59,13 @@ class Cache_yac extends CacheBase implements CacheInterface
 
 	public function _getall($filter)
 	{
-		$items = array();
+		$items = [];
 		$info = $this->client->info();
 		$count = (int)$info['slots_used'];
 		if ($count) {
 			$info = $this->client->dump($count);
 			if ($info) {
-				$items = array();
+				$items = [];
 				foreach ($info as $one) {
 					$keyword = $one['key'];
 					$value = $this->_get($keyword);

@@ -4,7 +4,7 @@ namespace MultiCache;
 
 class Cache_wincache extends CacheBase implements CacheInterface
 {
-	public function __construct($config=array())
+	public function __construct($config=[])
 	{
 		if ($this->use_driver()) {
 			parent::__construct($config);
@@ -54,7 +54,7 @@ class Cache_wincache extends CacheBase implements CacheInterface
 
 	public function _getall($filter)
 	{
-		$items = array();
+		$items = [];
 		$info = wincache_ucache_info();
 		foreach ($info['ucache_entries'] as $one) {
 			$keyword = $one['key_name'];

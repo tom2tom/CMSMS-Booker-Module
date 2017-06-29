@@ -6,7 +6,7 @@ class Cache_file extends CacheBase implements CacheInterface
 {
 	protected $basepath; //has trailing separator
 
-	public function __construct($config = array())
+	public function __construct($config = [])
 	{
 		parent::__construct($config);
 		if ($this->use_driver()) {
@@ -28,7 +28,7 @@ class Cache_file extends CacheBase implements CacheInterface
 		if (!$dir) {
 			return FALSE;
 		}
-		$dir = str_replace(array('/','\\'),array(DIRECTORY_SEPARATOR,DIRECTORY_SEPARATOR),$dir);
+		$dir = str_replace(['/','\\'],[DIRECTORY_SEPARATOR,DIRECTORY_SEPARATOR],$dir);
 		 //hacky check for relative-path
 		$real = realpath(__DIR__); // gets /path/to/here or X:\path\to\here
 		if (($dir[0] != DIRECTORY_SEPARATOR && $real[0] == DIRECTORY_SEPARATOR)
@@ -73,7 +73,7 @@ class Cache_file extends CacheBase implements CacheInterface
 
 	public function _getall($filter)
 	{
-		$items = array();
+		$items = [];
 		$files = glob($this->basepath.'*',GLOB_NOSORT);
 		foreach($files as $fp) {
 			if (is_file($fp)) {

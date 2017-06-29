@@ -6,7 +6,7 @@ class Cache_memcache extends CacheBase implements CacheInterface
 {
 	protected $client;
 
-	public function __construct($config = array())
+	public function __construct($config = [])
 	{
 		if ($this->use_driver()) {
 			parent::__construct($config);
@@ -28,7 +28,7 @@ class Cache_memcache extends CacheBase implements CacheInterface
 		$this->client = new \Memcache(); //CHECKME data persistence ??
 	
 		$params = array_merge($this->config,
-			array(array('host'=>'127.0.0.1','port'=>11211))
+			[['host'=>'127.0.0.1','port'=>11211]]
 		);
 		foreach($params as $server) {
 			$name = $server['host'].'_'.$server['port'];
@@ -86,7 +86,7 @@ class Cache_memcache extends CacheBase implements CacheInterface
 
 	public function _getall($filter)
 	{
-		$items = array();
+		$items = [];
 		$info = $this->client->getStats('items');
 		if ($info) {
 			foreach($info as $keyword=>$value) {

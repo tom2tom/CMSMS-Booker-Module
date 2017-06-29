@@ -16,7 +16,7 @@ class Cart
 
 	@var array of objects each implementing CartItemInterface or an extension
 	*/
-	protected $items = array();
+	protected $items = [];
 
 	/**
 	Something usable for in-cart determinations e.g. cart name
@@ -44,7 +44,7 @@ class Cart
 
 	@var array
 	*/
-	protected $_totals = array();
+	protected $_totals = [];
 
 	/**
 	Constructor
@@ -366,7 +366,7 @@ class Cart
 	*/
 	public function clear()
 	{
-		$this->items = array();
+		$this->items = [];
 		$this->cartModified();
 	}
 
@@ -538,7 +538,7 @@ class Cart
 			throw new \InvalidArgumentException('Filter for _calculateTotals method must be callable.');
 		}
 
-		$taxTotals = array();
+		$taxTotals = [];
 		$weight = 0.0;
 
 		foreach ($this->getItems($filter) as $item) {
@@ -558,7 +558,7 @@ class Cart
 			}
 		}
 
-		$totals = array('totals' => array(), 'subtotals' => array(), 'taxes' => array(), 'weight' => $weight);
+		$totals = ['totals' => [], 'subtotals' => [], 'taxes' => [], 'weight' => $weight];
 
 		foreach ($taxTotals as $taxRate => $amount) {
 			if ($this->pricesWithTax) {
