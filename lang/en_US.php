@@ -591,6 +591,7 @@ $lang['tip_notify_selected_records'] = 'send notice to user of each selected ite
 $lang['tip_notifylodger'] = 'send notice to lodger';
 $lang['tip_notifyuser'] = 'send notice to user';
 $lang['tip_otherview'] = 'show other format';
+$lang['tip_payments'] = 'review all payments and credit';
 $lang['tip_refresh'] = 'renew all derived bookings';
 $lang['tip_refresh_sel'] = 'renew all derived bookings for each selected item';
 $lang['tip_register'] = 'become a registered user';
