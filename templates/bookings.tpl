@@ -43,7 +43,7 @@
 {/if}
    <div class="pageoptions" style="margin-top:1em;">
 {if $pmod}{$iconlinkadd}&nbsp;{$textlinkadd}<span style="margin-left:5em;">{$importbbtn} {/if}
-{if $ocount > 0}{$export} {if $tell}{$notify}{/if}{if $pmod} {$delete}{/if}</span>{/if}
+{if $ocount > 0}{$export} {if $tell}{$notify}{/if}{if $pmod} {$delete}{/if} {$amounts}</span>{/if}
   </div>
   {$endform}
 
@@ -85,6 +85,6 @@
 {/if}
    <div class="pageoptions" style="margin-top:1em;">
 {if $pmod}{$iconlinkadd2}&nbsp;{$textlinkadd2}{/if}
-{if $rcount > 0}<span style="margin-left:3em">{if $tell}{$notify2}{/if}{if $pmod} {$refresh2} {$delete2}{/if}</span>{/if}
+{if $rcount > 0}<span style="margin-left:3em">{if $tell}{$notify2}{/if}{if $pmod} {$refresh2} {$delete2}{/if} {$amounts}</span>{/if}
    </div>
 {$endform}
