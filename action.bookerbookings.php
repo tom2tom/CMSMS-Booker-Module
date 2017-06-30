@@ -92,6 +92,12 @@ if (isset($params['delete1'])) {
 	} else {
 		$msg = $this->Lang('notypesel', $this->Lang('booking_multi'));
 	}
+} elseif (isset($params['amounts'])) {
+	if (!($this->_CheckAccess('admin') || $this->_CheckAccess('book'))) {
+		exit;
+	//TODO resumption to here
+$this->Crash();
+	$this->Redirect($id,'bookeramounts','',$newparms);
 } elseif (isset($params['export'])) {
 	if (!($this->_CheckAccess('admin') || $this->_CheckAccess('view'))) {
 		exit;
@@ -293,7 +299,7 @@ if ($data) {
 */
 		$oneset->name = $one['what'];
 		if ($funcs->MaybePayable($this, $utils, $item_id)) {
-			$oneset->paid = paid_status($one['statpay'].$yes.$no);
+			$oneset->paid = paid_status($one['statpay'], $yes, $no);
 		} else {
 			$oneset->paid = '';
 		}
@@ -401,6 +407,8 @@ EOS;
 
 	$tplvars['export'] = $this->CreateInputSubmit($id, 'export', $this->Lang('export'),
 	'title="'.$this->Lang('tip_export_selected_records').'"');
+	$tplvars['amounts'] = $this->CreateInputSubmit($id, 'amounts', $this->Lang('title_payments'),
+	'title="'.$this->Lang('tip_payments').'"');
 
 	if ($pmod) {
 		$tplvars['delete'] = $this->CreateInputSubmit($id, 'delete', $this->Lang('delete'),
@@ -556,6 +564,8 @@ if ($data) {
 			$oneset->tell = $this->CreateLink($id, 'notifybooker', '', $icon_tell,
 				['item_id' => $item_id, 'bkg_id' => $bkgid, 'task' => $params['task']]);
 		}
+		$oneset->pay = $this->CreateLink($id, 'bookeramounts', '', $icon_pay,
+			['bkg_id' => $bkgid, 'edit' => $pmod]);
 		if ($pmod) {
 			$oneset->refresh = $this->CreateLink($id, 'itembookings', '', $icon_fresh,
 				['item_id' => $item_id, 'bkg_id' => $bkgid, 'refresh1' => 1, 'repeat' => 1]);
@@ -573,6 +583,10 @@ if ($data) {
 $rc = count($rows);
 $tplvars['rcount'] = $rc;
 if ($rc) {
+	if (!isset($tplvars['amounts'])) {
+		$tplvars['amounts'] = $this->CreateInputSubmit($id, 'amounts', $this->Lang('title_payments'),
+		'title="'.$this->Lang('tip_payments').'"');
+	}
 	$jsfuncs[] = <<<EOS
 function any_selected2() {
  var cb = $('#repeats input[name="{$id}sel[]"]:checked');
