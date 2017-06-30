@@ -504,11 +504,13 @@ EOS;
 	{
 		switch ($action) {
 		 case 'announce':
+		 case 'bookeramounts':
 		 case 'default':
 		 case 'defaultadmin':
 		 case 'delete':
 		 case 'dobooking':
 		 case 'exportbooking':
+		 case 'filter':
 		 case 'findbooking':
 		 case 'import':
 		 case 'notifybooker':
@@ -518,11 +520,10 @@ EOS;
 		 case 'auth':
 		 case 'openfees':
 		 case 'opencart':
+		 case 'processreport':
 		 case 'setprefs':
 		 case 'swapgroups':
 		 case 'sortlike':
-		 case 'processreport':
-		 case 'filter':
 			break;
 		 case 'bookerbookings':
 		 case 'itembookings':
