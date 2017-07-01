@@ -393,6 +393,9 @@ $tplvars = [
 	'endform' => $this->CreateFormEnd(),
 ];
 
+$params['active_tab'] = ($is_group) ? 'groups' : 'items';
+$params['resume'] = ['defaultadmin']; //redirects can [eventually] get back to there
+
 $tplvars['pagenav'] = $utils->BuildNav($this,$id,$returnid,$params['action'],$params);
 
 if (isset($params['message']))
