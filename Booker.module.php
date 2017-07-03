@@ -660,10 +660,11 @@ EOS;
 	*/
 /*public function _GetActiveTab(&$params)
 	{
-		if (empty($params['active_tab']))
+		if (empty($params['active_tab'])) {
 			return 'data';
-		else
+		} else {
 			return $params['active_tab'];
+		}
 	}
 */
 	/**
@@ -675,9 +676,9 @@ EOS;
 	public function _PrettyMessage($text, $success=TRUE, $key=TRUE)
 	{
 		$base = ($key) ? $this->Lang($text) : $text;
-		if ($success)
+		if ($success) {
 			return $this->ShowMessage($base);
-		else {
+		} else {
 			$msg = $this->ShowErrors($base);
 //			if ($faillink == FALSE) {
 				//strip the link
@@ -716,21 +717,28 @@ EOS;
 				//trim string like <img src="..." class="fakeicon systemicon" alt="$text" title="$text" />
 				$imgstr = str_replace(['<img','/>'],['',''],$imgstr);
 			} elseif ($p == 0) {
-				$imgstr = $this->GetModuleURLPath().$iconfile; } elseif (strpos($iconfile,'://',$p-1) === $p-1) {
-				$imgstr = $iconfile; } else {
-				$imgstr = $this->GetModuleURLPath().'/'.$iconfile; }
+				$imgstr = $this->GetModuleURLPath().$iconfile;
+			} elseif (strpos($iconfile,'://',$p-1) === $p-1) {
+				$imgstr = $iconfile;
+			} else {
+				$imgstr = $this->GetModuleURLPath().'/'.$iconfile;
+			}
 			$ret = '<input type="image" '.$imgstr.' name="'.$id.$name.'"'; //conservative assumption about spaces
-			if ($extra)
+			if ($extra) {
 				$ret .= ' '.$extra;
+			}
 			$ret .= ' />';
-		} else
+		} else {
 			$ret = '';
+		}
 		if ($link && $text) {
-			if ($ret)
+			if ($ret) {
 				$ret .=' ';
+			}
 			$ret .='<input type="submit" value="'.$text.'" name="'.$id.$name.'" class="fakelink"';
-			if ($extra)
+			if ($extra) {
 				$ret .= ' '.$extra;
+			}
 			$ret .= ' />';
 		}
 		return $ret;
