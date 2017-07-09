@@ -240,12 +240,12 @@ class Dataops
 
 		$sql = <<<EOS
 SELECT D.slotstart,D.slotlen,O.fee,O.feepaid,O.status,O.statpay,I.name AS what,
-COALESCE(A.name,B.name,'') AS name,COALESCE(A.address,B.address,'') AS address,B.publicid,B.phone
+COALESCE(A.name,B.name,'') AS name,COALESCE(A.address,B.address,'') AS address,B.phone,A.publicid
 FROM $mod->DispTable D
 JOIN $mod->OnceTable O ON D.bkg_id=O.bkg_id
 JOIN $mod->ItemTable I ON D.item_id=I.item_id
 JOIN $mod->BookerTable B ON D.booker_id=B.booker_id
-LEFT JOIN $mod->AuthTable A ON B.publicid=A.publicid
+LEFT JOIN $mod->AuthTable A ON B.auth_id=A.id
 EOS;
 /*		if ($and || $or) {
 			$sql .=  ' WHERE ';
@@ -275,11 +275,7 @@ EOS;
 		$sql .= ' ORDER BY what,slotstart';
 
 		$utils = new Utils();
-		$data = $utils->SafeGet($sql, $args);
-		if ($data) {
-			$utils->GetUserProperties($mod, $data);
-		}
-		return $data;
+		return $utils->PlainGet($mod, $sql, $args);
 	}
 
 	/**

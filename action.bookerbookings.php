@@ -95,9 +95,9 @@ if (isset($params['delete1'])) {
 } elseif (isset($params['amounts'])) {
 	if (!($this->_CheckAccess('admin') || $this->_CheckAccess('book'))) {
 		exit;
-	//TODO resumption to here
-$this->Crash();
-	$this->Redirect($id,'bookeramounts','',$newparms);
+	}
+	$this->Redirect($id,'processamounts','',
+	['booker_id'=>$params['booker_id'],'task'=>$params['task'],'resume'=>$params['resume']]);
 } elseif (isset($params['export'])) {
 	if (!($this->_CheckAccess('admin') || $this->_CheckAccess('view'))) {
 		exit;
@@ -150,8 +150,8 @@ if (isset($params['resume'])) {
 	while (end($params['resume']) == $params['action']) {
 		array_pop($params['resume']);
 	}
-//} else {
-//	$params['resume'] = array('defaultadmin'); //got here via link
+} else { //got here via link
+	$params['resume'] = ['defaultadmin']; //redirects can [eventually] get back to there
 }
 
 $utils = new Booker\Utils();
@@ -200,34 +200,29 @@ $funcs = new Booker\Payment();
 //========== ONETIME BOOKINGS ===========
 //TODO support limit to date-range, changing such date-range c.f. action.report.php
 $sql = <<<EOS
-SELECT O.item_id,O.booker_id,O.bkg_id,O.slotstart,O.slotlen,O.statpay,I.name AS what,COALESCE(A.name,B.name,'') AS name,B.publicid
+SELECT O.item_id,O.booker_id,O.bkg_id,O.slotstart,O.slotlen,O.statpay,I.name AS what,COALESCE(A.name,B.name,'') AS name,A.publicid
 FROM $this->OnceTable O
 JOIN $this->ItemTable I ON O.item_id=I.item_id
 JOIN $this->BookerTable B ON O.booker_id=B.booker_id
-LEFT JOIN $this->AuthTable A ON B.publicid=A.publicid
+LEFT JOIN $this->AuthTable A ON B.auth_id=A.id
 WHERE O.booker_id=? ORDER BY O.slotstart
 EOS;
-$data = $utils->SafeGet($sql, [$bookerid]);
-if ($data) {
-	$utils->GetUserProperties($this, $data);
-}
-
+$data = $utils->PlainGet($this, $sql, [$bookerid]);
 /* TODO
 $groups = $utils->GetItemGroups($this,$item_id);
 if ($groups) {
 	$fillers = str_repeat('?,',count($groups)-1).'?';
 	$sql = <<<EOS
-SELECT O.bkg_id,O.item_id,O.slotstart,O.slotlen,O.statpay,COALESCE(A.name,B.name,'') AS name,B.publicid
+SELECT O.bkg_id,O.item_id,O.slotstart,O.slotlen,O.statpay,COALESCE(A.name,B.name,'') AS name,A.publicid
 FROM $this->OnceTable O
 JOIN $this->BookerTable B ON O.booker_id=B.booker_id
-LEFT JOIN $this->AuthTable A ON B.publicid=A.publicid
+LEFT JOIN $this->AuthTable A ON B.auth_id=A.id
 WHERE O.item_id IN ({$fillers})
 ORDER BY O.slotstart
 EOS;
-	$data2 = $utils->SafeGet($sql,$groups);
+	$data2 = $utils->PlainGet($this,$sql,$groups);
 	if ($data2) {
-		$utils->GetUserProperties($this,$data2);
-		$data = array_merge($data,$data2);
+		$data = ($data) ? array_merge($data,$data2):$data2;
 		usort($data, function ($a, $b)
 		{
 			return $a['slotstart'] - $b['slotstart'];
@@ -324,35 +319,36 @@ if ($data) {
 $rc = count($rows);
 $tplvars['ocount'] = $rc;
 if ($rc) {
-	//TODO make page-rows count window-size-responsive
-	$pagerows = $this->GetPreference('pagerows', 10);
-	if ($pagerows && $rc > $pagerows) {
-		$tplvars['hasnav'] = 1;
-		//setup for SSsort
-		$choices = [strval($pagerows) => $pagerows];
-		$f = ($pagerows < 4) ? 5 : 2;
-		$n = $pagerows * $f;
-		if ($n < $rc) {
-			$choices[strval($n)] = $n;
-		}
-		$n *= 2;
-		if ($n < $rc) {
-			$choices[strval($n)] = $n;
-		}
-		$choices[$this->Lang('all')] = 0;
-		$tplvars['rowchanger'] =
-			$this->CreateInputDropdown($id, 'pagerows', $choices, -1, $pagerows,
-			'onchange="pagerows(this);"').'&nbsp;&nbsp;'.$this->Lang('pagerows');
-		$curpg = '<span id="cpage">1</span>';
-		$totpg = '<span id="tpage">'.ceil($rc / $pagerows).'</span>';
-		$tplvars += [
-			'pageof' => $this->Lang('pageof', $curpg, $totpg),
-			'first' => '<a href="javascript:pagefirst()">'.$this->Lang('first').'</a>',
-			'prev' => '<a href="javascript:pageback()">'.$this->Lang('previous').'</a>',
-			'next' => '<a href="javascript:pageforw()">'.$this->Lang('next').'</a>',
-			'last' => '<a href="javascript:pagelast()">'.$this->Lang('last').'</a>'
-		];
-		$jsfuncs[] = <<<EOS
+	if ($rc > 1) {
+		//TODO make page-rows count window-size-responsive
+		$pagerows = $this->GetPreference('pagerows', 10);
+		if ($pagerows && $rc > $pagerows) {
+			$tplvars['hasnav'] = 1;
+			//setup for SSsort
+			$choices = [strval($pagerows) => $pagerows];
+			$f = ($pagerows < 4) ? 5 : 2;
+			$n = $pagerows * $f;
+			if ($n < $rc) {
+				$choices[strval($n)] = $n;
+			}
+			$n *= 2;
+			if ($n < $rc) {
+				$choices[strval($n)] = $n;
+			}
+			$choices[$this->Lang('all')] = 0;
+			$tplvars['rowchanger'] =
+				$this->CreateInputDropdown($id, 'pagerows', $choices, -1, $pagerows,
+				'onchange="pagerows(this);"').'&nbsp;&nbsp;'.$this->Lang('pagerows');
+			$curpg = '<span id="cpage">1</span>';
+			$totpg = '<span id="tpage">'.ceil($rc / $pagerows).'</span>';
+			$tplvars += [
+				'pageof' => $this->Lang('pageof', $curpg, $totpg),
+				'first' => '<a href="javascript:pagefirst()">'.$this->Lang('first').'</a>',
+				'prev' => '<a href="javascript:pageback()">'.$this->Lang('previous').'</a>',
+				'next' => '<a href="javascript:pageforw()">'.$this->Lang('next').'</a>',
+				'last' => '<a href="javascript:pagelast()">'.$this->Lang('last').'</a>'
+			];
+			$jsfuncs[] = <<<EOS
 function pagefirst() {
  $.SSsort.movePage($('#bookings')[0],false,true);
 }
@@ -369,11 +365,10 @@ function pagerows(cb) {
  $.SSsort.setCurrent($('#bookings')[0],'pagesize',parseInt(cb.value));
 }
 EOS;
-	} else {
-		$tplvars['hasnav'] = 0;
-	}
+		} else {
+			$tplvars['hasnav'] = 0;
+		}
 
-	if ($rc > 1) {
 		$jsloads[] = <<<EOS
  $('#bookings').addClass('table_sort').SSsort({
   sortClass: 'SortAble',
@@ -487,30 +482,26 @@ if ($pmod) {
 $tplvars['item_title2'] = $this->Lang('title_repeats');
 
 $sql = <<<EOS
-SELECT R.bkg_id,R.item_id,R.formula,R.subgrpcount,R.statpay,I.name AS what,COALESCE(A.name,B.name,'') AS name,B.publicid
+SELECT R.bkg_id,R.item_id,R.formula,R.subgrpcount,R.statpay,I.name AS what,COALESCE(A.name,B.name,'') AS name,A.publicid
 FROM $this->RepeatTable R
 JOIN $this->ItemTable I ON R.item_id=I.item_id
 JOIN $this->BookerTable B ON R.booker_id=B.booker_id
-LEFT JOIN $this->AuthTable A ON B.publicid=A.publicid
+LEFT JOIN $this->AuthTable A ON B.auth_id=A.id
 WHERE R.booker_id=? AND R.active=1
 EOS;
-$data = $db->GetArray($sql, [$bookerid]);
-if ($data) {
-	$utils->GetUserProperties($this, $data);
-}
+$data = $utils->PlainGet($this, $sql, [$bookerid]);
 /* TODO
 if ($groups) {
 	$sql = <<<EOS
-SELECT R.bkg_id,R.item_id,R.formula,R.subgrpcount,R.statpay,COALESCE(A.name,B.name,'') AS name,B.publicid
+SELECT R.bkg_id,R.item_id,R.formula,R.subgrpcount,R.statpay,COALESCE(A.name,B.name,'') AS name,A.publicid
 FROM $this->RepeatTable R
 JOIN $this->BookerTable B ON R.booker_id=B.booker_id
-LEFT JOIN $this->AuthTable A ON B.publicid=A.publicid
+LEFT JOIN $this->AuthTable A ON B.auth_id=A.id
 WHERE R.item_id IN ({$fillers}) AND R.active=1
 EOS;
-	$data2 = $db->GetArray($sql,$groups);
+	$data2 = $utils->PlainGet($this,$sql,$groups);
 	if ($data2) {
-		$utils->GetUserProperties($this,$data2);
-		$data = array_merge($data,$data2);
+		$data = ($data) ? array_merge($data,$data2):$data2;
 	}
 }
 */
@@ -564,8 +555,6 @@ if ($data) {
 			$oneset->tell = $this->CreateLink($id, 'notifybooker', '', $icon_tell,
 				['item_id' => $item_id, 'bkg_id' => $bkgid, 'task' => $params['task']]);
 		}
-		$oneset->pay = $this->CreateLink($id, 'bookeramounts', '', $icon_pay,
-			['bkg_id' => $bkgid, 'edit' => $pmod]);
 		if ($pmod) {
 			$oneset->refresh = $this->CreateLink($id, 'itembookings', '', $icon_fresh,
 				['item_id' => $item_id, 'bkg_id' => $bkgid, 'refresh1' => 1, 'repeat' => 1]);

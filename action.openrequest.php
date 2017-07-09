@@ -82,6 +82,8 @@ if (isset($params['resume'])) {
 	while (end($params['resume']) == $params['action']) {
 		array_pop($params['resume']);
 	}
+} else { //got here via a link
+	$params['resume'] = ['defaultadmin'];
 }
 
 if (isset($params['cancel'])) {
@@ -166,16 +168,13 @@ if (isset($params['submit']) || isset($params['apply'])) {
 if (empty($bdata)) {
 	//TODO not all OnceTable
 	$sql = <<<EOS
-SELECT O.*,COALESCE(A.name,B.name,'') AS name,COALESCE(A.address,B.address,'') AS address,B.publicid,B.phone
+SELECT O.*,COALESCE(A.name,B.name,'') AS name,COALESCE(A.address,B.address,'') AS address,B.phone,A.publicid
 FROM $this->OnceTable O
 JOIN $this->BookerTable B ON O.booker_id=B.booker_id
-LEFT JOIN $this->AuthTable A ON B.publicid=A.publicid
+LEFT JOIN $this->AuthTable A ON B.auth_id=A.id
 WHERE bkg_id=?
 EOS;
-	$bdata = $db->GetRow($sql,[$params['bkg_id']]);
-	if ($bdata) {
-		$utils->GetUserProperties($this,$bdata);
-	}
+	$bdata = $utils->PlainGet($this,$sql,[$params['bkg_id']],'row');
 } else {
 	$bdata = func($params); //TODO
 }
