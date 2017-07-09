@@ -36,7 +36,7 @@ class RptItemSummary extends Report
 	*/
 	public function PublicTitle($after = FALSE, $before = FALSE)
 	{
-		return $this->CreateTitle('title_item', 'title_bookings', $after, $before);
+		return $this->utils->CreateTitle($this->mod, 'title_item', 'title_bookings', $after, $before);
 	}
 
 	/**

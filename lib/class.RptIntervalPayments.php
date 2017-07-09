@@ -34,7 +34,7 @@ class RptIntervalPayments extends Report
 	*/
 	public function PublicTitle($after = FALSE, $before = FALSE)
 	{
-		return $this->CreateTitle('title_booking', 'title_payments', $after, $before);
+		return $this->utils->CreateTitle($this->mod, 'title_booking', 'title_payments', $after, $before);
 	}
 
 	/**

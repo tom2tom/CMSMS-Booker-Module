@@ -34,7 +34,7 @@ class RptIntervalCredit extends Report
 	*/
 	public function PublicTitle($after = FALSE, $before = FALSE)
 	{
-		return $this->CreateTitle('total', 'title_credit', $after, $before);
+		return $this->utils->CreateTitle($this->mod, 'total', 'title_credit', $after, $before);
 	}
 
 	/**

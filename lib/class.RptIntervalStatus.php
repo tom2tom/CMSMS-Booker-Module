@@ -34,7 +34,7 @@ class RptIntervalStatus extends Report
 	*/
 	public function PublicTitle($after = FALSE, $before = FALSE)
 	{
-		return $this->CreateTitle('title_bookings', 'status', $after, $before);
+		return $this->utils->CreateTitle($this->mod, 'title_bookings', 'status', $after, $before);
 	}
 
 	/**

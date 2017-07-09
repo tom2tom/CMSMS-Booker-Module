@@ -34,7 +34,7 @@ class RptIntervalSummary extends Report
 	*/
 	public function PublicTitle($after = FALSE, $before = FALSE)
 	{
-		return $this->CreateTitle('interval', 'title_bookings', $after, $before);
+		return $this->utils->CreateTitle($this->mod, 'interval', 'title_bookings', $after, $before);
 	}
 
 	/**

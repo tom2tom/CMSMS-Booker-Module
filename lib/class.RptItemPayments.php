@@ -35,7 +35,7 @@ class RptItemPayments extends Report
 	public function PublicTitle($after = FALSE, $before = FALSE)
 	{
 		$t = $this->mod->Lang('title_item').' '.$this->mod->Lang('title_bookings');
-		return $this->CreateTitle($t, 'title_payments', $after, $before);
+		return $this->utils->CreateTitle($this->mod, $t, 'title_payments', $after, $before);
 	}
 
 	/**
