@@ -34,7 +34,7 @@ class RptBookerCredit extends Report
 	*/
 	public function PublicTitle($after = FALSE, $before = FALSE)
 	{
-		return $this->CreateTitle('title_booker', 'title_credit', $after, $before);
+		return $this->utils->CreateTitle($this->mod, 'title_booker', 'title_credit', $after, $before);
 	}
 
 	/**
@@ -144,14 +144,13 @@ EOS;
 		}
 */
 		$sql = <<<EOS
-SELECT B.booker_id,COALESCE(A.name,B.name,'') AS name,B.publicid
+SELECT B.booker_id,COALESCE(A.name,B.name,'') AS name,A.publicid
 FROM {$this->mod->BookerTable} B
-LEFT JOIN {$this->mod->AuthTable} A ON B.publicid=A.publicid
+LEFT JOIN {$this->mod->AuthTable} A ON B.auth_id=A.id
 ORDER BY B.booker_id
 EOS;
-		$translates = $this->mod->dbHandle->GetAssoc($sql);
+		$translates = $this->utils->PlainGet($this->mod,$sql,[],'assoc');
 		if ($translates) {
-			$this->utils->GetUserProperties($this->mod,$translates);
 			foreach ($translates as &$row) {
 				if ($row['name']) {
 					$row = $row['name'];
