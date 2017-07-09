@@ -344,6 +344,22 @@ EOS;
 			$meridiem = "'".str_replace(",", "','", $t)."'";
 
 			$js2 = <<<EOS
+var fmt = new DateFormatter({
+ longDays: [$dnames],
+ shortDays: [$sdnames],
+ longMonths: [$mnames],
+ shortMonths: [$smnames],
+ meridiem: [$meridiem],
+ ordinal: function(number) {
+  var n = number % 10,
+   suffixes = {
+    1: 'st',
+    2: 'nd',
+    3: 'rd'
+   };
+  return Math.floor(number % 100 / 10) === 1 || !suffixes[n] ? 'th' : suffixes[n];
+ }
+});
 function suretrim(str) {
  if (typeof String.prototype.trim === "function") {
   return str.trim();
@@ -354,22 +370,6 @@ function suretrim(str) {
 function validate(ev) {
  var ok = true,
   f = '$datetimefmt',
-  fmt = new DateFormatter({
-   longDays: [$dnames],
-   shortDays: [$sdnames],
-   longMonths: [$mnames],
-   shortMonths: [$smnames],
-   meridiem: [$meridiem],
-   ordinal: function(number) {
-    var n = number % 10,
-     suffixes = {
-      1: 'st',
-      2: 'nd',
-      3: 'rd'
-     };
-    return Math.floor(number % 100 / 10) === 1 || !suffixes[n] ? 'th' : suffixes[n];
-   }
-  }),
   tg = document.getElementById('{$id}when'),
   ds = null,
   de = null;
