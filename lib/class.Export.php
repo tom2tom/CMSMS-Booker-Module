@@ -248,6 +248,8 @@ EOS;
 			 'Owner' => 'owner',
 			 'Cleargroup' => 'cleargroup',
 			 'Allocategroup' => 'subgrpalloc',
+			 'Notice'=>'bulletin',
+			 'BookNotice'=>'bulletin2',
 			 'Ingroups' => 'ingroups', //not a real field
 			 'Update' => 'item_id' //not a real field
 			];
@@ -282,6 +284,8 @@ EOS;
 							 case 'approver':
 							 case 'approvercontact':
 							 case 'smspattern':
+							 case 'bulletin':
+							 case 'bulletin2':
 								$fv = str_replace($sep, $r, $fv);
 								break;
 							 case 'slottype':
@@ -463,10 +467,10 @@ EOS;
 		}
 		//get B.* except name,address
 		$sql = <<<EOS
-SELECT B.booker_id,B.publicid,B.phone,B.addwhen,B.type,B.displayclass,B.active,
-COALESCE(A.name,B.name,'') AS name,COALESCE(A.address,B.address,'') AS address,A.passhash
+SELECT B.booker_id,B.phone,B.addwhen,B.type,B.displayclass,B.active,
+COALESCE(A.name,B.name,'') AS name,COALESCE(A.address,B.address,'') AS address,A.publicid,A.passhash
 FROM $mod->BookerTable B
-LEFT JOIN $mod->AuthTable A ON B.publicid=A.publicid
+LEFT JOIN $mod->AuthTable A ON B.auth_id=A.id
 EOS;
 		if (is_array($bookerid)) {
 			$fillers = str_repeat('?,', count($bookerid) - 1);
@@ -480,9 +484,8 @@ EOS;
 			$args = [$bookerid];
 		}
 		$utils = new Utils();
-		$all = $utils->SafeGet($sql, $args);
+		$all = $utils->PlainGet($mod, $sql, $args);
 		if ($all) {
-			$utils->GetUserProperties($mod, $all);
 			$sep2 = ($sep != ' ') ? ' ' : ',';
 			switch ($sep) {
 			 case '&':
@@ -747,16 +750,15 @@ EOS;
 			$outstr = implode($sep, array_keys($translates));
 			$outstr .= $sep."\n";
 			$sql = <<<EOS
-SELECT O.*,COALESCE(A.name,B.name,'') AS name,B.publicid
+SELECT O.*,COALESCE(A.name,B.name,'') AS name,A.publicid
 FROM $mod->OnceTable O
 JOIN $mod->BookerTable B ON O.booker_id=B.booker_id
-LEFT JOIN $mod->AuthTable A ON B.publicid=A.publicid
+LEFT JOIN $mod->AuthTable A ON B.auth_id=A.id
 WHERE O.bkg_id=?
 EOS;
 			//data line(s)
 			foreach ($all as $one) {
-				$data = $utils->SafeGet($sql, [$one], 'row');
-				$utils->GetUserProperties($mod, $data);
+				$data = $utils->PlainGet($mod, $sql, [$one], 'row');
 				$stores = [];
 				foreach ($translates as $one) {
 					$fv = $data[$one];
