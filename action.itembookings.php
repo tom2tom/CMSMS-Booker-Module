@@ -90,6 +90,14 @@ if (isset($params['delete1'])) {
 	} else {
 		$msg = $this->Lang('notypesel', $this->Lang('booking_multi'));
 	}
+} elseif (isset($params['amounts'])) {
+	if (!($this->_CheckAccess('admin') || $this->_CheckAccess('book'))) {
+		exit;
+	}
+	$t = json_decode(html_entity_decode($params['resume'], ENT_QUOTES | ENT_HTML401));
+	$t[] = $params['action'];
+$this->Crash();
+	$this->Redirect($id,'processamounts','',$newparms);
 } elseif (isset($params['export'])) {
 	if (!($this->_CheckAccess('admin') || $this->_CheckAccess('view'))) {
 		exit;
@@ -143,8 +151,8 @@ if (isset($params['resume'])) {
 	while (end($params['resume']) == $params['action']) {
 		array_pop($params['resume']);
 	}
-} else {
-	$params['resume'] = ['defaultadmin']; //got here via link
+} else { //got here via link
+	$params['resume'] = ['defaultadmin']; //redirects can [eventually] get back to there
 }
 
 $utils = new Booker\Utils();
@@ -209,32 +217,28 @@ $jsincs = [];
 //========== ONETIME BOOKINGS ===========
 //TODO support limit to date-range, changing such date-range
 $sql = <<<EOS
-SELECT O.bkg_id,O.booker_id,O.item_id,O.slotstart,O.slotlen,O.statpay,COALESCE(A.name,B.name,'') AS name,B.publicid
+SELECT O.bkg_id,O.booker_id,O.item_id,O.slotstart,O.slotlen,O.statpay,COALESCE(A.name,B.name,'') AS name,A.publicid
 FROM $this->OnceTable O
 JOIN $this->BookerTable B ON O.booker_id=B.booker_id
-LEFT JOIN $this->AuthTable A ON B.publicid=A.publicid
+LEFT JOIN $this->AuthTable A ON B.auth_id=A.id
 WHERE O.item_id=? ORDER BY O.slotstart
 EOS;
 //AND O.active=1 N/A for non-repeat bookings?
-$data = $utils->SafeGet($sql, [$item_id]);
-if ($data) {
-	$utils->GetUserProperties($this, $data);
-}
+$data = $utils->PlainGet($this, $sql, [$item_id]);
 /* NO PROCESSING OF ANCESTOR-GROUP NON-REPEATS HERE ?
 $groups = $utils->GetItemGroups($this,$item_id);
 if ($groups) {
 	$fillers = str_repeat('?,',count($groups)-1).'?';
 	$sql = <<<EOS
-SELECT O.bkg_id,O.booker_id,O.item_id,O.slotstart,O.slotlen,O.statpay,COALESCE(A.name,B.name,'') AS name,B.publicid
+SELECT O.bkg_id,O.booker_id,O.item_id,O.slotstart,O.slotlen,O.statpay,COALESCE(A.name,B.name,'') AS name,A.publicid
 FROM $this->OnceTable O
 JOIN $this->BookerTable B ON O.booker_id=B.booker_id
-LEFT JOIN $this->AuthTable A ON B.publicid=A.publicid
+LEFT JOIN $this->AuthTable A ON B.auth_id=A.id
 WHERE O.item_id IN ({$fillers})
 ORDER BY O.slotstart
 EOS;
-	$data2 = $utils->SafeGet($sql,$groups);
+	$data2 = $utils->PlainGet($this,$sql,$groups);
 	if ($data2) {
-		$utils->GetUserProperties($this,$data2);
 		$data = array_merge($data,$data2);
 		usort($data, function ($a, $b)
 		{
@@ -475,6 +479,8 @@ function any_selected() {
 EOS;
 	$tplvars['export'] = $this->CreateInputSubmit($id, 'export', $this->Lang('export'),
 		'title="'.$this->Lang('tip_export_selected_records').'"');
+	$tplvars['amounts'] = $this->CreateInputSubmit($id, 'amounts', $this->Lang('title_payments'),
+		'title="'.$this->Lang('tip_payments2').'"');
 
 	if ($pmod) {
 		$tplvars['delete'] = $this->CreateInputSubmit($id, 'delete', $this->Lang('delete'),
@@ -554,29 +560,25 @@ if ($pmod) {
 $tplvars['item_title2'] = $this->Lang('title_repeats');
 
 $sql = <<<EOS
-SELECT R.bkg_id,R.booker_id,R.item_id,R.subgrpcount,R.formula,R.statpay,COALESCE(A.name,B.name,'') AS name,B.publicid
+SELECT R.bkg_id,R.booker_id,R.item_id,R.subgrpcount,R.formula,R.statpay,COALESCE(A.name,B.name,'') AS name,A.publicid
 FROM $this->RepeatTable R
 JOIN $this->BookerTable B ON R.booker_id=B.booker_id
-LEFT JOIN $this->AuthTable A ON B.publicid=A.publicid
+LEFT JOIN $this->AuthTable A ON B.auth_id=A.id
 WHERE R.item_id=? AND R.active=1
 EOS;
 //CHECKME ORDER BY ?
-$data = $db->GetArray($sql, [$item_id]);
-if ($data) {
-	$utils->GetUserProperties($this, $data);
-}
+$data = $utils->PlainGet($this, $sql, [$item_id]);
 /* NO PROCESSING OF ANCESTOR-GROUP REPEATS HERE ?
 if ($groups) {
 	$sql = <<<EOS
-SELECT R.bkg_id,R.booker_id,R.item_id,R.subgrpcount,R.formula,R.statpay,COALESCE(A.name,B.name,'') AS name,B.publicid
+SELECT R.bkg_id,R.booker_id,R.item_id,R.subgrpcount,R.formula,R.statpay,COALESCE(A.name,B.name,'') AS name,A.publicid
 FROM $this->RepeatTable R
 JOIN $this->BookerTable B ON R.booker_id=B.booker_id
-LEFT JOIN $this->AuthTable A ON B.publicid=A.publicid
+LEFT JOIN $this->AuthTable A ON B.auth_id=A.id
 WHERE R.item_id IN ({$fillers}) AND R.active=1
 EOS;
-	$data2 = $db->GetArray($sql,$groups);
+	$data2 = $utils->PlainGet($this,$sql,$groups);
 	if ($data2) {
-		$utils->GetUserProperties($this,$data2);
 		$data = array_merge($data,$data2);
 	}
 }
@@ -645,6 +647,10 @@ if ($data) {
 $rc = count($rows);
 $tplvars['rcount'] = $rc;
 if ($rc) {
+	if (!isset($tplvars['amounts'])) {
+		$tplvars['amounts'] = $this->CreateInputSubmit($id, 'amounts', $this->Lang('title_payments'),
+		'title="'.$this->Lang('tip_payments2').'"');
+	}
 	$jsfuncs[] = <<<EOS
 function any_selected2() {
  var cb = $('#repeats input[name="{$id}sel[]"]:checked');
