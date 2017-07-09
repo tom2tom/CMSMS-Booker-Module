@@ -13,7 +13,7 @@
     <th{if $rc > 1} class="{ldelim}sss:'text'{rdelim}"{/if}>{$title_desc}</th>
     <th{if $rc > 1} class="{ldelim}sss:'text'{rdelim}"{/if}>{$title_fee}</th>
     <th{if $rc > 1} class="{ldelim}sss:'text'{rdelim}"{/if}>{$title_paid}</th>
-{if $pmod}
+{if $mod}
     <th{if $rc > 1} class="{ldelim}sss:'textinput'{rdelim}"{/if}>{$title_change}</th>
     <th class="pageicon{if $rc > 1} {ldelim}sss:false{rdelim}{/if}"></th>
     <th class="pageicon{if $rc > 1} {ldelim}sss:false{rdelim}{/if}"></th>
@@ -28,7 +28,7 @@
      <td>{$entry->desc}</td>
      <td>{$entry->fee}</td>
      <td>{$entry->paid}</td>
-{if $pmod}
+{if $mod}
      <td>{$entry->inp}</td>
      <td>{$entry->chg}</td>
      <td>{$entry->set}</td>
@@ -40,18 +40,17 @@
    </tbody>
   </table>
  </div>
-{if $hasnav}<div class="browsenav">{$first}&nbsp;|&nbsp;{$prev}&nbsp;&lt;&gt;&nbsp;{$next}&nbsp;|&nbsp;{$last}</div>{/if}
+{if !empty($hasnav)}<div class="browsenav">{$first}&nbsp;|&nbsp;{$prev}&nbsp;&lt;&gt;&nbsp;{$next}&nbsp;|&nbsp;{$last}</div>{/if}
 {else}
  <br />
  <p class="pageinput">{$norecords}</p>
 {/if}
  <div class="pageoptions" style="margin-top:1em;">
-{if ($rc > 0 && $pmod)}{$set} {$change} {/if}{$cancel}
+{if ($rc > 0 && $mod)}{$set} {$change} {/if}{$cancel}
 </div>
 {if isset($title_range)}
-<br />
+<br /><br />
 <h5 class="pageinput">{$title_range}</h5>
-<br />
 <p class="pagetext" style="margin:0">{$titlefrom}</p>
 <div class="pageinput" style="margin:0 0 1em 0">{$showfrom}<br />
 {$helpfrom}</div>
@@ -61,14 +60,13 @@
 {$range}
 {/if}
 {if isset($title_credit)}
-<br />
+<br /><br />
 <h5 class="pageinput">{$title_credit}</h5>
-<br />
 <p class="pagetext" style="margin-left:0">{$current_credit}</p>
-{if $pmod}
-<div class="pageinput">{$input2}<br />
+{if $mod}
+<div class="pageinput" style="margin-left:0">{$input2}<br />
 {$help_credit}</div>
-<div class="pageoptions" style="margin:0 0 1em 0">
+<div class="pageoptions" style="margin-top:1em">
 {$set2} {$change2}
 </div>
 {/if}
