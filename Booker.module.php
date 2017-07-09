@@ -427,7 +427,7 @@ EOS;
 		$this->SetParameterType('requesttype',CLEAN_INT);
 		$this->SetParameterType('search',CLEAN_NONE);
 		$this->SetParameterType('searchsel',CLEAN_NONE);
-		$this->SetParameterType('slide',CLEAN_INT); //value matches button label
+		$this->SetParameterType(CLEAN_REGEXP.'/slide[+-]\d/',CLEAN_STRING);
 //		$this->SetParameterType('slotlen',CLEAN_INT);
 //		$this->SetParameterType('slotstart',CLEAN_INT);
 		$this->SetParameterType('showfrom',CLEAN_STRING);
@@ -504,7 +504,6 @@ EOS;
 	{
 		switch ($action) {
 		 case 'announce':
-		 case 'bookeramounts':
 		 case 'default':
 		 case 'defaultadmin':
 		 case 'delete':
@@ -520,6 +519,7 @@ EOS;
 		 case 'auth':
 		 case 'openfees':
 		 case 'opencart':
+		 case 'processamounts':
 		 case 'processreport':
 		 case 'setprefs':
 		 case 'swapgroups':
@@ -741,6 +741,36 @@ EOS;
 			}
 			$ret .= ' />';
 		}
+		return $ret;
+	}
+
+	/**
+	_CreateInputIcon:
+	Generate xhtml for a submit input which is styled like an icon, using class
+	"iconbutton"
+	@id: session identifier
+	@name: name of action to be submitted when the object is clicked
+	@iconurl: name of theme icon, or module-relative or absolute URL
+	  of some other icon for image input
+	@size: optional css-background-size specifier, default ''
+	@pos: optional css-background-position specifier e.g. for sprite-offset, default ''
+	@extra: optional additional text that should be added into the object, default ''
+	*/
+	public function _CreateInputIcon ($id, $name, $iconurl, $size='', $pos='', $extra='')
+	{
+		$ret = '<input type="submit" name="'.$id.$name.'" value="" id="'.$id.$name.
+		'" class="cms_submit iconbutton" style="background-image:url(\''.$iconurl.'\');';
+		if ($size) {
+			$ret .= 'background-size:'.$size.';';
+		}
+		if ($pos) {
+			$ret .= 'background-position:'.$pos.';';
+		}
+		$ret .= '"';
+		if ($extra) {
+			$ret .= ' '.$extra;
+		}
+		$ret .= ' />';
 		return $ret;
 	}
 
