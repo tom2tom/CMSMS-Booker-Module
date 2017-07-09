@@ -68,9 +68,9 @@ if (isset($params['cancel'])) {
 	if (!(is_numeric($params['showfrom']) || strtotime($params['showfrom']))) {
 		$params['message'] = $this->Lang('err_system').' '.$params['showfrom'];
 		$params['showfrom'] = (int)(time()/86400);
-	} elseif (!isset($params['message']))
+	} elseif (!isset($params['message'])) {
 		$params['message'] = ''; //force clearance
-
+	}
 	do {
 		$resume = array_pop($params['resume']);
 	} while ($resume == $params['action'] && $params['resume']);
@@ -136,7 +136,7 @@ $idata = $utils->GetItemProperties($this,$item_id,[
 'feugroup',
 'subgrpalloc',
 'subgrpdata',
-'bulletin'
+'bulletin2'
 ],TRUE);
 if ($idata) {
 	$idata['item_id'] = $item_id;
@@ -158,8 +158,6 @@ $now = $utils->GetZoneTime($idata['timezone']);
 
 if (isset($params['cart'])) {
 	$funcs = new Booker\Verify();
-	//$is_new = !$past && $params['task'] == 'add' && (!$is_group || 1); //TODO || count vacant members > 0
-	//$is_new = ($params['task'] == 'add'); //TODO refine ASAP per start-time, available slots etc
 	$is_new = TRUE;
 	list($res,$errmsg) = $funcs->VerifyData($this,$utils,$params,$item_id,$is_new,FALSE);
 	if ($res) {
@@ -196,18 +194,16 @@ if (isset($params['cart'])) {
 		} else {
 			$tplvars['message'] = $this->Lang('err_late');
 		}
-		$bdata['slotstart'] = $params['slotstart'];
-		$bdata['slotlen'] = $params['slotlen'];
+		$bs = $params['slotstart'];
+		$slen = $params['slotlen'];
 	} else { //problem(s) with the request data
 		$tplvars['message'] = implode('<br >',$errmsg);
-//TODO		$bdata['slotstart'] = ;
-//		$bdata['slotlen'] = ;
+//TODO	$bs = ;
+//		$slen = ;
 	}
 	//fall into repeat presentation
 } elseif (isset($params['submit'])) {
 	$funcs = new Booker\Verify();
-	//$is_new = !$past && $params['task'] == 'add' && (!$is_group || 1); //TODO || count vacant members > 0
-	//$is_new = ($params['task'] == 'add'); //TODO refine ASAP per start-time, available slots etc
 	$is_new = TRUE;
 	list($res,$errmsg) = $funcs->VerifyData($this,$utils,$params,$item_id,$is_new,FALSE);
 	if ($res) {
@@ -289,12 +285,12 @@ if (isset($params['cart'])) {
 		} else {
 			$tplvars['message'] = $this->Lang('err_late');
 		}
-		$bdata['slotstart'] = $params['slotstart'];
-		$bdata['slotlen'] = $params['slotlen'];
+		$bs = $params['slotstart'];
+		$slen = $params['slotlen'];
 	} else { //problem(s) with the request data
 		$tplvars['message'] = implode('<br >',$errmsg);
-//TODO		$bdata['slotstart'] = ;
-//		$bdata['slotlen'] = ;
+//TODO	$bs = ;
+//		$slen = ;
 	}
 } elseif (isset($params['delete'])) {
 	$funcs = new Booker\Verify();
@@ -370,8 +366,8 @@ if (isset($params['cart'])) {
 	} else { //problem(s) with the request data
 		$tplvars['message'] = implode('<br >',$errmsg);
 	}
-//TODO		$bdata['slotstart'] = ;
-//		$bdata['slotlen'] = ;
+//TODO	$bs = ;
+//		$slen = ;
 /* no UI for this elseif (isset($params['find'])) {
 	$params['resume'][] = $params['action'];
 	$newparms = $utils->FilterParameters($params,$localparams);
@@ -379,66 +375,60 @@ if (isset($params['cart'])) {
 */
 }
 
-if (!isset($params['when'])) { //first-pass
-	if (empty($params['bkgid'])) { //not activated slot with current booking(s)
-		$bdata = [];
-		if (isset($params['bookat'])) {
-			if ($params['bookat'] > 0) {
-				$bdata['slotstart'] = $params['bookat'];
-			} else {
-				//set nowish start-time as fallback
-				$slen = $utils->GetInterval($this,$item_id,'slot');
-				$bdata['slotstart'] = (int)($now/$slen) * $slen + $slen + 3600;
-			}
-		} elseif (isset($params['showfrom'])) {
-			$bdata['slotstart'] = $params['showfrom'] + 10*3600; //TODO
-		} else {
-			$bdata['slotstart'] = time(); //TODO
-		}
-		$bdata['slotlen'] = $utils->GetInterval($this,$item_id,'slot');
-		$bdata['what'] = $utils->GetItemNameForID($this,$item_id);
-	} else {
-		//get some useful representative data
-		$bkgid = $params['bkgid'];
-		$sql = <<<EOS
-SELECT O.*,I.name AS what,COALESCE(A.name,B.name,'') AS name,COALESCE(A.address,B.address,'') AS address,B.publicid,B.phone
-FROM $this->OnceTable O
-JOIN $this->ItemTable I ON O.item_id=I.item_id
-JOIN $this->BookerTable B ON O.booker_id=B.booker_id
-LEFT JOIN $this->AuthTable A ON B.publicid=A.publicid
-WHERE O.bkg_id=?
-EOS;
-		$bdata = $utils->SafeGet($sql,[$bkgid],'row');
-		if ($bdata) {
-			$utils->GetUserProperties($this,$bdata);
-		}
-	}
-} else {
-	$bdata = [];
-	$dtw = new DateTime('@0',NULL);
+$dtw = new DateTime('@0',NULL);
+if (isset($params['when'])) {
 	$lvl = error_reporting(0);
 	$res = $dtw->modify($params['when']);
 	if ($res) {
-		$bdata['slotstart'] = $dtw->getTimestamp();
+		$bs = $dtw->getTimestamp();
 	} else {
-		$bdata['slotstart'] = $now;
+		$bs = 0;
 	}
-	$res = $dtw->modify($params['when']);
-	error_reporting($lvl);
+	$res = $dtw->modify($params['until']);
 	if ($res) {
-		$t = $dtw->getTimestamp() - $bdata['slotstart'];
-		if($t < 0)
-			$t = 3600;
-		$bdata['slotlen'] = $t;
-	} else {
-		$bdata['slotlen'] = 3600;
+		if ($bs > 0) {
+			$t = $dtw->getTimestamp() - $bs;
+			if($t > 0) {
+				$slen = $t;
+			} else {
+				$slen = 0;
+			}
+		} else {
+			$slen = -1;
+		}
 	}
+	error_reporting($lvl);
+	unset($params['when']);
+	unset($params['until']);
+} else  //first-pass
+	if (isset($params['bookat']) && $params['bookat'] > 0) {
+	$bs = (int)$params['bookat'];
+	$slen = $utils->GetInterval($this,$item_id,'slot');
+} else { //first-pass, no 'focus'
+	$bs = 0;
+	$slen = $utils->GetInterval($this,$item_id,'slot');
 }
 
-$be = $bdata['slotstart'] + $bdata['slotlen'];
-$past = ($be <= $now);
-//$is_new = !$past && $params['task'] == 'add' && (!$is_group || 1); //TODO || count vacant members > 0
-$is_new = !$past && (!isset($params['bkgid']) || ($is_group && 1)); //TODO && count vacant members > 0
+if ($bs > 0) {
+	$dtw->setTimestamp($bs);
+	$when = $utils->IntervalFormat($this,$dtw,$idata['dateformat'],TRUE).' '.$dtw->format($idata['timeformat']);
+} else {
+	$when = '';
+}
+if ($bs > 0 && $slen > 0) {
+	$dtw->setTimestamp($bs + $slen);
+	$until = $utils->IntervalFormat($this,$dtw,$idata['dateformat'],TRUE).' '.$dtw->format($idata['timeformat']);
+	$be = $bs + $slen;
+} elseif ($slen == -1) {
+	$until = $params['until'];
+	$be = 0;
+} else {
+	$until = '';
+	$be = 0;
+}
+
+$past = ($bs > 0 && $bs <= $now);
+$is_new = (!$past && (!$is_group || 1)); //TODO || count vacant members > 0
 
 //setup for display here
 $hidden = $utils->FilterParameters($params,$localparams);
@@ -447,9 +437,6 @@ $hidden = $utils->FilterParameters($params,$localparams);
 
 $tplvars['startform'] = $this->CreateFormStart($id,'dobooking',$returnid,'POST','','','',$hidden);
 $tplvars['endform'] = $this->CreateFormEnd();
-
-$t = $idata['bulletin'];
-$tplvars['bulletin'] = ($t) ? $t:NULL;
 
 //script accumulators
 $jsfuncs = [];
@@ -468,31 +455,11 @@ if (!empty($idata['description'])) {
 	$tplvars['desc'] = Booker\Utils::ProcessTemplateFromData($this,$idata['description'],$tplvars);
 }
 $urls = $utils->GetImageURLs($this,$idata['image'],$idata['name']);
-if ($urls)
+if ($urls) {
 	$tplvars['pictures'] = $urls;
-
-$mcount = 0;
-$bcount = 0;
-$fcount = 0;
-if (!$past) {
-	if ($is_group) {
-		$members = $utils->GetGroupItems($this,$item_id);
-		$mcount = count($members);
-		if ($mcount > 0) {
-			$funcs = new Booker\Schedule();
-			$fcount = $funcs->ItemVacantCount($this,$item_id,$bdata['slotstart'],$be-1);
-			$bcount = $mcount - $fcount;
-		}
-		$mname = $idata['membersname'];
-		if (!$mname) {
-			$mname = $this->Lang('itemv_multi');
-		}
-	} else {
-		$funcs = new Booker\Schedule();
-		$fcount = $funcs->ItemVacantCount($this,$item_id,$bdata['slotstart'],$be-1);
-		$bcount = $mcount - $fcount;
-	}
 }
+$t = $idata['bulletin2'];
+$tplvars['bulletin'] = ($t) ? $t:NULL;
 
 $tplvars['mustmsg'] = '<img src="'.$baseurl.'/images/info-small.png" alt="info icon" border="0" /> '.
 	$this->Lang('title_must');
@@ -500,66 +467,18 @@ $tplvars['mustmsg'] = '<img src="'.$baseurl.'/images/info-small.png" alt="info i
 $choosend = ($idata['bookcount'] != 1);
 $hidden = [];
 
-$dtw = new DateTime('@'.$now,NULL);
+$dtw->setTimestamp($now);
 $example = $utils->IntervalFormat($this,$dtw,$idata['dateformat'],TRUE);
 $overday = ($utils->GetInterval($this,$item_id,'slot') >= 84600);
-if (!$overday)
+if (!$overday) {
 	$example .= ' '.$dtw->format($idata['timeformat']);
-
-if (isset($params['when'])) {
-	$lvl = error_reporting(0);
-	$res = $dtw->modify($params['when']);
-	error_reporting($lvl);
-	if (!$res) {
-		$dtw->setTimestamp($bdata['slotstart']);
-	}
-} else {
-	$dtw->setTimestamp($bdata['slotstart']);
 }
-$when = $utils->IntervalFormat($this,$dtw,$idata['dateformat'],TRUE).' '.$dtw->format($idata['timeformat']);
-
-$dte = clone $dtw;
-if (isset($params['until'])) {
-	$lvl = error_reporting(0);
-	$res = $dte->modify($params['until']);
-	error_reporting($lvl);
-	if (!$res) {
-		$dte->setTimestamp($be);
-	}
-} elseif (isset($params['when'])) {
-	$dte->setTimestamp($dtw->getTimestamp() + $bdata['slotlen']);
-} else {
-	$dte->setTimestamp($be);
-}
-$until = $utils->IntervalFormat($this,$dte,$idata['dateformat'],TRUE).' '.$dte->format($idata['timeformat']);
 
 if ($past) {
 	$tplvars['currentmsg'] = $this->Lang('nopastdesc');
-} elseif ($is_group) {
-	if ($mcount > 1 && $mcount == $fcount) { //>1 member, all available
-		$d = $this->Lang('currentdesc4',$mcount);
-	} elseif ($mcount > 1 && $fcount > 1) { //>1 member, >1 available
-		$d = $this->Lang('currentdesc5',$fcount,$mcount);
-	} elseif ($fcount == 1) { //any members, 1 available
-		$d = $this->Lang('currentdesc6',$mcount);
-	} else { //any members, 0 available
-		$d = $this->Lang('currentdesc7',$mcount);
-	}
-} elseif ($bcount) {
-	$what = ($bdata['what']) ? $bdata['what'] : $utils->GetItemNameForID($this,$item_id);
-	if ($choosend) {
-		$t = $this->Lang('currentdesc2',$what,$when,$until);
-	} else {
-		$t = $this->Lang('currentdesc',$what);
-	}
-	$tplvars['currentmsg'] = $t;
-}
-
-$items = [];
-
-if ($past) {
-	$ob = $this->Lang('reqnotice');
-} elseif (isset($params['bkgid']) && $bcount) { // !$past && set $params['bkgid']
+	//. 'if the booking is yours, you can supply extra information
+} else {
+/*	 'if the booking is yours, you can
 	if ($fcount > 0) {
 		$choices = [$this->Lang('reqadd')=>Booker::STATNEW];
 		$sel = Booker::STATNEW;
@@ -572,34 +491,18 @@ if ($past) {
 		$this->Lang('reqdelete')=>Booker::STATDEL,
 		$this->Lang('reqnotice')=>Booker::STATTELL
 	];
-	$ob = $this->CreateInputRadioGroup($id,'requesttype',$choices,$sel,'','<br />');
-} else { //!$past && !set $params['bkgid']
-	$ob = FALSE; //$this->Lang('title_request2',$idata['name']);
-}
+	$t = $this->CreateInputRadioGroup($id,'requesttype',$choices,$sel,'','<br />');
 
-if ($ob) {
 	$oneset = new stdClass();
 	$oneset->class = NULL;
 	$oneset->ttl = $this->Lang('title_request1');
 	$oneset->mst = NULL;
-	$oneset->inp = $ob;
+	$oneset->inp = $t;
 	$items[] = $oneset;
+*/
 }
 
-if ($mcount > 0) {
-	$oneset = new stdClass();
-	$oneset->class = NULL;
-	$oneset->ttl = $this->Lang('title_howmany',$mname);
-	if ($past) {
-		$oneset->mst = NULL;
-		$oneset->inp = $d;
-	} elseif ($mcount > 1) {
-		$oneset->mst = 1;
-		$t = (empty($params['subgrpcount'])) ? 1 : $params['subgrpcount'];
-		$oneset->inp = $this->CreateInputText($id,'subgrpcount',$t,3,5).' '.$d;
-	}
-	$items[] = $oneset;
-}
+$items = [];
 
 $xl1 = strlen($example)+1;
 $example = $this->Lang('tip_enter',$example);
@@ -636,13 +539,33 @@ if ($choosend) {
 	$hidden[] = $this->CreateInputHidden($id,'until',$until); //always needed
 }
 
+if (!$past) {
+	$msg = (isset($params['bookat'])) ? $utils->GetBusyMessage($this,$item_id,$bs,$be-1) : '';
+	$oneset = new stdClass();
+	$oneset->class = NULL;
+	if ($is_group) {
+		$t = $idata['membersname'];
+		if (!$t) {
+			$t = $this->Lang('itemv_multi');
+		}
+		$oneset->ttl = $this->Lang('title_howmany',$t);
+		$oneset->mst = 1;
+		$t = (empty($params['subgrpcount'])) ? 1 : $params['subgrpcount'];
+		$oneset->inp = $this->CreateInputText($id,'subgrpcount',$t,3).' <span id="currentinfo">'.$msg.'</span>';
+	} else {
+		$oneset->ttl = '';
+		$oneset->mst = 0;
+		$oneset->inp = '<span id="currentinfo">'.$msg.'</span>';
+	}
+	$items[] = $oneset;
+}
+
 //alternative for disabled registered-user UI
 //$hidden[] = $this->CreateInputHidden($id,'account','');
 //$hidden[] = $this->CreateInputHidden($id,'passwd','');
 //$hidden[] = $this->CreateInputHidden($id,'contactnew','');
 //* DISABLE registered-user UI for now
-$choices = [$this->Lang('title_registered')=>1,
-	$this->Lang('title_occasional')=>2];
+$choices = [$this->Lang('title_registered')=>1,$this->Lang('title_occasional')=>2];
 $t = (!empty($params['bookertype'])) ? (int)$params['bookertype']:1;
 $ob = $this->CreateInputRadioGroup($id,'bookertype',$choices,$t,'','|||');
 $btns = explode('|||',$ob);
@@ -762,6 +685,13 @@ $tplvars['carticon'] = '<a href="" onclick="return helptogl(this);"><img src="'
 	.$baseurl.'/images/info-small.png" alt="info-toggle icon" title="'.$t.'" border="0" /></a>';
 $tplvars['carthelp'] = $this->Lang('help_cart');
 
+$jsincs[] = <<<EOS
+<script type="text/javascript" src="{$baseurl}/lib/js/pikaday.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/pikaday.jquery.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/php-date-formatter.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/jquery.watermark.min.js"></script>
+EOS;
+
 $jsfuncs[] = <<<EOS
 function helptogl(el) {
  var \$cd = $(el).closest('div'),
@@ -777,14 +707,64 @@ function helptogl(el) {
 }
 EOS;
 
-$jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/lib/js/pikaday.min.js"></script>
-<script type="text/javascript" src="{$baseurl}/lib/js/pikaday.jquery.min.js"></script>
-<script type="text/javascript" src="{$baseurl}/lib/js/php-date-formatter.min.js"></script>
-<script type="text/javascript" src="{$baseurl}/lib/js/jquery.watermark.min.js"></script>
-EOS;
-
 $datetimefmt = $utils->DateTimeFormat(FALSE,FALSE,TRUE,!$overday,$idata['dateformat'],$idata['timeformat']);
+
+if (!$past) {
+	$jsloads[] = <<<EOS
+ $('.dateinput').blur(function() {
+  var tg=document.getElementById('{$id}when'),
+   tg2=document.getElementById('{$id}until'),
+   str,st,nd;
+  str=suretrim(tg.value);
+  if (str) {
+   st = Date.parse(str);
+   if (isNaN(st)) {
+    st = false; //TODO handle error
+   } else {
+    tg.value = fmt.formatDate(str,'$datetimefmt');
+   }
+  } else {
+   st = false;
+  }
+  if (tg2) {
+   str = suretrim(tg2.value);
+   if (str) {
+    nd = Date.parse(str);
+    if (isNaN(nd)) {
+     nd = false; //TODO handle error
+    } else {
+     tg2.value = fmt.formatDate(str,'$datetimefmt');
+    }
+   } else {
+    nd = false;
+   }
+  } else {
+   nd = false;
+  }
+  if (st && (tg2==false || (tg2==this && nd))) {
+   var offs=new Date().getTimezoneOffset()*60000;
+   st -= offs;
+   if (nd) {
+    nd -= offs;
+   }
+   setTimeout(function() {
+    $.ajax({
+	 url: '$baseurl/checkslot.php',
+     data: {item_id:$item_id, start:st/1000, end:nd/1000},
+     success: function (data,status) {
+      if (status == 'success') {
+       if (data != '') {
+        $('#currentinfo').html(data);
+       }
+      }
+     }
+    });
+   },10);
+  }
+ });
+EOS;
+}
+
 $nextm = $this->Lang('nextm');
 $prevm = $this->Lang('prevm');
 //js wants quoted period-names
@@ -794,28 +774,13 @@ $t = $this->Lang('shortdays');
 $sdnames = "'".str_replace(",","','",$t)."'";
 $t = $this->Lang('longmonths');
 $mnames = "'".str_replace(",","','",$t)."'";
-$t = $this->Lang('shortmonths');
+/*$t = $this->Lang('shortmonths');
 $smnames = "'".str_replace(",","','",$t)."'";
 $t = $this->Lang('meridiem');
 $meridiem = "'".str_replace(",","','",$t)."'";
+*/
 
 $jsloads[] = <<<EOS
- var fmt = new DateFormatter({
-  longDays: [$dnames],
-  shortDays: [$sdnames],
-  longMonths: [$mnames],
-  shortMonths: [$smnames],
-  meridiem: [$meridiem],
-  ordinal: function (number) {
-   var n = number % 10,
-   suffixes = {
-    1: 'st',
-    2: 'nd',
-    3: 'rd'
-   };
-   return Math.floor(number % 100 / 10) === 1 || !suffixes[n] ? 'th' : suffixes[n];
-  }
- });
  $('.dateinput').pikaday({
   format: '$datetimefmt',
   reformat: function(target,f) {
@@ -836,9 +801,9 @@ $jsloads[] = <<<EOS
  if (pk) {
   pk._o.onClose = function() {
    if ('_d' in this && this._d) {
-    var ob = new Date(this._d.getTime() + {$bdata['slotlen']} * 1000);
+    var ob = new Date(this._d.getTime() + {$slen} * 1000);
     var dt = fmt.formatDate(ob,'{$datetimefmt}');
-    $('#{$id}until').val(dt);
+    $('#{$id}until').val(dt).change();
    }
   };
  }
@@ -848,7 +813,7 @@ $jsloads[] = <<<EOS
 EOS;
 
 $funcs = new Booker\Verify();
-$checkdates = !($past || (isset($params['bkgid']) && $fcount == 0)); //$bcount?
+$checkdates = !$past; //!($past || (isset($params['bkgid']) && $fcount == 0)); //$bcount?
 $jsfuncs[] = $funcs->VerifyScript($this,$utils,$id,$item_id,$checkdates,FALSE,$idata['timezone'],FALSE);
 //for email-validator & alerter
 $jsincs[] = <<<EOS
@@ -892,6 +857,20 @@ if ($tplvars['choose']) {
 EOS;
 }
 */
+
+$jsloads[] = <<<EOS
+ $('input[type=text]').on('keypress',function(e) {
+  if (e.which == 13) {
+   e.preventDefault();
+   var \$canfocus = $('input[type=text]');
+   var index = \$canfocus.index(document.activeElement) + 1;
+   if (index >= \$canfocus.length) {
+    index = 0;
+   }
+   \$canfocus.eq(index).focus();
+  }
+ });
+EOS;
 
 $stylers = <<<EOS
 <link rel="stylesheet" type="text/css" href="{$baseurl}/css/public.css" />
