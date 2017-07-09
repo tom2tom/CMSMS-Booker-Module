@@ -420,14 +420,15 @@ class Display
 					if (!isset($users[1])) {
 						$t = $row['booker_id'];
 						if (!array_key_exists($t,$this->Usercache)) {
-							$this->Usercache[$t] = $ufuncs->GetName($this->mod,$t); //TODO $row['user']
+							$this->Usercache[$t] = $ufuncs->GetName($this->mod,$t);
 						}
 						$n = $this->Usercache[$t];
 						if (!in_array($n,$users)) {
 							$users[] = $n;
 							//log first-found displayclass
-							if(!$displayclass)
-								$displayclass = $ufuncs->GetDisplayClass($this->mod,$t); //TODO row['userclass']
+							if(!$displayclass) {
+								$displayclass = $ufuncs->GetDisplayClass($this->mod,$t);
+							}
 						}
 					}
 					//log resource-name(s)
@@ -963,8 +964,8 @@ class Display
 	{
 		$sections = self::FillList($idata,$start,$range);
 		$tplvars['sections'] = $sections; //maybe empty
-		if (!$sections)
+		if (!$sections) {
 			$tplvars['nobookings'] = $this->mod->Lang('nodata');
+		}
 	}
-
 }
