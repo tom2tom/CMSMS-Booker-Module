@@ -141,8 +141,8 @@ if (!$cart->seemsEmpty()) {
 		$itmids[$t] = 1;
 	}
 	$fillers = str_repeat('?,',count($itmids)-1);
-	$lookup = $db->GetAssoc('SELECT item_id,name,image FROM '.
-		$this->ItemTable.' WHERE item_id IN ('.$fillers.'?) AND active>=0',array_keys($itmids));
+	$lookup = $db->GetAssoc('SELECT item_id,name,image FROM '.$this->ItemTable.
+		' WHERE item_id IN ('.$fillers.'?) AND active>=0',array_keys($itmids));
 	$n = $cart->getRoundingDecimals();
 	//total payment, if any
 	$totals = $cart->getTotals(function($item) {
