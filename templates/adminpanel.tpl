@@ -83,6 +83,7 @@
 {if $per} <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>{/if}
       <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>
       <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>
+	  <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>
 {if $per} <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>
       <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>{/if}
       <th class="checkbox {ldelim}sss:false{rdelim}" style="width:20px;">{if $pcount > 1}{$selectall_bookers}{/if}</th>
@@ -101,6 +102,7 @@
       <td>{$entry->bsee}</td>
 {if $per} <td>{$entry->bedit}</td>{/if}
       <td>{$entry->export}</td>
+	  <td>{$entry->pay}</td>
       <td>{$entry->see}</td>
 {if $per} <td>{$entry->edit}</td>
       <td class="bkrdel">{$entry->delete}</td>{/if}
@@ -147,6 +149,7 @@
 {if $bmod}<th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>{/if}
       <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>
       <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>
+	  <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>
 {if $mod} <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>{/if}
 {if $add} <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>{/if}
 {if $del} <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>{/if}
@@ -167,6 +170,7 @@
       <td>{$entry->bsee}</td>
 {if $bmod}<td>{$entry->bedit}</td>{/if}
       <td>{$entry->export}</td>
+	  <td>{$entry->pay}</td>
       <td>{$entry->see}</td>
 {if $mod} <td>{$entry->edit}</td>{/if}
 {if $add} <td>{$entry->copy}</td>{/if}
@@ -237,7 +241,7 @@
 {if $dev}  <td>{ldelim}Booker item={$entry->tag}{rdelim}</td>{/if}
       <td>{$entry->bsee}</td>
 {if $mod}  <td>{$entry->bedit}</td>{/if}
-      <td>{$entry->export}</td>
+	  <td>{$entry->pay}</td>
       <td>{$entry->see}</td>
 {if $mod} <td>{$entry->edit}</td>{/if}
 {if $add} <td>{$entry->copy}</td>{/if}
