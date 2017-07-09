@@ -58,6 +58,8 @@ NOTE: changes here must be reflected in action.openitem, Import::ImportItems(), 
  subgrpalloc: Booker::ALLOC* enum for sub-group allocation protocol
  subgrpdata: internal use, for working with subgrpalloc
  active: enum: 0 never; 1 always; 2 inherit (see also: available); -1 deletion pending while historical data needed
+ bulletin: custom message for display on bookings table/list page
+ bulletin2: custom message for display on make-booking page
 */
 $fields = '
 item_id I(4) KEY,
@@ -103,6 +105,7 @@ subgrpalloc I(1),
 subgrpdata I(1) DEFAULT 0,
 active I(1) DEFAULT 1,
 bulletin B
+bulletin2 B
 ';
 $sqlarray = $dict->CreateTableSQL($this->ItemTable, $fields, $taboptarray);
 if ($sqlarray == FALSE || $dict->ExecuteSQLArray($sqlarray, FALSE) != 2) {
@@ -335,8 +338,8 @@ $db->CreateSequence($this->CreditTable.'_seq');
 /*
 bookers table schema:
  booker_id: table key
- name: identifier for display, and identity check if publicid==FALSE NB NULL if unused, to enable COALESCE
- publicid: login/username/account for 'registered' bookers
+ auth_id: Auther-module account identifier for 'registered' bookers, otherwise 0
+ name: identifier for display, and identity check if auth_id==0 NB NULL if unused, to enable COALESCE
  address: email (maybe accept a post-address...) for general messaging and billing NB NULL if unused, to enable COALESCE
  phone: cell-phone number, preferred for messaging
  addwhen: UTC timestamp when this record added NB NULL if unused, to enable COALESCE
@@ -346,8 +349,8 @@ bookers table schema:
 */
 $fields = '
 booker_id I(4) KEY,
-name C(64),
-publicid C(48),
+auth_id I(4) DEFAULT 0,
+name B,
 address B,
 phone B,
 addwhen I(8),
@@ -401,6 +404,7 @@ $this->SetPreference('approver', '');
 $this->SetPreference('approvercontact', '');
 $this->SetPreference('approvertell', 1);
 $this->SetPreference('bulletin', '');
+$this->SetPreference('bulletin2', '');
 $this->SetPreference('authcontext', ''); //NOT in items table
 $this->SetPreference('available', ''); //always available
 $this->SetPreference('bookcount', 0); //book any no. of slots
