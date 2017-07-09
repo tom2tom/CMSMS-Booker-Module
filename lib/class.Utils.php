@@ -145,13 +145,32 @@ EOS;
 	}
 
 	/**
-	 * SafeGet:
-	 * Execute SQL command(s) with minimal chance of data-race.
+	 * PlainGet:
+	 * Execute SQL command(s) @sql with minimal chance of data-race, and returned decrypted data.
 	 *
-	 * @sql: SQL command
+	 * @mod: reference to current Booker module object
+	 * @sql: SQL command or array of them
 	 * @args: array of arguments for @sql
 	 * @mode: optional type of get - 'one','row','col','assoc' or 'all', default 'all'
-	 * Returns: boolean indicating successful completion
+	 * Returns: table data or FALSE
+	 */
+	public function PlainGet(&$mod, $sql, $args, $mode = 'all')
+	{
+		$data = $this->SafeGet($sql, $args, $mode);
+		if ($data) {
+			$this->GetUserProperties($mod, $data);
+		}
+		return $data;
+	}
+
+	/**
+	 * SafeGet:
+	 * Execute SQL command(s) @sql with minimal chance of data-race.
+	 *
+	 * @sql: SQL command or array of them
+	 * @args: array of arguments for @sql
+	 * @mode: optional type of get - 'one','row','col','assoc' or 'all', default 'all'
+	 * Returns: table data or FALSE
 	 */
 	public function SafeGet($sql, $args, $mode = 'all')
 	{
@@ -969,7 +988,7 @@ EOS;
 	/**
 	 * GetUserName:
 	 * Get recorded identifier (name or login) for @booker_id
-	 *
+	 * see also: Userops::GetName()
 	 * @mod: reference to current Booker module object
 	 * @booker_id: identifier of booker whose name is wanted
 	 * Returns: string, maybe ''
@@ -977,9 +996,9 @@ EOS;
 	public function GetUserName(&$mod, $booker_id)
 	{
 		$sql = <<<EOS
-SELECT COALESCE(A.name,B.name,'') AS name,B.publicid
+SELECT COALESCE(A.name,B.name,'') AS name,A.publicid
 FROM $mod->BookerTable B
-LEFT JOIN $mod->AuthTable A ON B.publicid = A.publicid
+LEFT JOIN $mod->AuthTable A ON B.auth_id=A.id
 WHERE B.booker_id=?
 EOS;
 		$data = $mod->dbHandle->GetArray($sql,[$booker_id]);
@@ -1036,6 +1055,7 @@ EOS;
 							}
 							$regs[$fld] = $row;
 						} else {
+							$row['publicid'] = $regs[$fld]['publicid'];
 							if (isset($regs[$fld]['name'])) {
 								$row['name'] = $regs[$fld]['name'];
 							}
@@ -1045,31 +1065,31 @@ EOS;
 							$row['phone'] = $regs[$fld]['phone'];
 						}
 					}
-				} else {
+				} else //data for unregistered user
 					if (isset($row['name'])) {
-						$fld = $row['name'];
-						if (!array_key_exists($fld, $nonregs)) {
-							if (isset($row['address'])) {
-								$row['address'] = $this->cfuncs->decrypt_value($row['address']);
-							}
-							if (isset($row['phone'])) {
-								$row['phone'] = $this->cfuncs->decrypt_value($row['phone']);
-							}
-							$nonregs[$fld] = $row;
-						} else {
-							$row['name'] = $nonregs[$fld]['name'];
-						}
+					$fld = $this->cfuncs->decrypt_value($row['name']);
+					if (!array_key_exists($fld, $nonregs)) {
+						$row['name'] = $fld;
 						if (isset($row['address'])) {
-							$row['address'] = $nonregs[$fld]['address'];
+							$row['address'] = $this->cfuncs->decrypt_value($row['address']);
 						}
 						if (isset($row['phone'])) {
-							$row['phone'] = $nonregs[$fld]['phone'];
+							$row['phone'] = $this->cfuncs->decrypt_value($row['phone']);
 						}
+						$nonregs[$fld] = $row;
+					} else {
+						$row['name'] = $nonregs[$fld]['name'];
+					}
+					if (isset($row['address'])) {
+						$row['address'] = $nonregs[$fld]['address'];
+					}
+					if (isset($row['phone'])) {
+						$row['phone'] = $nonregs[$fld]['phone'];
 					}
 				}
 			}
 			unset($row);
-		} elseif (!empty($data['publicid'])) { //single-row
+		} elseif (!empty($data['publicid'])) { //single-row with Auth data
 			if (!$this->afuncs) {
 				$amod = \cms_utils::get_module('Auther');
 				if ($amod) {
@@ -1094,6 +1114,9 @@ EOS;
 		} else {
 			if (!$this->cfuncs) {
 				$this->cfuncs = new Crypter($mod);
+			}
+			if (!empty($data['name'])) {
+				$data['name'] = $this->cfuncs->decrypt_value($data['name']);
 			}
 			if (!empty($data['address'])) {
 				$data['address'] = $this->cfuncs->decrypt_value($data['address']);
@@ -1510,6 +1533,85 @@ EOS;
 			}
 		}
 		return FALSE;
+	}
+
+	/**
+	 * GetBusyMessage:
+	 * Get brief description of vacancy and/or request for @item_id during part
+	 * or all of @bs..@be inclusive.
+	 *
+	 * @mod: reference to current Booker module object
+	 * @item_id: identifier of resource or group whose status is wanted
+	 * @bs: UTC timestamp for start of interval to be checked
+	 * @be: optional UTC timestamp for end of the interval, ignored if slotlength is fixed
+	 * Returns: string, maybe empty
+	 */
+	public function GetBusyMessage (&$mod, $item_id, $bs, $be = FALSE)
+	{
+		$idata = $this->GetItemProperties($mod,$item_id,['name','bookcount','dateformat','timeformat','timezone']);
+		$now = $this->GetZoneTime($idata['timezone']);
+		$past = ($bs <= $now);
+		if ($past) {
+			$msg = '';
+		} else {
+			$choosend = ($idata['bookcount'] != 1);
+			if (!$choosend) {
+				$be = $bs + $this->GetInterval($mod,$item_id,'slot') - 1;
+			}
+			if ($item_id >= \Booker::MINGRPID) { //item is a group
+				$members = $this->GetGroupItems($mod,$item_id);
+				$mcount = count($members);
+				if ($mcount > 0) {
+					$funcs = new Schedule();
+					$fcount = $funcs->ItemVacantCount($mod,$item_id,$bs,$be);
+				} else {
+					$fcount = 0;
+				}
+				if ($mcount > 1 && $fcount > 1) { //>1 member, >1 available
+					$msg = $mod->Lang('currentdesc4',$fcount);
+				} elseif ($fcount == 1) { //any members, 1 available
+					$msg = $mod->Lang('currentdesc6'); //,$mcount);
+				} else { //any members, 0 available
+					$msg = $mod->Lang('currentdesc7'); //,$mcount);
+				}
+				if ($mcount > 0 && $mcount > $fcount) { //>1 member, some available
+					$funcs = new Requestops();
+					$rcount = $funcs->ItemRequestCount($mod,$this,$item_id,$bs,$be);
+					if ($rcount == 1) {
+						$msg .= ', '.$mod->Lang('currentdesc11');
+					} elseif ($rcount > 0) {
+						$msg .= ', '.$mod->Lang('currentdesc10',$rcount);
+					}
+				}
+			} else {
+				$funcs = new Schedule();
+				$fcount = $funcs->ItemVacantCount($mod,$item_id,$bs,$be);
+				if ($fcount == 0) {
+					$what = ($idata['name']) ? $idata['name'] : $this->GetItemNameForID($mod,$item_id);
+					if ($choosend) {
+						$dtw = new \DateTime('@'.$bs,NULL);
+						$when = $this->IntervalFormat($mod,$dtw,$idata['dateformat'],TRUE).' '.$dtw->format($idata['timeformat']);
+						$dtw->SetTimestamp($be);
+						$until = $this->IntervalFormat($mod,$dtw,$idata['dateformat'],TRUE).' '.$dtw->format($idata['timeformat']);
+						$msg = $mod->Lang('currentdesc2',$what,$when,$until);
+					} else {
+						$msg = $mod->Lang('currentdesc',$what);
+					}
+				} else {
+					$funcs = new Requestops();
+					$rcount = $funcs->ItemRequestCount($mod,$this,$item_id,$bs,$be);
+					if ($rcount > 0) {
+						$dtw = new \DateTime('@'.$bs,NULL);
+						$what = ($idata['name']) ? $idata['name'] : $this->GetItemNameForID($mod,$item_id);
+						$when = $this->IntervalFormat($mod,$dtw,$idata['dateformat'],TRUE).' '.$dtw->format($idata['timeformat']);
+						$dtw->SetTimestamp($be);
+						$until = $this->IntervalFormat($mod,$dtw,$idata['dateformat'],TRUE).' '.$dtw->format($idata['timeformat']);
+						$msg = $mod->Lang('currentdesc3',$what,$when,$until);
+					}
+				}
+			}
+		}
+		return $msg;
 	}
 
 	/* *
@@ -2282,6 +2384,59 @@ EOS;
 			$t = $mod->Lang('showrange', $t1, $t2);
 		}
 		return $t;
+	}
+
+	/**
+	 * CreateTitle:
+	 *
+	 * @mod: reference to current module-object
+	 * @s1: lang-key or actual string for 1st component of title
+	 * @s2: lang-key or actual string for 2nd component of title
+	 * @after: optional timestamp in first month of covered-interval, default FALSE
+	 * @before: optional timestamp in last month of covered-interval, default FALSE
+	 * Returns: string
+	 */
+	public function CreateTitle(&$mod, $s1, $s2, $after = FALSE, $before = FALSE)
+	{
+		$p1 = ($s1) ? $mod->Lang($s1) : '';
+		if (strpos($p1, 'Missing Languagestring') !== FALSE) {
+			$p1 = $s1;
+		}
+		$p2 = ($s2) ? $mod->Lang($s2) : '';
+		if (strpos($p2, 'Missing Languagestring') !== FALSE) {
+			$p2 = $s2;
+		}
+
+		if ($after || $before) {
+			$dt = new \DateTime('@0', NULL);
+			$fmt = 'n Y';
+			$n = 0;
+			$months = explode(',', $mod->Lang('longmonths'));
+		}
+
+		if ($after) {
+			$dt->setTimestamp($after);
+			$t = $dt->format($fmt);
+			sscanf($t, '%ds', $n);
+			$p3 = str_replace($n, $months[$n], $t);
+			if ($before) {
+				$dt->setTimestamp($before);
+				$t = $dt->format($fmt);
+				sscanf($t, '%ds', $n);
+				$p4 = str_replace($n, $months[$n], $t);
+				return $mod->Lang('report_title_range', $p1, $p2, $p3, $p4);
+			} else {
+				return $mod->Lang('report_title_post', $p1, $p2, $p3);
+			}
+		} elseif ($before) {
+			$dt->setTimestamp($before);
+			$t = $dt->format($fmt);
+			sscanf($t, '%ds', $n);
+			$p4 = str_replace($n, $months[$n], $t);
+			return $mod->Lang('report_title_pre', $p1, $p2, $p4);
+		} else {
+			return $mod->Lang('report_title', $p1, $p2);
+		}
 	}
 
 	/**
