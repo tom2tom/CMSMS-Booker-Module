@@ -61,7 +61,11 @@ if ($bmod) {
 	$iconbadd = '<img src="'.$baseurl.'/images/booking-add.png" alt="%s" title="%s" border="0" />';
 	$bedittip = $this->Lang('tip_admintype', '%s');
 	$iconbedit = '<img src="'.$baseurl.'/images/booking-edit.png" alt="%s" title="%s" border="0" />';
+	$paytip = $this->Lang('tip_adminpaytype', '%s');
+} else {
+	$paytip = $this->Lang('tip_seepaytype', '%s');
 }
+$iconpay = '<img src="'.$baseurl.'/images/money.png" alt="%s" title="%s" border="0" />';
 $exporttip = $this->Lang('tip_exportbooktype', '%s');
 $iconexport = $theme->DisplayImage('icons/system/export.gif', '%s', '', '', 'systemicon');
 $seetip = $this->Lang('tip_viewtype', '%s');
@@ -133,16 +137,15 @@ $pending = [];
 $t = Booker::STATMAXREQ;
 $s = Booker::STATMAXOK;
 $sql = <<<EOS
-SELECT O.*,COALESCE(A.name,B.name,'') AS name,COALESCE(A.address,B.address,'') AS address,B.publicid,B.phone
+SELECT O.*,COALESCE(A.name,B.name,'') AS name,COALESCE(A.address,B.address,'') AS address,B.phone,A.publicid
 FROM $this->OnceTable O
 LEFT JOIN $this->BookerTable B ON O.booker_id = B.booker_id
-LEFT JOIN $this->AuthTable A ON B.publicid = A.publicid
+LEFT JOIN $this->AuthTable A ON B.auth_id=A.id
 WHERE O.status<=$t OR O.status>$s
 ORDER BY O.lodged
 EOS;
-$data = $db->GetArray($sql);
+$data = $utils->PlainGet($this, $sql, []);
 if ($data) {
-	$utils->GetUserProperties($this, $data);
 	$t = $this->Lang('request');
 	$rtip = $this->Lang('tip_seereq');
 	$iconrsee = '<img src="'.$baseurl.'/images/request.png" alt="'.$rtip.'" title="'.$rtip.'" border="0" />';
@@ -471,20 +474,21 @@ $tablerows[2] = 0;
 $xtradata = FALSE;
 $bkrs = [];
 $sql = <<<EOS
-SELECT B.booker_id,COALESCE(A.name,B.name,'') AS name,B.publicid,COALESCE(A.addwhen,B.addwhen,'') AS addwhen,B.active
+SELECT B.booker_id,COALESCE(A.name,B.name,'') AS name,COALESCE(A.addwhen,B.addwhen,'') AS addwhen,B.active,A.publicid
 FROM $this->BookerTable B
-LEFT JOIN $this->AuthTable A ON B.publicid=A.publicid
+LEFT JOIN $this->AuthTable A ON B.auth_id=A.id
 ORDER BY name
 EOS;
-$data = $db->GetArray($sql);
+$data = $utils->PlainGet($this, $sql, []);
 if ($data) {
-	$utils->GetUserProperties($this, $data);
 	$sb = $this->Lang('booker');
 	$dt = new DateTime('@0', NULL);
+	$t = Booker::STATMAXREQ;
+	$s = Booker::STATMAXOK;
 	$sql = <<<EOS
-SELECT booker_id AS B,slotstart AS S FROM $this->OnceTable
+SELECT booker_id AS B,slotstart AS S FROM $this->OnceTable WHERE status>$t AND status<=$s
 UNION
-SELECT booker_id AS B,checkedfrom AS S FROM $this->RepeatTable
+SELECT booker_id AS B,checkedfrom AS S FROM $this->RepeatTable WHERE status>$t AND status<=$s
 ORDER BY B,S
 EOS;
 	$xtradata = $db->GetArray($sql);
@@ -506,6 +510,8 @@ EOS;
 		$t = sprintf($deltip, $sb);
 		$icon7 = sprintf($icondel, $t, $t);
 	}
+	$t = sprintf($paytip, $this->Lang('user'));
+	$icon8 = sprintf($iconpay, $t, $t);
 	foreach ($data as $row) {
 		$bookerid = (int)$row['booker_id'];
 		$one = new stdClass();
@@ -594,9 +600,14 @@ EOS;
 		} else {
 			$one->bedit = NULL;
 		}
-		$one->export = ($count) ?
-			$this->CreateLink($id, 'adminbooker', $returnid, $icon4, ['booker_id' => $bookerid, 'task' => 'export']) :
-			NULL;
+		if ($count) {
+			$one->export = $this->CreateLink($id, 'adminbooker', $returnid, $icon4, ['booker_id' => $bookerid, 'task' => 'export']);
+			$t = ($bmod) ? 'edit':'see';
+			$one->pay = $this->CreateLink($id, 'processamounts', $returnid, $icon8, ['booker_id' => $bookerid, 'task' => $t]);
+		} else {
+			$one->export = NULL;
+			$one->pay = NULL;
+		}
 		$one->see = $this->CreateLink($id, 'adminbooker', $returnid, $icon5, ['booker_id' => $bookerid, 'task' => 'see']);
 		if ($pper) {
 			$one->edit = $this->CreateLink($id, 'adminbooker', $returnid, $icon6, ['booker_id' => $bookerid, 'task' => 'edit']);
@@ -844,21 +855,26 @@ EOS;
 			} else {
 				$one->export = '';
 			}
+			$t = sprintf($paytip, ($isitem) ? $si : $sg);
+			$icon8 = sprintf($iconpay, $t, $t);
+			$t = ($bmod) ? 'edit':'see';
+			$one->pay = $this->CreateLink($id, 'processamounts', $returnid, $icon8, ['item_id' => $item_id, 'task' => $t]);
 		} else {
 			$count = 0;
 			$first = '';
 			$last = '';
 			$future = '';
 
-			$one->bsee = '';
+			$one->bsee = NULL;
 			if ($mod && !$skip) {
 				$t = sprintf($baddtip, ($isitem) ? $si : $sg);
 				$t = sprintf($iconbadd, $t, $t);
 				$one->bedit = $this->CreateLink($id, 'itembookings', '', $t, ['item_id' => $item_id, 'task' => 'edit']);
 			} else {
-				$one->bedit = '';
+				$one->bedit = NULL;
 			}
-			$one->export = '';
+			$one->export = NULL;
+			$one->pay = NULL;
 		}
 
 		$one->total = $count;
@@ -1490,6 +1506,13 @@ EOS;
 	$one->ttl = $this->Lang('title_bulletin');
 	$one->inp = $this->CreateTextArea(FALSE, $id, $this->GetPreference('bulletin'),
 		'bulletin', '', '', '', '', 40, 3, '', '', 'style="height:3em;"');
+//	$one->hlp = $this->Lang('help_bulletin');
+	$settings[] = $one;
+
+	$one = new stdClass();
+	$one->ttl = $this->Lang('title_bulletin2');
+	$one->inp = $this->CreateTextArea(FALSE, $id, $this->GetPreference('bulletin2'),
+		'bulletin2', '', '', '', '', 40, 3, '', '', 'style="height:3em;"');
 //	$one->hlp = $this->Lang('help_bulletin');
 	$settings[] = $one;
 
