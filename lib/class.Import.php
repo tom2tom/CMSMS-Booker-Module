@@ -120,6 +120,7 @@ class Import
 			 'Cleargroup'=>'cleargroup',
 			 'Allocategroup'=>'subgrpalloc',
 			 'Notice'=>'bulletin',
+			 'BookNotice'=>'bulletin2',
 			 'Ingroups'=>'ingroups', //not a real field
  			 'Update'=>'update' //not a real field
 			];
@@ -187,6 +188,7 @@ class Import
 							 case 'smsprefix':
 							 case 'smspattern':
 							 case 'bulletin':
+							 case 'bulletin2':
 								$data[$k] = trim($one);
 								$save = TRUE;
 								break;
