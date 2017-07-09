@@ -12,8 +12,8 @@ if (isset($params['resume'])) {
 	while (end($params['resume']) == $params['action']) {
 		array_pop($params['resume']);
 	}
-} else {
-	$params['resume'] = ['defaultadmin']; //got here via link
+} else { //got here via link
+	$params['resume'] = ['defaultadmin']; //back to there, eventually
 }
 
 if (isset($params['close'])) {
@@ -106,11 +106,12 @@ if (!$display) { //i.e. isset($params['export']))
 }
 
 $tplvars = [];
+
+$params['active_tab'] = 'reports';
 $tplvars['pagenav'] = $utils->BuildNav($this,$id,$returnid,$params['action'],$params);
 $tplvars['startform'] = $this->CreateFormStart($id,'processreport',$returnid,'POST','','','',
-	['task'=>$params['task'],'active_tab'=>$params['active_tab'],'alltypes'=>$params['alltypes'],
-	'showfrom'=>$params['showfrom'],'showto'=>$params['showto']]);
-//TODO 'resume'=>$params['resume'
+	['task'=>$params['task'],'resume'=>$params['resume'],'active_tab'=>$params['active_tab'],
+	'alltypes'=>$params['alltypes'],'showfrom'=>$params['showfrom'],'showto'=>$params['showto']]);
 $tplvars['endform'] = $this->CreateFormEnd();
 
 if (!empty($params['message'])) {
