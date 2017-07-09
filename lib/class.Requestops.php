@@ -11,32 +11,31 @@ class Requestops
 {
 	/*
 	GetReqData:
-	Get from OnceTable and BookerTable/AuthTable the row(s) of data for @request
+	Get from OnceTable and BookerTable/AuthTable the row(s) of data for $reqid
 	@mod: reference to current Booker module
-	@request: request identifier, or array of them
+	$reqid: request identifier, or array of them
 	Returns: associative array, or FALSE
 	*/
-	private function GetReqData(&$mod, $request)
+	private function GetReqData(&$mod, $reqid)
 	{
 		//CHECKME don't need OnceTable */whole-rows?
 		$sql = <<<EOS
-SELECT O.*,COALESCE(A.name,B.name,'') AS name,COALESCE(A.address,B.address,'') AS address,B.publicid,B.phone
+SELECT O.*,COALESCE(A.name,B.name,'') AS name,COALESCE(A.address,B.address,'') AS address,B.phone,A.publicid
 FROM $mod->OnceTable O
 JOIN $mod->BookerTable B ON O.booker_id=B.booker_id
-LEFT JOIN $mod->AuthTable A ON B.publicid=A.publicid
+LEFT JOIN $mod->AuthTable A ON B.auth_id=A.id
 WHERE O.bkg_id
 EOS;
-		if (is_array($request)) {
-			$fillers = str_repeat('?,',count($request)-1);
-			$data = $mod->dbHandle->GetAssoc($sql.' IN ('.$fillers.'?)',$request);
+		if (is_array($reqid)) {
+			$sql .= ' IN ('.str_repeat('?,',count($reqid)-1).'?)';
+			$args = $reqid;
 		} else {
-			$data = $mod->dbHandle->GetAssoc($sql.'=?',[$request]);
+			$sql .= '=?';
+			$args = [$reqid];
 		}
-		if ($data) {
-			$utils = new Utils();
-			$utils->GetUserProperties($mod,$data);
-		}
-		return $data;
+
+		$utils = new Utils();
+		return $utils->PlainGet($mod,$sql,$args,'assoc');
 	}
 
 	/**
@@ -44,15 +43,15 @@ EOS;
 	If possible, record request as approved and do consequent stuff like notify the user.
 	Can process intermingled deletion(s) and/or change(s)
 	@mod: reference to current Booker module
-	@request: request identifier, or array of them
+	@reqid: request identifier, or array of them
 	@custommsg: text entered by user, to replace square-bracketed content of the approval-message 'template'
 	Returns: 2-member array,
 	 [0] boolean indicating success
 	 [1] success- or error-message or ''
 	*/
-	public function ApproveReq(&$mod, $request, $custommsg)
+	public function ApproveReq(&$mod, $reqid, $custommsg)
 	{
-		$rows = self::GetReqData($mod,$request);
+		$rows = self::GetReqData($mod,$reqid);
 		if ($rows) {
 			$db = $mod->dbHandle;
 			$utils = new Utils();
@@ -163,15 +162,15 @@ EOS;
 	/**
 	RejectReq:
 	@mod: reference to current Booker module
-	@request: request identifier, or array of them
+	@reqid: request identifier, or array of them
 	@custommsg: text entered by user, to replace square-bracketed content of the rejection-message 'template'
 	Returns: 2-member array,
 	 [0] boolean indicating success
 	 [1] success- or error-message or ''
 	*/
-	public function RejectReq(&$mod, $request, $custommsg)
+	public function RejectReq(&$mod, $reqid, $custommsg)
 	{
-		$rows = self::GetReqData($mod,$request);
+		$rows = self::GetReqData($mod,$reqid);
 		if ($rows) {
 			$sql = [];
 			$args = [];
@@ -217,15 +216,15 @@ EOS;
 	/**
 	AskReq:
 	@mod: reference to current Booker module
-	@request: request identifier, or array of them
+	@reqid: request identifier, or array of them
 	@custommsg: text entered by user, to replace square-bracketed content of the ask-message 'template'
 	Returns: 2-member array,
 	 [0] boolean indicating success
 	 [1] success- or error-message or ''
 	*/
-	public function AskReq(&$mod, $request, $custommsg)
+	public function AskReq(&$mod, $reqid, $custommsg)
 	{
-		$rows = self::GetReqData($mod,$request);
+		$rows = self::GetReqData($mod,$reqid);
 		if ($rows) {
 			$sql = [];
 			$args = [];
@@ -269,15 +268,15 @@ EOS;
 	/**
 	DeleteReq:
 	@mod: reference to current Booker module
-	@request: request identifier, or array of them
+	@reqid: request identifier, or array of them
 	@custommsg: text entered by user, to replace square-bracketed content of the delete-message 'template'
 	Returns: 2-member array,
 	 [0] boolean indicating success
 	 [1] success- or error-message or ''
 	*/
-	public function DeleteReq(&$mod, $request, $custommsg)
+	public function DeleteReq(&$mod, $reqid, $custommsg)
 	{
-		$rows = self::GetReqData($mod,$request);
+		$rows = self::GetReqData($mod,$reqid);
 		if ($rows) {
 			$sql = [];
 			$args = [];
@@ -541,9 +540,8 @@ OR
 		//table fields unused here 'feepaid' 'gatetransaction 'gatedata'
  		//date/time $params[] have been verified before calling here
 		if (!empty($params['conformuser'])) {
-			//general update where needed
 			$funcs = new Userops($mod);
-			$funcs->ConformUserData($mod,$params); //general update where needed
+			$funcs->UpdateUser($mod,$params); //record any booker-data change(s)
 		}
 
 		$db = $mod->dbHandle;
@@ -663,7 +661,7 @@ OR
 	/**
 	CartReq:
 	Add request-item to booking cart
-	@mod: reference to current Booker module
+	@mod: reference to current Booker module-object
 	@utils: reference to Utils-class object
 	@params: reference to parameters array, including data for the request
 	@idata: array of data about the resource being booked
@@ -761,5 +759,28 @@ OR
 
 		$cart->addItem($item,$quantity);
 		return [TRUE,''];
+	}
+	
+	/**
+	ItemRequestCount:
+	Get the no. of pending requests to book the item represented by @item_id
+	during part or all of @bs..@be inclusive
+	@mod reference to current Booker module-object
+	@utils: reference to Utils-class object
+	@item_id: resource or group identifier
+	@bs: UTC timestamp for start of interval
+	@be: ditto for end (NOT 1-past-end)
+	Returns: count
+	*/
+	public function ItemRequestCount(&$mod, &$utils, $item_id, $bs, $be)
+	{
+		$t = \Booker::STATMAXREQ;
+		$s = \Booker::STATMAXOK;
+		$sql = <<<EOS
+SELECT 1 FROM $mod->OnceTable
+WHERE item_id=? AND (status<=$t OR status>$s) AND slotstart<=? AND (slotstart+slotlen)>=? 
+EOS;
+		$data = $utils->SafeGet($sql,[$item_id,$be,$bs],'col');
+		return count($data);
 	}
 }
