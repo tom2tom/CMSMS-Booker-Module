@@ -19,8 +19,10 @@
 {/foreach}
 </tbody></table>
 </div>
+{if isset($cart)}
 <div style="float:left;">{$carticon}</div>
 <div class="helptoggle">{$carthelp}</div>
+{/if}
 <div style="margin-top:0.5em;">
 {$submit}{if isset($cart)}&nbsp;{$cart}{/if}{if isset($delete)}&nbsp;{$delete}{/if}&nbsp;{$cancel}
 <div style="float:right;">{$register}&nbsp;{$change}</div>
