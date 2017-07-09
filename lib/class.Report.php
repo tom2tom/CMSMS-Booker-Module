@@ -13,57 +13,6 @@ class Report
 	protected $utils; //reference to Booker\Utils-class object
 
 	/**
-	CreateTitle:
-	@s1: lang-key or actual string for 1st component of title
-	@s2: lang-key or actual string for 2nd component of title
-	@after: optional timestamp in first month of report-interval, default FALSE
-	@before: optional timestamp in last month of report-interval, default FALSE
-	Returns: string
-	*/
-	protected function CreateTitle($s1, $s2, $after = FALSE, $before = FALSE)
-	{
-		$p1 = ($s1) ? $this->mod->Lang($s1) : '';
-		if (strpos($p1, 'Missing Languagestring') !== FALSE) {
-			$p1 = $s1;
-		}
-		$p2 = ($s2) ? $this->mod->Lang($s2) : '';
-		if (strpos($p2, 'Missing Languagestring') !== FALSE) {
-			$p2 = $s2;
-		}
-
-		if ($after || $before) {
-			$dt = new \DateTime('@0', NULL);
-			$fmt = 'n Y';
-			$n = 0;
-			$months = explode(',', $this->mod->Lang('longmonths'));
-		}
-
-		if ($after) {
-			$dt->setTimestamp($after);
-			$t = $dt->format($fmt);
-			sscanf($t, '%ds', $n);
-			$p3 = str_replace($n, $months[$n], $t);
-			if ($before) {
-				$dt->setTimestamp($before);
-				$t = $dt->format($fmt);
-				sscanf($t, '%ds', $n);
-				$p4 = str_replace($n, $months[$n], $t);
-				return $this->mod->Lang('report_title_range', $p1, $p2, $p3, $p4);
-			} else {
-				return $this->mod->Lang('report_title_post', $p1, $p2, $p3);
-			}
-		} elseif ($before) {
-			$dt->setTimestamp($before);
-			$t = $dt->format($fmt);
-			sscanf($t, '%ds', $n);
-			$p4 = str_replace($n, $months[$n], $t);
-			return $this->mod->Lang('report_title_pre', $p1, $p2, $p4);
-		} else {
-			return $this->mod->Lang('report_title', $p1, $p2);
-		}
-	}
-
-	/**
 	SlotParameters:
 	@$item_id: item identifier whose slotlength is to be used
 	Returns: 2-member array,
