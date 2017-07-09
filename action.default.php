@@ -10,6 +10,7 @@
 $localparams = [
 	'action',
 	'bkgid',
+	'bookat',
 	'cart',
 	'clickat',
 	'find',
@@ -21,7 +22,12 @@ $localparams = [
 	'pick',
 	'rangepick',
 	'request',
-	'slide',
+	'slide+1',
+	'slide+4',
+	'slide+7',
+	'slide-1',
+	'slide-4',
+	'slide-7',
 	'toggle',
 //	'view',
 	'zoomin',
@@ -30,15 +36,13 @@ $localparams = [
 
 $utils = new Booker\Utils();
 //$cache = Booker\Cache::GetCache($this);
-//params to scrub from the cache, if any, before merging that with current $params
-$scrubs = ['booker_id','fee'];
-if (!empty($params['showfrom'])) //keep current value of this
-	$scrubs[] = 'showfrom';
-if (!empty($params['itempick'])) //ditto
-	$scrubs[] = 'itempick';
-if (!empty($params['newlist']))
-	$scrubs[] = 'newlist';
-$utils->UnFilterParameters($params,$scrubs);
+if (!empty($params['showfrom'])) {
+	$t = $params['showfrom']; //use supplied value of this, regardless of cache
+} else {
+	$t = FALSE;
+}
+//some cached parameters, if present, are omitted from the  merge with current $params
+$utils->UnFilterParameters($params,['booker_id','fee','itempick','newlist']);
 
 if (!empty($params['itempick'])) {
 	$item_id = (int)$params['itempick'];
@@ -60,12 +64,18 @@ if (!$item_id) {
 }
 
 $params['item_id'] = $item_id;
+if ($t) {
+	$params['showfrom'] = $t;
+}
 
-// get all data for the resource/group
-$idata = $utils->GetItemProperties($this,$item_id,'*');
-// get/setup cart for bookings
 $cache = Booker\Cache::GetCache($this);
 
+// get relevant data for the resource/group
+$idata = ['item_id' => $item_id] + $utils->GetItemProperties($this,$item_id,
+['name','description','membersname','image','available', //'pickthis','pickmembers',
+'slottype','slotcount','latitude','longitude','timezone','grossfees',
+'dateformat','timeformat','listformat','stylesfile','bulletin']); //'*');
+// get/setup cart for bookings
 $cart = $utils->RetrieveCart($cache,$params,'',$idata['grossfees']); //TODO item-specific context
 $is_group = ($item_id >= Booker::MINGRPID);
 
@@ -74,9 +84,7 @@ if (!isset($params['firstpick'])) {
 }
 
 $dtw = new DateTime('@0',NULL);
-if (!empty($params['clickat'])) { //table-cell clicked
-	$dtw->modify($params['clickat']);
-} elseif (isset($params['showfrom'])) {
+if (isset($params['showfrom'])) {
 	if (is_numeric($params['showfrom']))
 		$dtw->setTimestamp($params['showfrom']);
 	elseif (strtotime($params['showfrom']))
@@ -86,12 +94,11 @@ if (!empty($params['clickat'])) { //table-cell clicked
 		$dtw->setTimestamp($st);
 		$params['message'] = $this->Lang('err_system').' '.$params['showfrom'];
 	}
-	$dtw->setTime(0,0,0);
 } else {
 	$st = $utils->GetZoneTime($idata['timezone']);
 	$dtw->setTimestamp($st);
 }
-$dtw->modify('midnight'); //start of day
+$dtw->setTime(0,0,0); //force day-start
 $params['showfrom'] = $dtw->getTimestamp();
 
 $params['resume'] = ['default']; //redirects can [eventually] get back to here
@@ -137,13 +144,8 @@ if (isset($params['request'])) { //'book' button clicked or cell double-clicked
 			$slen = $utils->GetInterval($this,$item_id,'slot');
 			$st += (int)($t*3600/$slen)*$slen + 3600;
 		}
-	} else { //no slot was selected
-		//set nowish start-time as fallback
-		$st = $utils->GetZoneTime($idata['timezone']);
-		$slen = $utils->GetInterval($this,$item_id,'slot');
-		$st = (int)($st/$slen) * $slen + $slen + 3600;
+		$newparms['bkr_bookat'] = $st;
 	}
-	$newparms['bkr_bookat'] = $st;
 	$this->Redirect($id,'dobooking',$returnid,$newparms);
 } elseif (isset($params['find'])) {
 	if (!empty($params['clickat'])) {
@@ -167,20 +169,21 @@ if (isset($params['altview'])) { //should never happen if js is enabled
 }
 $params['view'] = ($showtable)?'table':'list';
 
-if (!empty($params['slide'])) {
+$arr = preg_grep('/^slide.?\d/',array_keys($params));
+if ($arr) {
+	$t = (int)substr(reset($arr),5);
 	$arr = $utils->DisplayIntervals(); //non-translated form
 	$v = $arr[$range];
-	$t = (int)$params['slide'];
 	if (!($t == 1 || $t == -1))
 		$v .= 's';
 	$dtw->modify($t.' '.$v);
 	$params['showfrom'] = $dtw->getTimestamp();
-} elseif (!empty($params['zoomin'])) {
+} elseif (isset($params['zoomin'])) {
 	if ($range > 0)
-		$range -= 1;
-} elseif (!empty($params['zoomout'])) {
+		$range--;
+} elseif (isset($params['zoomout'])) {
 	if ($range < count($publicperiods) - 1)
-		$range += 1;
+		$range++;
 }
 
 if (!empty($params['newlist'])) {
@@ -247,41 +250,31 @@ if (!empty($idata['description']))
 	$tplvars['desc'] = Booker\Utils::ProcessTemplateFromData($this,$idata['description'],$tplvars);
 
 $t = $utils->GetImageURLs($this,$idata['image'],$idata['name']);
-if ($t)
+if ($t) {
 	$tplvars['pictures'] = $t;
+}
+$t = $idata['bulletin'];
+if ($t) {
+	$tplvars['bulletin'] = $t;
+}
 
-//buttons
-
-//if-needed - pre-table buttons
-//$tplvars['actions'] =  array('BTN1','BTN2','BTN3');
-//2 post-table rows of action-buttons
+//action-buttons
 $intrvl = $publicperiods[$range];
 $mintrvl = $utils->RangeNames($this,$range,TRUE); //plural variant
 
 $tplvars['actionstitle'] = $this->Lang('display');
 $actions1 = [];
-$actions1[] = $this->CreateInputSubmit($id,'slide','+1','title="'.$this->Lang('tip_forw1',$intrvl).'"');
-if ($range == Booker::RANGEDAY)
-	$actions1[] = $this->CreateInputSubmit($id,'slide','+7', //NB numeric label value is used by action-processor
-		'title="'.$this->Lang('tip_forwN',7,$mintrvl).'"');
-elseif ($range == Booker::RANGEWEEK)
-	$actions1[] = $this->CreateInputSubmit($id,'slide','+4',
-		'title="'.$this->Lang('tip_forwN',4,$mintrvl).'"');
-$xtra = ($range == Booker::RANGEDAY) ? ' disabled="disabled"' : '';
-$actions1[] = $this->CreateInputSubmit($id,'zoomin',$this->Lang('zoomin'),
-	'title="'.$this->Lang('tip_zoomin').'"'.$xtra);
-
-$choices = $utils->RangeNames($this,[0,1,2,3],FALSE,TRUE); //capitalised
-$actions1[] = $this->CreateInputDropdown($id,'rangepick',array_flip($choices),-1,$range,'id="'.$id.'rangepick"');
-
-$jsloads[] = <<<EOS
- $('#{$id}rangepick').change(function() {
+$chooser = $utils->GetItemPicker($this,$id,'itempick',$params['firstpick'],$item_id);
+if ($chooser) {
+	$actions1[] = $chooser;
+	$jsloads[] = <<<EOS
+ $('#{$id}itempick').change(function() {
   $(this).closest('form').trigger('submit');
  });
 EOS;
+}
 
-$chooser = $utils->GetItemPicker($this,$id,'itempick',$params['firstpick'],$item_id);
-
+/* DISABLE FOCUS-HELP
 if ($showtable) {
 	$t = $this->Lang('tip_info');
 	$tplvars['focusicon'] = '<a href="" onclick="return helptogl(this);"><img src="'
@@ -298,7 +291,6 @@ if ($showtable) {
 	}
 	$t .= $this->Lang('help_focus').$this->Lang('help_focus3', $this->Lang('book'));
 	$tplvars['focushelp'] = $t;
-	$t = $this->Lang('list');
 
 	$jsfuncs[] = <<<EOS
 function helptogl(el) {
@@ -314,40 +306,58 @@ function helptogl(el) {
  return false;
 }
 EOS;
-} else {
-	$t = $this->Lang('table');
 }
+*/
 
-if ($chooser) {
-	$actions1[] = $chooser;
-	$jsloads[] = <<<EOS
- $('#{$id}itempick').change(function() {
+//button-icons from sprite with 10 'panels' (uses CSS3 styling)
+$actions1[] = $this->_CreateInputIcon($id,'pick',$baseurl.'/images/tools.png',
+	'20em 2em','0 50%','title="'.$this->Lang('tip_calendar').'"');
+if ($range == Booker::RANGEDAY) {
+	$t = '-7';
+	$xtra = 'title="'.$this->Lang('tip_backN',7,$mintrvl).'"';
+} else {
+	$t = '-4';
+	$xtra = 'title="'.$this->Lang('tip_backN',4,$mintrvl).'"';
+}
+$actions1[] = $this->_CreateInputIcon($id,'slide'.$t,$baseurl.'/images/tools.png',
+	'20em 2em','-2em 50%',$xtra);
+$actions1[] = $this->_CreateInputIcon($id,'slide-1',$baseurl.'/images/tools.png',
+	'20em 2em','-4em 50%','title="'.$this->Lang('tip_back1',$intrvl).'"');
+$actions1[] = $this->_CreateInputIcon($id,'slide+1',$baseurl.'/images/tools.png',
+	'20em 2em','-6em 50%','title="'.$this->Lang('tip_forw1',$intrvl).'"');
+if ($range == Booker::RANGEDAY) {
+	$t = '+7';
+	$xtra = 'title="'.$this->Lang('tip_forwN',7,$mintrvl).'"';
+} else {
+	$t = '+4';
+	$xtra = 'title="'.$this->Lang('tip_forwN',4,$mintrvl).'"';
+}
+$actions1[] = $this->_CreateInputIcon($id,'slide'.$t,$baseurl.'/images/tools.png',
+	'20em 2em','-8em 50%',$xtra);
+$xtra = ($range == Booker::RANGEDAY) ? ' disabled="disabled"' : '';
+$actions1[] = $this->_CreateInputIcon($id,'zoomin',$baseurl.'/images/tools.png',
+	'20em 2em','-10em 50%','title="'.$this->Lang('tip_zoomin').'"'.$xtra);
+$xtra = ($range == Booker::RANGEYR) ? ' disabled="disabled"' : '';
+$actions1[] = $this->_CreateInputIcon($id,'zoomout',$baseurl.'/images/tools.png',
+	'20em 2em','-12em 50%','title="'.$this->Lang('tip_zoomout').'"'.$xtra);
+$choices = $utils->RangeNames($this,[0,1,2,3],FALSE,TRUE); //capitalised
+$actions1[] = $this->CreateInputDropdown($id,'rangepick',array_flip($choices),-1,$range,
+	'id="'.$id.'rangepick" title="'.$this->Lang('tip_display').'"');
+$actions1[] = $this->_CreateInputIcon($id,'find',$baseurl.'/images/tools.png',
+	'20em 2em','-14em 50%','title="'.$this->Lang('tip_find').'"');
+$t = ($showtable) ? '-16':'-18';
+$actions1[] = $this->_CreateInputIcon($id,'toggle',$baseurl.'/images/tools.png',
+	'20em 2em',$t.'em 50%','title="'.$this->Lang('tip_otherview').'"');
+$tplvars['actions1'] = $actions1;
+
+$jsloads[] = <<<EOS
+ $('#{$id}rangepick').change(function() {
   $(this).closest('form').trigger('submit');
  });
 EOS;
-}
-
-$actions1[] = $this->CreateInputSubmit($id,'toggle',$t,
-	'title="'.$this->Lang('tip_otherview').'"');
-$tplvars['actions1'] = $actions1;
 
 $actions2 = [];
-$actions2[] = $this->CreateInputSubmit($id,'slide','-1',
- 'title="'.$this->Lang('tip_back1',$intrvl).'"');
-if ($range == Booker::RANGEDAY)
-	$actions2[] = $this->CreateInputSubmit($id,'slide','-7',
-   'title="'.$this->Lang('tip_backN',7,$mintrvl).'"');
-elseif ($range == Booker::RANGEWEEK)
-	$actions2[] = $this->CreateInputSubmit($id,'slide','-4',
-		'title="'.$this->Lang('tip_backN',4,$mintrvl).'"');
-$xtra = ($range == Booker::RANGEYR) ? ' disabled="disabled"' : '';
-$actions2[] = $this->CreateInputSubmit($id,'zoomout', $this->Lang('zoomout'),
- 'title="'.$this->Lang('tip_zoomout').'"'.$xtra);
-$actions2[] = $this->CreateInputSubmit($id,'pick',$this->Lang('calendar'),
-   'title="'.$this->Lang('tip_calendar').'"');
-if ($showtable)
-	$actions2[] = '';
-else {
+if (!$showtable) {
 	if ($is_group) 	{
 		$choices = [
 		$this->Lang('start+user')=>Booker::LISTSU,
@@ -371,19 +381,16 @@ else {
  });
 EOS;
 }
-
-//if ($chooser)
-//	$actions2[] = ''; //alignment padding
-$actions2[] = $this->CreateInputSubmit($id,'find',$this->Lang('find'),
-	'title="'.$this->Lang('tip_find').'"');
 $tplvars['actions2'] = $actions2;
 
 $tplvars['book'] = $this->CreateInputSubmit($id,'request',$this->Lang('book'),
 	'title="'.$this->Lang('tip_book').'"');
+/*
 $xtra = ($cart->seemsEmpty()) ?
 	'disabled="disabled" title="'.$this->Lang('tip_cartempty').'"':
 	'title="'.$this->Lang('tip_cartshow').'"';
 $tplvars['cart'] = $this->CreateInputSubmit($id,'cart',$this->Lang('cart'),$xtra);
+*/
 
 $funcs2 = new Booker\Display($this);
 if ($showtable) {
@@ -393,6 +400,36 @@ if ($showtable) {
 	$funcs2->Listify($tplvars,$idata,$params['showfrom'],$range);
 	$tplname = 'defaultlist.tpl';
 }
+
+$jsfuncs[] = <<<EOS
+function isEventSupported(eventName) {
+ var TAGNAMES = { 'touchstart':'input' }
+ var el = document.createElement(TAGNAMES[eventName] || 'div');
+ eventName = 'on' + eventName;
+ var supported = (eventName in el);
+ if (!supported) {
+  el.setAttribute(eventName,'return;');
+  supported = typeof el[eventName] == 'function';
+ }
+ el = null;
+ return supported;
+}
+EOS;
+
+$jsloads[] = <<<EOS
+ if (isEventSupported('touchstart')) {
+  $(document).find('input,td').on('touchstart',function() {
+   this.onmouseover.call(this);
+  }).on('touchend click',function(ev) {
+   this.onmouseout.call(this);
+   if (ev.type == 'click') {
+    //prevent HTTP request
+    ev.preventDefault ? ev.preventDefault() : ev.returnValue = false;
+    //ajax processing here
+   }
+  });
+ }
+EOS;
 
 if ($showtable) {
 //CHECKME PURPOSE booking-table th click() handler
@@ -443,9 +480,9 @@ EOS;
 EOS;
  	$jsloads[] = <<<EOS
  var \$table = $('#scroller');
+ \$table.tableHeadFixer({'left':1});
  \$table.find('th.periodname').click(col_focus);
  \$table.find('td').click(slot_focus).dblclick(slot_activate);
- \$table.tableHeadFixer({'left':1});
 EOS;
 }
 
@@ -494,11 +531,14 @@ $stylers = <<<EOS
 <link rel="stylesheet" type="text/css" href="{$baseurl}/css/pikaday.min.css" />
 EOS;
 
-$customcss = $utils->GetStylesURL($this,$item_id);
-if ($customcss)
-	$stylers .= <<<EOS
+if ($idata['stylesfile']) {
+	$customcss = $utils->GetStylesURL($this,$item_id);
+	if ($customcss) {
+		$stylers .= <<<EOS
 <link rel="stylesheet" type="text/css" href="{$customcss}" />
 EOS;
+	}
+}
 //heredoc-var newlines are a problem for in-js quoted strings, so ...
 $stylers = preg_replace('/[\\n\\r]+/','',$stylers);
 $t = <<<EOS
