@@ -111,6 +111,7 @@ class Bookingops
 //TODO CHECK slot end < cutoff?
 			$sql = 'DELETE FROM '.$mod->DispTable.' WHERE bkg_id=? AND slotstart>=?';
 			$sql2 = 'SELECT COUNT(1) AS num FROM '.$mod->DispTable.' WHERE bkg_id=? AND slotstart<?';
+//TODO removed=time();
 			$sql3 = 'UPDATE '.$mod->RepeatTable.' SET active=0 WHERE bkg_id=?';
 			$sql4 = 'DELETE FROM '.$mod->RepeatTable.' WHERE bkg_id=?';
 			$propstore = [];
@@ -280,27 +281,24 @@ COALESCE(O.slotcount,R.slotcount,1) AS slotcount,
 COALESCE(O.status,R.status,{$s}) AS status,
 I.name AS what,
 COALESCE(A.name,B.name,'') AS name,
-COALESCE(A.address,B.address,'') AS address,B.publicid,B.phone
+COALESCE(A.address,B.address,'') AS address,B.phone,A.publicid
 FROM $mod->DispTable D
 LEFT JOIN $mod->OnceTable O ON D.bkg_id=O.bkg_id
 LEFT JOIN $mod->RepeatTable R ON D.bkg_id=R.bkg_id
 JOIN $mod->ItemTable I ON D.item_id=I.item_id
 JOIN $mod->BookerTable B ON D.booker_id=B.booker_id
-LEFT JOIN $mod->AuthTable A ON B.publicid=A.publicid
+LEFT JOIN $mod->AuthTable A ON B.auth_id=A.id
 WHERE D.bkg_id
 EOS;
 		if (is_array($bkgid)) {
 			$sql .= ' IN ('.str_repeat('?,', count($bkgid) - 1).'?)';
-			$data = $mod->dbHandle->GetAssoc($sql, $bkgid);
+			$args = $bkgid;
 		} else {
 			$sql .= '=?';
-			$data = $mod->dbHandle->GetAssoc($sql, [$bkgid]);
+			$args = [$bkgid];
 		}
-		if ($data) {
-			$utils = new Utils();
-			$utils->GetUserProperties($mod, $data);
-		}
-		return $data;
+		$utils = new Utils();
+		return $utils->PlainGet($mod, $sql, $args, 'assoc');
 	}
 
 	/* *
@@ -317,10 +315,10 @@ EOS;
 /*	public function GetBooked(&$mod, $item, $startstamp, $endstamp)
 	{
 		$sql = <<<EOS
-SELECT D.item_id,COALESCE(A.name,B.name,'') AS name,B.publicid,I.name AS what
+SELECT D.item_id,COALESCE(A.name,B.name,'') AS name,A.publicid,I.name AS what
 FROM $mod->DispTable D
 LEFT JOIN $mod->BookerTable B ON D.booker_id=B.booker_id
-LEFT JOIN $mod->AuthTable A ON B.publicid=A.publicid
+LEFT JOIN $mod->AuthTable A ON B.auth_id=A.id
 LEFT JOIN $mod->ItemTable I ON D.item_id=I.item_id
 WHERE D.item_id
 EOS;
@@ -345,11 +343,7 @@ EOS;
 		$args[] = $startstamp;
 		$sql .= ' AND D.slotstart <= ? AND (D.slotstart+D.slotlen) >= ? ORDER BY I.name,D.slotstart';
 		$utils = new Utils();
-		$data = $utils->SafeGet($sql, $args);
-		if ($data) {
-			$utils->GetUserProperties($mod, $data);
-		}
-		return $data;
+		return $utils->PlainGet($mod, $sql, $args);
 	}
 */
 	/**
@@ -403,10 +397,10 @@ EOS;
 		}
 		$fillers = str_repeat('?,', count($args) - 1);
 		$sql = <<<EOS
-SELECT D.booker_id,D.item_id,D.slotstart,D.slotlen,COALESCE(A.name,B.name,'') AS name,B.publicid,I.name AS what
+SELECT D.booker_id,D.item_id,D.slotstart,D.slotlen,COALESCE(A.name,B.name,'') AS name,A.publicid,I.name AS what
 FROM $mod->DispTable D
 JOIN $mod->BookerTable B ON D.booker_id=B.booker_id
-LEFT JOIN $mod->AuthTable A ON B.publicid=A.publicid
+LEFT JOIN $mod->AuthTable A ON B.auth_id=A.id
 JOIN $mod->ItemTable I ON D.item_id=I.item_id
 WHERE D.item_id IN ({$fillers}?) AND D.displayed>0 AND D.slotstart <= ? AND (D.slotstart+D.slotlen) >= ?
 ORDER BY
@@ -436,10 +430,6 @@ EOS;
 		$args[] = $endstamp;
 		$args[] = $startstamp;
 		$utils = new Utils();
-		$data = $utils->SafeGet($sql, $args);
-		if ($data) {
-			$utils->GetUserProperties($mod, $data);
-		}
-		return $data;
+		return $utils->PlainGet($mod, $sql, $args);
 	}
 }
