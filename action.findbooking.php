@@ -229,11 +229,11 @@ if (isset($params['search'])) {
 		$cond[] = 'D.slotstart<='.$dts->getTimestamp();
 	}
 	$sql = <<<EOS
-SELECT D.bkg_id,D.slotstart,D.slotlen,COALESCE(A.name,B.name,'') AS name,B.publicid,I.name AS what
+SELECT D.bkg_id,D.slotstart,D.slotlen,COALESCE(A.name,B.name,'') AS name,A.publicid,I.name AS what
 FROM $this->DispTable D
 JOIN $this->BookerTable B ON D.booker_id=B.booker_id
 JOIN $this->ItemTable I ON D.item_id=I.item_id
-LEFT JOIN $this->AuthTable A ON B.publicid=A.publicid
+LEFT JOIN $this->AuthTable A ON B.auth_id=A.id
 EOS;
 	if ($cond) {
 		$sql .= ' WHERE '.implode(' AND ',$cond);
@@ -255,7 +255,7 @@ EOS;
 			$oneset->what = $one['what'];
 			$t = (int)$one['slotstart'];
 			$oneset->when = $utils->RangeDescriptor($this,$t,$t+$one['slotlen'],$daynames); //Mon 2016-9-13 from 9:00 to 9:59';
-			$oneset->who = $one['name'];
+			$oneset->who = ($one['name']) ? $one['name'] : $one['publicid'];
 			$oneset->sel = $this->CreateInputCheckbox($id,'searchsel[]',(int)$one['bkg_id'],-1,'class="pagecheckbox"');
 			$items[] = $oneset;
 			$class = ($class = 'row1') ? 'row2':'row1';
