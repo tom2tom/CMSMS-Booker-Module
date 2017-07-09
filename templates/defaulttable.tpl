@@ -1,15 +1,19 @@
 <div id="needjs">{$needjs}</div>
 {if !empty($message)}<p class="pagemessage">{$message}</p>{/if}
 <h4 class="bkgtitle">{$title}</h4>
-{if isset($desc)}<p class="bkgdesc">{$desc}</p><br />{/if}
+{if isset($desc)}<p class="bkgdesc">{$desc}</p>{/if}
 {if isset($pictures)}<div class="bkgimg">
 {foreach from=$pictures item=pic}
 <img src="{$pic->url}"{if !empty($pic->ttl)} alt="{$pic->ttl}"{/if} />
 {/foreach}
-</div><br />{/if}
-{if !empty($bulletin)}<p>{$bulletin}</p><br />{/if}
+</div>{/if}
+{if !empty($bulletin)}<p>{$bulletin}</p>{/if}
 {$startform}
 {foreach from=$hidden item=inc}{$inc}{/foreach}
+<fieldset>
+<legend>{$actionstitle}</legend>
+<p style="text-align:center;margin:0;">{foreach from=$actions1 item=inc}{$inc}{/foreach}</div>
+</fieldset>
 {if isset($actions)}{foreach from=$actions key=k item=btn}{if $k>0}&nbsp;&nbsp;{/if}{$btn}{/foreach}<br /><br />{/if}
 {if $columns}
 <div style="margin:2px 2px 12px 2px;max-height:30em;width:100%;">
@@ -34,19 +38,16 @@
  </tbody>
 </table>
 </div>
+{if isset($focusicon)}
 <div style="float:left;">{$focusicon}</div>
 <div class="helptoggle">{$focushelp}</div>
+{/if}
 {else}
 <p>{$nobookings}</p>
 {/if}
-<div>
-<fieldset>
-<legend>{$actionstitle}</legend>
-<table id="bookactions" style="display:inline-block;border:0;overflow:auto;">
-<tr>{foreach from=$actions1 item=inc}<td>{$inc}</td>{/foreach}</tr>
-<tr>{foreach from=$actions2 item=inc}<td>{$inc}</td>{/foreach}</tr>
-</table>
-</fieldset>
-<p style="margin-left:5px;">{$book} {$cart}</p>
+<div style="margin-top:0.5em;">
+{$book}
+<div style="float:right;">{foreach from=$actions2 item=inc}{$inc} {/foreach}</div>
 </div>
+<div style="clear:both;"></div>
 {$endform}
