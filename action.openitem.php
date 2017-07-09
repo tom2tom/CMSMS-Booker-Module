@@ -500,6 +500,8 @@ $tplvars = ['mod' => $pmod];
 $seetab = (!empty($params['active_tab'])) ? $params['active_tab'] : 'basic'; //default shown tab
 
 $params['active_tab'] = ($is_group) ? 'groups' : 'items';
+$params['resume'] = ['defaultadmin']; //redirects can [eventually] get back to there
+
 $tplvars['pagenav'] = $utils->BuildNav($this, $id, $returnid, $params['action'], $params);
 $resume = json_encode($params['resume']);
 
@@ -627,9 +629,13 @@ $basic[] = ['ttl' => $cascade.$this->Lang('title_image'),
 'inp' => $i,
 'hlp' => $this->Lang('help_image')
 ];
-//------- bulletin
+//------- bulletins
 $basic[] = ['ttl' => $cascade.$this->Lang('title_bulletin'),
 'inp' => $this->CreateTextArea(TRUE, $id, $idata->bulletin, 'bulletin', '', '', '', '', 80, 3, '', '', 'style="height:5em;"'),
+'hlp' => NULL //$this->Lang('help_bulletin')
+];
+$basic[] = ['ttl' => $cascade.$this->Lang('title_bulletin2'),
+'inp' => $this->CreateTextArea(TRUE, $id, $idata->bulletin2, 'bulletin2', '', '', '', '', 80, 3, '', '', 'style="height:5em;"'),
 'hlp' => NULL //$this->Lang('help_bulletin')
 ];
 //------- membersname
