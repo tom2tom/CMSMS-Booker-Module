@@ -717,11 +717,23 @@ EOS;
 				//trim string like <img src="..." class="fakeicon systemicon" alt="$text" title="$text" />
 				$imgstr = str_replace(['<img','/>'],['',''],$imgstr);
 			} elseif ($p == 0) {
-				$imgstr = $this->GetModuleURLPath().$iconfile;
+				$imgstr = 'src="'.$this->GetModuleURLPath().$iconfile.'"';
+				if ($text) {
+					$imgstr .= ' alt="'.$text.'" title="'.$text.'"';
+				}
+				$imgstr .= ' class="fakeicon"';
 			} elseif (strpos($iconfile,'://',$p-1) === $p-1) {
-				$imgstr = $iconfile;
+				$imgstr = 'src="'.$iconfile.'"';
+				if ($text) {
+					$imgstr .= ' alt="'.$text.'" title="'.$text.'"';
+				}
+				$imgstr .= ' class="fakeicon"';
 			} else {
-				$imgstr = $this->GetModuleURLPath().'/'.$iconfile;
+				$imgstr = 'src="'.$this->GetModuleURLPath().'/'.$iconfile.'"';
+				if ($text) {
+					$imgstr .= ' alt="'.$text.'" title="'.$text.'"';
+				}
+				$imgstr .= ' class="fakeicon"';
 			}
 			$ret = '<input type="image" '.$imgstr.' name="'.$id.$name.'"'; //conservative assumption about spaces
 			if ($extra) {
