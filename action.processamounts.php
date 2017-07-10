@@ -6,12 +6,6 @@
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
 
-/* $params[]
-'booker_id' OR 'item_id'
-'task'=> 'see' OR 'edit'
-'resume'=>
-*/
-
 if (!empty($params['booker_id'])) {
 	$booker_id = (int)$params['booker_id'];
 	$item_id = FALSE;
@@ -52,46 +46,99 @@ if (isset($params['cancel'])) {
 	$resume = array_pop($params['resume']);
 	$this->Redirect($id,$resume,'',['TODO']);
 } elseif (isset($params['setpaid'])) {
-	if ($booker_id) {
-		if (isset($params['sel'])) {
-		} else {
+	if (isset($params['sel'])) {
+		foreach ($params['sel'] as $one) {
+			$amt = $params['val'][$one];
+			if (is_numeric($amt)) {
+				// set O/R.feepaid func($one,$item_id || $booker_id);
+			}
 		}
-	} elseif (isset($params['sel'])) {
 	} else {
+		$amt = $params['val'][$params['setpaid']];
+		if (is_numeric($amt)) {
+			// set O/R.feepaid func($params['setpaid'],$item_id || $booker_id);
+		}
 	}
 } elseif (isset($params['changepaid'])) {
-	if ($booker_id) {
-		if (isset($params['sel'])) {
-		} else {
+	if (isset($params['sel'])) {
+		foreach ($params['sel'] as $one) {
+			$amt = $params['val'][$one];
+			if (is_numeric($amt)) {
+				//change O/R.feepaid func($one,$item_id || $booker_id);
+			}
 		}
-	} elseif (isset($params['sel'])) {
 	} else {
+		$amt = $params['val'][$params['changepaid']];
+		if (is_numeric($amt)) {
+			//change O/R.feepaid func($params['changepaid'],$item_id || $booker_id);
+		}
 	}
 } elseif (isset($params['refund'])) {
-	if ($booker_id) {
-		if (isset($params['sel'])) {
-		} else {
+	if (isset($params['sel'])) {
+		foreach ($params['sel'] as $one) {
+			$amt = $params['val'][$one];
+			if (is_numeric($amt)) {
+				//change O/R.fee & feepaid func($one,$item_id || $booker_id);
+			}
 		}
-	} elseif (isset($params['sel'])) {
 	} else {
+		$amt = $params['val'][$params['refund']];
+		if (is_numeric($amt)) {
+			//change O/R.fee & feepaid func($params['refund'],$item_id || $booker_id);
+		}
 	}
 } elseif (isset($params['setcredit'])) {
+	if (is_numeric($params['inputcredit'])) {
+		$pfuncs = new Booker\Payment();
+		$current = $pfuncs->TotalCredit($this,$booker_id);
+		$pfuncs->UseCredit($this,$booker_id,$params['inputcredit']-$current);
+	}
 } elseif (isset($params['changecredit'])) {
+	if (is_numeric($params['inputcredit'])) {
+		$pfuncs = new Booker\Payment();
+		$pfuncs->UseCredit($this,$booker_id,$params['inputcredit']);
+	}
 } elseif (isset($params['range'])) {
-	$dt = new DateTime('@0',NULL);
-	$params['showfrom'] = 0; //TODO
-	$params['showto'] = 0;
-}
-
-if (empty($params['showfrom'])) {
-	$after = 0;
+	$y = $m = 0;
+	$after = $before = FALSE;
+	if ($params['showfrom']) {
+		sscanf($params['showfrom'],'%d-%d',$y,$m);
+		$dt = new DateTime('@0',NULL);
+		$lvl = error_reporting(0);
+		$res = $dt->modify($y.'-'.$m.'-01');
+		error_reporting($lvl);
+		if ($res) {
+			//TODO bounds check(s)
+			$params['showfrom'] = $dt->format('Y-m');
+			$after = $dt->getTimestamp();
+		} else {
+			$params['showfrom'] = FALSE;
+		}
+	}
+	if ($params['showto']) {
+		sscanf($params['showto'],'%d-%d',$y,$m);
+		if (!isset($dt)) {
+			$dt = new DateTime('@0',NULL);
+		}
+		$lvl = error_reporting(0);
+		$res = $dt->modify($y.'-'.$m.'-01');
+		error_reporting($lvl);
+		if ($res) {
+			//TODO bounds check(s)
+			$params['showto'] = $dt->format('Y-m');
+			$dt->modify('+1 month');
+			$before = $dt->getTimestamp() - 1;
+		} else {
+			$params['showto'] = FALSE;
+		}
+	}
 } else {
-	$after = $params['showfrom'];
-}
-if (empty($params['showto'])) {
-	$before = 0;
-} else {
-	$before = $params['showto'];
+	if (empty($params['showfrom'])) {
+		$after = FALSE;
+	}
+	if (empty($params['showto'])) {
+		$before = FALSE;
+	}
 }
 
 $tplvars = [];
@@ -118,32 +165,59 @@ $baseurl = $this->GetModuleURLPath();
 $funcs = new Booker\Payment();
 
 $missing = '&lt;'.$this->Lang('missing').'&gt;';
-$sql = <<<EOS
-SELECT D.*,COALESCE(A.name,B.name,'{$missing}') AS name,A.publicid,COALESCE(I.name,'{$missing}') AS what,
-COALESCE(O.comment,R.formula,'') AS description,
-COALESCE(O.fee,R.fee,0.00) AS fee,COALESCE(O.feepaid,R.feepaid,0.00) AS feepaid
-FROM $this->DispTable D
-JOIN $this->BookerTable B ON D.booker_id=B.booker_id
-LEFT JOIN $this->AuthTable A ON B.auth_id=A.id
-JOIN $this->ItemTable I ON D.item_id=I.item_id
-LEFT JOIN $this->OnceTable O ON D.bkg_id=O.bkg_id
-LEFT JOIN $this->RepeatTable R ON D.bkg_id=R.bkg_id
-EOS;
 if ($booker_id) {
-	$sql .= ' WHERE D.booker_id=? HAVING fee>0 OR feepaid>0 ORDER BY D.slotstart,what';
-	$data = $utils->PlainGet($this,$sql,[$booker_id]);
+	$sql = <<<EOS
+SELECT O.bkg_id,O.item_id,O.subgrpcount,O.slotstart,O.slotlen,NULL AS formula,O.fee,O.feepaid,
+COALESCE(I.name,'$missing') AS what,I.membersname,
+COALESCE(B.name,A.name,A.publicid,'$missing') AS name,A.publicid
+FROM $this->OnceTable O
+JOIN $this->ItemTable I ON O.item_id=I.item_id
+JOIN $this->BookerTable B ON O.booker_id=B.booker_id
+LEFT JOIN $this->AuthTable A ON B.auth_id=A.id
+WHERE O.booker_id=? AND (O.fee>0.0 OR O.feepaid>0.0)
+UNION
+SELECT R.bkg_id,R.item_id,R.subgrpcount,0 AS slotstart, 0 AS slotlen,R.formula,R.fee,R.feepaid,
+COALESCE(I.name,'$missing') AS what,I.membersname,
+COALESCE(B.name,A.name,A.publicid,'$missing') AS name,A.publicid
+FROM $this->RepeatTable R
+JOIN $this->ItemTable I ON R.item_id=I.item_id
+JOIN $this->BookerTable B ON R.booker_id=B.booker_id
+LEFT JOIN $this->AuthTable A ON B.auth_id=A.id
+WHERE R.booker_id=? AND (R.fee>0.0 OR R.feepaid>0.0)
+ORDER BY slotstart,what
+EOS;
+	$data = $utils->PlainGet($this,$sql,[$booker_id,$booker_id]);
 	if ($data) {
-		$row = reset($data);
-		$t = $row['name'];
+		$one = reset($data);
+		$t = $one['name'];
 	} else {
 		$t = $utils->GetUserName($this,$booker_id);
 	}
 } else { //processing item
-	$sql .= ' WHERE D.item_id=? HAVING fee>0 OR feepaid>0 ORDER BY D.slotstart,name';
-	$data = $utils->PlainGet($this,$sql,[$item_id]);
+	$sql = <<<EOS
+SELECT O.bkg_id,O.booker_id,O.subgrpcount,O.slotstart,O.slotlen,NULL AS formula,O.fee,O.feepaid,
+COALESCE(I.name,'$missing') AS what,I.membersname,
+COALESCE(B.name,A.name,A.publicid,'$missing') AS name,A.publicid
+FROM $this->OnceTable O
+JOIN $this->ItemTable I ON O.item_id=I.item_id
+JOIN $this->BookerTable B ON O.booker_id=B.booker_id
+LEFT JOIN $this->AuthTable A ON B.auth_id=A.id
+WHERE O.item_id=? AND (O.fee>0.0 OR O.feepaid>0.0)
+UNION
+SELECT R.bkg_id,R.booker_id,R.subgrpcount,0 AS slotstart, 0 AS slotlen,R.formula,R.fee,R.feepaid,
+COALESCE(I.name,'$missing') AS what,I.membersname,
+COALESCE(B.name,A.name,A.publicid,'$missing') AS name,A.publicid
+FROM $this->RepeatTable R
+JOIN $this->ItemTable I ON R.item_id=I.item_id
+JOIN $this->BookerTable B ON R.booker_id=B.booker_id
+LEFT JOIN $this->AuthTable A ON B.auth_id=A.id
+WHERE R.item_id=? AND (R.fee>0.0 OR R.feepaid>0.0)
+ORDER BY slotstart,name
+EOS;
+	$data = $utils->PlainGet($this,$sql,[$item_id,$item_id]);
 	if ($data) {
-		$row = reset($data);
-		$t = $row['what'];
+		$one = reset($data);
+		$t = $one['what'];
 	} else {
 		$t = $utils->GetItemNameForID($this,$item_id);
 	}
@@ -156,68 +230,57 @@ $tplvars['title'] = $utils->CreateTitle($this,$t,'title_payments',$after,$before
 $rows = [];
 if ($data) {
 	if ($pmod) {
-		$t = $this->Lang('tip_paidchange');
-		$icon_change = '<img src="'.$baseurl.'/images/change.png" alt="'.$t.'" title="'.$t.'" border="0" />';
-		$t = $this->Lang('tip_paidset');
-		$icon_set = '<img src="'.$baseurl.'/images/set.png" alt="'.$t.'" title="'.$t.'" border="0" />';
-		$t = $this->Lang('tip_paidrefund');
-		$icon_refund = '<img src="'.$baseurl.'/images/return.png" alt="'.$t.'" title="'.$t.'" border="0" />';
+		$icon_change = $baseurl.'/images/change.png';
+		$icon_set = $baseurl.'/images/set.png';
+		$icon_refund = $baseurl.'/images/return.png';
+
+		$tip_change = $this->Lang('tip_paidchange');
+		$tip_set = $this->Lang('tip_paidset');
+		$tip_refund = $this->Lang('tip_paidrefund');
 	}
 	$dt = new DateTime('@0',NULL);
-	$handler = $params['action'];
+	$tpl1 = $this->Lang('whatcountof','%s','%d','%s');
+	$tpl2 = $this->Lang('showrange','%s','%s');
+	$tpl3 = $this->Lang('bkgtype_repeated').':';
 	foreach ($data as &$one) {
 		$oneset = new stdClass();
-		$oneset->name = ($booker_id) ? $row['what'] : $row['name'];
-		$t = 'TODO'; //TODO .starttoend $utils->IntervalFormat($this,$dt,'Y-M-D G:i');  OR .Repeat:formula
-		$oneset->desc = $t;
-		$oneset->fee = number_format($row['fee'],2); //TODO generalize
-		$oneset->paid = number_format($row['feepaid'],2); //ditto
-		if ($pmod) {
-			if ($booker_id) {
-				$i = (int)$row['booker_id'];
-				$linkparms =  ['task'=>'edit','booker_id'=>$i];
+		if ($booker_id) {
+			if ($one['item_id'] < Booker::MINGRPID) {
+				$oneset->name = $one['what'];
 			} else {
-				$i = (int)$row['item_id'];
-				$linkparms =  ['task'=>'edit','item_id'=>$i];
+				$oneset->name = sprintf($tpl1,$one['what'],$one['subgrpcount'],$one['membersname']);
 			}
+		} else {
+			$oneset->name = $one['name'];
+		}
+		if ($one['formula'] === NULL) { //onetime booking
+			$dt->setTimestamp($one['slotstart']);
+			$t = $utils->IntervalFormat($mod,$dt,'Y-m-d');
+			if ($utils->GetInterval($this,$one['item_id'],'slot') >= 84600) { //ovrday
+				$dt->modify('+'.$one['slotlen'].'seconds');
+				$e = $utils->IntervalFormat($mod,$dt,'Y-m-d');
+			} else {
+				$t .= ' '.$dt->format('G:i');
+				$dt->modify('+'.$one['slotlen'].'seconds');
+				$e = $dt->format('G:i');
+			}
+			$oneset->desc = sprintf($tpl2,$t,$e);
+		} else {
+			$oneset->desc = $tpl3.$one['formula'];
+		}
+		$oneset->fee = number_format($one['fee'],2); //TODO generalize
+		$oneset->paid = number_format($one['feepaid'],2); //ditto
+		if ($pmod) {
+			$i = $one['bkg_id'];
 			$oneset->inp = $this->CreateInputText($id,'val['.$i.']','',10);
-			$oneset->chg = $this->CreateLink($id,$handler,'',$icon_change,$linkparms+['changepaid'=>1]); //TODO confirmable
-			$oneset->set = $this->CreateLink($id,$handler,'',$icon_set,$linkparms+['setpaid'=>1]); //ditto
-			$oneset->ref = $this->CreateLink($id,$handler,'',$icon_refund,$linkparms+['refund'=>1]); //ditto
+			$oneset->chg = $this->_CreateInputLinks($id,'changepaid['.$i.']',$icon_change,FALSE,$tip_change);
+			$oneset->set = $this->_CreateInputLinks($id,'setpaid['.$i.']',$icon_set,FALSE,$tip_set);
+			$oneset->ref = $this->_CreateInputLinks($id,'refund['.$i.']',$icon_refund,FALSE,$tip_refund);
 			$oneset->sel = $this->CreateInputCheckbox($id,'sel['.$i.']',1,-1);
 		}
 		$rows[] = $oneset;
 	}
 	unset($one);
-/*	$jsfuncs[] = <<<EOS
-function deferlink(tg,title) {
- var \$a = $(tg).closest('a'),
-  prompt = func(\$a),
-  deflt = func(\$a),
-  opts = {
-   prompt: '<input id="alertable-input" type="text" name="value" value="' + deflt + '" />'
-  };
- if (title !== undefined) {
-  opts.modal = '<form id="alertable"><h4 id="alertable-title">' + title + '</h4>' +
-   '<p id="alertable-message"></p><div id="alertable-prompt"></div>' +
-   '<div id="alertable-buttons"></div></form>';
- }
- $.alertable.prompt(prompt,opts).then(function() {
-  var cust = $('#alertable-input').val(),
-   url = \$a.attr('href'),
-   curl = url+'&{$id}custmsg='+encodeURIComponent(cust);
-  \$a.attr('href',curl).trigger('click.deferred');
- });
-}
-EOS;
-	$jsloads[] = <<<EOS
- $('#amounts .bkrdel > a').click(function(ev) {
-  var tg = ev.target || ev.srcElement;
-  deferlink(tg);
-  return false;
- });
-EOS;
-*/
 } else {
 	$tplvars['norecords'] = $this->Lang('nodata');
 }
@@ -244,7 +307,7 @@ if ($rc) {
 	$tplvars['title_fee'] = $this->Lang('title_fee').' ('.$symbol.')';
 	$tplvars['title_paid'] = $this->Lang('title_paid').' ('.$symbol.')';
 	if ($pmod) {
-		$tplvars['title_change'] = $this->Lang('change');
+		$tplvars['title_change'] = $this->Lang('title_amount');
 		$jsincs[] = <<<EOS
 <script type="text/javascript" src="{$baseurl}/lib/js/jquery.alertable.min.js"></script>
 EOS;
@@ -346,17 +409,43 @@ EOS;
 			'title="'.$this->Lang('tip_TODO').'"');
 		$tplvars['set'] = $this->CreateInputSubmit($id,'setpaid',$this->Lang('set'),
 			'title="'.$this->Lang('tipTODO').'"');
+
 		$jsfuncs[] = <<<EOS
 function any_selected() {
  var cb = $('#amounts input[name="{$id}sel[]"]:checked');
  return (cb.length > 0);
 }
+function deferbutton(tg,msg) {
+ $.alertable.confirm(msg,{
+  okName: '{$this->Lang('proceed')}',
+  cancelName: '{$this->Lang('cancel')}'
+ }).then(function() {
+  $(tg).trigger('click.deferred');
+ });
+}
 EOS;
-//		$js to validate, confirm
 		$jsloads[] = <<<EOS
+ $('#{$id}changepaid,#{$id}setpaid').click(function(ev) {
+  if (any_selected()) { //and each has valid amount
+   var pr='{$this->Lang('confirm')}'; //TODO get useful prompt
+   deferbutton(this,pr);
+  } else {
+   //TODO report to user
+  }
+  return false;
+ });
+ $('#amounts .fakeicon').click(function(ev) {
+  var amt = '10'; //TODO corresponding input amount is valid
+  if (amt) {
+   var pr='{$this->Lang('confirm')}'; //TODO get useful prompt
+   deferbutton(this,pr);
+  } else {
+   //TODO report to user
+  }
+  return false;
+ });
 EOS;
 	}
-
 }
 
 $tplvars['title_range'] = $this->Lang('title_report_change');
