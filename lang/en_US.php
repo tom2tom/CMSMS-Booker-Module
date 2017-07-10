@@ -803,6 +803,7 @@ $lang['useselection'] = 'Use selected item';
 $lang['view'] = 'View';
 $lang['warn_duplicate'] = 'Duplicate booking(s) ignored! Please check.';
 $lang['week'] = 'week'; //see also ['periods']
+$lang['whatcountof'] = '%s, %s %s';
 $lang['year'] = 'year'; //see also ['periods']
 $lang['yes'] = 'Yes'; //see also ['true']
 $lang['zoomin'] = 'Zoom+';
@@ -847,7 +848,7 @@ $lang['text_cancel'] = 'Booking of %s cancelled, [reason].';
 $lang['text_change'] = 'Must change booking of %s, [reason]. Please re-book.';
 $lang['text_conflict'] = 'Booking of %s cancelled, scheduling conflict.';
 $lang['text_reject'] = 'Booking request refused, %s, [reason].';
-//templates for sprintf into above message-strings %s
+//templates for sprintf into above message-strings @ %s
 $lang['whatonday'] = '%s on %s at %s';
 $lang['whatovrday'] = '%s on %s';
 
