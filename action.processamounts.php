@@ -45,18 +45,23 @@ if (isset($params['resume'])) {
 if (isset($params['cancel'])) {
 	$resume = array_pop($params['resume']);
 	$this->Redirect($id,$resume,'',['TODO']);
-} elseif (isset($params['setpaid'])) {
+}
+
+$pfuncs = new Booker\Payment();
+
+if (isset($params['setpaid'])) {
 	if (isset($params['sel'])) {
 		foreach ($params['sel'] as $one) {
 			$amt = $params['val'][$one];
 			if (is_numeric($amt)) {
 				// set O/R.feepaid func($one,$item_id || $booker_id);
+				$pfuncs->ChangePayment($this,$one,$amt,FALSE,FALSE,TRUE);
 			}
 		}
 	} else {
 		$amt = $params['val'][$params['setpaid']];
 		if (is_numeric($amt)) {
-			// set O/R.feepaid func($params['setpaid'],$item_id || $booker_id);
+			$pfuncs->ChangePayment($this,$params['setpaid'],$amt,FALSE,FALSE,TRUE);
 		}
 	}
 } elseif (isset($params['changepaid'])) {
@@ -64,13 +69,13 @@ if (isset($params['cancel'])) {
 		foreach ($params['sel'] as $one) {
 			$amt = $params['val'][$one];
 			if (is_numeric($amt)) {
-				//change O/R.feepaid func($one,$item_id || $booker_id);
+				$pfuncs->ChangePayment($this,$one,$amt,TRUE,FALSE,TRUE);
 			}
 		}
 	} else {
 		$amt = $params['val'][$params['changepaid']];
 		if (is_numeric($amt)) {
-			//change O/R.feepaid func($params['changepaid'],$item_id || $booker_id);
+			$pfuncs->ChangePayment($this,$params['changepaid'],$amt,TRUE,FALSE,TRUE);
 		}
 	}
 } elseif (isset($params['refund'])) {
@@ -78,24 +83,22 @@ if (isset($params['cancel'])) {
 		foreach ($params['sel'] as $one) {
 			$amt = $params['val'][$one];
 			if (is_numeric($amt)) {
-				//change O/R.fee & feepaid func($one,$item_id || $booker_id);
+				$pfuncs->ChangePayment($this,$one,$amt,TRUE,TRUE,TRUE);
 			}
 		}
 	} else {
 		$amt = $params['val'][$params['refund']];
 		if (is_numeric($amt)) {
-			//change O/R.fee & feepaid func($params['refund'],$item_id || $booker_id);
+			$pfuncs->ChangePayment($this,$params['refund'],$amt,TRUE,TRUE,TRUE);
 		}
 	}
 } elseif (isset($params['setcredit'])) {
 	if (is_numeric($params['inputcredit'])) {
-		$pfuncs = new Booker\Payment();
 		$current = $pfuncs->TotalCredit($this,$booker_id);
 		$pfuncs->UseCredit($this,$booker_id,$params['inputcredit']-$current);
 	}
 } elseif (isset($params['changecredit'])) {
 	if (is_numeric($params['inputcredit'])) {
-		$pfuncs = new Booker\Payment();
 		$pfuncs->UseCredit($this,$booker_id,$params['inputcredit']);
 	}
 } elseif (isset($params['range'])) {
@@ -162,7 +165,6 @@ $jsfuncs = []; //script accumulators
 $jsloads = [];
 $jsincs = [];
 $baseurl = $this->GetModuleURLPath();
-$funcs = new Booker\Payment();
 
 $missing = '&lt;'.$this->Lang('missing').'&gt;';
 if ($booker_id) {
@@ -296,23 +298,73 @@ if ($booker_id) {
 		$item_id = Booker::MINGRPID; //TODO get 1st recorded non-group
 	}
 }
-$example = $funcs->AmountFormat($this,$utils,$item_id,10.00);
 
 if ($rc) {
 	$tplvars['data'] = $rows;
 	$tplvars['title_name'] = ($booker_id) ?
 		$this->Lang('title_item') : $this->Lang('title_name');
 	$tplvars['title_desc'] = $this->Lang('description');
+	$example = $pfuncs->AmountFormat($this,$utils,$item_id,10.00);
 	$symbol = preg_replace('/[\d., ]/','',$example);
 	$tplvars['title_fee'] = $this->Lang('title_fee').' ('.$symbol.')';
 	$tplvars['title_paid'] = $this->Lang('title_paid').' ('.$symbol.')';
 	if ($pmod) {
 		$tplvars['title_change'] = $this->Lang('title_amount');
+		$tplvars['change'] = $this->CreateInputSubmit($id,'changepaid',$this->Lang('change'),
+			'title="'.$this->Lang('tip_paidchange_sel').'"');
+		$tplvars['set'] = $this->CreateInputSubmit($id,'setpaid',$this->Lang('set'),
+			'title="'.$this->Lang('tip_paidset_sel').'"');
+		//TODO consider refund button
+
 		$jsincs[] = <<<EOS
 <script type="text/javascript" src="{$baseurl}/lib/js/jquery.alertable.min.js"></script>
 EOS;
+		$jsfuncs[] = <<<EOS
+function any_selected() {
+ var cb = $('#amounts input[name="{$id}sel[]"]:checked');
+ return (cb.length > 0);
+}
+function deferbutton(tg,msg) {
+ $.alertable.confirm(msg,{
+  okName: '{$this->Lang('proceed')}',
+  cancelName: '{$this->Lang('cancel')}'
+ }).then(function() {
+  $(tg).trigger('click.deferred');
+ });
+}
+EOS;
+		$jsloads[] = <<<EOS
+ $('#{$id}changepaid,#{$id}setpaid').click(function(ev) {
+  if (any_selected()) { //and each has valid amount
+   var pr='{$this->Lang('confirm')}'; //TODO get useful prompt
+   deferbutton(this,pr);
+  } else {
+   //TODO report to user
+  }
+  return false;
+ });
+ $('#amounts .fakeicon').click(function(ev) {
+  var amt = '10'; //TODO corresponding input amount is valid
+  if (amt) {
+   var pr='{$this->Lang('confirm')}'; //TODO get useful prompt
+   deferbutton(this,pr);
+  } else {
+   //TODO report to user
+  }
+  return false;
+ });
+EOS;
 	}
 	if ($rc > 1) {
+		if ($pmod) {
+			$tplvars['header_checkbox'] =
+				$this->CreateInputCheckbox($id, 'selectall', TRUE, FALSE, 'onclick="select_all(this);"');
+
+			$jsfuncs[] = <<<EOS
+function select_all(cb) {
+ $('#amounts > tbody').find('input[type="checkbox"]').attr('checked',cb.checked);
+}
+EOS;
 		//TODO make page-rows count window-size-responsive
 		$pagerows = $this->GetPreference('pagerows', 10);
 		if ($pagerows && $rc > $pagerows) {
@@ -393,58 +445,7 @@ EOS;
   countid: 'tpage'
  });
 EOS;
-		if ($pmod) {
-			$tplvars['header_checkbox'] =
-				$this->CreateInputCheckbox($id, 'selectall', TRUE, FALSE, 'onclick="select_all(this);"');
-
-			$jsfuncs[] = <<<EOS
-function select_all(cb) {
- $('#amounts > tbody').find('input[type="checkbox"]').attr('checked',cb.checked);
-}
-EOS;
 		}
-	}
-	if ($pmod) {
-		$tplvars['change'] = $this->CreateInputSubmit($id,'changepaid',$this->Lang('change'),
-			'title="'.$this->Lang('tip_TODO').'"');
-		$tplvars['set'] = $this->CreateInputSubmit($id,'setpaid',$this->Lang('set'),
-			'title="'.$this->Lang('tipTODO').'"');
-
-		$jsfuncs[] = <<<EOS
-function any_selected() {
- var cb = $('#amounts input[name="{$id}sel[]"]:checked');
- return (cb.length > 0);
-}
-function deferbutton(tg,msg) {
- $.alertable.confirm(msg,{
-  okName: '{$this->Lang('proceed')}',
-  cancelName: '{$this->Lang('cancel')}'
- }).then(function() {
-  $(tg).trigger('click.deferred');
- });
-}
-EOS;
-		$jsloads[] = <<<EOS
- $('#{$id}changepaid,#{$id}setpaid').click(function(ev) {
-  if (any_selected()) { //and each has valid amount
-   var pr='{$this->Lang('confirm')}'; //TODO get useful prompt
-   deferbutton(this,pr);
-  } else {
-   //TODO report to user
-  }
-  return false;
- });
- $('#amounts .fakeicon').click(function(ev) {
-  var amt = '10'; //TODO corresponding input amount is valid
-  if (amt) {
-   var pr='{$this->Lang('confirm')}'; //TODO get useful prompt
-   deferbutton(this,pr);
-  } else {
-   //TODO report to user
-  }
-  return false;
- });
-EOS;
 	}
 }
 
@@ -495,28 +496,25 @@ $jsloads[] = <<<EOS
  });
 EOS;
 
-//$lang['tip_'] = 'set total adjustment to the entered amount';
-//$lang['tip_'] = 'change total adjustment by the entered amount';
-
 if ($booker_id) {
 	$tplvars['adjust'] = TRUE;
 	$tplvars['title_credit'] = $this->Lang('title_credit2');
 
-	$amount = $funcs->TotalCredit($this,$booker_id);
+	$amount = $pfuncs->TotalCredit($this,$booker_id);
 	if ($amount >= 0) {
-		$t = $funcs->AmountFormat($this,$utils,$item_id,$amount);
+		$t = $pfuncs->AmountFormat($this,$utils,$item_id,$amount);
 		$t = $this->Lang('current_credit',$this->Lang('credit'),$t);
 	} else {
-		$t = $funcs->AmountFormat($this, $utils, $item_id,-$amount);
+		$t = $pfuncs->AmountFormat($this, $utils, $item_id,-$amount);
 		$t = $this->Lang('current_credit','deficit',$t);
 	}
 	$tplvars['current_credit'] = $t;
 	if ($pmod) {
-		$tplvars['input2'] = $this->CreateInputText($id,'inputcredit','',10,10,'title="'.'[+-] 12.34'.'"'); //TODO watermark
+		$tplvars['input2'] = $this->CreateInputText($id,'inputcredit','',10,10,'title="'.'[+-] 12.34'.'"');
 		$tplvars['change2'] = $this->CreateInputSubmit($id,'changecredit',$this->Lang('change'),
-			'title="'.$this->Lang('tip_TODO').'"');
+			'title="'.$this->Lang('tip_creditchange').'"');
 		$tplvars['set2'] = $this->CreateInputSubmit($id,'setcredit',$this->Lang('set'),
-			'title="'.$this->Lang('tip_TODO').'"');
+			'title="'.$this->Lang('tip_creditset').'"');
 		$tplvars['help_credit'] = $this->Lang('help_credit','25.00','10.50');
 //		$js to validate, confirm
 		$jsincs[] = <<<EOS
