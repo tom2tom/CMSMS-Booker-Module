@@ -322,7 +322,7 @@ class Payment
 	}
 
 	/**
-	MaybePayable:
+	GetPayable:
 	Check whether any fee-rule applies to @item_id. This is for summary-views,
 	does not determine a specific amount
 	@mod: reference to current Booker module object
@@ -330,7 +330,7 @@ class Payment
 	@item_id: identifier of item (resource or group) for which rule is sought
 	Returns: boolean
 	*/
-	public function MaybePayable(&$mod, &$utils, $item_id)
+	public function GetPayable(&$mod, &$utils, $item_id)
 	{
 		$groups = $utils->GetItemGroups($mod,$item_id);
 		if ($groups) {
@@ -345,62 +345,11 @@ class Payment
 	}
 
 	/**
-	ChangePayment:
-	Update OnceTable or RepeatTable fields: 'fee' and/or 'feepaid', and 'statpay',
-	 and the booker's total credit
-	@mod: reference to Booker module object
-	@bkg_id: booking identifier
-	@amount: float to set or adjust
-	@relamt: optional boolean, whether @amount is for a relative-change, default FALSE
-	@setfee:  optional boolean, whether to update the relevant 'fee' field, default TRUE
-	@$setpaid:  optional boolean, whether to update the relevant 'feepaid' field, default TRUE
-	*/
-	public function ChangePayment(&$mod, $bkg_id, $amount, $relamt = FALSE, $setfee = TRUE, $setpaid = TRUE)
-	{
-		if (!($setfee || $setpaid)) {
-			return;
-		}
-		$data = $mod->dbHandle->GetOne('SELECT 1 FROM '.$mod->OnceTable.' WHERE bkg_id=?',[$bkg_id]);
-		$tbl = ($data == 1) ? $mod->OnceTable : $mod->RepeatTable;
-		$namers = [];
-		$args = [];
-		if ($setfee) {
-			if ($relamt) {
-				$namers[] = 'fee=CASE WHEN fee + ? >= 0 THEN fee + ? ELSE 0.0 END';
-				$args += [$amount,$amount];
-			} else {
-				$namers[] = 'fee=?';
-				$args[] = max($amount,0.0);
-			}
-		}
-		if ($setpaid) {
-			if ($relamt) {
-				$namers[] = 'feepaid=CASE WHEN feepaid + ? >= 0 THEN feepaid + ? ELSE 0.0 END';
-				$args += [$amount,$amount];
-			} else {
-				$namers[] = 'feepaid=?';
-				$args[] = max($amount,0.0);
-			}
-		}
-		$sql = 'UPDATE '.$tbl.' SET '.implode(',',$namers).' WHERE bkg_id=?';
-		$args[] = $bkg_id;
-		$mod->dbHandle->Execute($sql,$args);
-
-		$funcs = new Userops($mod);
-		$sql = 'SELECT T.booker_id,T.fee,T.feepaid,B.type FROM '.$tbl.' T JOIN '.$mod->BookerTable.' B ON T.booker_id=B.booker_id WHERE bkg_id=?';
-		$data = $mod->dbHandle->GetRow($sql,[$bkg_id]);
-		$poster = $funcs->HasRight($mod,$data['booker_id'],'postpay',$data['type']);
-		$stat = $this->GetPayStatus($mod,$data['booker_id'],$poster,$data['fee'],$data['feepaid']);
-		if ($data['feepaid'] > $data['fee']) {
-			$data['feepaid']  = $data['fee'];
-		}
-		$sql = 'UPDATE '.$tbl.' SET feepaid=?,statpay='.$stat.' WHERE bkg_id=?';
-		$mod->dbHandle->Execute($sql,[$data['feepaid'],$bkg_id]);
-	}
-
-	/**
 	GetPayStatus:
-	Also adjusts total credit if necessary
+	Get relevant statpay enumerator having regard to @bookerid's total credit
+	 and @grossdue, @grosspaid, @postpayable
+	@bookerid's total credit is not changed
+
 	@mod: reference to Booker module object
 	@bookerid: booker identifier
 	@postpayable: boolean
@@ -412,27 +361,85 @@ class Payment
 	{
 		$minpay = $mod->GetPreference('minpay');
 		if ($grosspaid > $minpay || ($minpay > 0.0 && $minpay == $grosspaid)) {
-			if ($grosspaid >= $grossdue) {
-				$xpay = $grosspaid - $grossdue;
-				if ($xpay > $minpay || ($minpay > 0.0 && $minpay == $xpay)) {
-					$this->AddCredit($mod,$bookerid,$grosspaid - $grossdue);
-				}
-				return \Booker::STATPAID;
-			}
-			$tc = $this->TotalCredit($mod,$bookerid);
+			$tc = $this->TotalCredit($mod,$bookerid) + $grosspaid - $grossdue;
 			if ($tc + $grosspaid >= $grossdue) {
-				$this->UseCredit($mod,$bookerid,$tc + $grosspaid - $grossdue); //TODO
 				return \Booker::STATPAID;
 			} elseif ($tc + $grosspaid > 0.0) {
-				$this->UseCredit($mod,$bookerid,$tc); //TODO
 				return \Booker::STATPARTPAID;
 			} elseif ($postpayable) {
-				return \Booker::STATCREDITED; //aka \Booker::STATPAYABLE;
+				return \Booker::STATCREDITED; //aka \Booker::STATPAYABLE
 			}
 			return \Booker::STATNOTPAID;
 		} else {
 			return \Booker::STATFREE;
 		}
+	}
+
+	/**
+	ChangePayment:
+	Update OnceTable or RepeatTable fields: 'fee' and/or 'feepaid', and 'statpay',
+	 and the booker's total credit
+	@mod: reference to Booker module object
+	@bkg_id: booking identifier
+	@amount: float to set or adjust, or '--' to represent -current-feepaid i.e. clear it
+	@relamt: optional boolean, whether @amount is for a relative-change, default FALSE
+	@setfee:  optional boolean, whether to update the relevant 'fee' field, default TRUE
+	@$setpaid:  optional boolean, whether to update the relevant 'feepaid' field, default TRUE
+	*/
+	public function ChangePayment(&$mod, $bkg_id, $amount, $relamt = FALSE, $setfee = TRUE, $setpaid = TRUE)
+	{
+		if (!($setfee || $setpaid)) {
+			return;
+		}
+		$sql = <<<EOS
+SELECT 0 AS rept,O.booker_id,O.fee,O.feepaid,B.type FROM $mod->OnceTable O
+JOIN $mod->BookerTable B ON O.booker_id=B.booker_id WHERE O.bkg_id=?
+UNION
+SELECT 1 AS rept,R.booker_id,R.fee,R.feepaid,B.type FROM $mod->RepeatTable R
+JOIN $mod->BookerTable B ON R.booker_id=B.booker_id WHERE R.bkg_id=?
+EOS;
+		$data = $mod->dbHandle->GetRow($sql,[$bkg_id,$bkg_id]);
+		if (!$data) {
+			return;
+		}
+		if ($amount == '--') {
+			$amount = -$data['feepaid'];
+		}
+		$tbl = ($data['rept'] == 0) ? $mod->OnceTable : $mod->RepeatTable;
+		if ($setfee) {
+			$newfee = ($relamt) ? max($amount + $data['fee'],0.0) : max($amount,0.0);
+		} else {
+			$newfee = $data['fee'] + 0.0;
+		}
+		if ($setpaid) {
+			$newpaid = ($relamt) ? max($amount + $data['feepaid'],0.0) : max($amount,0.0);
+		} else {
+			$newpaid = $data['feepaid'] + 0.0;
+		}
+
+		$xs = $data['feepaid']-$newpaid;
+		if ($newpaid > $newfee) {
+			$xs += $newpaid - $newfee;
+			$newpaid = $newfee;
+		} elseif ($newpaid < $newfee) {
+			if ($xs > 0.0) {
+				$xo = min($xs,$newfee-$newpaid);
+				$newpaid += $xo;
+				$xs -= $xo;
+			}
+		}
+
+		$bookerid = (int)$data['booker_id'];
+		if ($xs != 0.0) {
+			$this->AddCredit($mod,$bookerid,$xs); //new total credit
+		}
+
+		$funcs = new Userops($mod);
+		$poster = $funcs->HasRight($mod,$bookerid,'postpay',$data['type']);
+		$stat = $this->GetPayStatus($mod,$bookerid,$poster,$newfee,$newpaid); //uses current total credit
+
+		$sql = 'UPDATE '.$tbl.' SET fee=?,feepaid=?,statpay=? WHERE bkg_id=?';
+		$mod->dbHandle->Execute($sql,[$newfee,$newpaid,$stat,$bkg_id]);
 	}
 
 	/**
@@ -464,21 +471,23 @@ class Payment
 	*/
 	public function AddCredit(&$mod, $bookerid, $amount)
 	{
-		if ($amount > 0.0) {
-			$funcs = new Crypter($mod);
+		$funcs = new Crypter($mod);
+		$sql = 'SELECT pay_id,latest FROM '.$mod->CreditTable.
+		' WHERE booker_id=? AND status!='.\Booker::CREDITEXPIRED.' ORDER BY updated DESC';
+		$data = $mod->dbHandle->GetArray($sql,[$bookerid]);
+		if ($data) {
+			$sql = 'UPDATE '.$mod->CreditTable.' SET updated=?,latest=? WHERE pay_id=?';
+			$now = (float)$funcs->uncloak_value($data[0]['latest']);
+			$val = $funcs->cloak_value($now+$amount,16);
+			//TODO $utils->SafeExec()
+			$mod->dbHandle->Execute($sql,[time(),$val,$data[0]['pay_id']]);
+		} elseif ($amount > 0.0) {
 			$sql = 'INSERT INTO '.$mod->CreditTable.
 			' (pay_id,booker_id,updated,original,latest) VALUES (?,?,?,?,?)';
 			$pid = $mod->dbHandle->GenID($mod->CreditTable.'_seq');
 			$val = $funcs->cloak_value($amount,16);
-			$args = [
-				$pid,
-				$bookerid,
-				time(),
-				$val,
-				$val
-			];
 			//TODO $utils->SafeExec()
-			$mod->dbHandle->Execute($sql,$args);
+			$mod->dbHandle->Execute($sql,[$pid,$bookerid,time(),$val,$val]);
 		}
 	}
 
