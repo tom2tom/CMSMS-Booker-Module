@@ -51,96 +51,96 @@ $pfuncs = new Booker\Payment();
 
 if (isset($params['setpaid'])) {
 	if (isset($params['sel'])) {
-		foreach ($params['sel'] as $one) {
-			$amt = $params['val'][$one];
+		foreach ($params['sel'] as $bid=>$one) {
+			$amt = $params['val'][$bid];
 			if (is_numeric($amt)) {
 				// set O/R.feepaid func($one,$item_id || $booker_id);
-				$pfuncs->ChangePayment($this,$one,$amt,FALSE,FALSE,TRUE);
+				$pfuncs->ChangePayment($this,$bid,$amt,FALSE,FALSE,TRUE);
 			}
 		}
 	} else {
-		$amt = $params['val'][$params['setpaid']];
+		$bid = key($params['setpaid']);
+		$amt = $params['val'][$bid];
 		if (is_numeric($amt)) {
-			$pfuncs->ChangePayment($this,$params['setpaid'],$amt,FALSE,FALSE,TRUE);
+			$pfuncs->ChangePayment($this,$bid,$amt,FALSE,FALSE,TRUE);
 		}
 	}
 } elseif (isset($params['changepaid'])) {
 	if (isset($params['sel'])) {
-		foreach ($params['sel'] as $one) {
-			$amt = $params['val'][$one];
+		foreach ($params['sel'] as $bid=>$one) {
+			$amt = $params['val'][$bid];
 			if (is_numeric($amt)) {
-				$pfuncs->ChangePayment($this,$one,$amt,TRUE,FALSE,TRUE);
+				$pfuncs->ChangePayment($this,$bid,$amt,TRUE,FALSE,TRUE);
 			}
 		}
 	} else {
-		$amt = $params['val'][$params['changepaid']];
+		$bid = key($params['changepaid']);
+		$amt = $params['val'][$bid];
 		if (is_numeric($amt)) {
-			$pfuncs->ChangePayment($this,$params['changepaid'],$amt,TRUE,FALSE,TRUE);
+			$pfuncs->ChangePayment($this,$bid,$amt,TRUE,FALSE,TRUE);
 		}
 	}
 } elseif (isset($params['refund'])) {
 	if (isset($params['sel'])) {
-		foreach ($params['sel'] as $one) {
-			$amt = $params['val'][$one];
-			if (is_numeric($amt)) {
-				$pfuncs->ChangePayment($this,$one,$amt,TRUE,TRUE,TRUE);
+		foreach ($params['sel'] as $bid=>$one) {
+			$amt = $params['val'][$bid];
+			if ($amt === '') {
+				$pfuncs->ChangePayment($this,$bid,'--',TRUE,TRUE,TRUE);
+			} elseif (is_numeric($amt)) {
+				$pfuncs->ChangePayment($this,$bid,$amt,TRUE,TRUE,TRUE);
 			}
 		}
 	} else {
-		$amt = $params['val'][$params['refund']];
-		if (is_numeric($amt)) {
-			$pfuncs->ChangePayment($this,$params['refund'],$amt,TRUE,TRUE,TRUE);
+		$bid = key($params['refund']);
+		$amt = $params['val'][$bid];
+		if ($amt === '') {
+			$pfuncs->ChangePayment($this,$bid,'--',TRUE,TRUE,TRUE);
+		} elseif (is_numeric($amt)) {
+			$pfuncs->ChangePayment($this,$bid,$amt,TRUE,TRUE,TRUE);
 		}
 	}
 } elseif (isset($params['setcredit'])) {
 	if (is_numeric($params['inputcredit'])) {
 		$current = $pfuncs->TotalCredit($this,$booker_id);
-		$pfuncs->UseCredit($this,$booker_id,$params['inputcredit']-$current);
+		$pfuncs->AddCredit($this,$booker_id,$params['inputcredit']-$current);
 	}
 } elseif (isset($params['changecredit'])) {
 	if (is_numeric($params['inputcredit'])) {
-		$pfuncs->UseCredit($this,$booker_id,$params['inputcredit']);
+		$pfuncs->AddCredit($this,$booker_id,$params['inputcredit']);
 	}
-} elseif (isset($params['range'])) {
-	$y = $m = 0;
-	$after = $before = FALSE;
-	if ($params['showfrom']) {
-		sscanf($params['showfrom'],'%d-%d',$y,$m);
+}
+
+$y = $m = 0;
+$after = $before = FALSE;
+if (!empty($params['showfrom'])) {
+	sscanf($params['showfrom'],'%d-%d',$y,$m);
+	$dt = new DateTime('@0',NULL);
+	$lvl = error_reporting(0);
+	$res = $dt->modify($y.'-'.$m.'-01');
+	error_reporting($lvl);
+	if ($res) {
+		//TODO bounds check(s)
+		$params['showfrom'] = $dt->format('Y-m');
+		$after = $dt->getTimestamp();
+	} else {
+		$params['showfrom'] = FALSE;
+	}
+}
+if (!empty($params['showto'])) {
+	sscanf($params['showto'],'%d-%d',$y,$m);
+	if (!isset($dt)) {
 		$dt = new DateTime('@0',NULL);
-		$lvl = error_reporting(0);
-		$res = $dt->modify($y.'-'.$m.'-01');
-		error_reporting($lvl);
-		if ($res) {
-			//TODO bounds check(s)
-			$params['showfrom'] = $dt->format('Y-m');
-			$after = $dt->getTimestamp();
-		} else {
-			$params['showfrom'] = FALSE;
-		}
 	}
-	if ($params['showto']) {
-		sscanf($params['showto'],'%d-%d',$y,$m);
-		if (!isset($dt)) {
-			$dt = new DateTime('@0',NULL);
-		}
-		$lvl = error_reporting(0);
-		$res = $dt->modify($y.'-'.$m.'-01');
-		error_reporting($lvl);
-		if ($res) {
-			//TODO bounds check(s)
-			$params['showto'] = $dt->format('Y-m');
-			$dt->modify('+1 month');
-			$before = $dt->getTimestamp() - 1;
-		} else {
-			$params['showto'] = FALSE;
-		}
-	}
-} else {
-	if (empty($params['showfrom'])) {
-		$after = FALSE;
-	}
-	if (empty($params['showto'])) {
-		$before = FALSE;
+	$lvl = error_reporting(0);
+	$res = $dt->modify($y.'-'.$m.'-01');
+	error_reporting($lvl);
+	if ($res) {
+		//TODO bounds check(s)
+		$params['showto'] = $dt->format('Y-m');
+		$dt->modify('+1 month');
+		$before = $dt->getTimestamp() - 1;
+	} else {
+		$params['showto'] = FALSE;
 	}
 }
 
@@ -152,7 +152,7 @@ $params['active_tab'] = ($booker_id) ? 'people' : (($item_id < Booker::MINGRPID)
 $tplvars['pagenav'] = $utils->BuildNav($this,$id,$returnid,$params['action'],$params);
 $resume = json_encode($params['resume']);
 
-$tplvars['startform'] = $this->CreateFormStart($id, 'openamounts', $returnid, 'POST', '', '', '',
+$tplvars['startform'] = $this->CreateFormStart($id,$params['action'],$returnid,'POST','','','',
 	['booker_id' => $booker_id, 'item_id' => $item_id, 'task' => $params['task'],
 	'resume' => $resume, 'showfrom' => $after, 'showto' => $before]);
 $tplvars['endform'] = $this->CreateFormEnd();
@@ -361,16 +361,20 @@ EOS;
   return false;
  });
  $('#amounts .fakeicon').click(function() {
-  var \$in = $(this).closest('tr').find('input[name^="{$id}val["]'),
-   amt = \$in[0].value;
-  if ($.isNumeric(amt)) {
+  if (this.name.indexOf('refund') !== -1) {
    deferbutton(this,'$p');
   } else {
-   $.alertable.alert('$e',{
-    okName:'$c'
-   }).then(function() {
-    \$in.focus();
-   });
+   var \$in = $(this).closest('tr').find('input[name^="{$id}val["]'),
+    amt = \$in[0].value;
+   if ($.isNumeric(amt)) {
+    deferbutton(this,'$p');
+   } else {
+    $.alertable.alert('$e',{
+     okName:'$c'
+    }).then(function() {
+     \$in.focus();
+    });
+   }
   }
   return false;
  });
