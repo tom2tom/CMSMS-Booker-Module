@@ -23,6 +23,7 @@ $lang['allsaved']='Is everything saved that needs to be?';
 $lang['allusers'] = 'Everyone Authorised';
 $lang['always'] = 'Always';
 $lang['anytime'] = 'anything';
+$lang['amount'] = 'amount';
 $lang['application'] = 'Applies when';
 $lang['apply'] = 'Apply';
 $lang['approve'] = 'Approve';
