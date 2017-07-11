@@ -299,6 +299,15 @@ if ($booker_id) {
 	}
 }
 
+if ($pmod) {
+	$jsincs[] = <<<EOS
+<script type="text/javascript" src="{$baseurl}/lib/js/jquery.alertable.min.js"></script>
+EOS;
+	$p = $this->Lang('confirm');
+	$c = $this->Lang('close');
+	$e = $this->Lang('invalid_type',$this->Lang('amount'));
+}
+
 if ($rc) {
 	$tplvars['data'] = $rows;
 	$tplvars['title_name'] = ($booker_id) ?
@@ -316,40 +325,52 @@ if ($rc) {
 			'title="'.$this->Lang('tip_paidset_sel').'"');
 		//TODO consider refund button
 
-		$jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/lib/js/jquery.alertable.min.js"></script>
-EOS;
 		$jsfuncs[] = <<<EOS
-function any_selected() {
- var cb = $('#amounts input[name="{$id}sel[]"]:checked');
- return (cb.length > 0);
-}
 function deferbutton(tg,msg) {
  $.alertable.confirm(msg,{
-  okName: '{$this->Lang('proceed')}',
-  cancelName: '{$this->Lang('cancel')}'
+  okName:'{$this->Lang('proceed')}',
+  cancelName:'{$this->Lang('cancel')}'
  }).then(function() {
   $(tg).trigger('click.deferred');
  });
 }
 EOS;
+// var pr=; //TODO more-useful prompt(s) instead of $p
 		$jsloads[] = <<<EOS
- $('#{$id}changepaid,#{$id}setpaid').click(function(ev) {
-  if (any_selected()) { //and each has valid amount
-   var pr='{$this->Lang('confirm')}'; //TODO get useful prompt
-   deferbutton(this,pr);
-  } else {
-   //TODO report to user
+ $('#{$id}changepaid,#{$id}setpaid').click(function() {
+  var \$cb = $('#amounts input[name^="{$id}sel["]:checked');
+  if (\$cb.length > 0) {
+   var ok=true;
+   \$cb.each(function() {
+    var \$in = $(this).closest('tr').find('input[name^="{$id}val["]'),
+     amt = \$in[0].value;
+    if (!$.isNumeric(amt)) {
+     $.alertable.alert('$e',{
+      okName:'$c'
+     }).then(function() {
+      \$in.focus();
+     });
+     ok=false;
+     return false;
+    }
+   });
+   if (ok) {
+    deferbutton(this,'$p');
+   }
   }
   return false;
  });
- $('#amounts .fakeicon').click(function(ev) {
-  var amt = '10'; //TODO corresponding input amount is valid
-  if (amt) {
-   var pr='{$this->Lang('confirm')}'; //TODO get useful prompt
-   deferbutton(this,pr);
+ $('#amounts .fakeicon').click(function() {
+  var \$in = $(this).closest('tr').find('input[name^="{$id}val["]'),
+   amt = \$in[0].value;
+  if ($.isNumeric(amt)) {
+   deferbutton(this,'$p');
   } else {
-   //TODO report to user
+   $.alertable.alert('$e',{
+    okName:'$c'
+   }).then(function() {
+    \$in.focus();
+   });
   }
   return false;
  });
@@ -516,14 +537,29 @@ if ($booker_id) {
 		$tplvars['set2'] = $this->CreateInputSubmit($id,'setcredit',$this->Lang('set'),
 			'title="'.$this->Lang('tip_creditset').'"');
 		$tplvars['help_credit'] = $this->Lang('help_credit','25.00','10.50');
-//		$js to validate, confirm
+
 		$jsincs[] = <<<EOS
 <script type="text/javascript" src="{$baseurl}/lib/js/jquery.watermark.min.js"></script>
 EOS;
+// var pr=; //TODO more-useful prompt instead of $p
 		$jsloads[] = <<<EOS
  setTimeout(function() {
   $('#{$id}inputcredit').watermark();
  },10);
+ $('#{$id}changecredit,#{$id}setcredit').click(function() {
+  var \$in = $('#{$id}inputcredit'),
+   amt = \$in[0].value;
+  if ($.isNumeric(amt)) {
+   deferbutton(this,'$p');
+  } else {
+   $.alertable.alert('$e',{
+    okName:'$c'
+   }).then(function() {
+	\$in.focus();
+   });
+  }
+  return false;
+ });
 EOS;
 	}
 } else {
