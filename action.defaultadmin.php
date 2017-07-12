@@ -486,9 +486,9 @@ if ($data) {
 	$t = Booker::STATMAXREQ;
 	$s = Booker::STATMAXOK;
 	$sql = <<<EOS
-SELECT booker_id AS B,slotstart AS S FROM $this->OnceTable WHERE status>$t AND status<=$s
+SELECT booker_id AS B,slotstart AS S, fee AS F FROM $this->OnceTable WHERE status>$t AND status<=$s
 UNION
-SELECT booker_id AS B,checkedfrom AS S FROM $this->RepeatTable WHERE status>$t AND status<=$s
+SELECT booker_id AS B,checkedfrom AS S, fee AS F FROM $this->RepeatTable WHERE status>$t AND status<=$s
 ORDER BY B,S
 EOS;
 	$xtradata = $db->GetArray($sql);
@@ -561,14 +561,18 @@ EOS;
 			});
 			if ($belongs) {
 				$count = count($belongs);
+				$payable = FALSE;
 				$v = reset($belongs);
 				$dt->setTimestamp($v['S']);
 				$first = $dt->format('Y-m-d');
 				$i = 0;
 				foreach ($belongs as $v) {
+					if ($v['F'] > 0.0) {
+						$payable = TRUE;
+					}
 					if ($v['S'] <= $now) {
 						$i++;
-					} else {
+					} elseif ($payable ) {
 						break;
 					}
 				}
@@ -585,6 +589,7 @@ EOS;
 			$first = '';
 			$last = '';
 			$future = '';
+			$payable = FALSE;
 		}
 		$one->total = $count;
 		$one->first = $first;
@@ -602,10 +607,13 @@ EOS;
 		}
 		if ($count) {
 			$one->export = $this->CreateLink($id, 'adminbooker', $returnid, $icon4, ['booker_id' => $bookerid, 'task' => 'export']);
+		} else {
+			$one->export = NULL;
+		}
+		if ($payable) {
 			$t = ($bmod) ? 'edit':'see';
 			$one->pay = $this->CreateLink($id, 'processamounts', $returnid, $icon8, ['booker_id' => $bookerid, 'task' => $t]);
 		} else {
-			$one->export = NULL;
 			$one->pay = NULL;
 		}
 		$one->see = $this->CreateLink($id, 'adminbooker', $returnid, $icon5, ['booker_id' => $bookerid, 'task' => 'see']);
@@ -727,9 +735,9 @@ $data = $db->GetArray($sql);
 
 if ($data) {
 	$sql = <<<EOS
-SELECT item_id AS I,slotstart AS S FROM $this->OnceTable
+SELECT item_id AS I,slotstart AS S, fee AS F FROM $this->OnceTable
 UNION
-SELECT item_id AS I,checkedfrom AS S FROM $this->RepeatTable
+SELECT item_id AS I,checkedfrom AS S, fee AS F FROM $this->RepeatTable
 ORDER BY I,S
 EOS;
 	$bdata = $db->GetArray($sql);
@@ -815,6 +823,7 @@ EOS;
 
 		if ($belongs) {
 			$count = count($belongs);
+			$payable = FALSE;
 //TODO array ordered by booker_id,slotstart, not item_id, not worth resorting?
 			$future = 0;
 			$min = PHP_INT_MAX;
@@ -829,6 +838,9 @@ EOS;
 				}
 				if ($t < $min) {
 					$min = $t;
+				}
+				if ($v['F'] > 0.0) {
+					$payable = TRUE;
 				}
 			}
 			$dt->setTimestamp($min);
@@ -855,10 +867,6 @@ EOS;
 			} else {
 				$one->export = '';
 			}
-			$t = sprintf($paytip, ($isitem) ? $si : $sg);
-			$icon8 = sprintf($iconpay, $t, $t);
-			$t = ($bmod) ? 'edit':'see';
-			$one->pay = $this->CreateLink($id, 'processamounts', $returnid, $icon8, ['item_id' => $item_id, 'task' => $t]);
 		} else {
 			$count = 0;
 			$first = '';
@@ -874,6 +882,15 @@ EOS;
 				$one->bedit = NULL;
 			}
 			$one->export = NULL;
+			$payable = FALSE;
+		}
+
+		if ($payable) {
+			$t = sprintf($paytip, ($isitem) ? $si : $sg);
+			$icon8 = sprintf($iconpay, $t, $t);
+			$t = ($bmod) ? 'edit':'see';
+			$one->pay = $this->CreateLink($id, 'processamounts', $returnid, $icon8, ['item_id' => $item_id, 'task' => $t]);
+		} else {
 			$one->pay = NULL;
 		}
 
