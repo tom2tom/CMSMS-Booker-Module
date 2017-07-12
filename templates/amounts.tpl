@@ -15,10 +15,10 @@
     <th{if $rc > 1} class="{ldelim}sss:'text'{rdelim}"{/if}>{$title_paid}</th>
 {if $mod}
     <th{if $rc > 1} class="{ldelim}sss:'textinput'{rdelim}"{/if}>{$title_change}</th>
-    <th class="pageicon{if $rc > 1} {ldelim}sss:false{rdelim}{/if}"></th>
-    <th class="pageicon{if $rc > 1} {ldelim}sss:false{rdelim}{/if}"></th>
-    <th class="pageicon{if $rc > 1} {ldelim}sss:false{rdelim}{/if}"></th>
-    <th class="checkbox{if $rc > 1} {ldelim}sss:false{rdelim}{/if}">{if $rc > 1}{$header_checkbox}{/if}</th>
+    <th class="pageicon{if $rc > 1} nosort{/if}"></th>
+    <th class="pageicon{if $rc > 1} nosort{/if}"></th>
+    <th class="pageicon{if $rc > 1} nosort{/if}"></th>
+    <th class="checkbox{if $rc > 1} nosort{/if}">{if $rc > 1}{$header_checkbox}{/if}</th>
 {/if}
    </tr></thead>
    <tbody>
@@ -46,8 +46,8 @@
  <p class="pageinput">{$norecords}</p>
 {/if}
  <div class="pageoptions" style="margin-top:1em;">
-{if ($rc > 0 && $mod)}{$set} {$change} {/if}{$cancel}
-</div>
+{if ($rc > 0 && $mod)}{$set} {$change} {/if}{if !(isset($title_credit) || isset($title_range))}{$cancel}{/if}
+ </div>
 {if isset($title_range)}
 <br /><br />
 <h5 class="pageinput">{$title_range}</h5>
@@ -57,7 +57,7 @@
 <p class="pagetext" style="margin:0">{$titleto}</p>
 <div class="pageinput" style="margin:0 0 1em 0">{$showto}<br />
 {$helpto}</div>
-{$range}
+{$range}{if !isset($title_credit)} {$cancel}{/if}
 {/if}
 {if isset($title_credit)}
 <br /><br />
@@ -67,7 +67,7 @@
 <div class="pageinput" style="margin-left:0">{$input2}<br />
 {$help_credit}</div>
 <div class="pageoptions" style="margin-top:1em">
-{$set2} {$change2}
+{$set2} {$change2} {$cancel}
 </div>
 {/if}
 {/if}

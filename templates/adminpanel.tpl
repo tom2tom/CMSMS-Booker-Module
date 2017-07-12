@@ -18,13 +18,13 @@
       <th>{$title_name}</th>
       <th>{$title_start}</th>
       <th>{$title_comment}</th>
-      <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>
-{if $mod}  <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>{/if}
-{if $bmod} <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>
-      <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>{/if}
-{if $tell} <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>{/if}
-{if $del}  <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>{/if}
-      <th class="checkbox {ldelim}sss:false{rdelim}" style="width:20px;">{if $dcount > 1}{$selectall_req}{/if}</th>
+      <th class="pageicon nosort">&nbsp;</th>
+{if $mod}  <th class="pageicon nosort">&nbsp;</th>{/if}
+{if $bmod} <th class="pageicon nosort">&nbsp;</th>
+      <th class="pageicon nosort">&nbsp;</th>{/if}
+{if $tell} <th class="pageicon nosort">&nbsp;</th>{/if}
+{if $del}  <th class="pageicon nosort">&nbsp;</th>{/if}
+      <th class="checkbox nosort">{if $dcount > 1}{$selectall_req}{/if}</th>
     </tr></thead>
     <tbody>
  {foreach from=$pending item=entry} {cycle values='row1,row2' assign='rowclass'}
@@ -79,14 +79,14 @@
       <th>{$title_first}</th>
       <th>{$title_last}</th>
       <th>{$title_future}</th>
-      <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>
-{if $per} <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>{/if}
-      <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>
-      <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>
-	  <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>
-{if $per} <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>
-      <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>{/if}
-      <th class="checkbox {ldelim}sss:false{rdelim}" style="width:20px;">{if $pcount > 1}{$selectall_bookers}{/if}</th>
+      <th class="pageicon nosort">&nbsp;</th>
+{if $per} <th class="pageicon nosort">&nbsp;</th>{/if}
+      <th class="pageicon nosort">&nbsp;</th>
+      <th class="pageicon nosort">&nbsp;</th>
+	  <th class="pageicon nosort">&nbsp;</th>
+{if $per} <th class="pageicon nosort">&nbsp;</th>
+      <th class="pageicon nosort">&nbsp;</th>{/if}
+      <th class="checkbox nosort">{if $pcount > 1}{$selectall_bookers}{/if}</th>
     </tr></thead>
     <tbody>
 {foreach from=$bookers item=entry} {cycle values='row1,row2' assign='rowclass'}
@@ -145,15 +145,15 @@
       <th>{$title_last}</th>
       <th>{$title_future}</th>
 {if $dev} <th>{$title_tag}</th>{/if}
-      <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>
-{if $bmod}<th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>{/if}
-      <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>
-      <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>
-	  <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>
-{if $mod} <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>{/if}
-{if $add} <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>{/if}
-{if $del} <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>{/if}
-      <th class="checkbox {ldelim}sss:false{rdelim}" style="width:20px;">{if $icount > 1}{$selectall_items}{/if}</th>
+      <th class="pageicon nosort">&nbsp;</th>
+{if $bmod}<th class="pageicon nosort">&nbsp;</th>{/if}
+      <th class="pageicon nosort">&nbsp;</th>
+      <th class="pageicon nosort">&nbsp;</th>
+	  <th class="pageicon nosort">&nbsp;</th>
+{if $mod} <th class="pageicon nosort">&nbsp;</th>{/if}
+{if $add} <th class="pageicon nosort">&nbsp;</th>{/if}
+{if $del} <th class="pageicon nosort">&nbsp;</th>{/if}
+      <th class="checkbox nosort">{if $icount > 1}{$selectall_items}{/if}</th>
     </tr></thead>
     <tbody>
  {foreach from=$items item=entry} {cycle values='row1,row2' assign='rowclass'}
@@ -217,14 +217,14 @@
       <th>{$title_last}</th>
       <th>{$title_future}</th>
 {if $dev} <th>{$title_tag}</th>{/if}
-      <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>
-{if $mod} <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>{/if}
-      <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>
-      <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>
-{if $mod} <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>{/if}
-{if $add} <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>{/if}
-{if $del} <th class="pageicon {ldelim}sss:false{rdelim}">&nbsp;</th>{/if}
-      <th class="checkbox {ldelim}sss:false{rdelim}" style="width:20px;">{if $gcount > 1}{$selectall_grps}{/if}</th>
+      <th class="pageicon nosort">&nbsp;</th>
+{if $mod} <th class="pageicon nosort">&nbsp;</th>{/if}
+      <th class="pageicon nosort">&nbsp;</th>
+      <th class="pageicon nosort">&nbsp;</th>
+{if $mod} <th class="pageicon nosort">&nbsp;</th>{/if}
+{if $add} <th class="pageicon nosort">&nbsp;</th>{/if}
+{if $del} <th class="pageicon nosort">&nbsp;</th>{/if}
+      <th class="checkbox nosort">{if $gcount > 1}{$selectall_grps}{/if}</th>
     </tr></thead>
     <tbody>
  {foreach from=$groups item=entry} {cycle values='row1,row2' assign='rowclass'}
