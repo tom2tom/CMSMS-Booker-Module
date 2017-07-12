@@ -244,6 +244,9 @@ if ($data) {
 	$tpl1 = $this->Lang('whatcountof','%s','%d','%s');
 	$tpl2 = $this->Lang('showrange','%s','%s');
 	$tpl3 = $this->Lang('bkgtype_repeated').':';
+	if ($item_id) {
+		$ovrday = ($utils->GetInterval($this,$item_id,'slot') >= 84600);
+	}
 	foreach ($data as &$one) {
 		$oneset = new stdClass();
 		if ($booker_id) {
@@ -258,7 +261,10 @@ if ($data) {
 		if ($one['formula'] === NULL) { //onetime booking
 			$dt->setTimestamp($one['slotstart']);
 			$t = $utils->IntervalFormat($mod,$dt,'Y-m-d');
-			if ($utils->GetInterval($this,$one['item_id'],'slot') >= 84600) { //ovrday
+			if (!$item_id) {
+				$ovrday = ($utils->GetInterval($this,$one['item_id'],'slot') >= 84600);
+			}
+			if ($ovrday) {
 				$dt->modify('+'.$one['slotlen'].'seconds');
 				$e = $utils->IntervalFormat($mod,$dt,'Y-m-d');
 			} else {
@@ -390,6 +396,7 @@ function select_all(cb) {
  $('#amounts > tbody').find('input[type="checkbox"]').attr('checked',cb.checked);
 }
 EOS;
+		}
 		//TODO make page-rows count window-size-responsive
 		$pagerows = $this->GetPreference('pagerows', 10);
 		if ($pagerows && $rc > $pagerows) {
@@ -470,7 +477,8 @@ EOS;
   countid: 'tpage'
  });
 EOS;
-		}
+	} else {
+		$tplvars['hasnav'] = 0;
 	}
 }
 
