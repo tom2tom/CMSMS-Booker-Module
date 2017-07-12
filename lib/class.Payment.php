@@ -346,10 +346,8 @@ class Payment
 
 	/**
 	GetPayStatus:
-	Get relevant statpay enumerator having regard to @bookerid's total credit
-	 and @grossdue, @grosspaid, @postpayable
-	@bookerid's total credit is not changed
-
+	Get relevant statpay enumerator having regard to @bookerid's total credit and
+	  @grossdue, @grosspaid, @postpayable. @bookerid's total credit is not changed
 	@mod: reference to Booker module object
 	@bookerid: booker identifier
 	@postpayable: boolean
