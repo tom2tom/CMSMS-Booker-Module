@@ -382,7 +382,7 @@ EOS;
 					}
 					//calc TODO tax etc
 					$reqdata['feepaid'] = $actual;
-					$reqdata['statpay'] = $pfuncs->PayUpdate($mod,$bookerid,$poster,$itempay,$actual);
+					$reqdata['statpay'] = $pfuncs->GetPayStatus($mod,$bookerid,$poster,$itempay,$actual); //credit included in this check
 				} else {
 					$actual = 0.0;
 					$reqdata['statpay'] = \Booker::STATFREE;
@@ -760,7 +760,7 @@ OR
 		$cart->addItem($item,$quantity);
 		return [TRUE,''];
 	}
-	
+
 	/**
 	ItemRequestCount:
 	Get the no. of pending requests to book the item represented by @item_id
@@ -778,7 +778,7 @@ OR
 		$s = \Booker::STATMAXOK;
 		$sql = <<<EOS
 SELECT 1 FROM $mod->OnceTable
-WHERE item_id=? AND (status<=$t OR status>$s) AND slotstart<=? AND (slotstart+slotlen)>=? 
+WHERE item_id=? AND (status<=$t OR status>$s) AND slotstart<=? AND (slotstart+slotlen)>=?
 EOS;
 		$data = $utils->SafeGet($sql,[$item_id,$be,$bs],'col');
 		return count($data);
