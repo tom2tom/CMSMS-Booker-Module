@@ -88,7 +88,16 @@ class Encryption
 	public function encrypt($data, $key)
 	{
 		//salt size - see https://www.owasp.org/index.php/Password_Storage_Cheat_Sheet
-		$salt = openssl_random_pseudo_bytes(64);
+		try {
+			include __DIR__.DIRECTORY_SEPARATOR.'random'.DIRECTORY_SEPARATOR.'random.php';
+			$salt = random_bytes(64);
+		} catch (\Error $e) {
+			//required, if you do not need to do anything just rethrow
+			throw $e;
+		} catch (\Exception $e) {
+			$strong = TRUE;
+			$salt = openssl_random_pseudo_bytes(64, $strong);
+		}
 		list($cipherKey, $macKey, $iv) = $this->getKeys($salt, $key);
 
 		$data = $this->pad($data);
