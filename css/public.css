@@ -63,12 +63,14 @@ table.booker th.periodname {
 table.booker td {
  color:black;
  border:1px solid #AAA;
+ cursor:pointer;
 }
 
 table.booker td.list {
  border-left:0;
  border-right:0;
  vertical-align:top;
+ cursor:default;
 }
 
 table.booker td.slotname{
@@ -281,6 +283,7 @@ input.iconbutton {
  background-position:50% 50%;
  background-repeat:no-repeat;
  background-color:inherit;
+ cursor:pointer;
 }
 
 input.fakelink {
@@ -294,6 +297,7 @@ input.fakelink {
  text-decoration:underline;
  font-family:inherit;
 /*font-size:inherit;*/
+ cursor:pointer;
 }
 
 input.fakelink:hover {
@@ -308,4 +312,8 @@ input.fakelink:focus {
 /* registration panel */
 div#authactions {
  margin-top: 1em;
+}
+
+input.cms_submit, select {
+ cursor:pointer;
 }
