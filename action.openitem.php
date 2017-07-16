@@ -225,7 +225,7 @@ if (isset($params['submit']) || isset($params['apply'])) {
 	];
 	$fields = array_diff_key($params, $excludes);
 	if ($fields['name'] == FALSE) {
-		$fields['name'] = '<'.$this->Lang('noname').$item_id.'>';
+		$fields['name'] = '&lt;'.$this->Lang('noname').$item_id.'&gt;';
 	} elseif ($fields['alias'] == FALSE) {
 		$fields['alias'] = strtolower(soundex($fields['name']));
 	}
