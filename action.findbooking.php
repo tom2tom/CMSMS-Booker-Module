@@ -228,8 +228,10 @@ if (isset($params['search'])) {
 		$dts = new DateTime($params['findlast'].' 23:59:59',$tz);
 		$cond[] = 'D.slotstart<='.$dts->getTimestamp();
 	}
+	$noname = '&lt;'.$this->mod->Lang('noname').'&gt;';
+
 	$sql = <<<EOS
-SELECT D.bkg_id,D.slotstart,D.slotlen,COALESCE(A.name,B.name,'') AS name,A.publicid,I.name AS what
+SELECT D.bkg_id,D.slotstart,D.slotlen,B.auth_id,COALESCE(B.name,A.name,A.account,'$noname') AS name,I.name AS what
 FROM $this->DispTable D
 JOIN $this->BookerTable B ON D.booker_id=B.booker_id
 JOIN $this->ItemTable I ON D.item_id=I.item_id
@@ -255,7 +257,7 @@ EOS;
 			$oneset->what = $one['what'];
 			$t = (int)$one['slotstart'];
 			$oneset->when = $utils->RangeDescriptor($this,$t,$t+$one['slotlen'],$daynames); //Mon 2016-9-13 from 9:00 to 9:59';
-			$oneset->who = ($one['name']) ? $one['name'] : $one['publicid'];
+			$oneset->who = $one['name'];
 			$oneset->sel = $this->CreateInputCheckbox($id,'searchsel[]',(int)$one['bkg_id'],-1,'class="pagecheckbox"');
 			$items[] = $oneset;
 			$class = ($class = 'row1') ? 'row2':'row1';
