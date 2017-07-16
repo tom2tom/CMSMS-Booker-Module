@@ -190,6 +190,7 @@ if ($pmod) {
 $icon_export = $theme->DisplayImage('icons/system/export.gif', $this->Lang('export'), '', '', 'systemicon');
 $t = $this->Lang('tip_notifyuser');
 $icon_tell = '<img src="'.$baseurl.'/images/notice.png" alt="'.$t.'" title="'.$t.'" border="0" />';
+$noname = '&lt;'.$this->Lang('noname').'&gt;';
 
 $jsfuncs = []; //script accumulators
 $jsloads = [];
@@ -200,7 +201,7 @@ $funcs = new Booker\Payment();
 //========== ONETIME BOOKINGS ===========
 //TODO support limit to date-range, changing such date-range c.f. action.report.php
 $sql = <<<EOS
-SELECT O.item_id,O.booker_id,O.bkg_id,O.slotstart,O.slotlen,O.statpay,I.name AS what,COALESCE(A.name,B.name,'') AS name,A.publicid
+SELECT O.item_id,O.booker_id,O.bkg_id,O.slotstart,O.slotlen,O.statpay,I.name AS what,B.auth_id,COALESCE(B.name,A.name,A.account,'$noname') AS name
 FROM $this->OnceTable O
 JOIN $this->ItemTable I ON O.item_id=I.item_id
 JOIN $this->BookerTable B ON O.booker_id=B.booker_id
@@ -213,7 +214,7 @@ $groups = $utils->GetItemGroups($this,$item_id);
 if ($groups) {
 	$fillers = str_repeat('?,',count($groups)-1).'?';
 	$sql = <<<EOS
-SELECT O.bkg_id,O.item_id,O.slotstart,O.slotlen,O.statpay,COALESCE(A.name,B.name,'') AS name,A.publicid
+SELECT O.bkg_id,O.item_id,O.slotstart,O.slotlen,O.statpay,B.auth_id,COALESCE(B.name,A.name,A.account,'$noname') AS name
 FROM $this->OnceTable O
 JOIN $this->BookerTable B ON O.booker_id=B.booker_id
 LEFT JOIN $this->AuthTable A ON B.auth_id=A.id
@@ -293,7 +294,7 @@ if ($data) {
 		}
 */
 		$oneset->name = $one['what'];
-		if ($funcs->MaybePayable($this, $utils, $item_id)) {
+		if ($funcs->GetPayable($this, $utils, $item_id)) {
 			$oneset->paid = paid_status($one['statpay'], $yes, $no);
 		} else {
 			$oneset->paid = '';
@@ -470,6 +471,7 @@ if ($pmod) {
 	$tplvars['importbbtn'] = $this->CreateInputSubmit($id, 'importbkg', $this->Lang('import'),
 		'title="'.$this->Lang('tip_importbkg').'"');
 }
+$noname = '&lt;'.$this->Lang('noname').'&gt;';
 
 //========== REPEAT BOOKINGS ===========
 /*if (!empty($idata['name'])) {
@@ -482,7 +484,7 @@ if ($pmod) {
 $tplvars['item_title2'] = $this->Lang('title_repeats');
 
 $sql = <<<EOS
-SELECT R.bkg_id,R.item_id,R.formula,R.subgrpcount,R.statpay,I.name AS what,COALESCE(A.name,B.name,'') AS name,A.publicid
+SELECT R.bkg_id,R.item_id,R.formula,R.subgrpcount,R.statpay,I.name AS what,B.auth_id,COALESCE(B.name,A.name,A.account,'$noname') AS name
 FROM $this->RepeatTable R
 JOIN $this->ItemTable I ON R.item_id=I.item_id
 JOIN $this->BookerTable B ON R.booker_id=B.booker_id
@@ -493,7 +495,7 @@ $data = $utils->PlainGet($this, $sql, [$bookerid]);
 /* TODO
 if ($groups) {
 	$sql = <<<EOS
-SELECT R.bkg_id,R.item_id,R.formula,R.subgrpcount,R.statpay,COALESCE(A.name,B.name,'') AS name,A.publicid
+SELECT R.bkg_id,R.item_id,R.formula,R.subgrpcount,R.statpay,B.auth_id,COALESCE(B.name,A.name,A.account,'$noname') AS name
 FROM $this->RepeatTable R
 JOIN $this->BookerTable B ON R.booker_id=B.booker_id
 LEFT JOIN $this->AuthTable A ON B.auth_id=A.id
@@ -543,7 +545,7 @@ if ($data) {
 		if ($item_id >= Booker::MINGRPID) {
 			$oneset->count = $one['subgrpcount'];
 		}
-		if ($funcs->MaybePayable($this, $utils, $item_id)) {
+		if ($funcs->GetPayable($this, $utils, $item_id)) {
 			$oneset->paid = paid_status($one['statpay'], $yes, $no);
 		} else {
 			$oneset->paid = '';
