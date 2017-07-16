@@ -166,12 +166,12 @@ $jsloads = [];
 $jsincs = [];
 $baseurl = $this->GetModuleURLPath();
 
-$missing = '&lt;'.$this->Lang('missing').'&gt;';
+$noname = '&lt;'.$this->Lang('missing').'&gt;';
 if ($booker_id) {
 	$sql = <<<EOS
 SELECT O.bkg_id,O.item_id,O.subgrpcount,O.slotstart,O.slotlen,NULL AS formula,O.fee,O.feepaid,
-COALESCE(I.name,'$missing') AS what,I.membersname,
-COALESCE(B.name,A.name,A.publicid,'$missing') AS name,A.publicid
+COALESCE(I.name,'$noname') AS what,I.membersname,
+COALESCE(B.name,A.name,A.account,'$noname') AS name,B.auth_id
 FROM $this->OnceTable O
 JOIN $this->ItemTable I ON O.item_id=I.item_id
 JOIN $this->BookerTable B ON O.booker_id=B.booker_id
@@ -179,8 +179,8 @@ LEFT JOIN $this->AuthTable A ON B.auth_id=A.id
 WHERE O.booker_id=? AND (O.fee>0.0 OR O.feepaid>0.0)
 UNION
 SELECT R.bkg_id,R.item_id,R.subgrpcount,0 AS slotstart, 0 AS slotlen,R.formula,R.fee,R.feepaid,
-COALESCE(I.name,'$missing') AS what,I.membersname,
-COALESCE(B.name,A.name,A.publicid,'$missing') AS name,A.publicid
+COALESCE(I.name,'$noname') AS what,I.membersname,
+COALESCE(B.name,A.name,A.account,'$noname') AS name,B.auth_id
 FROM $this->RepeatTable R
 JOIN $this->ItemTable I ON R.item_id=I.item_id
 JOIN $this->BookerTable B ON R.booker_id=B.booker_id
@@ -198,8 +198,8 @@ EOS;
 } else { //processing item
 	$sql = <<<EOS
 SELECT O.bkg_id,O.booker_id,O.subgrpcount,O.slotstart,O.slotlen,NULL AS formula,O.fee,O.feepaid,
-COALESCE(I.name,'$missing') AS what,I.membersname,
-COALESCE(B.name,A.name,A.publicid,'$missing') AS name,A.publicid
+COALESCE(I.name,'$noname') AS what,I.membersname,
+COALESCE(B.name,A.name,A.account,'$noname') AS name,B.auth_id
 FROM $this->OnceTable O
 JOIN $this->ItemTable I ON O.item_id=I.item_id
 JOIN $this->BookerTable B ON O.booker_id=B.booker_id
@@ -207,8 +207,8 @@ LEFT JOIN $this->AuthTable A ON B.auth_id=A.id
 WHERE O.item_id=? AND (O.fee>0.0 OR O.feepaid>0.0)
 UNION
 SELECT R.bkg_id,R.booker_id,R.subgrpcount,0 AS slotstart, 0 AS slotlen,R.formula,R.fee,R.feepaid,
-COALESCE(I.name,'$missing') AS what,I.membersname,
-COALESCE(B.name,A.name,A.publicid,'$missing') AS name,A.publicid
+COALESCE(I.name,'$noname') AS what,I.membersname,
+COALESCE(B.name,A.name,A.account,'$noname') AS name,B.auth_id
 FROM $this->RepeatTable R
 JOIN $this->ItemTable I ON R.item_id=I.item_id
 JOIN $this->BookerTable B ON R.booker_id=B.booker_id
@@ -225,7 +225,7 @@ EOS;
 	}
 }
 if (!$t) {
-	$t = $missing;
+	$t = $noname;
 }
 $tplvars['title'] = $utils->CreateTitle($this,$t,'title_payments',$after,$before);
 
