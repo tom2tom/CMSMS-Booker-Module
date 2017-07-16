@@ -83,6 +83,7 @@ if ($bmod || $pdel || $pper) {
 	$icondel = $theme->DisplayImage('icons/system/delete.gif', '%s', '', '', 'systemicon');
 }
 $seltip = $this->Lang('tip_selecttype', '%s');
+$noname = '&lt;'.$this->Lang('noname').'&gt;';
 
 if (isset($params['message'])) {
 	$tplvars['message'] = $params['message'];
@@ -137,7 +138,7 @@ $pending = [];
 $t = Booker::STATMAXREQ;
 $s = Booker::STATMAXOK;
 $sql = <<<EOS
-SELECT O.*,COALESCE(A.name,B.name,'') AS name,COALESCE(A.address,B.address,'') AS address,B.phone,A.publicid
+SELECT O.*,B.auth_id,COALESCE(B.name,A.name,A.account,'$noname') AS name,COALESCE(B.address,A.address,'') AS address,B.phone
 FROM $this->OnceTable O
 LEFT JOIN $this->BookerTable B ON O.booker_id = B.booker_id
 LEFT JOIN $this->AuthTable A ON B.auth_id=A.id
@@ -169,7 +170,7 @@ if ($data) {
 
 	foreach ($data as &$row) {
 		$one = new stdClass();
-		$one->sender = ($row['name']) ? $row['name'] : $row['publicid'];
+		$one->sender = $row['name'];
 		$one->contact = $row['address'] ? $row['address'] : $row['phone'];
 		$dt->setTimestamp($row['lodged']);
 		$one->lodged = $dt->format($fmt);
@@ -474,7 +475,7 @@ $tablerows[2] = 0;
 $xtradata = FALSE;
 $bkrs = [];
 $sql = <<<EOS
-SELECT B.booker_id,COALESCE(A.name,B.name,'') AS name,COALESCE(A.addwhen,B.addwhen,'') AS addwhen,B.active,A.publicid
+SELECT B.booker_id,B.auth_id,COALESCE(B.name,A.name,A.account,'$noname') AS name,COALESCE(A.addwhen,B.addwhen,'') AS addwhen,B.active
 FROM $this->BookerTable B
 LEFT JOIN $this->AuthTable A ON B.auth_id=A.id
 ORDER BY name
@@ -515,11 +516,11 @@ EOS;
 	foreach ($data as $row) {
 		$bookerid = (int)$row['booker_id'];
 		$one = new stdClass();
-		$nm = ($row['name']) ? $row['name'] : $row['publicid'];
+		$nm = $row['name'];
 		$one->name = ($pper) ?
 			$this->CreateLink($id, 'adminbooker', $returnid, $nm, ['booker_id' => $bookerid, 'task' => 'edit']) :
 			$nm;
-		$one->reg = ($row['publicid']) ? $iconyes : $iconno;
+		$one->reg = ($row['auth_id'] > 0) ? $iconyes : $iconno;
 		if ($pper) {
 			//TODO if ($row['active'] == -1) {}
 			switch ($row['active']) {
@@ -790,7 +791,7 @@ EOS;
 					if (isset($grpnames[$p])) {
 						$one->group = $grpnames[$p];
 					} else {
-						$one->group = '<'.$this->Lang('noname').'>';
+						$one->group = $noname;
 					}
 					$p = array_search($k, $relkeys) + 1;
 					if (isset($relkeys[$p]) && $relations[$relkeys[$p]]['child'] == $item_id) {

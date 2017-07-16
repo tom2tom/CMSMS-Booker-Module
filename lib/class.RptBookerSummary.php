@@ -166,20 +166,21 @@ EOS;
 			$icon_view = $theme->DisplayImage('icons/system/view.gif', $t, '', '', 'systemicon');
 		}
 		$sql = <<<EOS
-SELECT B.booker_id,COALESCE(A.name,B.name,'') AS name,A.publicid
+SELECT B.booker_id,B.auth_id,COALESCE(B.name,A.name,'') AS name,A.account
 FROM {$this->mod->BookerTable} B
 LEFT JOIN {$this->mod->AuthTable} A ON B.auth_id=A.id
 ORDER BY B.booker_id
 EOS;
 		$translates = $this->utils->PlainGet($this->mod,$sql,[],'assoc');
 		if ($translates) {
+			$noname = '&lt;'.$this->mod->Lang('noname').'&gt;';
 			foreach ($translates as &$row) {
 				if ($row['name']) {
 					$row = $row['name'];
-				} elseif ($row['publicid']) {
-					$row = $row['publicid'];
+				} elseif ($row['account']) {
+					$row = $row['account'];
 				} else {
-					$row = '&lt;'.$this->mod->Lang('noname').'&gt;';
+					$row = $noname;
 				}
 			}
 			unset($row);
