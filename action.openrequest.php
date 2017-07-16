@@ -165,10 +165,13 @@ if (isset($params['submit']) || isset($params['apply'])) {
 	$bdata = [1];
 }
 
+$missing = '&lt;'.$this->Lang('missing').'&gt;';
+
 if (empty($bdata)) {
 	//TODO not all OnceTable
+	$noname = '&lt;'.$this->mod->Lang('noname').'&gt;';
 	$sql = <<<EOS
-SELECT O.*,COALESCE(A.name,B.name,'') AS name,COALESCE(A.address,B.address,'') AS address,B.phone,A.publicid
+SELECT O.*,B.auth_id,COALESCE(B.name,A.name,A.account,'$noname') AS name,COALESCE(B.address,A.address,'') AS address,B.phone
 FROM $this->OnceTable O
 JOIN $this->BookerTable B ON O.booker_id=B.booker_id
 LEFT JOIN $this->AuthTable A ON B.auth_id=A.id
@@ -210,10 +213,9 @@ first-call $params = array
 if (!empty($params['message']))
 	$tplvars['message'] = $params['message'];
 
-if ($pmod)
+if ($pmod) {
 	$tplvars['compulsory'] = $this->Lang('compulsory_items');
-else
-	$missing = '&lt;'.$this->Lang('missing').'&gt;';
+}
 
 $idata = $utils->GetItemProperties($this,$item_id,
 	['name','description','bookcount','membersname','timezone']);
@@ -342,7 +344,7 @@ if ($choosend) {
 //==
 $one = new stdClass();
 $one->ttl = $this->Lang('title_lodger');
-$t = $bdata['name'] ? $bdata['name'] : $bdata['publicid'];
+$t = $bdata['name'] ? $bdata['name'] : $bdata['account'];
 if ($pmod) {
 	$one->mst = 1;
 	$one->inp = $this->CreateInputText($id,'name',$t,20,64);
@@ -431,7 +433,7 @@ if ($is_group) {
 }
 //==
 $funcs = new Booker\Payment();
-if($funcs->MaybePayable($this,$utils,$item_id)) {
+if($funcs->GetPayable($this,$utils,$item_id)) {
 	$one = new stdClass();
 	$one->ttl = $this->Lang('title_paid');
 	$t = (float)$bdata['feepaid'];
