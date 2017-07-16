@@ -339,6 +339,7 @@ $db->CreateSequence($this->CreditTable.'_seq');
 bookers table schema:
  booker_id: table key
  auth_id: Auther-module account identifier for 'registered' bookers, otherwise 0
+ namehash: hash for name-matching
  name: identifier for display, and identity check if auth_id==0 NB NULL if unused, to enable COALESCE
  address: email (maybe accept a post-address...) for general messaging and billing NB NULL if unused, to enable COALESCE
  phone: cell-phone number, preferred for messaging
@@ -350,6 +351,7 @@ bookers table schema:
 $fields = '
 booker_id I(4) KEY,
 auth_id I(4) DEFAULT 0,
+namehash B,
 name B,
 address B,
 phone B,
