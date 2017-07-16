@@ -117,6 +117,44 @@ $jsloads[] = <<<EOS
  $('#needjs').css('display','none');
 EOS;
 
+$jsfuncs[] = <<<EOS
+function isEventSupported(eventName) {
+ var TAGNAMES = { 'touchstart':'input' }
+ var el = document.createElement(TAGNAMES[eventName] || 'div');
+ eventName = 'on' + eventName;
+ var supported = (eventName in el);
+ if (!supported) {
+  el.setAttribute(eventName,'return;');
+  supported = typeof el[eventName] == 'function';
+ }
+ el = null;
+ return supported;
+}
+EOS;
+
+$jsloads[] = <<<EOS
+ if (isEventSupported('touchstart')) {
+  var timer=false;
+  $(document).find('input').on('touchstart touchenter',function(ev) {
+   ev.preventDefault ? ev.preventDefault() : ev.returnValue = false;
+   if(!timer) {
+    var el=this;
+    timer=setTimeout(function() {
+     timer=false;
+     el.onmouseover.call(el);
+    },600);
+   }
+  }).on('touchend touchleave touchcancel click',function() { //big 'touchmove'?
+   if (timer) {
+    clearTimeout(timer);
+    timer=false;
+   } else {
+    this.onmouseout.call(this);
+   }
+  });
+ }
+EOS;
+
 $hidden = $utils->FilterParameters($params,$localparams);
 $tplvars = [
 	'needjs' => $this->Lang('needjs'),
