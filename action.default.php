@@ -418,14 +418,22 @@ EOS;
 
 $jsloads[] = <<<EOS
  if (isEventSupported('touchstart')) {
-  $(document).find('input,td').on('touchstart',function() {
-   this.onmouseover.call(this);
-  }).on('touchend click',function(ev) {
-   this.onmouseout.call(this);
-   if (ev.type == 'click') {
-    //prevent HTTP request
-    ev.preventDefault ? ev.preventDefault() : ev.returnValue = false;
-    //ajax processing here
+  var timer=false;
+  $(document).find('input,select,td').on('touchstart touchenter',function(ev) {
+   ev.preventDefault ? ev.preventDefault() : ev.returnValue = false;
+   if(!timer) {
+    var el=this;
+    timer=setTimeout(function() {
+     timer=false;
+     el.onmouseover.call(el);
+    },600);
+   }
+  }).on('touchend touchleave touchcancel click',function() { //big 'touchmove'?
+   if (timer) {
+    clearTimeout(timer);
+    timer=false;
+   } else {
+    this.onmouseout.call(this);
    }
   });
  }
