@@ -207,6 +207,7 @@ if ($pmod) {
 $icon_export = $theme->DisplayImage('icons/system/export.gif', $this->Lang('export'), '', '', 'systemicon');
 $t = $this->Lang('tip_notifyuser');
 $icon_tell = '<img src="'.$baseurl.'/images/notice.png" alt="'.$t.'" title="'.$t.'" border="0" />';
+$noname = '&lt;'.$this->mod->Lang('noname').'&gt;';
 
 $funcs = new Booker\Payment();
 
@@ -217,7 +218,7 @@ $jsincs = [];
 //========== ONETIME BOOKINGS ===========
 //TODO support limit to date-range, changing such date-range
 $sql = <<<EOS
-SELECT O.bkg_id,O.booker_id,O.item_id,O.slotstart,O.slotlen,O.statpay,COALESCE(A.name,B.name,'') AS name,A.publicid
+SELECT O.bkg_id,O.booker_id,O.item_id,O.slotstart,O.slotlen,O.statpay,B.auth_id,COALESCE(B.name,A.name,A.account,'$noname') AS name
 FROM $this->OnceTable O
 JOIN $this->BookerTable B ON O.booker_id=B.booker_id
 LEFT JOIN $this->AuthTable A ON B.auth_id=A.id
@@ -230,7 +231,7 @@ $groups = $utils->GetItemGroups($this,$item_id);
 if ($groups) {
 	$fillers = str_repeat('?,',count($groups)-1).'?';
 	$sql = <<<EOS
-SELECT O.bkg_id,O.booker_id,O.item_id,O.slotstart,O.slotlen,O.statpay,COALESCE(A.name,B.name,'') AS name,A.publicid
+SELECT O.bkg_id,O.booker_id,O.item_id,O.slotstart,O.slotlen,O.statpay,B.auth_id,COALESCE(B.name,A.name,A.account,'$noname') AS name
 FROM $this->OnceTable O
 JOIN $this->BookerTable B ON O.booker_id=B.booker_id
 LEFT JOIN $this->AuthTable A ON B.auth_id=A.id
@@ -371,7 +372,7 @@ if ($data) {
 			$oneset->time .= ' &Dagger;';
 		}
 		$oneset->name = $one['name'];
-		if ($funcs->MaybePayable($this, $utils, $item_id)) {
+		if ($funcs->GetPayable($this, $utils, $item_id)) {
 			$oneset->paid = paid_status($one['statpay'], $yes, $no);
 		} else {
 			$oneset->paid = '';
@@ -560,7 +561,7 @@ if ($pmod) {
 $tplvars['item_title2'] = $this->Lang('title_repeats');
 
 $sql = <<<EOS
-SELECT R.bkg_id,R.booker_id,R.item_id,R.subgrpcount,R.formula,R.statpay,COALESCE(A.name,B.name,'') AS name,A.publicid
+SELECT R.bkg_id,R.booker_id,R.item_id,R.subgrpcount,R.formula,R.statpay,B.auth_id,COALESCE(B.name,A.name,A.account,'$noname') AS name
 FROM $this->RepeatTable R
 JOIN $this->BookerTable B ON R.booker_id=B.booker_id
 LEFT JOIN $this->AuthTable A ON B.auth_id=A.id
@@ -571,7 +572,7 @@ $data = $utils->PlainGet($this, $sql, [$item_id]);
 /* NO PROCESSING OF ANCESTOR-GROUP REPEATS HERE ?
 if ($groups) {
 	$sql = <<<EOS
-SELECT R.bkg_id,R.booker_id,R.item_id,R.subgrpcount,R.formula,R.statpay,COALESCE(A.name,B.name,'') AS name,A.publicid
+SELECT R.bkg_id,R.booker_id,R.item_id,R.subgrpcount,R.formula,R.statpay,B.auth_id,COALESCE(B.name,A.name,A.account,'$noname') AS name
 FROM $this->RepeatTable R
 JOIN $this->BookerTable B ON R.booker_id=B.booker_id
 LEFT JOIN $this->AuthTable A ON B.auth_id=A.id
@@ -618,7 +619,7 @@ if ($data) {
 		if ($is_group) {
 			$oneset->count = $one['subgrpcount'];
 		}
-		if ($funcs->MaybePayable($this, $utils, $item_id)) {
+		if ($funcs->GetPayable($this, $utils, $item_id)) {
 			$oneset->paid = paid_status($one['statpay'], $yes, $no);
 		} else {
 			$oneset->paid = '';
