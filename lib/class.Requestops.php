@@ -20,7 +20,7 @@ class Requestops
 	{
 		//CHECKME don't need OnceTable */whole-rows?
 		$sql = <<<EOS
-SELECT O.*,COALESCE(A.name,B.name,'') AS name,COALESCE(A.address,B.address,'') AS address,B.phone,A.publicid
+SELECT O.*,B.auth_id,COALESCE(B.name,A.name,A.account,'') AS name,COALESCE(B.address,A.address,'') AS address,B.phone
 FROM $mod->OnceTable O
 JOIN $mod->BookerTable B ON O.booker_id=B.booker_id
 LEFT JOIN $mod->AuthTable A ON B.auth_id=A.id
@@ -514,7 +514,7 @@ EOS;
 'feepaid' => int/float
 'item_id' => int
 'lodged' => int
-'name' => str (maybe publicid)
+'name' => str (maybe account)
 'statpay' => int
 'slotlen' => int
 'slotstart' => int
