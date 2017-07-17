@@ -57,10 +57,21 @@ class Schedule
 	//c.f. Userops->GetDisplayClass()
 	private function GetDisplayClass(&$mod, &$utils, $item_id, $user)
 	{
-		$sql = 'SELECT displayclass FROM '.$mod->BookerTable.' WHERE name=? OR publicid=?';
-		$r = $mod->dbHandle->GetOne($sql,[$user,$user]);
-		if ($r)
+		if (!function_exists('password_hash')) {
+			include __DIR__.DIRECTORY_SEPARATOR.'password.php';
+		}
+
+		$sql = <<<EOS
+SELECT B.displayclass FROM $mod->BookerTable B
+LEFT JOIN $mod->AuthTable A ON B.auth_id=A.id
+WHERE B.namehash=? OR (A.acchash=? AND A.context_id=?)
+EOS;
+		$hash = password_hash($user,PASSWORD_DEFAULT);
+		$cid = $mod->GetPreference('authcontext',0); //OR $afuncs->GetContext();
+		$r = $mod->dbHandle->GetOne($sql,[$hash,$hash,$cid]);
+		if ($r) {
 			return (int)$r;
+		}
 		return 1; //default
 	}
 
