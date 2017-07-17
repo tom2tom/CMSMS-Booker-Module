@@ -939,7 +939,7 @@ EOS;
 
 	/**
 	 * GetNamedItems:
-	 * Get name for each @items, with fallback.
+	 * Get name for each member of @items, with fallback.
 	 *
 	 * @mod: reference to current Booker module object
 	 * @items: array of item_id's for resource(s) and/or group(s)
@@ -986,28 +986,62 @@ EOS;
 	}
 
 	/**
-	 * GetUserName:
+	 * GetNamedUsers:
+	 * Get name for each member of @bookers, with fallback.
+	 *
+	 * @mod: reference to current Booker module object
+	 * @items: array of item_id's for resource(s) and/or group(s)
+	 * Returns: associative array, or maybe empty
+	 */
+	public function GetNamedUsers(&$mod, $bookers)
+	{
+		$fillers = implode(',',$bookers);
+		$sql = <<<EOS
+SELECT B.booker_id,B.auth_id,COALESCE(B.name,A.name,'') AS name,A.account
+FROM $mod->BookerTable B
+LEFT JOIN $mod->AuthTable A ON B.auth_id=A.id
+WHERE B.booker_id IN($fillers)
+EOS;
+		$data = $mod->dbHandle->GetAssoc($sql);
+		if ($data) {
+			$this->GetUserProperties($mod,$data);
+			foreach ($data as &$row) {
+				if ($row['name']) {
+					$row = $row['name'];
+				} elseif ($row['account']) {
+					$row = $row['account'];
+				} else {
+					$row = $mod->Lang('noname');
+				}
+			}
+			unset($row);
+		}
+		return $data;
+	}
+
+	/**
+	 * GetUserNameForID:
 	 * Get recorded identifier (name or login) for @booker_id
 	 * see also: Userops::GetName()
 	 * @mod: reference to current Booker module object
 	 * @booker_id: identifier of booker whose name is wanted
 	 * Returns: string, maybe ''
 	 */
-	public function GetUserName(&$mod, $booker_id)
+	public function GetUserNameForID(&$mod, $booker_id)
 	{
 		$sql = <<<EOS
-SELECT COALESCE(A.name,B.name,'') AS name,A.publicid
+SELECT B.auth_id,COALESCE(B.name,A.name,'') AS name,A.account
 FROM $mod->BookerTable B
 LEFT JOIN $mod->AuthTable A ON B.auth_id=A.id
 WHERE B.booker_id=?
 EOS;
-		$data = $mod->dbHandle->GetArray($sql,[$booker_id]);
+		$data = $mod->dbHandle->GetRow($sql,[$booker_id]);
 		if ($data) {
 			$this->GetUserProperties($mod,$data);
-			if ($data[0]['name']) {
-				return $data[0]['name'];
+			if ($data['name']) {
+				return $data['name'];
 			} else {
-				return $data[0]['publicid'];
+				return $data['account'];
 			}
 		}
 		return '';
@@ -1018,7 +1052,8 @@ EOS;
 	 * Convert relevant members of @data to plaintext.
 	 *
 	 * @mod: reference to current Booker module object
-	 * @data: reference to 1- or 2-dimension array of user-properties data
+	 * @data: reference to 1- or 2-dimension array of user-properties data,
+	 *  [each] row must include at least 'auth_id' member
 	 * Returns: nothing
 	 */
 	public function GetUserProperties(&$mod, &$data)
@@ -1040,8 +1075,8 @@ EOS;
 			$nonregs = [];
 
 			foreach ($data as &$row) {
-				if (!empty($row['publicid'])) {
-					$fld = $row['publicid'];
+				$fld = $row['auth_id'];
+				if ($fld > 0) {
 					if ($this->afuncs) {
 						if (!array_key_exists($fld, $regs)) {
 							$this->afuncs->GetPlainUserProperties($row);
@@ -1055,14 +1090,16 @@ EOS;
 							}
 							$regs[$fld] = $row;
 						} else {
-							$row['publicid'] = $regs[$fld]['publicid'];
+							if (isset($regs[$fld]['account'])) {
+								$row['account'] = $regs[$fld]['account'];
+							}
 							if (isset($regs[$fld]['name'])) {
 								$row['name'] = $regs[$fld]['name'];
 							}
-						}
-						if (isset($row['address'])) {
-							$row['address'] = $regs[$fld]['address'];
-							$row['phone'] = $regs[$fld]['phone'];
+							if (isset($row['address'])) {
+								$row['address'] = $regs[$fld]['address'];
+								$row['phone'] = $regs[$fld]['phone'];
+							}
 						}
 					}
 				} else //data for unregistered user
@@ -1089,7 +1126,7 @@ EOS;
 				}
 			}
 			unset($row);
-		} elseif (!empty($data['publicid'])) { //single-row with Auth data
+		} elseif ($data['auth_id'] > 0) { //single-row with Auth data
 			if (!$this->afuncs) {
 				$amod = \cms_utils::get_module('Auther');
 				if ($amod) {
@@ -1150,11 +1187,14 @@ EOS;
 		if (!$this->cfuncs) {
 			$this->cfuncs = new Crypter($mod);
 		}
-		//each row here has: [0]table(s)-field name,[1]enum 1..3 for booker,auther,both,[2]bool 0/1 for string field
+		if (!function_exists('password_hash')) {
+			include __DIR__.DIRECTORY_SEPARATOR.'password.php';
+		}
+		//each row here has: [0]$data key/maybe table(s)-field name,[1]enum 1..3 for booker,auther,both,[2]bool 0/1 for string field
 		$fields = [
 			'name',		3,1,
-			'publicid',	3,1,
-			'password',	2,1,
+			'account',	2,1,
+			'password',	2,1, //not a field
 			'address',	3,1,
 			'phone',	1,1,
 			'addwhen',	3,0,
@@ -1173,7 +1213,7 @@ EOS;
 			$bookfields = [];
 			$bookargs = [];
 
-			if (!empty($row['publicid']) && $this->afuncs) {
+			if (!empty($row['account']) && $this->afuncs) {
 				$authfields = [];
 				for ($i=0; $i<$fc; $i+=3) {
 					$one = $fields[$i];
@@ -1234,7 +1274,7 @@ EOS;
 					}
 				} //$fields loop
 
-				$login = $row['publicid'];
+				$login = $row['account'];
 				$password = $row['password'];
 				if ($this->afuncs->IsKnown($login,$password)) {
 					$name = !empty($authfields['name']) ? $authfields['name']:FALSE;
@@ -1263,7 +1303,11 @@ EOS;
 								$bookfields[] = $one;
 								if ($fields[$i+2] > 0) { //string field
 									if ($val) {
-										if ($one == 'address' || $one == 'phone') {
+										if ($one == 'name') {
+											$bookargs[] = $this->cfuncs->encrypt_value($val);
+											$bookfields[] = 'namehash';
+											$val = password_hash($val,PASSWORD_DEFAULT);
+										} elseif ($one == 'address' || $one == 'phone') {
 											$val = $this->cfuncs->encrypt_value($val);
 										}
 									} else {
@@ -1492,7 +1536,7 @@ EOS;
 			return FALSE;
 		}
 		if (!$name) {
-			$name = '<'.$mod->Lang('noname').'>';
+			$name = $mod->Lang('noname');
 		}
 		$name = htmlentities($name, ENT_QUOTES | ENT_XHTML, FALSE);
 		$title = $mod->Lang('picture_type', $name);
@@ -2703,7 +2747,7 @@ EOS;
 				[$mod->GetName(), 'method.requestfinish'],
 				[$id, 'announce', $returnid]
 			)) {
-				$name = $this->GetUserName($mod, $params['bkr_booker_id']);
+				$name = $this->GetUserNameForID($mod, $params['bkr_booker_id']);
 				$dtw = new \DateTime ('@'.$params['bkr_slotstart'],NULL);
 				$when = $dtw->format('D j M, G:i');
 				$num = $cart->countItems(); //TODO count only the payable items
