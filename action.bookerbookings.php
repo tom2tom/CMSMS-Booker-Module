@@ -748,7 +748,7 @@ EOS;
 }
 
 if (!isset($tplvars['item_title'])) {
-	$name = $utils->GetUserName($this, $bookerid);
+	$name = $utils->GetUserNameForID($this, $bookerid);
 	$tplvars['item_title'] = $this->Lang('title_booksfor', $this->Lang('user'), $name);
 }
 

@@ -279,7 +279,7 @@ class BookingChange
 				$funcs = new Userops($mod);
 				$res = $funcs->GetContact($mod,$reqdata['booker_id']);
 				if ($res) {
-					$reqdata['name'] = $utils->GetUserName($mod,$reqdata['booker_id']);
+					$reqdata['name'] = $utils->GetUserNameForID($mod,$reqdata['booker_id']);
 					$reqdata += $res;
 					$idata = $utils->GetItemProperties($mod,$item_id,
 						['item_id','name','membersname','smspattern','smsprefix','approver','approvertell','approvercontact']);

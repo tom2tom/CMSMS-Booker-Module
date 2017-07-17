@@ -193,7 +193,7 @@ EOS;
 		$one = reset($data);
 		$t = $one['name'];
 	} else {
-		$t = $utils->GetUserName($this,$booker_id);
+		$t = $utils->GetUserNameForID($this,$booker_id);
 	}
 } else { //processing item
 	$sql = <<<EOS
