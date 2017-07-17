@@ -228,7 +228,7 @@ if (isset($params['search'])) {
 		$dts = new DateTime($params['findlast'].' 23:59:59',$tz);
 		$cond[] = 'D.slotstart<='.$dts->getTimestamp();
 	}
-	$noname = '&lt;'.$this->mod->Lang('noname').'&gt;';
+	$noname = '&lt;'.$this->Lang('noname').'&gt;';
 
 	$sql = <<<EOS
 SELECT D.bkg_id,D.slotstart,D.slotlen,B.auth_id,COALESCE(B.name,A.name,A.account,'$noname') AS name,I.name AS what
