@@ -106,7 +106,7 @@ class Dataops
 			if (is_array($bookerid)) {
 				$s = 'name..name'; //TODO implode(',',get names)
 			} elseif ($bookerid) {
-				$s = 'name'; //TODO $utils->GetUserName(&$mod,$bookerid);
+				$s = 'name'; //TODO $utils->GetUserNameForID(&$mod,$bookerid);
 			} else {
 				$s = '';
 			}
@@ -238,9 +238,10 @@ class Dataops
 			}
 		}
 
+		$noname = '&lt;'.$this->mod->Lang('noname').'&gt;';
 		$sql = <<<EOS
 SELECT D.slotstart,D.slotlen,O.fee,O.feepaid,O.status,O.statpay,I.name AS what,
-COALESCE(A.name,B.name,'') AS name,COALESCE(A.address,B.address,'') AS address,B.phone,A.publicid
+B.auth_id,COALESCE(B.name,A.name,A.account,'$noname') AS name,COALESCE(B.address,A.address,'') AS address,B.phone
 FROM $mod->DispTable D
 JOIN $mod->OnceTable O ON D.bkg_id=O.bkg_id
 JOIN $mod->ItemTable I ON D.item_id=I.item_id
