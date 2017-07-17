@@ -238,7 +238,7 @@ class Dataops
 			}
 		}
 
-		$noname = '&lt;'.$this->mod->Lang('noname').'&gt;';
+		$noname = '&lt;'.$mod->Lang('noname').'&gt;';
 		$sql = <<<EOS
 SELECT D.slotstart,D.slotlen,O.fee,O.feepaid,O.status,O.statpay,I.name AS what,
 B.auth_id,COALESCE(B.name,A.name,A.account,'$noname') AS name,COALESCE(B.address,A.address,'') AS address,B.phone
