@@ -467,17 +467,16 @@ EOS;
 		}
 		//get B.* except name,address
 		$sql = <<<EOS
-SELECT B.booker_id,B.phone,B.addwhen,B.type,B.displayclass,B.active,
-COALESCE(A.name,B.name,'') AS name,COALESCE(A.address,B.address,'') AS address,A.publicid,A.passhash
+SELECT B.booker_id,B.auth_id,B.phone,B.addwhen,B.type,B.displayclass,B.active,
+COALESCE(B.name,A.name,'') AS name,COALESCE(B.address,A.address,'') AS address,A.account,A.passhash
 FROM $mod->BookerTable B
 LEFT JOIN $mod->AuthTable A ON B.auth_id=A.id
 EOS;
 		if (is_array($bookerid)) {
 			$fillers = str_repeat('?,', count($bookerid) - 1);
-			$sql .= ' WHERE booker_id IN('.$fillers.'?) ORDER BY name';
+			$sql .= ' WHERE booker_id IN('.$fillers.'?)';
 			$args = $bookerid;
 		} elseif ($bookerid == '*') {
-			$sql .= ' ORDER BY name';
 			$args = [];
 		} else {
 			$sql .= ' WHERE booker_id=?';
@@ -486,6 +485,16 @@ EOS;
 		$utils = new Utils();
 		$all = $utils->PlainGet($mod, $sql, $args);
 		if ($all) {
+			usort($all, function($a,$b) {
+				if ($a['name'] && $b['name']) {
+					return strcmp($a['name'], $b['name']);
+				}
+				if ($a['account'] && $b['account']) {
+					return strcmp($a['account'], $b['account']);
+				}
+				return ($a['name'] || $a['account']) ? -1 : 1;
+			});
+
 			$sep2 = ($sep != ' ') ? ' ' : ',';
 			switch ($sep) {
 			 case '&':
@@ -508,7 +517,7 @@ EOS;
 			 '#Name' => 'name',
 			 '#Email' => 'address',
 			 'Phone' => 'phone',
-			 'Login' => 'publicid',
+			 'Login' => 'account',
 			 'Password' => 'password', //not real field
 			 'Passhash' => 'passhash',
 			 'Usertype' => 'type',
@@ -536,11 +545,12 @@ EOS;
 							 case 'name':
 							 case 'address':
 								$fv = preg_replace('/[\n\t\r]/', $sep2, $fv);
-							 case 'publicid':
+							 case 'account':
 								$fv = str_replace($sep, $r, $fv);
 								break;
 							 case 'passhash':
-								$fv = unpack('H*', $fv);
+								$arr = unpack('H*', $fv);
+								$fv = reset($arr);
 								break;
 							 case 'type':
 								$fv	= $fv % 10; //base type
@@ -749,8 +759,9 @@ EOS;
 			//header line
 			$outstr = implode($sep, array_keys($translates));
 			$outstr .= $sep."\n";
+			$noname = '<'.$mod->Lang('noname').'>';
 			$sql = <<<EOS
-SELECT O.*,COALESCE(A.name,B.name,'') AS name,A.publicid
+SELECT O.*,B.auth_id,COALESCE(B.name,A.name,'$noname') AS name,A.account
 FROM $mod->OnceTable O
 JOIN $mod->BookerTable B ON O.booker_id=B.booker_id
 LEFT JOIN $mod->AuthTable A ON B.auth_id=A.id
@@ -787,8 +798,8 @@ EOS;
 						$fv = $dt->format('Y-n-j G:i');
 						break;
 					 case 'name':
-						if ($data['publicid']) {
-							$fv = $data['publicid']; //prefer login identifier
+						if ($data['account']) {
+							$fv = $data['account']; //prefer login identifier
 						}
 						$fv = str_replace($sep, $r, $fv);
 						break;
