@@ -23,15 +23,17 @@ case '0.6':
 	$cfuncs = new Booker\Crypter($this);
 	$cfuncs->encrypt_preference('masterpass',$pw);
 
-/*	$sqlarray = $dict->AlterColumnSQL($this->BookerTable, 'name B');
+/*	$sqlarray = $dict->AddColumnSQL($this->BookerTable, 'auth_id I(4) DEFAULT 0');
 	$dict->ExecuteSqlArray($sqlarray);
-	$sqlarray = $dict->AddColumnSQL($this->BookerTable, 'auth_id I(4) DEFAULT 0');
+	$sqlarray = $dict->AlterColumnSQL($this->BookerTable, 'name B');
+	$dict->ExecuteSqlArray($sqlarray);
+	$sqlarray = $dict->AddColumnSQL($this->BookerTable, 'namehash B');
 	$dict->ExecuteSqlArray($sqlarray);
 
 	$sql = 'SELECT booker_id,name,publicid FROM '.$this->BookerTable;
 	$rst = $db->Execute($sql);
 	if ($rst) {
-//ibid	$pw = $cfuncs->decrypt_preference('masterpass');
+//ibid	$mpw = $cfuncs->decrypt_preference('masterpass');
 		$amod = cms_utils::get_module('Auther');
 		if ($amod) {
 			$afuncs = new \Auther\Auth($amod,$this->GetPreference('authcontext',0));
@@ -39,15 +41,16 @@ case '0.6':
 		} else {
 			$afuncs = NULL;
 		}
-		$sql1 = 'UPDATE '.$pref.'module_bkr_bookers SET auth_id=?,name=NULL WHERE booker_id=?';
-		$sql2 = 'UPDATE '.$pref.'module_bkr_bookers SET auth_id=0,name=? WHERE booker_id=?';
+		$sql1 = 'UPDATE '.$pref.'module_bkr_bookers SET auth_id=?,namehash=NULL,name=NULL WHERE booker_id=?';
+		$sql2 = 'UPDATE '.$pref.'module_bkr_bookers SET auth_id=0,namehash=?,name=? WHERE booker_id=?';
 		while (!$rst->EOF) {
 			if ($rst->fields['publicid'] && $afuncs) {
 				$bid = $afuncs->GetUserID($rst->fields['publicid']);
 				$db->Execute($sql1, [$bid, $rst->fields['booker_id']]);
 			} else {
-				$name = $cfuncs->encrypt_value($rst->fields['name'], $pw);
-				$db->Execute($sql2, [$name, $rst->fields['booker_id']]);
+				$name = $cfuncs->encrypt_value($rst->fields['name'], $mpw);
+				$hash = password_hash($rst->fields['name'], PASSWORD_DEFDAULT);
+				$db->Execute($sql2, [$name, $hash, $rst->fields['booker_id']]);
 			}
 			if (!$rst->MoveNext()) {
 				break;
@@ -58,5 +61,21 @@ case '0.6':
 
 	$sqlarray = $dict->DropColumnSQL($this->BookerTable, 'publicid');
 	$dict->ExecuteSqlArray($sqlarray);
+*/
+/*
+$sql = <<<EOS
+SELECT booker_id,name FROM $this->BookerTable WHERE name IS NOT NULL
+EOS;
+$data = $db->GetArray($sql);
+$sql = <<<EOS
+UPDATE $this->BookerTable SET namehash=? WHERE booker_id=?
+EOS;
+$cfuncs = new Booker\Crypter($this);
+$mpw = $cfuncs->decrypt_preference('masterpass');
+foreach ($data as $one) {
+	$name = $cfuncs->decrypt_value($one['name'], $mpw);
+	$hash = password_hash($name, PASSWORD_DEFAULT);
+	$db->Execute($sql,[$hash,$one['booker_id']]);
+}
 */
 }
