@@ -420,7 +420,7 @@ class Display
 					if (!isset($users[1])) {
 						$t = $row['booker_id'];
 						if (!array_key_exists($t,$this->Usercache)) {
-							$this->Usercache[$t] = $ufuncs->GetName($this->mod,$t);
+							$this->Usercache[$t] = $ufuncs->GetName($this->mod,$t,TRUE); //OR $utils->GetUserName($this->mod,t);
 						}
 						$n = $this->Usercache[$t];
 						if (!in_array($n,$users)) {

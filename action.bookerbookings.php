@@ -748,8 +748,7 @@ EOS;
 }
 
 if (!isset($tplvars['item_title'])) {
-	$funcs = new Booker\Userops($this);
-	$name = $funcs->GetName($this, $bookerid);
+	$name = $utils->GetUserName($this, $bookerid);
 	$tplvars['item_title'] = $this->Lang('title_booksfor', $this->Lang('user'), $name);
 }
 

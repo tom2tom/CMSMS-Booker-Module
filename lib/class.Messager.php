@@ -296,7 +296,7 @@ class Messager
 						//contact via social media not supported
 						if ($addrs['address'] &&
 						 preg_match(\Booker::PATNADDRESS,$addrs['address'])) {
-							$name = $ufuncs->GetName($bookerid);
+							$name = $utils->GetUserName($mod,$bookerid);
 							$to[] = array($name=>$addrs['address']);
 						} elseif ($addrs['phone'] &&
 						 preg_match(\Booker::PATNPHONE,$addrs['phone'])) {
