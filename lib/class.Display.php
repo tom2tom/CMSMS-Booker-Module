@@ -419,9 +419,9 @@ class Display
 					//log distinct users until count users > 1, so we can report as 'multiple'
 					if (!isset($users[1])) {
 						$t = $row['booker_id'];
-						if (!array_key_exists($t,$this->Usercache)) {
-							$this->Usercache[$t] = $ufuncs->GetName($this->mod,$t,TRUE); //OR $utils->GetUserName($this->mod,t);
-						}
+//						if (!array_key_exists($t,$this->Usercache)) {
+//							$this->Usercache[$t] = $ufuncs->GetName($this->mod,$t,TRUE); //OR $this->utils->GetUserNameForID($this->mod,t);
+//						}
 						$n = $this->Usercache[$t];
 						if (!in_array($n,$users)) {
 							$users[] = $n;
@@ -660,6 +660,15 @@ class Display
 		$funcs = new Bookingops();
 		$booked = $funcs->GetTableBooked($this->mod,$all,$bs,$be);
 		if ($booked) {
+			//populate slot usernames
+			if (function_exists('array_column')) {
+				$bookers = array_column($booked,'booker_id');
+			} else {
+				$bookers = array_map(function($row) {
+				  return $row['booker_id'];
+				},$booked);
+			}
+			$this->Usercache = $this->utils->GetNamedUsers($this->mod,array_unique($bookers));
 			$iter = new \ArrayIterator($booked);
 		} else {
 			$iter = FALSE;
