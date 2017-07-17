@@ -275,13 +275,12 @@ class Bookingops
 	public function GetBkgMessageData(&$mod, $bkgid)
 	{
 		$s = \Booker::STATNONE;		//default status
+		$noname = '<'.$mod->Lang('noname').'>';
 		$sql = <<<EOS
 SELECT D.bkg_id,D.item_id,D.slotstart,
-COALESCE(O.slotcount,R.slotcount,1) AS slotcount,
-COALESCE(O.status,R.status,{$s}) AS status,
+COALESCE(O.slotcount,R.slotcount,1) AS slotcount,COALESCE(O.status,R.status,{$s}) AS status,
 I.name AS what,
-COALESCE(A.name,B.name,'') AS name,
-COALESCE(A.address,B.address,'') AS address,B.phone,A.publicid
+B.auth_id,COALESCE(B.name,A.name,A.account,'$noname') AS name,COALESCE(B.address,A.address,'') AS address,B.phone
 FROM $mod->DispTable D
 LEFT JOIN $mod->OnceTable O ON D.bkg_id=O.bkg_id
 LEFT JOIN $mod->RepeatTable R ON D.bkg_id=R.bkg_id
@@ -309,13 +308,14 @@ EOS;
 	@item: item identifier (a.k.a. item_id), or array or them
 	@startstamp: timestamp representing start of period to check
 	@endstamp: ditto for end of period
-	Returns: array of rows, each with members 'item_id','name','publicid','what',
+	Returns: array of rows, each with members 'item_id','name','account','what',
 	 OR maybe empty
 	*/
 /*	public function GetBooked(&$mod, $item, $startstamp, $endstamp)
 	{
+		$noname = '&lt;'.$mod->Lang('noname').'&gt;';
 		$sql = <<<EOS
-SELECT D.item_id,COALESCE(A.name,B.name,'') AS name,A.publicid,I.name AS what
+SELECT D.item_id,B.auth_id,COALESCE(B.name,A.name,'$noname') AS name,A.account,I.name AS what
 FROM $mod->DispTable D
 LEFT JOIN $mod->BookerTable B ON D.booker_id=B.booker_id
 LEFT JOIN $mod->AuthTable A ON B.auth_id=A.id
@@ -396,8 +396,9 @@ EOS;
 			$args = [$item];
 		}
 		$fillers = str_repeat('?,', count($args) - 1);
+		$noname = '&lt;'.$mod->Lang('noname').'&gt;';
 		$sql = <<<EOS
-SELECT D.booker_id,D.item_id,D.slotstart,D.slotlen,COALESCE(A.name,B.name,'') AS name,A.publicid,I.name AS what
+SELECT D.booker_id,D.item_id,D.slotstart,D.slotlen,B.auth_id,COALESCE(B.name,A.name,A.account,'$noname') AS name,I.name AS what
 FROM $mod->DispTable D
 JOIN $mod->BookerTable B ON D.booker_id=B.booker_id
 LEFT JOIN $mod->AuthTable A ON B.auth_id=A.id
