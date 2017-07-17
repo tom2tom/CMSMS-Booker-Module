@@ -41,6 +41,9 @@ case '0.6':
 		} else {
 			$afuncs = NULL;
 		}
+		if (!function_exists('password_hash')) {
+			include __DIR__.DIRECTORY_SEPARATOR.'lib'.DIRECTORY_SEPARATOR.'password.php';
+		}
 		$sql1 = 'UPDATE '.$pref.'module_bkr_bookers SET auth_id=?,namehash=NULL,name=NULL WHERE booker_id=?';
 		$sql2 = 'UPDATE '.$pref.'module_bkr_bookers SET auth_id=0,namehash=?,name=? WHERE booker_id=?';
 		while (!$rst->EOF) {
