@@ -33,9 +33,10 @@ class Crypter Extends Encryption
 	*/
 	public function encrypt_preference($key, $value)
 	{
-		$pw = hash('crc32b', $this->mod->GetPreference('nQCeESKBr99A').$this->custom);
-		$s = parent::encrypt($value, $pw);
-		$this->mod->SetPreference($key, base64_encode($s));
+		$s = parent::encrypt($value,
+			hash_hmac('sha1', $this->mod->GetPreference('nQCeESKBr99A').$this->custom, $key));
+		$this->mod->SetPreference(
+			hash('sha1', $key.$this->custom), base64_encode($s));
 	}
 
 	/**
@@ -45,9 +46,10 @@ class Crypter Extends Encryption
 	*/
 	public function decrypt_preference($key)
 	{
-		$s = base64_decode($this->mod->GetPreference($key));
-		$pw = hash('crc32b', $this->mod->GetPreference('nQCeESKBr99A').$this->custom);
-		return parent::decrypt($s, $pw);
+		$s = base64_decode($this->mod->GetPreference(
+			hash('sha1', $key.$this->custom)));
+		return parent::decrypt($s,
+			hash_hmac('sha1', $this->mod->GetPreference('nQCeESKBr99A').$this->custom, $key));
 	}
 
 	/**
@@ -68,8 +70,8 @@ class Crypter Extends Encryption
 				$value = parent::encrypt($value, $pw);
 				if ($based) {
 					$value = base64_encode($value);
-				} else {
-					$value = str_replace('\'', '\\\'', $value); //facilitate db-field storage
+//				} else {
+//					$value = str_replace('\'', '\\\'', $value); //facilitate db-field storage
 				}
 			}
 		}
@@ -92,8 +94,8 @@ class Crypter Extends Encryption
 			if ($pw) {
 				if ($based) {
 					$value = base64_decode($value);
-				} else {
-					$value = str_replace('\\\'', '\'', $value);
+//				} else {
+//					$value = str_replace('\\\'', '\'', $value);
 				}
 				$value = parent::decrypt($value, $pw);
 			}
