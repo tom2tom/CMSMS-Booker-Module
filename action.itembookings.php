@@ -207,7 +207,7 @@ if ($pmod) {
 $icon_export = $theme->DisplayImage('icons/system/export.gif', $this->Lang('export'), '', '', 'systemicon');
 $t = $this->Lang('tip_notifyuser');
 $icon_tell = '<img src="'.$baseurl.'/images/notice.png" alt="'.$t.'" title="'.$t.'" border="0" />';
-$noname = '&lt;'.$this->mod->Lang('noname').'&gt;';
+$noname = '&lt;'.$this->Lang('noname').'&gt;';
 
 $funcs = new Booker\Payment();
 

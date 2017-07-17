@@ -169,7 +169,7 @@ $missing = '&lt;'.$this->Lang('missing').'&gt;';
 
 if (empty($bdata)) {
 	//TODO not all OnceTable
-	$noname = '&lt;'.$this->mod->Lang('noname').'&gt;';
+	$noname = '&lt;'.$this->Lang('noname').'&gt;';
 	$sql = <<<EOS
 SELECT O.*,B.auth_id,COALESCE(B.name,A.name,A.account,'$noname') AS name,COALESCE(B.address,A.address,'') AS address,B.phone
 FROM $this->OnceTable O
