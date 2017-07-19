@@ -104,8 +104,8 @@ cleargroup I(1) DEFAULT 0,
 subgrpalloc I(1),
 subgrpdata I(1) DEFAULT 0,
 active I(1) DEFAULT 1,
-bulletin B
-bulletin2 B
+bulletin X2
+bulletin2 X2
 ';
 $sqlarray = $dict->CreateTableSQL($this->ItemTable, $fields, $taboptarray);
 if ($sqlarray == FALSE || $dict->ExecuteSQLArray($sqlarray, FALSE) != 2) {
@@ -187,7 +187,7 @@ statpay I(1) DEFAULT '.Booker::STATFREE.',
 active I(1) DEFAULT 1,
 gatetransaction C(48)
 ';
-//gatedata B
+//gatedata X2
 $sqlarray = $dict->CreateTableSQL($this->OnceTable, $fields, $taboptarray);
 if ($sqlarray == FALSE || $dict->ExecuteSQLArray($sqlarray, FALSE) != 2) {
 	return $errmsg;
@@ -233,7 +233,7 @@ statpay I(1) DEFAULT '.Booker::STATFREE.',
 active I(1) DEFAULT 1
 gatetransaction C(48)
 ';
-//gatedata B
+//gatedata X2
 $sqlarray = $dict->CreateTableSQL($this->RepeatTable, $fields, $taboptarray);
 if ($sqlarray == FALSE || $dict->ExecuteSQLArray($sqlarray, FALSE) != 2) {
 	return $errmsg;
@@ -377,7 +377,7 @@ Data cache
 $fields = '
 cache_id I(2) AUTO KEY,
 keyword C(48),
-value B,
+value X2,
 savetime I(8),
 lifetime I(4)
 ';
@@ -447,11 +447,11 @@ $this->SetPreference('domains', ''); //for initial check
 $this->SetPreference('subdomains', ''); //for secondary check
 $this->SetPreference('topdomains', 'biz,co,com,edu,gov,info,mil,name,net,org'); //for final check
 
-$t = 'nQCeESKBr99A';
-$this->SetPreference($t, hash('sha256', $t.microtime()));
-//$t = some random string;
-//$t = sprintf(base64_decode('U3VjayAlcyB1cCwgY3JhY2tlcnM='),$t);
 $cfuncs = new Booker\Crypter($this);
+$t = cmsms()->GetConfig()['ssl_url'].$this->GetModulePath(); c.f. Crypter class
+$key = 'prefsalt';
+$val = $cfuncs->encrypt('nQCeESKBr99A'.microtime(), hash_hmac('sha256', $t.$key, $key));
+$this->SetPreference(hash('tiger192,3', $t.$key), base64_encode($val));
 $cfuncs->encrypt_preference('masterpass', base64_decode('U3VjayBpdCB1cCwgY3JhY2tlcnMh'));
 
 $format = get_site_preference('defaultdateformat');
