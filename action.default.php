@@ -254,7 +254,7 @@ if ($t) {
 	$tplvars['pictures'] = $t;
 }
 $t = $idata['bulletin'];
-if ($t) {
+if ($t && $t != '<!---->') {
 	$tplvars['bulletin'] = $t;
 }
 
