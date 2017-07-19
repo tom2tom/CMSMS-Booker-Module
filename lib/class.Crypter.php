@@ -9,10 +9,12 @@ namespace Booker;
 
 class Crypter Extends Encryption
 {
+	const MKEY = 'masterpass';
+	const SKEY = 'prefsalt';
 	const STRETCHES = 8192;
 	protected $mod;
 
-	/*
+	/**
 	constructor:
 	@mod: reference to current module object
 	@method: optional openssl cipher type to use, default 'BF-CBC'
@@ -24,6 +26,30 @@ class Crypter Extends Encryption
 		parent::__construct($method, 'default', $stretches);
 	}
 
+	/*
+	localise:
+	Get constant site/host-specific string.
+	All hashes and crypted preferences depend on this
+	*/
+	protected function localise()
+	{
+		return cmsms()->GetConfig()['ssl_url'].$this->mod->GetModulePath();
+	}
+
+	/**
+	init_crypt:
+	Must be called ONCE (during installation or after any localisation change)
+	before any hash or preference-crypt
+	*/
+	public function init_crypt()
+	{
+		$s = $this->localise().self::SKEY;
+		$value = parent::encrypt('nQCeESKBr99A'.microtime(),
+			hash_hmac('sha256', $s, self::SKEY));
+		$this->mod->SetPreference(hash('tiger192,3', $s),
+			base64_encode($value));
+	}
+
 	/**
 	encrypt_preference:
 	@value: value to be stored, normally a string
@@ -31,9 +57,9 @@ class Crypter Extends Encryption
 	*/
 	public function encrypt_preference($key, $value)
 	{
-		$s = \cmsms()->GetConfig()['ssl_url'].$this->mod->GetModulePath(); //site&module-dependent
+		$s = $this->localise();
 		$value = parent::encrypt($value,
-			hash_hmac('sha256', $s.$this->decrypt_preference('prefsalt'), $key));
+			hash_hmac('sha256', $s.$this->decrypt_preference(self::SKEY), $key));
 		$this->mod->SetPreference(hash('tiger192,3', $s.$key),
 			base64_encode($value));
 	}
@@ -45,18 +71,47 @@ class Crypter Extends Encryption
 	*/
 	public function decrypt_preference($key)
 	{
-		$s = \cmsms()->GetConfig()['ssl_url'].$this->mod->GetModulePath();
-		$value = base64_decode(
-			$this->mod->GetPreference(hash('tiger192,3', $s.'prefsalt')));
-		$t = parent::decrypt($value,
-			hash_hmac('sha256', $s.'prefsalt', 'prefsalt'));
-		if ($key != 'prefsalt') {
+		$s = $this->localise();
+		if ($key != self::SKEY) {
 			$value = base64_decode(
-				$this->mod->GetPreference(hash('tiger192,3', $s.$key)));
-			return parent::decrypt($value,
-				hash_hmac('sha256', $s.$t, $key));
+				$this->mod->GetPreference(hash('tiger192,3', $s.self::SKEY)));
+			$p = parent::decrypt($value,
+				hash_hmac('sha256', $s.self::SKEY, self::SKEY));
+		} else {
+			$p = $key;
 		}
-		return $t;
+		$value = base64_decode(
+			$this->mod->GetPreference(hash('tiger192,3', $s.$key)));
+		return parent::decrypt($value,
+			hash_hmac('sha256', $s.$p, $key));
+		}
+
+	/**
+	hash_value:
+	@value: value to be hashed, may be empty string
+	@pw: optional password string, default FALSE (meaning use the module-default)
+	@raw: optional boolean, whether to return raw binary data, default TRUE
+	Returns: hashed @value, or just @value if it's empty or if password is empty
+	*/
+	public function hash_value($value, $pw=FALSE, $raw=TRUE)
+	{
+		$value .= '';
+		if ($value) {
+			if (!$pw) {
+				$pw = self::decrypt_preference(self::MKEY);
+			}
+			if ($pw) {
+				$key = $this->extendKey('sha512', $pw,
+					$this->decrypt_preference(self::SKEY), $this->rounds,
+					$this->getOpenSSLKeysize() * 2);
+				$s = hash_hmac('sha512', $value, $key, $raw);
+				if ($raw) {
+					return str_replace('\'', '\\\'', $s);
+				}
+				return $s;
+			}
+		}
+		return $value;
 	}
 
 	/**
@@ -72,7 +127,7 @@ class Crypter Extends Encryption
 		$value .= '';
 		if ($value) {
 			if (!$pw) {
-				$pw = self::decrypt_preference('masterpass');
+				$pw = self::decrypt_preference(self::MKEY);
 			}
 			if ($pw) {
 				$value = parent::encrypt($value, $pw);
@@ -98,7 +153,7 @@ class Crypter Extends Encryption
 	{
 		if ($value) {
 			if (!$pw) {
-				$pw = self::decrypt_preference('masterpass');
+				$pw = self::decrypt_preference(self::MKEY);
 			}
 			if ($pw) {
 				if ($based) {
@@ -107,34 +162,6 @@ class Crypter Extends Encryption
 					$value = str_replace('\\\'', '\'', $value);
 				}
 				$value = parent::decrypt($value, $pw);
-			}
-		}
-		return $value;
-	}
-
-	/**
-	hash_value:
-	@value: value to be hashed, may be empty string
-	@pw: optional password string, default FALSE (meaning use the module-default)
-	@raw: optional boolean, whether to return raw binary data, default TRUE
-	Returns: hashed @value, or just @value if it's empty or if password is empty
-	*/
-	public function hash_value($value, $pw=FALSE, $raw=TRUE)
-	{
-		$value .= '';
-		if ($value) {
-			if (!$pw) {
-				$pw = self::decrypt_preference('masterpass');
-			}
-			if ($pw) {
-				$key = $this->extendKey('sha512', $pw,
-					$this->decrypt_preference('prefsalt'), $this->rounds,
-					$this->getOpenSSLKeysize() * 2);
-				$s = hash_hmac('sha512', $value, $key, $raw);
-				if ($raw) {
-					return str_replace('\'', '\\\'', $s);
-				}
-				return $s;
 			}
 		}
 		return $value;
