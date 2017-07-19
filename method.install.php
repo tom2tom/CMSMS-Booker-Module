@@ -448,10 +448,7 @@ $this->SetPreference('subdomains', ''); //for secondary check
 $this->SetPreference('topdomains', 'biz,co,com,edu,gov,info,mil,name,net,org'); //for final check
 
 $cfuncs = new Booker\Crypter($this);
-$t = cmsms()->GetConfig()['ssl_url'].$this->GetModulePath(); c.f. Crypter class
-$key = 'prefsalt';
-$val = $cfuncs->encrypt('nQCeESKBr99A'.microtime(), hash_hmac('sha256', $t.$key, $key));
-$this->SetPreference(hash('tiger192,3', $t.$key), base64_encode($val));
+$cfuncs->init_crypt();
 $cfuncs->encrypt_preference('masterpass', base64_decode('U3VjayBpdCB1cCwgY3JhY2tlcnMh'));
 
 $format = get_site_preference('defaultdateformat');
