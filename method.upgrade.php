@@ -23,40 +23,59 @@ case '0.6':
 	$cfuncs = new Booker\Crypter($this);
 	$cfuncs->encrypt_preference('masterpass',$pw);
 
-/*	$sqlarray = $dict->AddColumnSQL($this->BookerTable, 'auth_id I(4) DEFAULT 0');
-	$dict->ExecuteSqlArray($sqlarray);
+/*
+	$dict = NewDataDictionary($db);
+
+//	$sqlarray = $dict->AddColumnSQL($this->BookerTable, 'auth_id I(4) DEFAULT 0');
+//	$dict->ExecuteSqlArray($sqlarray);
+//	$sqlarray = ['ALTER TABLE '.$this->BookerTable.' CHANGE auth_id auth_id int(4) NULL AFTER booker_id'];
+//	$dict->ExecuteSqlArray($sqlarray,FALSE);
+//	$sqlarray = $dict->AddColumnSQL($this->BookerTable, 'namehash B');
+//	$dict->ExecuteSqlArray($sqlarray);
+//	$sqlarray = ['ALTER TABLE '.$this->BookerTable.' CHANGE namehash namehash longblob NULL AFTER auth_id'];
+//	$dict->ExecuteSqlArray($sqlarray,FALSE);
 	$sqlarray = $dict->AlterColumnSQL($this->BookerTable, 'name B');
 	$dict->ExecuteSqlArray($sqlarray);
-	$sqlarray = $dict->AddColumnSQL($this->BookerTable, 'namehash B');
-	$dict->ExecuteSqlArray($sqlarray);
 
-	$sql = 'SELECT booker_id,name,publicid FROM '.$this->BookerTable;
+	$cfuncs = new Booker\Crypter($this);
+	$mpw = $this->GetPreference('masterpass');
+	if ($mpw) {
+		$mpw = $cfuncs->olddecrypt_preference('masterpass');
+		$cfuncs->encrypt_preference('masterpass',$mpw);
+		$this->RemovePreference('masterpass');
+	} else {
+		$mpw = $cfuncs->decrypt_preference('masterpass');
+		if (!$mpw) {
+			$mpw = 'Suck it up, crackers!';
+			$cfuncs->encrypt_preference('masterpass',$mpw);
+		}
+	}
+
+	$sql = 'SELECT booker_id,publicid,name FROM '.$this->BookerTable;
 	$rst = $db->Execute($sql);
 	if ($rst) {
-//ibid	$mpw = $cfuncs->decrypt_preference('masterpass');
-		$amod = cms_utils::get_module('Auther');
-		if ($amod) {
-			$afuncs = new \Auther\Auth($amod,$this->GetPreference('authcontext',0));
-			unset($amod);
-		} else {
-			$afuncs = NULL;
-		}
-		if (!function_exists('password_hash')) {
-			include __DIR__.DIRECTORY_SEPARATOR.'lib'.DIRECTORY_SEPARATOR.'password.php';
-		}
-		$sql1 = 'UPDATE '.$pref.'module_bkr_bookers SET auth_id=?,namehash=NULL,name=NULL WHERE booker_id=?';
-		$sql2 = 'UPDATE '.$pref.'module_bkr_bookers SET auth_id=0,namehash=?,name=? WHERE booker_id=?';
-		while (!$rst->EOF) {
-			if ($rst->fields['publicid'] && $afuncs) {
-				$bid = $afuncs->GetUserID($rst->fields['publicid']);
-				$db->Execute($sql1, [$bid, $rst->fields['booker_id']]);
-			} else {
-				$name = $cfuncs->encrypt_value($rst->fields['name'], $mpw);
-				$hash = password_hash($rst->fields['name'], PASSWORD_DEFDAULT);
-				$db->Execute($sql2, [$name, $hash, $rst->fields['booker_id']]);
-			}
-			if (!$rst->MoveNext()) {
-				break;
+		$afuncs = new Auther\Auth(NULL,$this->GetPreference('authcontext',0));
+		if ($afuncs) {
+			$sql1 = 'UPDATE '.$this->BookerTable.' SET auth_id=?,namehash=NULL,name=NULL WHERE booker_id=?';
+			$sql2 = 'DELETE FROM '.$this->BookerTable.' WHERE booker_id=?';
+			$sql3 = 'UPDATE '.$this->BookerTable.' SET auth_id=0,namehash=?,name=? WHERE booker_id=?';
+
+			while (!$rst->EOF) {
+				if ($rst->fields['publicid']) {
+					$aid = $afuncs->GetUserID($rst->fields['publicid']);
+					if ($aid) {
+						$db->Execute($sql1,[$aid,$rst->fields['booker_id']]);
+					} else {
+						$db->Execute($sql2,[$rst->fields['booker_id']]);
+					}
+				} else {
+					$hash = $cfuncs->hash_value($rst->fields['name'],$mpw);
+					$name = $cfuncs->encrypt_value($rst->fields['name'],$mpw);
+					$db->Execute($sql3,[$hash,$name,$rst->fields['booker_id']]);
+				}
+				if (!$rst->MoveNext()) {
+					break;
+				}
 			}
 		}
 		$rst->Close();
@@ -77,7 +96,7 @@ $cfuncs = new Booker\Crypter($this);
 $mpw = $cfuncs->decrypt_preference('masterpass');
 foreach ($data as $one) {
 	$name = $cfuncs->decrypt_value($one['name'], $mpw);
-	$hash = password_hash($name, PASSWORD_DEFAULT);
+	$hash = $cfuncs->hash_value($name, $mpw);
 	$db->Execute($sql,[$hash,$one['booker_id']]);
 }
 */
