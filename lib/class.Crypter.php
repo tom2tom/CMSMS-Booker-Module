@@ -11,7 +11,6 @@ class Crypter Extends Encryption
 {
 	const STRETCHES = 8192;
 	protected $mod;
-	protected $custom;
 
 	/*
 	constructor:
@@ -22,7 +21,6 @@ class Crypter Extends Encryption
 	public function __construct(&$mod, $method='BF-CBC', $stretches=self::STRETCHES)
 	{
 		$this->mod = $mod;
-		$this->custom = \cmsms()->GetConfig()['ssl_url'].$mod->GetModulePath(); //site&module-dependent
 		parent::__construct($method, 'default', $stretches);
 	}
 
@@ -33,10 +31,11 @@ class Crypter Extends Encryption
 	*/
 	public function encrypt_preference($key, $value)
 	{
-		$s = parent::encrypt($value,
-			hash_hmac('sha1', $this->mod->GetPreference('nQCeESKBr99A').$this->custom, $key));
-		$this->mod->SetPreference(
-			hash('sha1', $key.$this->custom), base64_encode($s));
+		$s = \cmsms()->GetConfig()['ssl_url'].$this->mod->GetModulePath(); //site&module-dependent
+		$value = parent::encrypt($value,
+			hash_hmac('sha256', $s.$this->decrypt_preference('prefsalt'), $key));
+		$this->mod->SetPreference(hash('tiger192,3', $s.$key),
+			base64_encode($value));
 	}
 
 	/**
@@ -46,10 +45,18 @@ class Crypter Extends Encryption
 	*/
 	public function decrypt_preference($key)
 	{
-		$s = base64_decode($this->mod->GetPreference(
-			hash('sha1', $key.$this->custom)));
-		return parent::decrypt($s,
-			hash_hmac('sha1', $this->mod->GetPreference('nQCeESKBr99A').$this->custom, $key));
+		$s = \cmsms()->GetConfig()['ssl_url'].$this->mod->GetModulePath();
+		$value = base64_decode(
+			$this->mod->GetPreference(hash('tiger192,3', $s.'prefsalt')));
+		$t = parent::decrypt($value,
+			hash_hmac('sha256', $s.'prefsalt', 'prefsalt'));
+		if ($key != 'prefsalt') {
+			$value = base64_decode(
+				$this->mod->GetPreference(hash('tiger192,3', $s.$key)));
+			return parent::decrypt($value,
+				hash_hmac('sha256', $s.$t, $key));
+		}
+		return $t;
 	}
 
 	/**
@@ -57,9 +64,10 @@ class Crypter Extends Encryption
 	@value: value to encrypted, may be empty string
 	@pw: optional password string, default FALSE (meaning use the module-default)
 	@based: optional boolean, whether to base64_encode the encrypted value, default FALSE
+	@escaped: optional boolean, whether to escape single-quote chars in the (raw) encrypted value, default FALSE
 	Returns: encrypted @value, or just @value if it's empty or if password is empty
 	*/
-	public function encrypt_value($value, $pw=FALSE, $based=FALSE)
+	public function encrypt_value($value, $pw=FALSE, $based=FALSE, $escaped=FALSE)
 	{
 		$value .= '';
 		if ($value) {
@@ -70,8 +78,8 @@ class Crypter Extends Encryption
 				$value = parent::encrypt($value, $pw);
 				if ($based) {
 					$value = base64_encode($value);
-//				} else {
-//					$value = str_replace('\'', '\\\'', $value); //facilitate db-field storage
+				} elseif ($escaped) {
+					$value = str_replace('\'', '\\\'', $value); //facilitate db-field storage
 				}
 			}
 		}
@@ -80,12 +88,13 @@ class Crypter Extends Encryption
 
 	/**
 	decrypt_value:
-	@value: string to decrypted, may be empty
+	@value: string to be decrypted, may be empty
 	@pw: optional password string, default FALSE (meaning use the module-default)
 	@based: optional boolean, whether @value is base64_encoded, default FALSE
+	@escaped: optional boolean, whether single-quote chars in (raw) @value have been escaped, default FALSE
 	Returns: decrypted @value, or just @value if it's empty or if password is empty
 	*/
-	public function decrypt_value($value, $pw=FALSE, $based=FALSE)
+	public function decrypt_value($value, $pw=FALSE, $based=FALSE, $escaped=FALSE)
 	{
 		if ($value) {
 			if (!$pw) {
@@ -94,10 +103,38 @@ class Crypter Extends Encryption
 			if ($pw) {
 				if ($based) {
 					$value = base64_decode($value);
-//				} else {
-//					$value = str_replace('\\\'', '\'', $value);
+				} elseif ($escaped) {
+					$value = str_replace('\\\'', '\'', $value);
 				}
 				$value = parent::decrypt($value, $pw);
+			}
+		}
+		return $value;
+	}
+
+	/**
+	hash_value:
+	@value: value to be hashed, may be empty string
+	@pw: optional password string, default FALSE (meaning use the module-default)
+	@raw: optional boolean, whether to return raw binary data, default TRUE
+	Returns: hashed @value, or just @value if it's empty or if password is empty
+	*/
+	public function hash_value($value, $pw=FALSE, $raw=TRUE)
+	{
+		$value .= '';
+		if ($value) {
+			if (!$pw) {
+				$pw = self::decrypt_preference('masterpass');
+			}
+			if ($pw) {
+				$key = $this->extendKey('sha512', $pw,
+					$this->decrypt_preference('prefsalt'), $this->rounds,
+					$this->getOpenSSLKeysize() * 2);
+				$s = hash_hmac('sha512', $value, $key, $raw);
+				if ($raw) {
+					return str_replace('\'', '\\\'', $s);
+				}
+				return $s;
 			}
 		}
 		return $value;
