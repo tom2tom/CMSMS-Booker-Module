@@ -58,7 +58,7 @@ class Crypter Extends Encryption
 	public function encrypt_preference($key, $value)
 	{
 		$s = $this->localise();
-		$value = parent::encrypt($value,
+		$value = parent::encrypt(''.$value,
 			hash_hmac('sha256', $s.$this->decrypt_preference(self::SKEY), $key));
 		$this->mod->SetPreference(hash('tiger192,3', $s.$key),
 			base64_encode($value));
@@ -95,7 +95,6 @@ class Crypter Extends Encryption
 	*/
 	public function hash_value($value, $pw=FALSE, $raw=TRUE)
 	{
-		$value .= '';
 		if ($value) {
 			if (!$pw) {
 				$pw = self::decrypt_preference(self::MKEY);
@@ -104,7 +103,7 @@ class Crypter Extends Encryption
 				$key = $this->extendKey('sha512', $pw,
 					$this->decrypt_preference(self::SKEY), $this->rounds,
 					$this->getOpenSSLKeysize() * 2);
-				$s = hash_hmac('sha512', $value, $key, $raw);
+				$s = hash_hmac('sha512', ''.$value, $key, $raw);
 				if ($raw) {
 					return str_replace('\'', '\\\'', $s);
 				}
@@ -124,13 +123,12 @@ class Crypter Extends Encryption
 	*/
 	public function encrypt_value($value, $pw=FALSE, $based=FALSE, $escaped=FALSE)
 	{
-		$value .= '';
 		if ($value) {
 			if (!$pw) {
 				$pw = self::decrypt_preference(self::MKEY);
 			}
 			if ($pw) {
-				$value = parent::encrypt($value, $pw);
+				$value = parent::encrypt(''.$value, $pw);
 				if ($based) {
 					$value = base64_encode($value);
 				} elseif ($escaped) {
@@ -177,7 +175,7 @@ class Crypter Extends Encryption
 	*/
 	public function cloak_value($value, $minsize=FALSE, $pw=FALSE, $based=FALSE)
 	{
-		$value .= '';
+		$value = ''.$value;
 		$lv = strlen($value);
 		$lc = $lv + 8;
 		if ($minsize != FALSE && $minsize > $lc) {
