@@ -37,12 +37,12 @@ if (isset($params['stylesdelete'])) {
 }
 
 $updates = preg_grep('/^pref_.*/', array_keys($params));
+$cfuncs = new Booker\Crypter($this);
 foreach ($updates as $k) {
 	$val = $params[$k];
 	$k = substr($k, 5);
 	switch ($k) {
-	 case 'masterpass':
-		$cfuncs = new Booker\Crypter($this);
+	 case Booker\Crypter::MKEY:
 		$oldpw = $cfuncs->decrypt_preference($k);
 		$val = trim($val);
 		if ($oldpw != $val) {
@@ -51,23 +51,26 @@ foreach ($updates as $k) {
 			$sql = 'SELECT booker_id,name,address,phone FROM '.$this->BookerTable;
 			$rst = $db->Execute($sql);
 			if ($rst) {
-				$sql = 'UPDATE '.$this->BookerTable.' SET name=?,address=?,phone=? WHERE booker_id=?';
+				$sql = 'UPDATE '.$this->BookerTable.' SET namehash=?,name=?,address=?,phone=? WHERE booker_id=?';
 				while (!$rst->EOF) {
-					$name = ($rst->fields['name']) ? $cfuncs->decrypt_value($rst->fields['name'], $oldpw) : NULL;
-					$address = ($rst->fields['address']) ? $cfuncs->decrypt_value($rst->fields['address'], $oldpw) : NULL;
-					$phone = ($rst->fields['phone']) ? $cfuncs->decrypt_value($rst->fields['phone'], $oldpw) : NULL;
+					$name = ($rst->fields['name']) ? $cfuncs->uncloak_value($rst->fields['name'], $oldpw) : NULL;
+					$address = ($rst->fields['address']) ? $cfuncs->uncloak_value($rst->fields['address'], $oldpw) : NULL;
+					$phone = ($rst->fields['phone']) ? $cfuncs->uncloak_value($rst->fields['phone'], $oldpw) : NULL;
 					if ($newpw) {
 						if ($name) {
-							$name = $cfuncs->encrypt_value($name, $newpw);
+							$hash = $cfuncs->hash_value($name, $newpw);
+							$name = $cfuncs->cloak_value($name, 0, $newpw);
+						} else {
+							$hash = NULL;
 						}
 						if ($address) {
-							$address = $cfuncs->encrypt_value($address, $newpw);
+							$address = $cfuncs->cloak_value($address, 0, $newpw);
 						}
 						if ($phone) {
-							$phone = $cfuncs->encrypt_value($phone, $newpw);
+							$phone = $cfuncs->cloak_value($phone, 16, $newpw);
 						}
 					}
-					$db->Execute($sql, [$name, $address, $phone, $rst->fields['booker_id']]);
+					$db->Execute($sql, [$hash, $name, $address, $phone, $rst->fields['booker_id']]);
 					if (!$rst->MoveNext()) {
 						break;
 					}
