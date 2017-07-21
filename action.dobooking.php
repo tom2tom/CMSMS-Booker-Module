@@ -497,7 +497,7 @@ if ($urls) {
 	$tplvars['pictures'] = $urls;
 }
 $t = $idata['bulletin2'];
-$tplvars['bulletin'] = ($t) ? $t:NULL;
+$tplvars['bulletin'] = ($t && $t != '<!---->') ? $t:NULL;
 
 $tplvars['mustmsg'] = '<img src="'.$baseurl.'/images/info-small.png" alt="info icon" border="0" /> '.
 	$this->Lang('title_must');
@@ -624,14 +624,8 @@ $jsloads[] = <<<EOS
  });
 EOS;
 
-$amod = cms_utils::get_module('Auther');
-if ($amod) {
-	$afuncs = new Auther\Auth($amod,$this->GetPreference('authcontext',0));
-	unset($amod);
-	$rec = $afuncs->IsRecoverable();
-} else {
-	$rec = FALSE;
-}
+$afuncs = new Auther\Auth(NULL,$this->GetPreference('authcontext',0));
+$rec = $afuncs->IsRecoverable();
 
 $oneset = new stdClass();
 $oneset->class = 'hide1';
