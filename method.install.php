@@ -449,7 +449,7 @@ $this->SetPreference('topdomains', 'biz,co,com,edu,gov,info,mil,name,net,org'); 
 
 $cfuncs = new Booker\Crypter($this);
 $cfuncs->init_crypt();
-$cfuncs->encrypt_preference(Booker\Crypter::MKEY, base64_decode('U3VjayBpdCB1cCwgY3JhY2tlcnMh'));
+$cfuncs->encrypt_preference(Booker\Crypter::MKEY, base64_decode('V09PIEhPTyB0aGlzIGlzIE5FVw=='));
 
 $format = get_site_preference('defaultdateformat');
 if ($format) {
