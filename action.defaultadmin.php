@@ -1230,11 +1230,12 @@ $tplvars['start_settings_tab'] = $this->StartTab('settings');
 if ($pset) {
 	$settings = [];
 
-	$t = $cfuncs->decrypt_preference('masterpass');
+	$key = Booker\Crypter::MKEY;
+	$t = $cfuncs->decrypt_preference($key);
 	$one = new stdClass();
 	$one->ttl = $this->Lang('title_masterpass');
-	$one->inp = $this->CreateTextArea(FALSE, $id, $t, 'pref_masterpass', '',
-		'masterpass', '', '', 40, 3, '', '', 'style="height:3em;"');
+	$one->inp = $this->CreateTextArea(FALSE, $id, $t, 'pref_'.$key, '',
+		$key, '', '', 40, 3, '', '', 'style="height:3em;"');
 	$one->mst = 1;
 	$settings[] = $one;
 
@@ -1352,7 +1353,7 @@ if ($pset) {
 	$one = new stdClass();
 	$one->ttl = $this->Lang('title_slotlength');
 	$one->inp = $this->CreateInputText($id, 'pref_slotcount', $this->GetPreference('slotcount'), 3, 3).'&nbsp;'.
-			$this->CreateInputDropdown($id, 'pref_slottype', $alltypes, -1, $this->GetPreference('slottype'));
+		$this->CreateInputDropdown($id, 'pref_slottype', $alltypes, -1, $this->GetPreference('slottype'));
 	$one->mst = 1;
 	$one->hlp = ''; //$this->Lang('help_slotlength');
 	$settings[] = $one;
