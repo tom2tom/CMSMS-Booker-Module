@@ -57,18 +57,17 @@ class Schedule
 	//c.f. Userops->GetDisplayClass()
 	private function GetDisplayClass(&$mod, &$utils, $item_id, $user)
 	{
-		if (!function_exists('password_hash')) {
-			include __DIR__.DIRECTORY_SEPARATOR.'password.php';
-		}
-
 		$sql = <<<EOS
 SELECT B.displayclass FROM $mod->BookerTable B
 LEFT JOIN $mod->AuthTable A ON B.auth_id=A.id
 WHERE B.namehash=? OR (A.acchash=? AND A.context_id=?)
 EOS;
-		$hash = password_hash($user,PASSWORD_DEFAULT);
-		$cid = $mod->GetPreference('authcontext',0); //OR $afuncs->GetContext();
-		$r = $mod->dbHandle->GetOne($sql,[$hash,$hash,$cid]);
+		$cfuncs = new Crypter($mod);
+		$hash = $cfuncs->hash_value($user);
+		$cid = $mod->GetPreference('authcontext',0);
+		$afuncs = new \Auther\Auth(NULL,$cid);
+		$hash2 = $afuncs->GetHash($user);
+		$r = $mod->dbHandle->GetOne($sql,[$hash,$hash2,$cid]);
 		if ($r) {
 			return (int)$r;
 		}
