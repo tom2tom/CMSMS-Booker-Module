@@ -487,12 +487,19 @@ if ($data) {
 	$t = Booker::STATMAXREQ;
 	$s = Booker::STATMAXOK;
 	$sql = <<<EOS
-SELECT booker_id AS B,slotstart AS S, fee AS F FROM $this->OnceTable WHERE status>$t AND status<=$s
+SELECT booker_id AS B,slotstart AS S,fee AS F FROM $this->OnceTable WHERE status>$t AND status<=$s
 UNION
-SELECT booker_id AS B,checkedfrom AS S, fee AS F FROM $this->RepeatTable WHERE status>$t AND status<=$s
+SELECT booker_id AS B,checkedfrom AS S,fee AS F FROM $this->RepeatTable WHERE status>$t AND status<=$s
 ORDER BY B,S
 EOS;
 	$xtradata = $db->GetArray($sql);
+	$sql = <<<EOS
+SELECT booker_id FROM $this->OnceTable WHERE fee>0.0
+UNION
+SELECT booker_id FROM $this->RepeatTable WHERE fee>0.0
+ORDER BY booker_id
+EOS;
+	$feedata = $db->GetCol($sql);
 	$t = sprintf($bseetip, $this->Lang('recorded'));
 	$icon1 = sprintf($iconbsee, $t, $t);
 	if ($bmod) {
@@ -581,16 +588,18 @@ EOS;
 				$v = end($belongs);
 				$dt->setTimestamp($v['S']);
 				$last = $dt->format('Y-m-d');
+			} else {
+				$payable = in_array($bookerid, $feedata);
 			}
 		} else {
 			$belongs = FALSE;
+			$payable = FALSE;
 		}
 		if (!$belongs) {
 			$count = 0;
 			$first = '';
 			$last = '';
 			$future = '';
-			$payable = FALSE;
 		}
 		$one->total = $count;
 		$one->first = $first;
