@@ -117,6 +117,7 @@ $lang['edit'] = 'Edit';
 $lang['end'] = 'End';
 
 $lang['err_account'] = 'Unrecognised user';
+$lang['err_baddata'] = 'Missing or unusable data';
 $lang['err_badend'] = 'Cannot use the end-time';
 $lang['err_badstart'] = 'Missing or unusable start-time';
 $lang['err_badtime'] = 'Something is wrong with booking time(s)';
