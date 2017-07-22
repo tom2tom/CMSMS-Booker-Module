@@ -472,7 +472,7 @@ $tplvars['startform2'] = $this->CreateFormStart($id, 'adminbooker', $returnid,
 $tplvars['start_people_tab'] = $this->StartTab('people');
 $tablerows[2] = 0;
 
-$xtradata = FALSE;
+$bkgdata = FALSE;
 $bkrs = [];
 $sql = <<<EOS
 SELECT B.booker_id,B.auth_id,COALESCE(B.name,A.name,A.account,'$noname') AS name,COALESCE(A.addwhen,B.addwhen,'') AS addwhen,B.active
@@ -487,12 +487,12 @@ if ($data) {
 	$t = Booker::STATMAXREQ;
 	$s = Booker::STATMAXOK;
 	$sql = <<<EOS
-SELECT booker_id AS B,slotstart AS S,fee AS F FROM $this->OnceTable WHERE status>$t AND status<=$s
+SELECT booker_id AS B,slotstart AS S FROM $this->OnceTable WHERE status>$t AND status<=$s
 UNION
-SELECT booker_id AS B,checkedfrom AS S,fee AS F FROM $this->RepeatTable WHERE status>$t AND status<=$s
+SELECT booker_id AS B,checkedfrom AS S FROM $this->RepeatTable WHERE status>$t AND status<=$s
 ORDER BY B,S
 EOS;
-	$xtradata = $db->GetArray($sql);
+	$bkgdata = $db->GetArray($sql);
 	$sql = <<<EOS
 SELECT booker_id FROM $this->OnceTable WHERE fee>0.0
 UNION
@@ -500,6 +500,10 @@ SELECT booker_id FROM $this->RepeatTable WHERE fee>0.0
 ORDER BY booker_id
 EOS;
 	$feedata = $db->GetCol($sql);
+	if ($feedata) {
+		$feedata = array_flip($feedata);
+	}
+
 	$t = sprintf($bseetip, $this->Lang('recorded'));
 	$icon1 = sprintf($iconbsee, $t, $t);
 	if ($bmod) {
@@ -563,8 +567,8 @@ EOS;
 			$dt->modify($row['addwhen']);
 		}
 		$one->added = $dt->format('Y-m-d'); //sortable format
-		if ($xtradata) {
-			$belongs = array_filter($xtradata, function ($v) use ($bookerid) {
+		if ($bkgdata) {
+			$belongs = array_filter($bkgdata, function ($v) use ($bookerid) {
 				return $v['B'] == $bookerid;
 			});
 			if ($belongs) {
@@ -573,23 +577,22 @@ EOS;
 				$v = reset($belongs);
 				$dt->setTimestamp($v['S']);
 				$first = $dt->format('Y-m-d');
-				$i = 0;
+				$future = $count;
 				foreach ($belongs as $v) {
-					if ($v['F'] > 0.0) {
+					if (!$payable && array_key_exists($v['B'], $feedata)) {
 						$payable = TRUE;
 					}
 					if ($v['S'] <= $now) {
-						$i++;
-					} elseif ($payable ) {
+						$future--;
+					} elseif ($payable) {
 						break;
 					}
 				}
-				$future = $count - $i;
 				$v = end($belongs);
 				$dt->setTimestamp($v['S']);
 				$last = $dt->format('Y-m-d');
 			} else {
-				$payable = in_array($bookerid, $feedata);
+				$payable = array_key_exists($bookerid, $feedata);
 			}
 		} else {
 			$belongs = FALSE;
