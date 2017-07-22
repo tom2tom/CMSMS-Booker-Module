@@ -250,7 +250,7 @@ class Booker extends CMSModule
 
 	public function GetVersion()
 	{
-		return '0.6';
+		return '0.6.1';
 	}
 
 	public function GetAuthor()
