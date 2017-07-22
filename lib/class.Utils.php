@@ -1060,12 +1060,11 @@ EOS;
 	{
 		reset($data);
 		if (is_numeric(key($data))) { // multi-row
-			$amod = \cms_utils::get_module('Auther');
-			if ($amod) {
-				$this->afuncs = new \Auther\Auth($amod, $mod->GetPreference('authcontext', 0));
-				unset($amod);
-			} else {
-				$this->afuncs = NULL;
+			if (!$this->afuncs) {
+				$this->afuncs = new \Auther\Auth(NULL, $mod->GetPreference('authcontext', 0));
+				if (!$this->afuncs) {
+					return;
+				}
 			}
 			if (!$this->cfuncs) {
 				$this->cfuncs = new Crypter($mod);
@@ -1104,14 +1103,14 @@ EOS;
 					}
 				} else //data for unregistered user
 					if (isset($row['name'])) {
-					$fld = $this->cfuncs->decrypt_value($row['name']);
+					$fld = $this->cfuncs->uncloak_value($row['name']);
 					if (!array_key_exists($fld, $nonregs)) {
 						$row['name'] = $fld;
 						if (isset($row['address'])) {
-							$row['address'] = $this->cfuncs->decrypt_value($row['address']);
+							$row['address'] = $this->cfuncs->uncloak_value($row['address']);
 						}
 						if (isset($row['phone'])) {
-							$row['phone'] = $this->cfuncs->decrypt_value($row['phone']);
+							$row['phone'] = $this->cfuncs->uncloak_value($row['phone']);
 						}
 						$nonregs[$fld] = $row;
 					} else {
@@ -1128,11 +1127,8 @@ EOS;
 			unset($row);
 		} elseif ($data['auth_id'] > 0) { //single-row with Auth data
 			if (!$this->afuncs) {
-				$amod = \cms_utils::get_module('Auther');
-				if ($amod) {
-					$this->afuncs = new \Auther\Auth($amod, $mod->GetPreference('authcontext', 0));
-					unset($amod);
-				} else {
+				$this->afuncs = new \Auther\Auth(NULL, $mod->GetPreference('authcontext', 0));
+				if (!$this->afuncs) {
 					return;
 				}
 			}
@@ -1145,7 +1141,7 @@ EOS;
 					if (!$this->cfuncs) {
 						$this->cfuncs = new Crypter($mod);
 					}
-					$data['phone'] = $this->cfuncs->decrypt_value($data['phone']);
+					$data['phone'] = $this->cfuncs->uncloak_value($data['phone']);
 				}
 			}
 		} else {
@@ -1153,13 +1149,13 @@ EOS;
 				$this->cfuncs = new Crypter($mod);
 			}
 			if (!empty($data['name'])) {
-				$data['name'] = $this->cfuncs->decrypt_value($data['name']);
+				$data['name'] = $this->cfuncs->uncloak_value($data['name']);
 			}
 			if (!empty($data['address'])) {
-				$data['address'] = $this->cfuncs->decrypt_value($data['address']);
+				$data['address'] = $this->cfuncs->uncloak_value($data['address']);
 			}
 			if (!empty($data['phone'])) {
-				$data['phone'] = $this->cfuncs->decrypt_value($data['phone']);
+				$data['phone'] = $this->cfuncs->uncloak_value($data['phone']);
 			}
 		}
 	}
@@ -1176,20 +1172,15 @@ EOS;
 	public function SetUserProperties(&$mod, $booker_id, $data)
 	{
 		if (!$this->afuncs) {
-			$amod = \cms_utils::get_module('Auther');
-			if ($amod) {
-				$this->afuncs = new \Auther\Auth($amod, $mod->GetPreference('authcontext', 0));
-				unset($amod);
-			} else {
-				$this->afuncs = NULL; //TODO block usage
+			$this->afuncs = new \Auther\Auth(NULL, $mod->GetPreference('authcontext', 0));
+			if (!$this->afuncs) {
+				return;
 			}
 		}
 		if (!$this->cfuncs) {
 			$this->cfuncs = new Crypter($mod);
 		}
-		if (!function_exists('password_hash')) {
-			include __DIR__.DIRECTORY_SEPARATOR.'password.php';
-		}
+
 		//each row here has: [0]$data key/maybe table(s)-field name,[1]enum 1..3 for booker,auther,both,[2]bool 0/1 for string field
 		$fields = [
 			'name',		3,1,
@@ -1243,8 +1234,14 @@ EOS;
 								$bookfields[] = $one;
 								if ($fields[$i+2] > 0) { //string field
 									if ($val) {
-										if ($one == 'address' || $one == 'phone') {
-											$val = $this->cfuncs->encrypt_value($val);
+										if ($one == 'name') {
+											$bookargs[] = $this->cfuncs->cloak_value($val);
+											$bookfields[] = 'namehash';
+											$val = $this->cfuncs->hash_value($val);
+										} elseif ($one == 'address') {
+											$val = $this->cfuncs->cloak_value($val);
+										} elseif ($one == 'phone') {
+											$val = $this->cfuncs->cloak_value($val, 16);
 										}
 									} else {
 										$val = NULL;
@@ -1304,11 +1301,13 @@ EOS;
 								if ($fields[$i+2] > 0) { //string field
 									if ($val) {
 										if ($one == 'name') {
-											$bookargs[] = $this->cfuncs->encrypt_value($val);
+											$bookargs[] = $this->cfuncs->cloak_value($val);
 											$bookfields[] = 'namehash';
-											$val = password_hash($val,PASSWORD_DEFAULT);
-										} elseif ($one == 'address' || $one == 'phone') {
-											$val = $this->cfuncs->encrypt_value($val);
+											$val = $this->cfuncs->hash_value($val);
+										} elseif ($one == 'address') {
+											$val = $this->cfuncs->cloak_value($val);
+										} elseif ($one == 'phone') {
+											$val = $this->cfuncs->cloak_value($val, 16);
 										}
 									} else {
 										$val = NULL;
