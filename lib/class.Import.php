@@ -599,7 +599,7 @@ class Import
 		$name = $data['name'];
 		$address = $data['address'];
  		$phone = $data['phone'];
-		$login = $data['publicid'];
+		$login = $data['account'];
 		if ($passhash) {
 			//generate a validation-ready (sufficiently-tough) interim password
 			$t = str_shuffle(uniqid(self::DEFAULTPASS, TRUE));
@@ -607,9 +607,9 @@ class Import
 		}
 		if ($update) {
 			$bookerid = $data['bookerid'];
-			$oldname = funcTODO($login,$name,$bookerid); //$bookerid -> lookup current 'publicid' -> get $oldname from Auther
-			$oldlogin = funcTODO($login,$name,$bookerid); //$bookerid -> lookup current 'publicid' == $oldlogin
-//			$utils->GetUserProperties($mod, ['publicid'=>$oldlogin,'name'=>????]);
+			$oldname = TODOfunc($login,$name,$bookerid); //$bookerid -> lookup current 'account' -> get $oldname from Auther
+			$oldlogin = TODOfunc($login,$name,$bookerid); //$bookerid -> lookup current 'account' == $oldlogin
+//			$utils->GetUserProperties($mod, ['account'=>$oldlogin,'name'=>????]);
 			$ret = $ufuncs->ChangeUser($mod,$bookerid,$name,$address,$phone,FALSE,$oldlogin,$login,$password); //$ret = boolean
 		} else {
 			$bookerid = $ufuncs->AddUser($mod,$name,$address,$phone,1,$login,$password); //$bookerid = enum or FALSE
@@ -617,10 +617,11 @@ class Import
 		}
 		if ($ret && $passhash) {
 			//no Auther-API for changing raw passhash ...
+			$hash = $afuncs->GetHash($login);
 			$cid = $mod->GetPreference('authcontext',0); //OR $afuncs->GetContext();
 			$pref = \cms_db_prefix();
-			$mod->dbHandle->Execute('UPDATE '.$pref.'module_auth_users SET privhash=? WHERE publicid=? AND context_id=?',
-				[pack('H*',$passhash),$login,$cid]);
+			$mod->dbHandle->Execute('UPDATE '.$mod->AuthTable.' SET passhash=? WHERE acchash=? AND context_id=?',
+				[pack('H*',$passhash),$hash,$cid]);
 		}
 		if ($ret) {
 			//possible non-Auther properties to be recorded locally
@@ -672,7 +673,7 @@ class Import
 			//file-column-name to fieldname translation
 			$translates = [
 			 '#Name'=>'name',
-			 'Login'=>'publicid',
+			 'Login'=>'account',
 			 'Password'=>'password', //not a real field
 			 'Passhash'=>'passhash', //ditto
 			 '#Email'=>'address',
@@ -705,10 +706,11 @@ class Import
 			}
 			$utils = new Utils();
 			//for update checks (name is encrypted or NULL)
-//			$exist = $utils->SafeGet('SELECT booker_id,publicid,name FROM '.$mod->BookerTable.' ORDER BY booker_id',FALSE);
+//			$exist = $utils->SafeGet('SELECT booker_id,account,name FROM '.$mod->BookerTable.' ORDER BY booker_id',FALSE);
 
 			$afuncs = NULL;
 			$cfuncs = new Crypter($mod);
+			$mpw = $cfuncs->decrypt_preference(Crypter::MKEY);
 			$ufuncs = new Userops($mod);
 			$dt = new \DateTime('now',new \DateTimeZone('UTC'));
 			$st = $dt->getTimestamp();
@@ -731,7 +733,7 @@ class Import
 								$data[$k] = $ufuncs->SanitizeName($one);
 								$save = TRUE;
 								break;
-							 case 'publicid':
+							 case 'account':
 								$data[$k] = trim($one);
 								$save = TRUE;
 								break;
@@ -743,7 +745,7 @@ class Import
 							 case 'address':
  								$t = trim($one);
 								if (!preg_match(\Booker::PATNADDRESS,$t)) {
-									return [FALSE,'err_file'];
+									return [FALSE,'err_baddata'];
 								}
 								$data[$k] = $t; //encrypt later, if relevant
 								$save = TRUE;
@@ -751,7 +753,7 @@ class Import
 							 case 'phone':
  								$t = str_replace(' ','',$one);
 						 		if (!preg_match(\Booker::PATNPHONE,$t)) {
-									return [FALSE,'err_file'];
+									return [FALSE,'err_baddata'];
 								}
 								$data[$k] = $t; //encrypt later, if relevant
 								$save = TRUE;
@@ -778,7 +780,7 @@ class Import
 								break;
 							 case 'type3':
 								if (!is_numeric($one)) {
-									return [FALSE,'err_file'];
+									return [FALSE,'err_baddata'];
 								}
 								$t = (int)$one;
 								if ($t < 0 || $t > 9) { //base-types 0..9
@@ -794,7 +796,7 @@ class Import
 								break;
 							 case 'displayclass':
 								if (!is_numeric($one)) {
-									return [FALSE,'err_file'];
+									return [FALSE,'err_baddata'];
 								}
 								$t = (int)$one;
 								if ($t < 1 || $t > \Booker::USERSTYLES) {
@@ -837,11 +839,7 @@ class Import
 						$done = FALSE;
 						if (!($password || $passhash)) {
 							if (!$afuncs) {
-								$amod = \cms_utils::get_module('Auther');
-								if ($amod) {
-									$afuncs = new \Auther\Auth($amod, $mod->GetPreference('authcontext', 0));
-									unset($amod);
-								}
+								$afuncs = new \Auther\Auth(NULL, $mod->GetPreference('authcontext', 0));
 							}
 							if ($afuncs) {
 								$password = $afuncs->GetConfig('default_password');
@@ -859,31 +857,37 @@ class Import
 							}
 							if (!$bookerid) {
 								$sql = 'SELECT booker_id FROM '.$mod->BookerTable;
-								if ($data['publicid']) {
-									$sql .= ' WHERE publicid=?';
-									$args = [$data['publicid']];
-									$bookerid = $utils->SafeGet($sql,$args,'one');
+								if ($data['account']) {
+									$sql .= ' B LEFT JOIN '.$mod->AuthTable.' A ON B.auth_id=A.id WHERE A.acchash=? AND A.account)id=?';
+									$hash = $afuncs->GetHash($data['account']);
+									$cid = $mod->GetPreference('authcontext',0); //OR $afuncs->GetContext();
+									$bookerid = $utils->SafeGet($sql,[$hash,$cid],'one');
 								} elseif ($data['name']) {
-									$sql .= ' WHERE name=?';
-									$args = [$data['name']];
-									$bookerid = $utils->SafeGet($sql,$args,'one');
+									$sql .= ' WHERE namehash=?';
+									$hash = $cfuncs->hash_value($data['name'],$mpw);
+									$bookerid = $utils->SafeGet($sql,[$hash],'one');
 								} else {
 									$bookerid = FALSE;
 								}
 							}
 							if ($bookerid) {
-								if ($data['publicid']) {
+								if ($data['account']) {
 									$data['bookerid'] = $bookerid;
 									if ($this->RecordRegisteredBooker($mod,$utils,$ufuncs,$data,$password,$passhash,TRUE)) {
 										$icount++;
 										$done = TRUE;
 									}
 								} else {
+									unset($data['account']); //not in BookerTable
+									if ($data['name']) {
+										$data['namehash'] = $cfuncs->hash_value($data['name'],$mpw);
+										$data['name'] = $cfuncs->cloak_value($data['name'],0,$mpw);
+									}
 									if($data['address']) {
-										$data['address'] = $cfuncs->encrypt_value($data['address']);
+										$data['address'] = $cfuncs->cloak_value($data['address'],0,$mpw);
 									}
 									if($data['phone']) {
-										$data['phone'] = $cfuncs->encrypt_value($data['phone']);
+										$data['phone'] = $cfuncs->cloak_value($data['phone'],16,$mpw);
 									}
 									$namers = implode('=?,',array_keys($data));
 									$sql = 'UPDATE '.$mod->BookerTable.' SET '.$namers.'=? WHERE booker_id=?';
@@ -897,16 +901,21 @@ class Import
 							}
 						}
 						if (!$done) {
-							if ($data['publicid']) {
+							if ($data['account']) {
 								if ($this->RecordRegisteredBooker($mod,$utils,$ufuncs,$data,$password,$passhash,FALSE)) {
 									$icount++;
 								}
 							} else {
+								unset($data['account']);
+								if ($data['name']) {
+									$data['namehash'] = $cfuncs->hash_value($data['name'],$mpw);
+									$data['name'] = $cfuncs->cloak_value($data['name'],0,$mpw);
+								}
 								if($data['address']) {
-									$data['address'] = $cfuncs->encrypt_value($data['address']);
+									$data['address'] = $cfuncs->cloak_value($data['address'],0,$mpw);
 								}
 								if($data['phone']) {
-									$data['phone'] = $cfuncs->encrypt_value($data['phone']);
+									$data['phone'] = $cfuncs->cloak_value($data['phone'],16,$mpw);
 								}
 								$namers = implode(',',array_keys($data));
 								$fillers = str_repeat('?,',count($data)-1);
@@ -925,7 +934,7 @@ class Import
 //					} else {
 //						$skip = TRUE;
 					}
-//TODO if ($done) cache $bookerid=>$data['name'].$data['publicid'] to ignore repetition ?
+//TODO if ($done) cache $bookerid=>$data['name'].$data['account'] to ignore repetition ?
 				}
 			}
 			fclose($fh);
@@ -1010,7 +1019,9 @@ class Import
 				}
 			}
 
-			$afuncs = NULL;
+			$cid = $this->GetPreference('authcontext',0);
+			$afuncs = new \Auther\Auth(NULL,$cid);
+			$cfuncs = new Crypter($mod);
 			$bfuncs = NULL;
 			$sfuncs = NULL;
 			$utils = new Utils();
@@ -1090,38 +1101,20 @@ class Import
 								if (array_key_exists($one,$bookers)) {
 									$data[$k] = $bookers[$one];
 								} else {
-									$sql = 'SELECT booker_id FROM '.$mod->BookerTable.' WHERE name=? OR publicid=?';
-									$t = $mod->dbHandle->GetOne($sql,[$one,$one]);
+									$sql = <<<EOS
+SELECT B.booker_id FROM $mod->BookerTable B
+LEFT JOIN $mod->AuthTable A ON B.auth_id=A.id
+WHERE B.namehash=? OR (A.acchash=? AND A.context_id=?)
+ORDER BY B.auth_id
+EOS;
+									$hash = $cfuncs->hash_value($one);
+									$hash2 = $afuncs->GetHash($one);
+									$cid = $mod->GetPreference('authcontext',0);
+									$t = $mod->dbHandle->GetOne($sql,[$hash,$hash2,$cid]);
 									if ($t) {
 										$t = (int)$t;
 										$bookers[$one] = $t;
 										$data[$k] = $t;
-									} else {
-										//check for registered user named $one
-										if (!$afuncs) {
-											$amod = \cms_utils::get_module('Auther');
-											if ($amod) {
-												$afuncs = new \Auther\Auth($amod,$mod->GetPreference('authcontext',0));
-												unset($amod);
-											}
-										}
-										if ($afuncs && !$regusers) {
-											$regusers = $afuncs->GetPublicUsers(FALSE);
-										}
-										if ($regusers) {
-											foreach ($regusers as $row) {
-												if ($row['name'] == $one) {
-													$t = $mod->dbHandle->GetOne($sql,[$one,$row['publicid']]);
-													if ($t) {
-														$bookers[$one] = (int)$t;
-														$data[$k] = (int)$t;
-														$save = TRUE;
-														break 2;
-													}
-												}
-											}
-										}
-										return [FALSE,'err_baduser'];
 									}
 								}
 								$save = TRUE;
