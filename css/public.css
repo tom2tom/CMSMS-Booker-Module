@@ -311,9 +311,20 @@ input.fakelink:focus {
 
 /* registration panel */
 div#authactions {
- margin-top: 1em;
+ margin-top:1em;
 }
 
 input.cms_submit, select {
  cursor:pointer;
+}
+
+/* tooltip-equivalent for touch-devices */
+.titletip {
+ position:absolute;
+ top:20px;
+ left:20px;
+ padding:5px;
+ color:#FFF;
+ background:#00004D;
+/* white-space:nowrap; */
 }
