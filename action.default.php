@@ -402,41 +402,17 @@ if ($showtable) {
 }
 
 $jsfuncs[] = <<<EOS
-function isEventSupported(eventName) {
- var TAGNAMES = { 'touchstart':'input' }
- var el = document.createElement(TAGNAMES[eventName] || 'div');
- eventName = 'on' + eventName;
- var supported = (eventName in el);
+function isTouchable() {
+ var eventName='ontouchstart',
+  el=document.createElement('input'),
+  supported=(eventName in el);
  if (!supported) {
   el.setAttribute(eventName,'return;');
-  supported = typeof el[eventName] == 'function';
+  supported=typeof el[eventName] == 'function';
  }
- el = null;
+ el=null;
  return supported;
 }
-EOS;
-
-$jsloads[] = <<<EOS
- if (isEventSupported('touchstart')) {
-  var timer=false;
-  $(document).find('input,select,td').on('touchstart touchenter',function(ev) {
-   ev.preventDefault ? ev.preventDefault() : ev.returnValue = false;
-   if(!timer) {
-    var el=this;
-    timer=setTimeout(function() {
-     timer=false;
-     el.onmouseover.call(el);
-    },600);
-   }
-  }).on('touchend touchleave touchcancel click',function() { //big 'touchmove'?
-   if (timer) {
-    clearTimeout(timer);
-    timer=false;
-   } else {
-    this.onmouseout.call(this);
-   }
-  });
- }
 EOS;
 
 if ($showtable) {
@@ -491,8 +467,72 @@ EOS;
  \$table.tableHeadFixer({'left':1});
  \$table.find('th.periodname').click(col_focus);
  \$table.find('td').click(slot_focus).dblclick(slot_activate);
+ if (isTouchable()) {
+  var el=\$table[0],
+   scrollStartY, scrollStartX;
+  el.addEventListener('touchstart', function(ev) {
+   scrollStartY=this.scrollTop + ev.touches[0].pageY;
+   scrollStartX=this.scrollLeft + ev.touches[0].pageX;
+  }, false);
+  el.addEventListener('touchmove', function(ev) {
+   this.scrollTop=scrollStartY - ev.touches[0].pageY;
+   this.scrollLeft=scrollStartX - ev.touches[0].pageX;
+  }, false);
+
+  \$table.find('td').click(slot_focus).dblclick(slot_activate)
+  .on('touchstart touchenter',function(ev) {
+   if (!timer) {
+    tip = this.title;
+    if (tip) {
+     timer=setTimeout(function() {
+      timer=false;
+      $('body').prepend('<span class="titletip">' + tip + '</span>');
+     },600);
+    }
+   }
+  }).on('touchend touchleave touchcancel click',function() { //big 'touchmove'?
+   if (timer) {
+    clearTimeout(timer);
+    timer=false;
+   } else {
+    var \$stip = $('body').find('span .titletip');
+    if (\$stip.length) {
+     \$stip.remove();
+    }
+   }
+  });
+ } else {
+  \$table.find('td').click(slot_focus).dblclick(slot_activate);
+ }
 EOS;
 }
+$jsloads[] = <<<EOS
+ if (isTouchable()) {
+  var timer=false;
+  $(document).find('input,select').on('touchstart touchenter',function(ev) {
+   if (!timer) {
+    var el=this,
+    tip = el.title;
+    if (tip) {
+     timer=setTimeout(function() {
+      timer=false;
+      $(el).append('<span class="titletip">' + tip + '</span>');
+     },600);
+    }
+   }
+  }).on('touchend touchleave touchcancel click',function() { //big 'touchmove'?
+   if (timer) {
+    clearTimeout(timer);
+    timer=false;
+   } else {
+    var \$stip = $(this).find('span .titletip');
+    if (\$stip.length) {
+     \$stip.remove();
+    }
+   }
+  });
+ }
+EOS;
 
 $jsincs[] = <<<EOS
 <script type="text/javascript" src="{$baseurl}/lib/js/pikaday.min.js"></script>
