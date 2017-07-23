@@ -13,7 +13,7 @@
 {$startform}
 {$hidden}
 <div style="overflow:auto;">
-<table class="shrink"><tbody>
+<table id="responses" class="shrink"><tbody>
 {foreach from=$tablerows item=entry}
 <tr{if $entry->class} class="{$entry->class}"{/if}><td>{if $entry->mst}* {/if}{$entry->ttl}</td><td>{$entry->inp}</td></tr>
 {/foreach}
