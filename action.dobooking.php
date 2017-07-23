@@ -448,44 +448,6 @@ $jsloads[] = <<<'EOS'
  $('#needjs').css('display','none');
 EOS;
 
-$jsfuncs[] = <<<EOS
-function isEventSupported(eventName) {
- var TAGNAMES = { 'touchstart':'input' }
- var el = document.createElement(TAGNAMES[eventName] || 'div');
- eventName = 'on' + eventName;
- var supported = (eventName in el);
- if (!supported) {
-  el.setAttribute(eventName,'return;');
-  supported = typeof el[eventName] == 'function';
- }
- el = null;
- return supported;
-}
-EOS;
-
-$jsloads[] = <<<EOS
- if (isEventSupported('touchstart')) {
-  var timer=false;
-  $(document).find('input').on('touchstart touchenter',function(ev) {
-   ev.preventDefault ? ev.preventDefault() : ev.returnValue = false;
-   if(!timer) {
-    var el=this;
-    timer=setTimeout(function() {
-     timer=false;
-     el.onmouseover.call(el);
-    },600);
-   }
-  }).on('touchend touchleave touchcancel click',function() { //big 'touchmove'?
-   if (timer) {
-    clearTimeout(timer);
-    timer=false;
-   } else {
-    this.onmouseout.call(this);
-   }
-  });
- }
-EOS;
-
 $tplvars['needjs'] = $this->Lang('needjs');
 $tplvars['title'] = $this->Lang('title_request');
 $tplvars['textwhat'] = $utils->GetItemName($this,$idata);
@@ -878,6 +840,82 @@ $jsloads[] = <<<EOS
   });
   return false;
  });
+EOS;
+
+$jsfuncs[] = <<<EOS
+function isTouchable() {
+ var eventName='ontouchstart',
+  el=document.createElement('input'),
+  supported=(eventName in el);
+ if (!supported) {
+  el.setAttribute(eventName,'return;');
+  supported=typeof el[eventName] == 'function';
+ }
+ el=null;
+ return supported;
+}
+EOS;
+
+$jsloads[] = <<<EOS
+ if (isTouchable()) {
+  var timer=false;
+  $(document).find('input,select').on('touchstart touchenter',function(ev) {
+   if (!timer) {
+    var el=this,
+    tip = el.title;
+    if (tip) {
+     timer=setTimeout(function() {
+      timer=false;
+      $(el).append('<span class="titletip">' + tip + '</span>');
+     },600);
+    }
+   }
+  }).on('touchend touchleave touchcancel click',function() { //big 'touchmove'?
+   if (timer) {
+    clearTimeout(timer);
+    timer=false;
+   } else {
+    var \$stip = $(this).find('span .titletip');
+    if (\$stip.length) {
+     \$stip.remove();
+    }
+   }
+  });
+
+  var \$tbl=$('#responses'),
+   el=\$tbl[0],
+   scrollStartY, scrollStartX;
+  el.addEventListener('touchstart', function(ev) {
+   scrollStartY=this.scrollTop + ev.touches[0].pageY;
+   scrollStartX=this.scrollLeft + ev.touches[0].pageX;
+  }, false);
+  el.addEventListener('touchmove', function(ev) {
+   this.scrollTop=scrollStartY - ev.touches[0].pageY;
+   this.scrollLeft=scrollStartX - ev.touches[0].pageX;
+  }, false);
+
+  \$tbl.find('td').on('touchstart touchenter',function(ev) {
+   if (!timer) {
+    tip = this.title;
+    if (tip) {
+     timer=setTimeout(function() {
+      timer=false;
+      $('body').prepend('<span class="titletip">' + tip + '</span>');
+     },600);
+    }
+   }
+  }).on('touchend touchleave touchcancel click',function() { //big 'touchmove'?
+   if (timer) {
+    clearTimeout(timer);
+    timer=false;
+   } else {
+    var \$stip = $('body').find('span .titletip');
+    if (\$stip.length) {
+     \$stip.remove();
+    }
+   }
+  });
+ }
 EOS;
 
 $tplvars['choose'] = NULL; /*$utils->GetItemPicker($this,$id,'itempick',$params['firstpick'],$item_id);

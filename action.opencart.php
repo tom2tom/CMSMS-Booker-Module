@@ -118,38 +118,76 @@ $jsloads[] = <<<EOS
 EOS;
 
 $jsfuncs[] = <<<EOS
-function isEventSupported(eventName) {
- var TAGNAMES = { 'touchstart':'input' }
- var el = document.createElement(TAGNAMES[eventName] || 'div');
- eventName = 'on' + eventName;
- var supported = (eventName in el);
+function isTouchable() {
+ var eventName='ontouchstart',
+  el=document.createElement('input'),
+  supported=(eventName in el);
  if (!supported) {
   el.setAttribute(eventName,'return;');
-  supported = typeof el[eventName] == 'function';
+  supported=typeof el[eventName] == 'function';
  }
- el = null;
+ el=null;
  return supported;
 }
 EOS;
 
 $jsloads[] = <<<EOS
- if (isEventSupported('touchstart')) {
+ if (isTouchable()) {
   var timer=false;
-  $(document).find('input').on('touchstart touchenter',function(ev) {
-   ev.preventDefault ? ev.preventDefault() : ev.returnValue = false;
-   if(!timer) {
-    var el=this;
-    timer=setTimeout(function() {
-     timer=false;
-     el.onmouseover.call(el);
-    },600);
+  $(document).find('input,select').on('touchstart touchenter',function(ev) {
+   if (!timer) {
+    var el=this,
+    tip = el.title;
+    if (tip) {
+     timer=setTimeout(function() {
+      timer=false;
+      $(el).append('<span class="titletip">' + tip + '</span>');
+     },600);
+    }
    }
   }).on('touchend touchleave touchcancel click',function() { //big 'touchmove'?
    if (timer) {
     clearTimeout(timer);
     timer=false;
    } else {
-    this.onmouseout.call(this);
+    var \$stip = $(this).find('span .titletip');
+    if (\$stip.length) {
+     \$stip.remove();
+    }
+   }
+  });
+
+  var \$tbl=$('#cart'),
+   el=\$tbl[0],
+   scrollStartY, scrollStartX;
+  el.addEventListener('touchstart', function(ev) {
+   scrollStartY=this.scrollTop + ev.touches[0].pageY;
+   scrollStartX=this.scrollLeft + ev.touches[0].pageX;
+  }, false);
+  el.addEventListener('touchmove', function(ev) {
+   this.scrollTop=scrollStartY - ev.touches[0].pageY;
+   this.scrollLeft=scrollStartX - ev.touches[0].pageX;
+  }, false);
+
+  \$tbl.find('td').on('touchstart touchenter',function(ev) {
+   if (!timer) {
+    tip = this.title;
+    if (tip) {
+     timer=setTimeout(function() {
+      timer=false;
+      $('body').prepend('<span class="titletip">' + tip + '</span>');
+     },600);
+    }
+   }
+  }).on('touchend touchleave touchcancel click',function() { //big 'touchmove'?
+   if (timer) {
+    clearTimeout(timer);
+    timer=false;
+   } else {
+    var \$stip = $('body').find('span .titletip');
+    if (\$stip.length) {
+     \$stip.remove();
+    }
    }
   });
  }
