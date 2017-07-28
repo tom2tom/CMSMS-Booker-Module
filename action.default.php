@@ -490,7 +490,7 @@ EOS;
      },600);
     }
    }
-  }).on('touchend touchleave touchcancel click',function() { //big 'touchmove'?
+  }).on('touchend touchleave touchcancel',function() { //click? big 'touchmove'?
    if (timer) {
     clearTimeout(timer);
     timer=false;
@@ -500,7 +500,7 @@ EOS;
      \$stip.remove();
     }
    }
-  });
+  }).css('touch-action','manipulation');
  } else {
   \$table.find('td').click(slot_focus).dblclick(slot_activate);
  }
@@ -520,7 +520,7 @@ $jsloads[] = <<<EOS
      },600);
     }
    }
-  }).on('touchend touchleave touchcancel click',function() { //big 'touchmove'?
+  }).on('touchend touchleave touchcancel',function() { //click? big 'touchmove'?
    if (timer) {
     clearTimeout(timer);
     timer=false;
@@ -530,7 +530,7 @@ $jsloads[] = <<<EOS
      \$stip.remove();
     }
    }
-  });
+  }).css({'font-size','16px'});
  }
 EOS;
 

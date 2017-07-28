@@ -870,7 +870,7 @@ $jsloads[] = <<<EOS
      },600);
     }
    }
-  }).on('touchend touchleave touchcancel click',function() { //big 'touchmove'?
+  }).on('touchend touchleave touchcancel',function() { //click? big 'touchmove'?
    if (timer) {
     clearTimeout(timer);
     timer=false;
@@ -880,7 +880,7 @@ $jsloads[] = <<<EOS
      \$stip.remove();
     }
    }
-  });
+  }).css('font-size','16px');
 
   var \$tbl=$('#responses'),
    el=\$tbl[0],
@@ -904,7 +904,7 @@ $jsloads[] = <<<EOS
      },600);
     }
    }
-  }).on('touchend touchleave touchcancel click',function() { //big 'touchmove'?
+  }).on('touchend touchleave touchcancel',function() { //click? big 'touchmove'?
    if (timer) {
     clearTimeout(timer);
     timer=false;
