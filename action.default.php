@@ -402,7 +402,6 @@ if ($showtable) {
 }
 
 $jsfuncs[] = <<<EOS
-//var when=new Date();
 var touchtimer=false,
  singltimer=false,
  longWait=600,
@@ -422,11 +421,11 @@ function isTouchable() {
  return supported;
 }
 function touchtip(el,msg) {
- $(document.body).prepend('<div class="titletip">' + msg + '</div>');
+ $(document.body).prepend('<div class="touchtip">' + msg + '</div>');
 }
 function un_touchtip(el) {
  var \$eltip=$('body > div:nth-child(1)');
- if (\$eltip.length > 0 && \$eltip[0].classList.contains('titletip')) {
+ if (\$eltip.length > 0 && \$eltip[0].classList.contains('touchtip')) {
   \$eltip.remove();
   return true;
  }
@@ -449,13 +448,10 @@ function touchstart(ev,el) {
  }
  tip=el.title;
  if (tip) {
-//  logtouch('timer start @1');
   touchtimer=setTimeout(function() {
    touchtimer=false;
    touchtip(el,tip);
   },longWait);
- } else {
-//  logtouch('no tip @2');
  }
 }
 function touchend (ev,el,processor) {
@@ -474,14 +470,11 @@ function touchend (ev,el,processor) {
  }
  if (un_touchtip(el)) {
   stopClick = true;
-//  logtouch('tip cleared @3');
   lastTap=0;
-//  logtouch('no timer @4');
   ev.preventDefault();
   return false;
  }
  stopClick = false;
-// logtouch('no tip @5');
 }
 function touchmove (ev,el) {
  if (touchtimer) {
@@ -498,10 +491,6 @@ function touchmove (ev,el) {
   el.scrollTop=startAtY - ev.touches[0].pageY;
   el.scrollLeft=startAtX - ev.touches[0].pageX;
  }
-}
-function logtouch(msg) {
- var p = document.getElementById('log');
- p.innerHTML = p.innerHTML + msg + '<br />';
 }
 EOS;
 $jsloads[] = <<<EOS
@@ -576,39 +565,28 @@ EOS;
    .on('mouseup touchend touchleave touchcancel',function(ev) {
     var el=this;
     touchend(ev,el,function() {
-     if (ev.type == 'touchend') { //'touchend') {
-      curTap=ev.timeStamp; //Date.now(); //when.getTime();
+     if (ev.type == 'touchend') {
+      curTap=ev.timeStamp;
       var save=lastTap,
         tapGap=(curTap - save);
       lastTap=curTap;
-//      logtouch('tapGap ' + tapGap);
-//      var t1 = ev.currentTarget.dataset.lastTouch || t2;
-//      ev.currentTarget.dataset.lastTouch = t2;
       if (tapGap < dblGap && tapGap > 0) {
        if (singltimer) {
         clearTimeout(singltimer);
         singltimer=false;
        }
-       logtouch('double @6');
        slot_activate(ev,el); //do doubletap stuff
        stopClick=true;
        ev.preventDefault();
-//     return false;
-//     ev.target.click().click();
       } else if (save > 0) {
        singltimer=setTimeout(function() {
         singltimer=false;
-        logtouch('single @7');
-        slot_focus(ev,el); //do singletap stuff
+        slot_focus(ev,el);
        },shortWait);
        stopClick=true;
        ev.preventDefault();
-//     return false;
-      } else {
-//       logtouch('mouseup event end @8');
       }
      } else {
-//      logtouch('other event end @9');
       lastTap=0;
      }
     });
@@ -616,12 +594,10 @@ EOS;
   .on('click',function(ev) {
     if (stopClick) {
      stopClick=false;
-//     logtouch('click blocked @10');
      ev.preventDefault();
      return false;
     } else {
-     slot_focus(ev,this); //do singletap stuff TODO or double
-//     logtouch('click handler @11');
+     slot_focus(ev,this);
     }
   })
   .css('touch-action','manipulation');
@@ -640,11 +616,8 @@ $jsloads[] = <<<EOS
   .on('click',function(ev) {
    if (stopClick) {
     stopClick=false;
-//    logtouch('click blocked @12');
     ev.preventDefault();
     return false;
-   } else {
-//    logtouch('click handler @13');
    }
   }).css('font-size','16px');
  }
