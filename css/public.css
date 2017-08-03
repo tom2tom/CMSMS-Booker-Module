@@ -271,6 +271,11 @@ table.bkr_collapse {
  border-collapse: collapse;
 }
 
+div.displaytools {
+ text-align:center;
+ margin:0 0 10px 0;
+}
+
 input.iconbutton {
  margin:3px;
  padding:0;
@@ -319,7 +324,7 @@ input.cms_submit, select {
 }
 
 /* tooltip-equivalent for touch-devices */
-.titletip {
+.touchtip {
  position:fixed;
  top:20px;
  left:20px;
