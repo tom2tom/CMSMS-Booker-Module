@@ -12,7 +12,7 @@
 {foreach from=$hidden item=inc}{$inc}{/foreach}
 <fieldset>
 <legend>{$actionstitle}</legend>
-<p style="text-align:center;margin:0;">{foreach from=$actions1 item=inc}{$inc}{/foreach}</div>
+<div class="displaytools">{foreach from=$actions1 item=inc}{$inc}{/foreach}</div>
 </fieldset>
 {if isset($actions)}{foreach from=$actions key=k item=btn}{if $k>0}&nbsp;&nbsp;{/if}{$btn}{/foreach}<br /><br />{/if}
 {if $columns}
