@@ -402,6 +402,14 @@ if ($showtable) {
 }
 
 $jsfuncs[] = <<<EOS
+//var when=new Date();
+var touchtimer=false,
+ singltimer=false,
+ longWait=600,
+ shortWait=200,
+ dblGap=500,
+ lastTap=0,
+ stopClick,curTap,startAtY,startAtX;
 function isTouchable() {
  var eventName='ontouchstart',
   el=document.createElement('input'),
@@ -417,40 +425,101 @@ function touchtip(el,msg) {
  $(document.body).prepend('<div class="titletip">' + msg + '</div>');
 }
 function un_touchtip(el) {
- var \$eltip = $('body > div:nth-child(1)');
- if (\$eltip.length > 0 && \$eltip[0].classList.contains('touchtip')) {
+ var \$eltip=$('body > div:nth-child(1)');
+ if (\$eltip.length > 0 && \$eltip[0].classList.contains('titletip')) {
   \$eltip.remove();
   return true;
  }
  return false;
 }
+function touchstart(ev,el) {
+ if (touchtimer) {
+  clearTimeout(touchtimer);
+  touchtimer=false;
+ }
+ if (ev.touches && ev.touches.length > 1) {
+  return;
+ }
+ if (el === undefined) {
+  el=this;
+ }
+ if ('scrollTop' in el) {
+  startAtY=el.scrollTop + ev.touches[0].pageY;
+  startAtX=el.scrollLeft + ev.touches[0].pageX;
+ }
+ tip=el.title;
+ if (tip) {
+//  logtouch('timer start @1');
+  touchtimer=setTimeout(function() {
+   touchtimer=false;
+   touchtip(el,tip);
+  },longWait);
+ } else {
+//  logtouch('no tip @2');
+ }
+}
+function touchend (ev,el,processor) {
+ if (touchtimer) {
+  clearTimeout(touchtimer);
+  touchtimer=false;
+ }
+ if (ev.touches && ev.touches.length > 0) {
+  return;
+ }
+ if (el === undefined) {
+  el=this;
+ }
+ if (processor !== undefined && typeof processor == 'function') {
+  processor.call(this,ev,el);
+ }
+ if (un_touchtip(el)) {
+  stopClick = true;
+//  logtouch('tip cleared @3');
+  lastTap=0;
+//  logtouch('no timer @4');
+  ev.preventDefault();
+  return false;
+ }
+ stopClick = false;
+// logtouch('no tip @5');
+}
+function touchmove (ev,el) {
+ if (touchtimer) {
+  clearTimeout(touchtimer);
+  touchtimer=false;
+ }
+ if (ev.touches && ev.touches.length > 1) {
+  return;
+ }
+ if (el === undefined) {
+  el=this;
+ }
+ if ('scrollTop' in el) {
+  el.scrollTop=startAtY - ev.touches[0].pageY;
+  el.scrollLeft=startAtX - ev.touches[0].pageX;
+ }
+}
 function logtouch(msg) {
  var p = document.getElementById('log');
- p.innerHTML = msg + '<br />' + p.innerHTML;
+ p.innerHTML = p.innerHTML + msg + '<br />';
 }
 EOS;
 $jsloads[] = <<<EOS
  var touchy = isTouchable();
- if (touchy) {
-  var when=new Date(),
-   touchtimer=false,
-   longWait=600,
-   shortWait=200,
-   dblGap=500,
-   lastTap=0,
-   curTap,scrollFromY,scrollFromX;
- }
 EOS;
 
 if ($showtable) {
 //CHECKME PURPOSE booking-table th click() handler
 	$jsfuncs[] = <<<EOS
-function slot_activate() {
- var idx = $(this).index();
+function slot_activate(ev,el) {
+ if (el === undefined) {
+  el=this;
+ }
+ var idx = $(el).index();
  if (idx === 0) //labels col
   return;
- slot_record(this);
- var bkid = $(this).attr('id');
+ slot_record(el);
+ var bkid = $(el).attr('id');
  if (typeof bkid != 'undefined')
   $('#{$id}bgkid').val(bkid);
  $('#{$id}request').click();
@@ -464,13 +533,17 @@ function slot_record(el) {
  $('#{$id}clickat').val(dt);
 }
 var focus = null;
-function slot_focus() {
+function slot_focus(ev,el) {
  if (focus != null) {
   $(focus).removeClass('slotfocus');
  }
- focus = this;
- $(this).addClass('slotfocus');
- slot_record(this);
+ if (el === undefined) {
+  focus=this;
+ } else {
+  focus=el;
+ }
+ $(focus).addClass('slotfocus');
+ slot_record(focus);
  var btn = $('#{$id}request');
  btn.addClass('btnfocus');
  setTimeout(function() {
@@ -478,8 +551,11 @@ function slot_focus() {
   btn[0].focus();
  },4000);
 }
-function col_focus() {
- var idx = $(this).index(),
+function col_focus(ev,el) {
+ if (el === undefined) {
+  el=this;
+ }
+ var idx = $(el).index(),
   table = $('#scroller')[0],
   dt = table.rows[0].cells[idx].getAttribute('iso');
  dt += table.rows[1].cells[0].getAttribute('iso');
@@ -495,51 +571,60 @@ EOS;
  \$table.find('th.periodname').click(col_focus);
  var \$cells = \$table.find('td');
  if (touchy) {
-  \$table.on('touchstart',function(ev) {
-   scrollFromY=this.scrollTop + ev.touches[0].pageY;
-   scrollFromX=this.scrollLeft + ev.touches[0].pageX;
-  }).on('touchmove',function(ev) {
-   this.scrollTop=scrollFromY - ev.touches[0].pageY;
-   this.scrollLeft=scrollFromX - ev.touches[0].pageX;
-  });
-  \$cells.on('touchstart touchenter',function(ev) {
-   if (!touchtimer) {
-    tip = this.title;
-    if (tip) {
-     touchtimer=setTimeout(function() {
-      touchtimer=false;
-      touchtip(this,tip);
-     },longWait);
-    }
-   }
-  }).on('touchend touchleave touchcancel',function(ev) {
-   if (touchtimer) {
-    clearTimeout(touchtimer);
-    touchtimer=false;
-    if (ev.type == 'touchend') {
-     curTap=when.getTime();
-     var save=lastTap,
-       tapGap=curTap - save;
-     lastTap=curTap;
-     if (tapGap < dblGap && tapGap > 0) {
-      slot_activate(); //do doubletap stuff
-      ev.preventDefault();
-      return false;
-     } else if (save > 0) {
-      //TODO timer in case of double- ?
-      slot_focus(); //do singletap stuff
-      ev.preventDefault();
-      return false;
+  \$table.on('touchstart',touchstart).on('touchmove',touchmove);
+  \$cells.on('mousedown touchstart touchenter',touchstart)
+   .on('mouseup touchend touchleave touchcancel',function(ev) {
+    var el=this;
+    touchend(ev,el,function() {
+     if (ev.type == 'touchend') { //'touchend') {
+      curTap=ev.timeStamp; //Date.now(); //when.getTime();
+      var save=lastTap,
+        tapGap=(curTap - save);
+      lastTap=curTap;
+//      logtouch('tapGap ' + tapGap);
+//      var t1 = ev.currentTarget.dataset.lastTouch || t2;
+//      ev.currentTarget.dataset.lastTouch = t2;
+      if (tapGap < dblGap && tapGap > 0) {
+       if (singltimer) {
+        clearTimeout(singltimer);
+        singltimer=false;
+       }
+       logtouch('double @6');
+       slot_activate(ev,el); //do doubletap stuff
+       stopClick=true;
+       ev.preventDefault();
+//     return false;
+//     ev.target.click().click();
+      } else if (save > 0) {
+       singltimer=setTimeout(function() {
+        singltimer=false;
+        logtouch('single @7');
+        slot_focus(ev,el); //do singletap stuff
+       },shortWait);
+       stopClick=true;
+       ev.preventDefault();
+//     return false;
+      } else {
+//       logtouch('mouseup event end @8');
+      }
+     } else {
+//      logtouch('other event end @9');
+      lastTap=0;
      }
+    });
+  })
+  .on('click',function(ev) {
+    if (stopClick) {
+     stopClick=false;
+//     logtouch('click blocked @10');
+     ev.preventDefault();
+     return false;
     } else {
-     lastTap=0;
+     slot_focus(ev,this); //do singletap stuff TODO or double
+//     logtouch('click handler @11');
     }
-   } else if (un_touchtip(this)) {
-    lastTap=0;
-    ev.preventDefault();
-    return false;
-   }
-  }).css('touch-action','manipulation');
+  })
+  .css('touch-action','manipulation');
  } else {
   \$cells.click(slot_focus).dblclick(slot_activate);
  }
@@ -548,26 +633,20 @@ EOS;
 
 $jsloads[] = <<<EOS
  if (touchy) {
-  $(document).find('input.cms_submit,select').on('touchstart touchenter',function() {
-   if (!touchtimer) {
-    tip = this.title;
-    if (tip) {
-     touchtimer=setTimeout(function() {
-      touchtimer=false;
-      touchtip(this,tip);
-     },longWait);
-    }
-   }
-  }).on('touchend touchleave touchcancel',function(ev) {
-   if (touchtimer) {
-    clearTimeout(touchtimer);
-    touchtimer=false;
-   } else if (un_touchtip(this)) {
-    lastTap=0;
+  $(document).find('input.cms_submit,select')
+  .on('mousedown touchstart touchenter',touchstart)
+  .on('touchmove',touchmove)
+  .on('mouseup touchend touchleave touchcancel',touchend)
+  .on('click',function(ev) {
+   if (stopClick) {
+    stopClick=false;
+//    logtouch('click blocked @12');
     ev.preventDefault();
     return false;
+   } else {
+//    logtouch('click handler @13');
    }
-  }).css('font-size','1.1em');
+  }).css('font-size','16px');
  }
 EOS;
 
