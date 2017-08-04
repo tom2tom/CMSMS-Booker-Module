@@ -843,6 +843,13 @@ $jsloads[] = <<<EOS
 EOS;
 
 $jsfuncs[] = <<<EOS
+var touchtimer=false,
+ singltimer=false,
+ longWait=600,
+ shortWait=200,
+ dblGap=500,
+ lastTap=0,
+ stopClick,curTap,startAtY,startAtX;
 function isTouchable() {
  var eventName='ontouchstart',
   el=document.createElement('input'),
@@ -854,67 +861,95 @@ function isTouchable() {
  el=null;
  return supported;
 }
+function touchtip(el,msg) {
+ $(document.body).prepend('<div class="touchtip">' + msg + '</div>');
+}
+function un_touchtip(el) {
+ var \$eltip=$('body > div:nth-child(1)');
+ if (\$eltip.length > 0 && \$eltip[0].classList.contains('touchtip')) {
+  \$eltip.remove();
+  return true;
+ }
+ return false;
+}
+function touchstart(ev,el) {
+ if (touchtimer) {
+  clearTimeout(touchtimer);
+  touchtimer=false;
+ }
+ if (ev.touches && ev.touches.length > 1) {
+  return;
+ }
+ if (el === undefined) {
+  el=this;
+ }
+ if ('scrollTop' in el) {
+  startAtY=el.scrollTop + ev.touches[0].pageY;
+  startAtX=el.scrollLeft + ev.touches[0].pageX;
+ }
+ tip=el.title;
+ if (tip) {
+  touchtimer=setTimeout(function() {
+   touchtimer=false;
+   touchtip(el,tip);
+  },longWait);
+ }
+}
+function touchend (ev,el,processor) {
+ if (touchtimer) {
+  clearTimeout(touchtimer);
+  touchtimer=false;
+ }
+ if (ev.touches && ev.touches.length > 0) {
+  return;
+ }
+ if (el === undefined) {
+  el=this;
+ }
+ if (processor !== undefined && typeof processor == 'function') {
+  processor.call(this,ev,el);
+ }
+ if (un_touchtip(el)) {
+  stopClick = true;
+  lastTap=0;
+  ev.preventDefault();
+  return false;
+ }
+ stopClick = false;
+}
+function touchmove (ev,el) {
+ if (touchtimer) {
+  clearTimeout(touchtimer);
+  touchtimer=false;
+ }
+ if (ev.touches && ev.touches.length > 1) {
+  return;
+ }
+ if (el === undefined) {
+  el=this;
+ }
+ if ('scrollTop' in el) {
+  el.scrollTop=startAtY - ev.touches[0].pageY;
+  el.scrollLeft=startAtX - ev.touches[0].pageX;
+ }
+}
 EOS;
 
 $jsloads[] = <<<EOS
  if (isTouchable()) {
-  var timer=false;
-  $(document).find('input,select').on('touchstart touchenter',function(ev) {
-   if (!timer) {
-    var el=this,
-    tip = el.title;
-    if (tip) {
-     timer=setTimeout(function() {
-      timer=false;
-      $(el).append('<span class="titletip">' + tip + '</span>');
-     },600);
-    }
-   }
-  }).on('touchend touchleave touchcancel',function() { //click? big 'touchmove'?
-   if (timer) {
-    clearTimeout(timer);
-    timer=false;
-   } else {
-    var \$stip = $(this).find('span .titletip');
-    if (\$stip.length) {
-     \$stip.remove();
-    }
+  var \$tbl=$('#responses');
+  \$tbl.on('touchstart',touchstart).on('touchmove',touchmove);
+  $(document).find('input.cms_submit,select')
+  .on('touchstart touchenter',touchstart)
+  .on('touchmove',touchmove)
+  .on('touchend touchleave touchcancel',touchend)
+  .on('click',function(ev) {
+   if (stopClick) {
+    stopClick=false;
+    ev.preventDefault();
+    return false;
    }
   }).css('font-size','16px');
-
-  var \$tbl=$('#responses'),
-   el=\$tbl[0],
-   scrollStartY, scrollStartX;
-  el.addEventListener('touchstart', function(ev) {
-   scrollStartY=this.scrollTop + ev.touches[0].pageY;
-   scrollStartX=this.scrollLeft + ev.touches[0].pageX;
-  }, false);
-  el.addEventListener('touchmove', function(ev) {
-   this.scrollTop=scrollStartY - ev.touches[0].pageY;
-   this.scrollLeft=scrollStartX - ev.touches[0].pageX;
-  }, false);
-
-  \$tbl.find('td').on('touchstart touchenter',function(ev) {
-   if (!timer) {
-    tip = this.title;
-    if (tip) {
-     timer=setTimeout(function() {
-      timer=false;
-      $('body').prepend('<span class="titletip">' + tip + '</span>');
-     },600);
-    }
-   }
-  }).on('touchend touchleave touchcancel',function() { //click? big 'touchmove'?
-   if (timer) {
-    clearTimeout(timer);
-    timer=false;
-   } else {
-    var \$stip = $('body').find('span .titletip');
-    if (\$stip.length) {
-     \$stip.remove();
-    }
-   }
-  });
  }
 EOS;
 
