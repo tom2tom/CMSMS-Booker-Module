@@ -561,8 +561,8 @@ EOS;
  var \$cells = \$table.find('td');
  if (touchy) {
   \$table.on('touchstart',touchstart).on('touchmove',touchmove);
-  \$cells.on('mousedown touchstart touchenter',touchstart)
-   .on('mouseup touchend touchleave touchcancel',function(ev) {
+  \$cells.on('touchstart touchenter',touchstart)
+   .on('touchend touchleave touchcancel',function(ev) {
     var el=this;
     touchend(ev,el,function() {
      if (ev.type == 'touchend') {
@@ -610,9 +610,9 @@ EOS;
 $jsloads[] = <<<EOS
  if (touchy) {
   $(document).find('input.cms_submit,select')
-  .on('mousedown touchstart touchenter',touchstart)
+  .on('touchstart touchenter',touchstart)
   .on('touchmove',touchmove)
-  .on('mouseup touchend touchleave touchcancel',touchend)
+  .on('touchend touchleave touchcancel',touchend)
   .on('click',function(ev) {
    if (stopClick) {
     stopClick=false;
