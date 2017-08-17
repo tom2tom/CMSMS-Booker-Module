@@ -34,9 +34,7 @@
 {else}
 <p>{$nobookings}</p>
 {/if}
-<div style="margin-top:0.5em;">
+<div style="margin-top:0.5em;text-align:center;">
 {$book}
-<div style="float:right;">{foreach from=$actions2 item=inc}{$inc} {/foreach}</div>
-<div style="clear:right;"></div>
 </div>
 {$endform}
