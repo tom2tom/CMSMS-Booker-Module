@@ -45,6 +45,7 @@ switch ($oldversion) {
 	$cfuncs->encrypt_preference('masterpass');
 */
 case '0.6':
+	//TODO tailored blob-sizes c.f. method.install
 	$sqlarray = $dict->AlterColumnSQL($this->BookerTable, 'name B');
 	$dict->ExecuteSqlArray($sqlarray);
 	$sqlarray = $dict->AddColumnSQL($this->BookerTable, 'auth_id I(4) DEFAULT 0');
@@ -52,7 +53,7 @@ case '0.6':
 	$sqlarray = $dict->AddColumnSQL($this->BookerTable, 'namehash B');
 	$dict->ExecuteSqlArray($sqlarray);
 
-	$cfuncs = new Booker\Crypter($this);
+	$cfuncs = new Booker\CryptInit($this);
 	$t = $this->GetPreference('nQCeESKBr99A');
 	if ($t) {
 		$val = hash('crc32b', $t.$config['ssl_url'].$this->GetModulePath());
