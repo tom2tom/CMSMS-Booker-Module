@@ -11,6 +11,14 @@ $taboptarray = [
  'mysqli' => 'ENGINE MyISAM CHARACTER SET utf8 COLLATE utf8_general_ci'];
 $dict = NewDataDictionary($db);
 $pre = cms_db_prefix();
+if (strncasecmp($config['dbms'], 'mysql', 5) == 0) {
+	$bm = 'B(16384)';
+	$bs = 'B(512)';
+} else {
+	//postgres supported pre-1.11
+	$bm = 'B';
+	$bs = 'B';
+}
 $errmsg = 'Installation failure'; //no translation
 /*
 items (i.e. groups and resources) table schema:
@@ -325,10 +333,10 @@ $fields = '
 pay_id I(4) KEY,
 booker_id I(4),
 updated I(8),
-status I(1) DEFAULT '.Booker::CREDITADDED.',
-original B,
-latest B
-';
+status I(1) DEFAULT '.Booker::CREDITADDED.",
+original $bs,
+latest $bs
+";
 $sqlarray = $dict->CreateTableSQL($this->CreditTable, $fields, $taboptarray);
 if ($sqlarray == FALSE || $dict->ExecuteSQLArray($sqlarray, FALSE) != 2) {
 	return $errmsg;
@@ -348,18 +356,18 @@ bookers table schema:
  displayclass: display-stying enum 1..Booker::USERSTYLES
  active: enum: 0 no; 1 yes; -1 deletion pending while historical data needed
 */
-$fields = '
+$fields = "
 booker_id I(4) KEY,
 auth_id I(4) DEFAULT 0,
-namehash B,
-name B,
-address B,
-phone B,
+namehash $bs,
+name $bs,
+address $bm,
+phone $bs,
 addwhen I(8),
 type I(1) DEFAULT 0,
 displayclass I(1) DEFAULT 1,
 active I(1) DEFAULT 1
-';
+";
 $sqlarray = $dict->CreateTableSQL($this->BookerTable, $fields, $taboptarray);
 if ($sqlarray == FALSE || $dict->ExecuteSQLArray($sqlarray, FALSE) != 2) {
 	return $errmsg;
@@ -447,7 +455,7 @@ $this->SetPreference('domains', ''); //for initial check
 $this->SetPreference('subdomains', ''); //for secondary check
 $this->SetPreference('topdomains', 'biz,co,com,edu,gov,info,mil,name,net,org'); //for final check
 
-$cfuncs = new Booker\Crypter($this);
+$cfuncs = new Booker\CryptInit($this);
 $cfuncs->init_crypt();
 $cfuncs->encrypt_preference(Booker\Crypter::MKEY, base64_decode('V09PIEhPTyB0aGlzIGlzIE5FVw=='));
 
