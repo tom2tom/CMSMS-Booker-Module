@@ -78,7 +78,7 @@ if (!function_exists('array_like')) {
 					}
 				}
 			} else { //matching part
-				$m++;
+				++$m;
 			}
 		}
 		$mc  = max(count($a),count($b));

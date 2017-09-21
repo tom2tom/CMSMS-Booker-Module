@@ -73,10 +73,10 @@ class Display
 				} else {
 					$skips[] = $si;
 				}
-				$si++;
+				++$si;
 			}
 			if ($oe > 0)
-				$oe--;
+				--$oe;
 			$oa -= $bs;
 		} else { //whole period is available
 			$ob = 0;
@@ -220,11 +220,11 @@ class Display
 					$titles[] = $d.'<br />'.$dtw->format($fmt);
 					$isos[] = $dtw->format('Y-m-d');
 				}
-				$t++;
+				++$t;
 				if ($t > 6)
 					$t = 0;
 				$dtw->add($inc);
-				$si++;
+				++$si;
 			} while ($t != $t1);
 			break;
 		 case \Booker::RANGEMTH: //month-view
@@ -245,11 +245,11 @@ class Display
 						$titles[] = $names[$d].'<br />'.$dtw->format($fmt);
 						$isos[] = $dtw->format('Y-m-d');
 					}
-					$t++;
+					++$t;
 					if ($t > $l)
 						$t = 1;
 					$dtw->add($inc);
-					$si++;
+					++$si;
 				} while ($t != $t1);
 			} else { //$seglen == \Booker::SEGWEEK, week-per-column
 				if ($shortday)
@@ -274,7 +274,7 @@ class Display
 						$isos[] = $dtw->format('Y-m');  //rows must append '-d'
 					}
 					$dtw->add($inc);
-					$si++;
+					++$si;
 				} while ($dtw < $dte);
 			}
 			break;
@@ -305,7 +305,7 @@ class Display
 				do {
 					$titles[] = $names[$t].'<br />'.$dtw->format('Y');
 					$isos[] = $dtw->format('Y-m');
-					$t++;
+					++$t;
 					if ($t > 12)
 						$t = 1;
 					$dtw->add($inc);
@@ -445,7 +445,7 @@ class Display
 						break;
 					}
 					$iter->next();
-					$position++;
+					++$position;
 				} else {
 					break;
 				}
@@ -711,7 +711,7 @@ class Display
 					$row = $iter->current();
 					if ($row['slotstart'] < $bs) {
 						$iter->next();
-						$spos++;
+						++$spos;
 					} else {
 						break;
 					}

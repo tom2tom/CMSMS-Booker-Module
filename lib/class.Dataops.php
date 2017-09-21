@@ -379,7 +379,7 @@ EOS;
 		$count = 0;
 		$amount = 0.0;
 		foreach ($valid as $one) {
-			$count++;
+			++$count;
 			$amount += $X;
 		}
 		return [$count,$amount];
@@ -419,7 +419,7 @@ EOS;
 		$count = 0;
 		$amount  = 0.0;
 		foreach ($valid as $one) {
-			$count++;
+			++$count;
 			$amount += $X;
 		}
 		return [$count,$amount];

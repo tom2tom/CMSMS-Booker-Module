@@ -182,7 +182,7 @@ class Crypter Extends Encryption
 		for ($i = 0; $i < $lc; $i++) {
 			if ($cloak[$i] === $c) {
 				$cloak[$i] = chr($p);
-				$p++;
+				++$p;
 			}
 		}
 		$p = mt_rand(0, $lc - $lv - 3);
@@ -208,7 +208,7 @@ class Crypter Extends Encryption
 			$c = chr(0);
 			$p = strpos($cloak, $c);
 			if ($p !== FALSE) {
-				$p++;
+				++$p;
 				$i = strpos($cloak, $c, $p);
 				if ($i !== FALSE) {
 					return substr($cloak, $p, $i - $p);

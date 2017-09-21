@@ -331,7 +331,7 @@ class Import
 								$args = array_values($data);
 								$args[] = $item_id;
 								if ($utils->SafeExec($sql,$args)) {
-									$icount++;
+									++$icount;
 									$done = TRUE;
 								}
 							}
@@ -345,7 +345,7 @@ class Import
 							$item_id = $db->GenID($t);
 							array_unshift($args,$item_id);
 							if ($utils->SafeExec($sql,$args)) {
-								$icount++;
+								++$icount;
 							} else {
 								return [FALSE,'err_system'];
 							}
@@ -550,7 +550,7 @@ class Import
 								$args = array_values($data);
 								$args[] = $cid;
 								if ($utils->SafeExec($sql,$args)) {
-									$icount++;
+									++$icount;
 									$done = TRUE;
 								}
 							}
@@ -565,7 +565,7 @@ class Import
 							array_unshift($args,$cid,$sig);
 							$args[] = -1; //TODO useful order
 							if ($utils->SafeExec($sql,$args)) {
-								$icount++;
+								++$icount;
 							} else {
 								return [FALSE,'err_system'];
 							}
@@ -874,7 +874,7 @@ class Import
 								if ($data['account']) {
 									$data['bookerid'] = $bookerid;
 									if ($this->RecordRegisteredBooker($mod,$utils,$ufuncs,$data,$password,$passhash,TRUE)) {
-										$icount++;
+										++$icount;
 										$done = TRUE;
 									}
 								} else {
@@ -894,7 +894,7 @@ class Import
 									$args = array_values($data);
 									$args[] = $bookerid;
 									if ($utils->SafeExec($sql,$args)) {
-										$icount++;
+										++$icount;
 										$done = TRUE;
 									}
 								}
@@ -903,7 +903,7 @@ class Import
 						if (!$done) {
 							if ($data['account']) {
 								if ($this->RecordRegisteredBooker($mod,$utils,$ufuncs,$data,$password,$passhash,FALSE)) {
-									$icount++;
+									++$icount;
 								}
 							} else {
 								unset($data['account']);
@@ -925,7 +925,7 @@ class Import
 								array_unshift($args,$bookerid);
 								$args[] = $st;
 								if ($utils->SafeExec($sql,$args)) {
-									$icount++;
+									++$icount;
 								} else {
 									return [FALSE,'err_system'];
 								}
@@ -1224,13 +1224,13 @@ EOS;
 												$args = array_values($data) + ['a'=>$bkgid];
 												$utils->SafeExec($sql,$args);
 											}
-											$icount++;
+											++$icount;
 											$done = TRUE;
 										} else {
 											return [FALSE,'err_TODO'];
 										}
 									} else {
-										$icount++;
+										++$icount;
 										$done = TRUE;
 									}
 								}
@@ -1261,12 +1261,12 @@ EOS;
 											$sql = 'UPDATE '.$mod->OnceTable.' SET '.$namers.'=? WHERE bkg_id=?';
 											$args = array_values($data) + ['a'=>$bkgid];
 										}
-										$icount++;
+										++$icount;
 									} else {
 										return [FALSE,'err_TODO'];
 									}
 								} else {
-									$icount++;
+									++$icount;
 								}
 							} else {
 								return [FALSE,'err_system'];

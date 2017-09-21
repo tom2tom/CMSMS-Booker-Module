@@ -236,7 +236,7 @@ EOS;
 						$ret = $found;
 						return TRUE;
 					}
-					$i++;
+					++$i;
 				} else {
 					$c = count($found);
 					if ($c >= $mincount && $c > count($ret)) {
@@ -350,7 +350,7 @@ EOS;
 			$part = $lcount % $rescount;
 			$blocks = (int)($lcount / $rescount);
 			if ($part > 0) {
-				$blocks++;
+				++$blocks;
 				$countback = TRUE;
 			}
 		} else {

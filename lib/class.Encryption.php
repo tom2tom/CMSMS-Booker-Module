@@ -256,7 +256,7 @@ class Encryption
 			}
 			$n = ($data) ? ord($data[$datalen - 1]) : mt_rand(0, 255);
 			$pad = str_repeat(chr($padAmount), $padAmount);
-			$padAmount--;
+			--$padAmount;
 			for ($i = 0; $i < $padAmount; $i++,$n++) {
 				if ($n > 255) {
 					$n -= 256;

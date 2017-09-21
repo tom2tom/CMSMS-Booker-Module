@@ -128,7 +128,7 @@ class Payment
 		$ic = count($ret0starts);
 		if ($ic > 0) {
 			if ($ic > 1) {
-				$ic--;
+				--$ic;
 				for ($i=0; $i<$ic; $i++) {
 					$j = $i+1;
 					if ($ret1ends[$i] >= $ret0starts[$j]-1) {

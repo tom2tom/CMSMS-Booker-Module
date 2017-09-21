@@ -42,7 +42,7 @@ class Pivot2 extends PivotBase
 							break;
 						case self::GRP_COUNT:
 							if ($v || is_numeric($v)) {
-								$store++;
+								++$store;
 							}
 							break;
 						case self::GRP_ANY:
@@ -93,7 +93,7 @@ class Pivot2 extends PivotBase
 							break;
 						case self::GRP_COUNT:
 							if ($v || is_numeric($v)) {
-								$store++;
+								++$store;
 							}
 							break;
 						case self::GRP_ANY:
@@ -145,7 +145,7 @@ class Pivot2 extends PivotBase
 							break;
 						case self::GRP_COUNT:
 							if ($v || is_numeric($v)) {
-								$store++;
+								++$store;
 							}
 							break;
 						case self::GRP_ANY:

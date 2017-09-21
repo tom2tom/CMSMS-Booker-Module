@@ -300,7 +300,7 @@ class BookingChange
 				$items = [];
 				foreach ($data2 as $one) {
 					if ($more > 0) {
-						$more--;
+						--$more;
 					} else {
 						break;
 					}

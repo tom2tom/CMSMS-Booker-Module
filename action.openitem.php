@@ -44,7 +44,7 @@ if (!function_exists('groupstable')) {
 		}
 		$one->check = $mod->CreateInputCheckbox($id, $obname.'[]', $k, $m);
 		$rows[] = $one;
-		$r++;
+		++$r;
 	}
 	unset($name);
 	$c = count($rows);
@@ -140,7 +140,7 @@ if (!function_exists('groupsupdate')) {
 		if ($db->CompleteTrans()) {
 			break;
 		} else {
-			$nt--;
+			--$nt;
 			usleep(50000);
 		}
 	}
@@ -903,7 +903,7 @@ if ($is_group) {
 			}
 			return 0;
 		});
-		$allitems = array_column($allitems, 'name', 'item_id');
+		$allitems = array_column($allitems, 'name', 'item_id'); //PHP 5.5+
 	}
 
 	$rc = 0;

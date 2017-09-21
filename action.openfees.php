@@ -471,7 +471,7 @@ if ($pdata) {
 				} else
 					$oneset->dnlink = '';
 			}
-			$r++;
+			++$r;
 
 			$oneset->deletelink = $this->_CreateInputLinks($id,'delfee['.$fid.']',
 				$icondel,FALSE,$tip_del);
