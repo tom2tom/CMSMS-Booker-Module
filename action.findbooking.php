@@ -45,7 +45,7 @@ $localparams = [
 $utils = new Booker\Utils();
 $admin = isset($params['active_tab']); //TODO
 if (!$admin) { //if frontend
-//	$cache = Booker\Cache::GetCache($this);
+//	$cache = $utils->GetCache();
 	$utils->UnFilterParameters($params);
 }
 
@@ -167,13 +167,9 @@ $t = $this->Lang('tip_enter',$example);
 $xl2 = strlen($t);
 $xl = strlen($example);
 $t1 = isset($params['findfirst']) ? $params['findfirst'] : '';
-$t1 = $this->CreateInputText($id,'findfirst',$t1,$xl2,$xl1,'title="'.$t.'"');
-$t1 = str_replace('class="','class="dateinput ',$t1);
-
+$t1 = $this->_CreateInputDate($id,'findfirst',$t1,$xl2,$xl1,'title="'.$t.'"');
 $t2 = isset($params['findlast']) ? $params['findlast'] : '';
-$t2 = $this->CreateInputText($id,'findlast',$t2,$xl2,$xl1,'title="'.$t.'"');
-$t2 = str_replace('class="','class="dateinput ',$t2);
-
+$t2 = $this->_CreateInputDate($id,'findlast',$t2,$xl2,$xl1,'title="'.$t.'"');
 $oneset->inp = $this->Lang('showrange',$t1,$t2);
 $selects[] = $oneset;
 
@@ -486,21 +482,26 @@ $jsloads[] = <<<EOS
    return Math.floor(number % 100 / 10) === 1 || !suffixes[n] ? 'th' : suffixes[n];
   }
  });
- $('.dateinput').pikaday({
-  format: '$datetimefmt',
-  reformat: function(target,f) {
-   return fmt.formatDate(target,f);
-  },
-  getdate: function(target,f) {
-   return fmt.parseDate(target,f);
-  },
-  i18n: {
-   previousMonth: '$prevm',
-   nextMonth: '$nextm',
-   months: [$mnames],
-   weekdays: [$dnames],
-   weekdaysShort: [$sdnames]
-  }
+ $('#selectors .dateinput_container img').each(function() {
+  var \$th=$(this),
+   \$tg=\$th.parent().find('.dateinput');
+  \$th.pikaday({
+   field: \$tg[0],
+   format: '$datetimefmt',
+   reformat: function(target,f) {
+    return fmt.formatDate(target,f);
+   },
+   getdate: function(target,f) {
+    return fmt.parseDate(target,f);
+   },
+   i18n: {
+    previousMonth: '$prevm',
+    nextMonth: '$nextm',
+    months: [$mnames],
+    weekdays: [$dnames],
+    weekdaysShort: [$sdnames]
+   }
+  });
  });
  setTimeout(function() {
   $('.dateinput').watermark();
