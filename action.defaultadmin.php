@@ -472,6 +472,7 @@ $tplvars['startform2'] = $this->CreateFormStart($id, 'adminbooker', $returnid,
 $tplvars['start_people_tab'] = $this->StartTab('people');
 $tablerows[2] = 0;
 
+$dt = new DateTime('@0', NULL);
 $bkgdata = FALSE;
 $bkrs = [];
 $sql = <<<EOS
@@ -483,7 +484,6 @@ EOS;
 $data = $utils->PlainGet($this, $sql, []);
 if ($data) {
 	$sb = $this->Lang('booker');
-	$dt = new DateTime('@0', NULL);
 	$t = Booker::STATMAXREQ;
 	$s = Booker::STATMAXOK;
 	$sql = <<<EOS
@@ -583,7 +583,7 @@ EOS;
 						$payable = TRUE;
 					}
 					if ($v['S'] <= $now) {
-						$future--;
+						--$future;
 					} elseif ($payable) {
 						break;
 					}
@@ -755,7 +755,14 @@ ORDER BY I,S
 EOS;
 	$bdata = $db->GetArray($sql);
 	if ($bdata) {
-		$ibooked = array_unique(array_column($bdata, 'I'), SORT_NUMERIC);
+		if (function_exists('array_column')) { //PHP 5.5+
+			$ibooked = array_unique(array_column($bdata, 'I'), SORT_NUMERIC);
+		} else {
+			$arr = array_map(function ($one) {
+				return $one['I'];
+			}, $bdata);
+			$ibooked = array_unique($arr, SORT_NUMERIC);
+		}
 	}
 
 	$uid = ($owned) ? get_userid(FALSE) : 0; //current user
@@ -844,7 +851,7 @@ EOS;
 			foreach ($belongs as $v) {
 				$t = $v['S'];
 				if ($t >= $now) {
-					$future++;
+					++$future;
 				}
 				if ($t > $max) {
 					$max = $t;
@@ -962,7 +969,7 @@ EOS;
 		if ($isitem) {
 			$one->sel = $this->CreateInputCheckbox($id, 'selitm[]', $item_id, -1, 'title="'.$t.'"');
 			$items[] = $one;
-			$icount++;
+			++$icount;
 		} else {
 			if (!empty($memcounts[$item_id])) {
 				$one->count = (int)$memcounts[$item_id];
@@ -971,7 +978,7 @@ EOS;
 			}
 			$one->sel = $this->CreateInputCheckbox($id, 'selgrp[]', $item_id, -1, 'title="'.$t.'"');
 			$groups[] = $one;
-			$gcount++;
+			++$gcount;
 		}
 	}
 } //data
@@ -1191,12 +1198,10 @@ $tplvars['reportchoose'] = $this->CreateInputDropdown($id, 'task', $choices, 0, 
 $tplvars['displaybtn'] = $this->CreateInputSubmit($id, 'display', $this->Lang('display'));
 $tplvars['exportbtn5'] = $this->CreateInputSubmit($id, 'export', $this->Lang('export'));
 $tplvars['titlefrom'] = $this->Lang('start');
-$t = $this->CreateInputText($id,'showfrom','',12,15);
-$tplvars['showfrom'] = str_replace('class="','class="dateinput ',$t);
+$tplvars['showfrom'] = $this->_CreateInputDate($id,'showfrom','',12,15);
 $tplvars['helpfrom'] = $this->Lang('help_reportfrom');
 $tplvars['titleto'] = $this->Lang('end');
-$t = $this->CreateInputText($id,'showto','',12,15);
-$tplvars['showto'] = str_replace('class="','class="dateinput ',$t);
+$tplvars['showto'] = $this->_CreateInputDate($id,'showto','',12,15);
 $tplvars['helpto'] = $this->Lang('help_reportto');
 //for date-picker
 $jsincs[] = <<<EOS
@@ -1217,21 +1222,26 @@ $jsloads[] = <<<EOS
   longMonths: [$mnames],
   shortMonths: [$smnames]
  });
- $('.dateinput').pikamonth({
-  format: 'Y-m',
-  reformat: function(target,f) {
-   return fmt.formatDate(target,f);
-  },
-  getdate: function(target,f) {
-   return fmt.parseDate(target,f);
-  },
-  abbr: true,
-  i18n: {
-   previousYear: '$prevyr',
-   nextYear: '$nextyr',
-   months: [$mnames],
-   monthsShort: [$smnames]
-  }
+ $('.dateinput_container img').each(function() {
+  var \$th=$(this),
+   \$tg=\$th.parent().find('.dateinput');
+  \$th.pikamonth({
+   field: \$tg[0],
+   format: 'Y-m',
+   reformat: function(target,f) {
+    return fmt.formatDate(target,f);
+   },
+   getdate: function(target,f) {
+    return fmt.parseDate(target,f);
+   },
+   abbr: true,
+   i18n: {
+    previousYear: '$prevyr',
+    nextYear: '$nextyr',
+    months: [$mnames],
+    monthsShort: [$smnames]
+   }
+  });
  });
 EOS;
 
