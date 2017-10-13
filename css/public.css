@@ -167,6 +167,32 @@ table.booker td.part5 {
  font-weight:bold;
 }
 
+#btngo {
+ padding:10px 20px;
+ background:#8093ff;
+ border:1px solid #3e9cbf;
+ -moz-border-radius:10px;
+ -webkit-border-radius:10px;
+ border-radius:10px;
+ -webkit-box-shadow:0 0 4px rgba(0,0,0, .75);
+ -moz-box-shadow:0 0 4px rgba(0,0,0, .75);
+ box-shadow:inset 0px 1px 0px rgba(255,255,255,1),0px 1px 3px rgba(0,0,0,0.3);
+ color:#f3f3f3;
+ white-space:nowrap;
+ font-size:18px;
+ font-weight:bold;
+}
+#btngo:hover, #btngo:focus{
+ background-color :#4d67ff;
+ color:#f3f3f3;
+ -webkit-box-shadow: 0 0 1px rgba(0,0,0, .75);
+ -moz-box-shadow: 0 0 1px rgba(0,0,0, .75);
+ box-shadow: 0 0 1px rgba(0,0,0, .75);
+}
+#btngo.btnfocus {
+ color:#F00;
+}
+
 /*booking-request-page table */
 table.shrink {
  border:0;
@@ -276,6 +302,20 @@ div.displaytools {
  margin:0 0 10px 0;
 }
 
+div.displaytools > * {
+ display:inline-block;
+ vertical-align:middle;
+}
+/*
+div.displaytools > select {
+ padding:5px;
+}
+*/
+input.cms_submit, select {
+ cursor:pointer;
+ font-size:18px;
+}
+
 input.iconbutton {
  margin:3px;
  padding:0;
@@ -319,10 +359,6 @@ div#authactions {
  margin-top:1em;
 }
 
-input.cms_submit, select {
- cursor:pointer;
-}
-
 /* tooltip-equivalent for touch-devices */
 .touchtip {
  position:fixed;
@@ -333,4 +369,20 @@ input.cms_submit, select {
  background:#00004D;
  white-space:pre-line;
  z-index:9000;
+}
+
+.dateinput_container {
+ display:inline-block;
+ border:1px solid #999999;
+ border-radius:3.5px;
+ padding:0;
+}
+.dateinput_container .dateinput {
+ padding:5px;
+ border:0 none;
+ margin:0;
+}
+.dateinput_img {
+ margin:2px 2px -4px 0;
+ height:1.5em;
 }
