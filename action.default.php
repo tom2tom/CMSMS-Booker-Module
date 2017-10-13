@@ -35,7 +35,7 @@ $localparams = [
 ];
 
 $utils = new Booker\Utils();
-//$cache = Booker\Cache::GetCache($this);
+//$cache = $utils->GetCache();
 if (!empty($params['showfrom'])) {
 	$t = $params['showfrom']; //use supplied value of this, regardless of cache
 } else {
@@ -68,7 +68,7 @@ if ($t) {
 	$params['showfrom'] = $t;
 }
 
-$cache = Booker\Cache::GetCache($this);
+$cache = $utils->GetCache();
 
 // get relevant data for the resource/group
 $idata = ['item_id' => $item_id] + $utils->GetItemProperties($this,$item_id,
@@ -180,10 +180,10 @@ if ($arr) {
 	$params['showfrom'] = $dtw->getTimestamp();
 } elseif (isset($params['zoomin'])) {
 	if ($range > 0)
-		$range--;
+		--$range;
 } elseif (isset($params['zoomout'])) {
 	if ($range < count($publicperiods) - 1)
-		$range++;
+		++$range;
 }
 
 if (!empty($params['newlist'])) {
@@ -311,7 +311,7 @@ EOS;
 
 //button-icons from sprite with 10 'panels' (uses CSS3 styling)
 $actions1[] = $this->_CreateInputIcon($id,'pick',$baseurl.'/images/tools.png',
-	'20em 2em','0 50%','title="'.$this->Lang('tip_calendar').'"');
+	'16em 2em','0 50%','title="'.$this->Lang('tip_calendar').'"');
 if ($range == Booker::RANGEDAY) {
 	$t = '-7';
 	$xtra = 'title="'.$this->Lang('tip_backN',7,$mintrvl).'"';
@@ -320,11 +320,11 @@ if ($range == Booker::RANGEDAY) {
 	$xtra = 'title="'.$this->Lang('tip_backN',4,$mintrvl).'"';
 }
 $actions1[] = $this->_CreateInputIcon($id,'slide'.$t,$baseurl.'/images/tools.png',
-	'20em 2em','-2em 50%',$xtra);
+	'16em 2em','-2em 50%',$xtra);
 $actions1[] = $this->_CreateInputIcon($id,'slide-1',$baseurl.'/images/tools.png',
-	'20em 2em','-4em 50%','title="'.$this->Lang('tip_back1',$intrvl).'"');
+	'16em 2em','-4em 50%','title="'.$this->Lang('tip_back1',$intrvl).'"');
 $actions1[] = $this->_CreateInputIcon($id,'slide+1',$baseurl.'/images/tools.png',
-	'20em 2em','-6em 50%','title="'.$this->Lang('tip_forw1',$intrvl).'"');
+	'16em 2em','-6em 50%','title="'.$this->Lang('tip_forw1',$intrvl).'"');
 if ($range == Booker::RANGEDAY) {
 	$t = '+7';
 	$xtra = 'title="'.$this->Lang('tip_forwN',7,$mintrvl).'"';
@@ -333,22 +333,23 @@ if ($range == Booker::RANGEDAY) {
 	$xtra = 'title="'.$this->Lang('tip_forwN',4,$mintrvl).'"';
 }
 $actions1[] = $this->_CreateInputIcon($id,'slide'.$t,$baseurl.'/images/tools.png',
-	'20em 2em','-8em 50%',$xtra);
+	'16em 2em','-8em 50%',$xtra);
+/*
 $xtra = ($range == Booker::RANGEDAY) ? ' disabled="disabled"' : '';
 $actions1[] = $this->_CreateInputIcon($id,'zoomin',$baseurl.'/images/tools.png',
 	'20em 2em','-10em 50%','title="'.$this->Lang('tip_zoomin').'"'.$xtra);
 $xtra = ($range == Booker::RANGEYR) ? ' disabled="disabled"' : '';
 $actions1[] = $this->_CreateInputIcon($id,'zoomout',$baseurl.'/images/tools.png',
 	'20em 2em','-12em 50%','title="'.$this->Lang('tip_zoomout').'"'.$xtra);
+*/
 $choices = $utils->RangeNames($this,[0,1,2,3],FALSE,TRUE); //capitalised
 $actions1[] = $this->CreateInputDropdown($id,'rangepick',array_flip($choices),-1,$range,
 	'id="'.$id.'rangepick" title="'.$this->Lang('tip_display').'"');
 $actions1[] = $this->_CreateInputIcon($id,'find',$baseurl.'/images/tools.png',
-	'20em 2em','-14em 50%','title="'.$this->Lang('tip_find').'"');
-$t = ($showtable) ? '-16':'-18';
+	'16em 2em','-10em 50%','title="'.$this->Lang('tip_find').'"');
+$t = ($showtable) ? '-12':'-14';
 $actions1[] = $this->_CreateInputIcon($id,'toggle',$baseurl.'/images/tools.png',
-	'20em 2em',$t.'em 50%','title="'.$this->Lang('tip_otherview').'"');
-$tplvars['actions1'] = $actions1;
+	'16em 2em',$t.'em 50%','title="'.$this->Lang('tip_otherview').'"');
 
 $jsloads[] = <<<EOS
  $('#{$id}rangepick').change(function() {
@@ -356,7 +357,7 @@ $jsloads[] = <<<EOS
  });
 EOS;
 
-$actions2 = [];
+//$actions2 = [];
 if (!$showtable) {
 	if ($is_group) 	{
 		$choices = [
@@ -372,8 +373,8 @@ if (!$showtable) {
 		$this->Lang('user+start')=>Booker::LISTUS
 		];
 	}
-	$actions2[] = $this->CreateInputDropdown($id,'listformat',$choices,-1,$idata['listformat'],
-		'id="'.$id.'listformat" title="'.$this->Lang('tip_listtype').'"');
+	$actions1[] = $this->CreateInputDropdown($id,'listformat',$choices,-1,$idata['listformat'],
+		'id="'.$id.'listformat" title="'.$this->Lang('tip_listtype').'" style="margin-top:0.5em;"');
 	$jsloads[] = <<<EOS
  $('#{$id}listformat').change(function() {
   $('#{$id}newlist').val(1);
@@ -381,10 +382,12 @@ if (!$showtable) {
  });
 EOS;
 }
-$tplvars['actions2'] = $actions2;
+//$tplvars['actions2'] = $actions2;
+$tplvars['actions1'] = $actions1;
 
-$tplvars['book'] = $this->CreateInputSubmit($id,'request',$this->Lang('book'),
+$t = $this->CreateInputSubmit($id,'request',$this->Lang('book'),
 	'title="'.$this->Lang('tip_book').'"');
+$tplvars['book'] = str_replace('id="'.$id.'request"','id="btngo"',$t);
 /*
 $xtra = ($cart->seemsEmpty()) ?
 	'disabled="disabled" title="'.$this->Lang('tip_cartempty').'"':
@@ -511,7 +514,7 @@ function slot_activate(ev,el) {
  var bkid = $(el).attr('id');
  if (typeof bkid != 'undefined')
   $('#{$id}bgkid').val(bkid);
- $('#{$id}request').click();
+ $('#btngo').click();
 }
 function slot_record(el) {
  var idx = $(el).index(),
@@ -533,7 +536,7 @@ function slot_focus(ev,el) {
  }
  $(focus).addClass('slotfocus');
  slot_record(focus);
- var btn = $('#{$id}request');
+ var btn = $('#btngo');
  btn.addClass('btnfocus');
  setTimeout(function() {
   btn.removeClass('btnfocus');
