@@ -217,12 +217,10 @@ EOS;
 $tplvars['close'] = $this->CreateInputSubmit($id, 'close', $this->Lang('close'));
 
 $tplvars['titlefrom'] = $this->Lang('start');
-$t = $this->CreateInputText($id,'showfrom','',12,15);
-$tplvars['showfrom'] = str_replace('class="','class="dateinput ',$t);
+$tplvars['showfrom'] = $this->_CreateInputDate($id,'showfrom','',12,15);
 $tplvars['helpfrom'] = $this->Lang('help_reportfrom');
 $tplvars['titleto'] = $this->Lang('end');
-$t = $this->CreateInputText($id,'showto','',12,15);
-$tplvars['showto'] = str_replace('class="','class="dateinput ',$t);
+$tplvars['showto'] = $this->_CreateInputDate($id,'showto','',12,15);
 $tplvars['helpto'] = $this->Lang('help_reportto');
 //for date-picker
 $jsincs[] = <<<EOS
@@ -243,20 +241,25 @@ $jsloads[] = <<<EOS
   longMonths: [$mnames],
   shortMonths: [$smnames],
  });
- $('.dateinput').pikamonth({
-  format: 'Y-m',
-  reformat: function(target,f) {
-   return fmt.formatDate(target,f);
-  },
-  getdate: function(target,f) {
-   return fmt.parseDate(target,f);
-  },
-  i18n: {
-   previousYear: '$prevyr',
-   nextYear: '$nextyr',
-   months: [$mnames],
-   monthsShort: [$smnames]
-  }
+ $('.dateinput_container img').each(function() {
+  var \$th=$(this),
+   \$tg=\$th.parent().find('.dateinput');
+  \$th.pikamonth({
+   field: \$tg[0],
+   format: 'Y-m',
+   reformat: function(target,f) {
+    return fmt.formatDate(target,f);
+   },
+   getdate: function(target,f) {
+    return fmt.parseDate(target,f);
+   },
+   i18n: {
+    previousYear: '$prevyr',
+    nextYear: '$nextyr',
+    months: [$mnames],
+    monthsShort: [$smnames]
+   }
+  });
  });
 EOS;
 $tplvars['rangeset'] = $this->Lang('title_report_change');
