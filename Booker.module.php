@@ -98,13 +98,15 @@ class Booker extends CMSModule
 	const BULKREPT1 = 20;
 	const BULKREPTGRP = 21;
 	//cache-key seed/prefixes
-	const CARTKEY = 'bkr_Cart';
-	const PARMKEY = 'bkr_Parm';
-	const SESSIONKEY = 'bkr_Sess';
+	const CACHESPACE = 'BKeR';
+	const CARTKEY = 'Cart';
+	const PARMKEY = 'Parm';
+	const SESSIONKEY = 'Sess';
+
 	const PATNADDRESS = '/^\S+@[^\s.]+\.\S+$/';
 	const PATNPHONE = '/^(\+\d{1,4} *)?[\d ]{5,15}$/';
 
-	public $dbHandle; //cached connection to adodb
+	public $dbHandle; //cached connection to database
 	public $AuthTable; //authenticated-users data
 	public $BookerTable; //booker details
 	public $DispTable; //bookings data for display
@@ -157,18 +159,18 @@ class Booker extends CMSModule
 			$this->havenotifier = FALSE;
 		}
 
-		spl_autoload_register([$this,'cmsms_spacedload']);
+//		spl_autoload_register([$this,'cmsms_spacedload']);
 	}
 
-	public function __destruct()
+/*	public function __destruct()
 	{
 		spl_autoload_unregister([$this,'cmsms_spacedload']);
 		if (function_exists('parent::__destruct'))
 			parent::__destruct();
 	}
-
+*/
 	/* namespace autoloader - CMSMS default autoloader doesn't do spacing */
-	private function cmsms_spacedload($class)
+/*	private function cmsms_spacedload($class)
 	{
 		$prefix = get_class().'\\'; //our namespace prefix
 		$o = ($class[0] != '\\') ? 0:1;
@@ -206,7 +208,7 @@ class Booker extends CMSModule
 			include $fp;
 		}
 	}
-
+*/
 	public function AllowAutoInstall()
 	{
 		return FALSE;
@@ -274,6 +276,16 @@ class Booker extends CMSModule
 		return TRUE;
 	}
 
+	public function HasCapability($capability, $params = [])
+	{
+		switch ($capability) {
+			case 'plugin':
+			case 'tasks':
+				return TRUE;
+		}
+		return FALSE;
+	}
+
 	public function HasAdmin()
 	{
 		return TRUE;
@@ -310,7 +322,7 @@ class Booker extends CMSModule
 	{
 		$base = $this->GetModuleURLPath();
 		return <<<EOS
-<link rel="stylesheet" type="text/css" id="adminstyler" href="{$base}/css/admin.min.css" />
+<link rel="stylesheet" type="text/css" id="adminstyler" href="{$base}/css/admin.css" />
 <link rel="stylesheet" type="text/css" href="{$base}/css/alertable.min.css" />
 <link rel="stylesheet" type="text/css" href="{$base}/css/pikaday.min.css" />
 EOS;
@@ -340,7 +352,7 @@ EOS;
 	*/
 	public function LazyLoadFrontend()
 	{
-		return FALSE; //enable routes NB changing this after the module is installed seems to have no effect
+		return TRUE; //?? FALSE to enable routes NB changing this after the module is installed seems to have no effect
 	}
 
 	public function MinimumCMSVersion()
@@ -487,10 +499,17 @@ EOS;
 	*/
 	public function get_tasks()
 	{
-		return [
-			new Booker\Cleanold_task(),
-			new Booker\Clearcache_task()
-		];
+		if ($this->before20) {
+			return array(
+			 new bkrCleanoldTask(),
+			 new bkrClearcacheTask(),
+			);
+		} else {
+			return [
+			 new Booker\CleanoldTask(),
+			 new Booker\ClearcacheTask(),
+			];
+		}
 	}
 
 	/**
@@ -784,6 +803,30 @@ EOS;
 		}
 		$ret .= ' />';
 		return $ret;
+	}
+
+	/**
+	_CreateInputDate:
+	Generate xhtml for a text input for date/time, with accompanying icon
+	@id: session identifier
+	@name: html name of the textbox
+	@value: optional initial value of the textbox, default ''
+	@length: optional number of displayed columns for the textbox, default 10
+	@$maxlength: optional maximum number of characters that may be entered, default 255
+	@extra: optional additional text that should be added into the tag, default ''
+	*/
+	public function _CreateInputDate ($id, $name, $value='', $length=10, $maxlength=255, $extra='')
+	{
+		$e = str_replace('class="','class="dateinput ',
+			$this->CreateInputText($id,$name,$value,$length,$maxlength,$extra));
+		$b = $this->GetModuleURLPath();
+		$t = $this->Lang('tip_calendar');
+		return <<<EOS
+<div class="dateinput_container">
+$e
+<img src="{$b}/images/calicon.png" class="dateinput_img" alt="$t" title="$t" />
+</div>
+EOS;
 	}
 
 	/**
