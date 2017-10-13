@@ -338,7 +338,7 @@ EOS;
 	*/
 	public function FinishReq(&$mod, &$utils, &$params, $success)
 	{
-		$cache = Cache::GetCache($mod);
+		$cache = $utils->GetCache();
 		$cart = $utils->RetrieveCart($cache,$params);
 		if ($success) { //successful to now
 			if (!$cart || !($pending = $cart->getItems())) {

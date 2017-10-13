@@ -19,7 +19,7 @@ $localparams = [
 
 $utils = new Booker\Utils();
 $utils->UnFilterParameters($params);
-$cache = Booker\Cache::GetCache($this);
+$cache = $utils->GetCache();
 $cart = $utils->RetrieveCart($cache,$params);
 
 if (isset($params['cancel'])) {

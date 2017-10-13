@@ -28,7 +28,7 @@ class Schedule
 	*/
 	private function GetSlotStatus(&$mod, &$utils, $session_id, $item_id, $bs, $be)
 	{
-/*		$cache = Booker\Cache::GetCache($mod);
+/*		$cache = $utils->GetCache();
 		if ($cache && )	//$cache->
 */
 		if (0) { //TODO slot-status is cached
@@ -635,7 +635,8 @@ EOS;
 				else
 					$row['subgrpcount'] = count($utils->GetGroupItems($mod,$item_id));
 			}
-			$session_id = Cache::GetKey(\Booker::SESSIONKEY);//identifier for cached slotstatus data
+			$cache = $utils->GetCache(); //assume no failure!
+			$session_id = $cache->get(\Booker::CACHESPACE, \Booker::SESSIONKEY);//identifier for cached slotstatus data
 			foreach ($starts as $i=>$st) {
 				//data array to mimic a request, like some of a OnceTable row
 				//recreate whole array inside loop cuz downstream messes with it
@@ -698,7 +699,8 @@ EOS;
 		self::UpdateRepeats($mod,$utils,$item_id,$bs,$be);
 
 		$res = TRUE;
-		$session_id = Cache::GetKey(\Booker::SESSIONKEY); //identifier for cached slotstatus data
+		$cache = $utils->GetCache(); //assume no failure!
+		$session_id = $cache->get(\Booker::CACHESPACE, \Booker::SESSIONKEY); //identifier for cached slotstatus data
 		foreach ($reqdata as &$one) {
 			$one['subgrpcount'] = 1; //force this
 			if (!self::ScheduleOne($mod,$utils,$one,$item_id,$session_id,FALSE)) {
@@ -706,11 +708,11 @@ EOS;
 			}
 		}
 		unset($one);
-/*	$cache = Cache::GetCache($mod);
-		TODO clear any cached PUBLIC slotstatus data for this session
+/*		TODO clear any cached PUBLIC slotstatus data for this session
 */
-		if ($unarray)
+		if ($unarray) {
 			$reqdata = $reqdata[0];
+		}
 		return $res;
 	}
 
@@ -763,7 +765,8 @@ EOS;
 
 		self::UpdateRepeats($mod,$utils,$item_id,$bs,$be);
 
-		$session_id = Cache::GetKey(\Booker::SESSIONKEY); //identifier for cached slotstatus data
+		$cache = $utils->GetCache();
+		$session_id = $cache->get(\Booker::CACHESPACE, \Booker::SESSIONKEY); //identifier for cached slotstatus data
 		$res = self::ScheduleMulti($mod,$utils,$reqdata,$item_id,$session_id,FALSE);
 		if ($unarray)
 			$reqdata = $reqdata[0];
