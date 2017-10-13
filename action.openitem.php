@@ -903,7 +903,15 @@ if ($is_group) {
 			}
 			return 0;
 		});
-		$allitems = array_column($allitems, 'name', 'item_id'); //PHP 5.5+
+		if (function_exists('array_column')) { //PHP 5.5+
+			$allitems = array_column($allitems, 'name', 'item_id');
+		} else {
+			$arr = [];
+			foreach ($allitems as $one) {
+				$arr[$one['item_id']] = $one['name'];
+			}
+			$allitems = $arr;
+		}
 	}
 
 	$rc = 0;
