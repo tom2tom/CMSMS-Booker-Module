@@ -6,26 +6,6 @@
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
 
-//NB caller must be very careful that top-level dir is valid!
-function delTree($dir)
-{
-	$files = array_diff(scandir($dir), ['.', '..']);
-	if ($files) {
-		foreach ($files as $file) {
-			$fp = cms_join_path($dir, $file);
-			if (is_dir($fp)) {
-				if (!delTree($fp)) {
-					return FALSE;
-				}
-			} else {
-				unlink($fp);
-			}
-		}
-		unset($files);
-	}
-	return rmdir($dir);
-}
-
 $pre = cms_db_prefix();
 $dict = NewDataDictionary($db);
 // remove table indices
@@ -53,8 +33,6 @@ $sqlarray = $dict->DropTableSQL($this->CreditTable);
 $dict->ExecuteSQLArray($sqlarray);
 $sqlarray = $dict->DropTableSQL($this->RepeatTable);
 $dict->ExecuteSQLArray($sqlarray);
-$sqlarray = $dict->DropTableSQL($pre.'module_bkr_cache');
-$dict->ExecuteSQLArray($sqlarray);
 // remove sequences
 $db->DropSequence($this->BookerTable.'_seq');
 $db->DropSequence($this->DispTable.'_seq');
@@ -65,7 +43,6 @@ $db->DropSequence($this->ItemTable.'_gseq');
 //RepeatTable sequence same as for OnceTable
 $db->DropSequence($this->OnceTable.'_seq');
 $db->DropSequence($this->CreditTable.'_seq');
-$db->DropSequence($pre.'module_bkr_cache_seq');
 // remove permissions
 $this->RemovePermission($this->PermStructName);
 $this->RemovePermission($this->PermAdminName);
@@ -79,9 +56,9 @@ $fp = $config['uploads_path'];
 if ($fp && is_dir($fp)) {
 	$ud = $this->GetPreference('uploadsdir', '');
 	if ($ud) {
-		$fp = cms_join_path($fp, $ud);
+		$fp .= DIRECTORY_SEPARATOR.$ud;
 		if ($fp && is_dir($fp)) {
-			delTree($fp);
+			recursive_delete($fp);
 		}
 	} else {
 		$files = $db->GetCol("SELECT DISTINCT stylesfile FROM $this->ItemTable WHERE stylesfile IS NOT NULL AND stylesfile<>''");
