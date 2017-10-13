@@ -6,9 +6,14 @@
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
 
+$fp = cms_join_path(dirname(__DIR__), 'Async', 'lib');
+if (!is_dir($fp)) {
+	return $this->Lang('err_system'); //TODO more informative message
+}
+
 $taboptarray = [
- 'mysql' => 'ENGINE MyISAM CHARACTER SET utf8 COLLATE utf8_general_ci',
- 'mysqli' => 'ENGINE MyISAM CHARACTER SET utf8 COLLATE utf8_general_ci'];
+ 'mysql' => 'ENGINE InnoDB CHARACTER SET utf8 COLLATE utf8_general_ci',
+ 'mysqli' => 'ENGINE InnoDB CHARACTER SET utf8 COLLATE utf8_general_ci'];
 $dict = NewDataDictionary($db);
 $pre = cms_db_prefix();
 if (strncasecmp($config['dbms'], 'mysql', 5) == 0) {
@@ -112,7 +117,7 @@ cleargroup I(1) DEFAULT 0,
 subgrpalloc I(1),
 subgrpdata I(1) DEFAULT 0,
 active I(1) DEFAULT 1,
-bulletin X2
+bulletin X2,
 bulletin2 X2
 ';
 $sqlarray = $dict->CreateTableSQL($this->ItemTable, $fields, $taboptarray);
@@ -238,7 +243,7 @@ fee N(8.2) DEFAULT 0.0,
 feepaid N(8.2) DEFAULT 0.0,
 status I(1) DEFAULT '.Booker::STATNONE.',
 statpay I(1) DEFAULT '.Booker::STATFREE.',
-active I(1) DEFAULT 1
+active I(1) DEFAULT 1,
 gatetransaction C(48)
 ';
 //gatedata X2
@@ -373,28 +378,6 @@ if ($sqlarray == FALSE || $dict->ExecuteSQLArray($sqlarray, FALSE) != 2) {
 	return $errmsg;
 }
 $db->CreateSequence($this->BookerTable.'_seq');
-
-/*
-Data cache
- cache_id:
- keyword: key
- value: flattened value
- savetime: timestamp - UTC?
- lifetime: seconds
-*/
-$fields = '
-cache_id I(2) AUTO KEY,
-keyword C(48),
-value X2,
-savetime I(8),
-lifetime I(4)
-';
-$sqlarray = $dict->CreateTableSQL($pre.'module_bkr_cache', $fields, $taboptarray);
-if ($sqlarray == FALSE || $dict->ExecuteSQLArray($sqlarray, FALSE) != 2) {
-	return $errmsg;
-}
-//this is not for table-data content (which is auto-numbered)
-$db->CreateSequence($pre.'module_bkr_cache_seq');
 
 // permissions
 $this->CreatePermission($this->PermStructName, $this->Lang('perm_module')); //Booker Module Admin
