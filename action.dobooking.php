@@ -173,7 +173,7 @@ if (isset($params['cart'])) {
 				//ignore $params['subgrpcount'] cuz it's processed in the cart
 				$params['fee'] = $funcs->UsageFee($this,$utils,$item_id,$bookerid,$bs,$be);
 
-				$cache = Booker\Cache::GetCache($this);
+				$cache = $utils->GetCache();
 				$cart = $utils->RetrieveCart($cache,$params);
 				$funcs = new Booker\Requestops();
 				list($res,$errmsg) = $funcs->CartReq($this,$utils,$params,$idata,$cart);
@@ -227,7 +227,7 @@ if (isset($params['cart'])) {
 				} else {
 					$owed = FALSE;
 				}
-				$cache = Booker\Cache::GetCache($this);
+				$cache = $utils->GetCache();
 				$cart = $utils->RetrieveCart($cache,$params);
 				$cartwasempty = $cart->seemsEmpty();
 				//add item to cart
@@ -319,7 +319,13 @@ if (isset($params['cart'])) {
 				$funcs = new Booker\BookingChange();
 				$alldone = TRUE;
 				$allmsg = [];
-				$bids = array_column($data,'bkg_id');
+				if (function_exists('array_column')) { //PHP 5.5+
+					$bids = array_column($data,'bkg_id');
+				} else {
+					$bids = array_map(function ($one) {
+						return $one['bkg_id'];
+					}, $data);
+				}
 				$cids = array_count_values($bids);
 				foreach ($cids as $bkg_id=>$num) {
 					if ($params['subgrpcount'] < $num) {
@@ -516,8 +522,7 @@ if ($past) {
     $hidden[] = $this->CreateInputHidden($id,'when',$when); //these always needed
 	$oneset->inp = $when;
 } else {
-	$t = $this->CreateInputText($id,'when',$when,$xl2,$xl1,'title="'.$example.'"');
-	$oneset->inp = str_replace('class="','class="dateinput ',$t);
+	$oneset->inp = $this->_CreateInputDate($id,'when',$when,$xl1,$xl2,'title="'.$example.'"');
 }
 $items[] = $oneset;
 
@@ -531,8 +536,7 @@ if ($choosend) {
 		$hidden[] = $this->CreateInputHidden($id,'until',$until);
 		$oneset->inp = $until;
 	} else {
-		$t = $this->CreateInputText($id,'until',$until,$xl2,$xl1,'title="'.$example.'"');
-		$oneset->inp = str_replace('class="','class="dateinput ',$t);
+		$oneset->inp = $this->_CreateInputDate($id,'until',$until,$xl1,$xl2,'title="'.$example.'"');
 	}
 	$items[] = $oneset;
 } else {
@@ -743,7 +747,7 @@ if (!$past) {
    }
    setTimeout(function() {
     $.ajax({
-	 url: '$baseurl/checkslot.php',
+     url: '$baseurl/checkslot.php',
      data: {item_id:$item_id, start:st/1000, end:nd/1000},
      success: function (data,status) {
       if (status == 'success') {
@@ -775,24 +779,34 @@ $meridiem = "'".str_replace(",","','",$t)."'";
 */
 
 $jsloads[] = <<<EOS
- $('.dateinput').pikaday({
-  format: '$datetimefmt',
-  reformat: function(target,f) {
-   return fmt.formatDate(target,f);
-  },
-  getdate: function(target,f) {
-   return fmt.parseDate(target,f);
-  },
-  i18n: {
-   previousMonth: '$prevm',
-   nextMonth: '$nextm',
-   months: [$mnames],
-   weekdays: [$dnames],
-   weekdaysShort: [$sdnames]
+ var \$when=null;
+ $('#responses .dateinput_container img').each(function(ix) {
+  var \$th=$(this),
+   \$tg=\$th.parent().find('.dateinput');
+  if (ix == 0) {
+   \$when=\$th;
   }
+  \$th.pikaday({
+   field: \$tg[0],
+   format: '$datetimefmt',
+   reformat: function(target,f) {
+    return fmt.formatDate(target,f);
+   },
+   getdate: function(target,f) {
+    return fmt.parseDate(target,f);
+   },
+   i18n: {
+    previousMonth: '$prevm',
+    nextMonth: '$nextm',
+    months: [$mnames],
+    weekdays: [$dnames],
+    weekdaysShort: [$sdnames]
+   }
+  });
  });
- var pk = $('#{$id}when').data('pikaday');
+ var pk = (\$when) ? \$when.data('pikaday'):false;
  if (pk) {
+  \$when=null;
   pk._o.onClose = function() {
    if ('_d' in this && this._d) {
     var ob = new Date(this._d.getTime() + {$slen} * 1000);
