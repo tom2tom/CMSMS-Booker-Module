@@ -34,15 +34,15 @@ if (!function_exists('SaveBookerParms')) {
  function SaveBookerParms(&$cache, $key, $params)
  {
 	if (!$key) {
-		$key = Booker\Cache::GetKey(\Booker::PARMKEY);
+		$key = $cache->get(\Booker::CACHESPACE, \Booker::PARMKEY);
 	}
-	$cache->set($key, $params, 43200);
+	$cache->set(\Booker::CACHESPACE, $key, $params, 43200);
 	return $key;
 }
 
  function RetrieveBookerParms(&$cache, $key)
  {
-	return $cache->get($key);
+	return $cache->get(\Booker::CACHESPACE, $key);
  }
 }
 
@@ -66,12 +66,12 @@ $localparams = [
 $utils = new Booker\Utils();
 
 if (isset($params['bkr_resume'])) { //first-time here
-	$cache = Booker\Cache::GetCache($this);
+	$cache = $utils->GetCache(); //assume no failure
 	$utils->UnFilterParameters($params);
 	$_SESSION['parmkey'] = SaveBookerParms($cache, FALSE, $params);
 	$utils->DecodeParameters($params);
 } elseif (isset($params['authdata'])) {
-	$cache = Booker\Cache::GetCache($this);
+	$cache = $utils->GetCache(); //assume no failure
 	$saved = RetrieveBookerParms($cache, $_SESSION['parmkey']);
 	$utils->DecodeParameters($saved);
 	$finish = TRUE;
