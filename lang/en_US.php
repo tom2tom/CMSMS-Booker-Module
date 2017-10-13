@@ -552,8 +552,8 @@ $lang['sunrise'] = 'sunrise';
 $lang['sunset'] = 'sunset';
 
 $lang['table'] = 'Table';
-$lang['task_cleanold'] = 'Delete historical data which is older than the relevant retention period';
-$lang['task_clearcache'] = 'Delete redundant cached bookings data';
+$lang['taskdescription_cleanold'] = 'Delete historical data which is older than the relevant retention period';
+$lang['taskdescription_clearcache'] = 'Delete redundant cached bookings data';
 $lang['tell_booker'] = 'You need to advise the booker(s) about this';
 $lang['time'] = 'time';
 $lang['tip_addbooktype'] = 'add %s booking';
