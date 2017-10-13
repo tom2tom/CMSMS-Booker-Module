@@ -1124,23 +1124,27 @@ EOS;
 				} else //data for unregistered user
 					if (isset($row['name'])) {
 					$fld = $this->cfuncs->uncloak_value($row['name']);
-					if (!array_key_exists($fld, $nonregs)) {
-						$row['name'] = $fld;
+					if ($fld !== FALSE) {
+						if (!array_key_exists($fld, $nonregs)) {
+							$row['name'] = $fld;
+							if (isset($row['address'])) {
+								$row['address'] = $this->cfuncs->uncloak_value($row['address']);
+							}
+							if (isset($row['phone'])) {
+								$row['phone'] = $this->cfuncs->uncloak_value($row['phone']);
+							}
+							$nonregs[$fld] = $row;
+						} else {
+							$row['name'] = $nonregs[$fld]['name'];
+						}
 						if (isset($row['address'])) {
-							$row['address'] = $this->cfuncs->uncloak_value($row['address']);
+							$row['address'] = $nonregs[$fld]['address'];
 						}
 						if (isset($row['phone'])) {
-							$row['phone'] = $this->cfuncs->uncloak_value($row['phone']);
+							$row['phone'] = $nonregs[$fld]['phone'];
 						}
-						$nonregs[$fld] = $row;
 					} else {
-						$row['name'] = $nonregs[$fld]['name'];
-					}
-					if (isset($row['address'])) {
-						$row['address'] = $nonregs[$fld]['address'];
-					}
-					if (isset($row['phone'])) {
-						$row['phone'] = $nonregs[$fld]['phone'];
+						$row['name'] = $row['address'] = $row['phone'] = $mod->Lang('err_baddata'); //decrypt error
 					}
 				}
 			}
@@ -2685,6 +2689,18 @@ EOS;
 		return $funcs->Get();
 	}
 
+	protected function GetKey(&$cache, $seed='')
+	{
+		if (!$seed) {
+			$seed = '__';
+		}
+
+		do {
+			$hash = hash('crc32b',uniqid($seed));
+		} while (!$cache->setnew(\Booker::CACHESPACE, $hash, NULL));
+		return $hash;
+	}
+
 	/**
 	 * SaveCart:
 	 * @cart
@@ -2694,7 +2710,7 @@ EOS;
 	public function SaveCart($cart, &$cache, &$params)
 	{
 		if (empty($params['cartkey'])) {
-			$params['cartkey'] = $cache->get(\Booker::CACHESPACE, \Booker::CARTKEY);
+			$params['cartkey'] = $this->GetKey($cache, \Booker::CARTKEY);
 		}
 		$cache->set(\Booker::CACHESPACE, $params['cartkey'], $cart, 43200);
 	}
@@ -2720,7 +2736,7 @@ EOS;
 				return $cart;
 			}
 		} else {
-			$key = $cache->get(\Booker::CACHESPACE, \Booker::CARTKEY);
+			$key = $this->GetKey($cache, \Booker::CARTKEY);
 			$params['cartkey'] = $key;
 		}
 		$cart = new Cart\BookingCart($context, $pricesWithTax);
