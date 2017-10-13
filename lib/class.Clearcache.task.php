@@ -1,31 +1,35 @@
 <?php
 #----------------------------------------------------------------------
 # Module: Booker - a resource booking module
-# Library file: Clearcache_task handles system cron event - cleanup old cache items
+# Library file: ClearcacheTask handles system cron event - cleanup old cache items
 #----------------------------------------------------------------------
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
+
 namespace Booker;
 
-class Clearcache_task implements \CmsRegularTask
+class ClearcacheTask implements \CmsRegularTask
 {
-	const MODNAME = 'Booker';
-
 	public function get_name()
 	{
-		return get_class($this);
+		return get_class();
+	}
+
+	protected function &get_module()
+	{
+		return \ModuleOperations::get_instance()->get_module_instance('Booker', '', TRUE);
 	}
 
 	public function get_description()
 	{
-		$mod = \cms_utils::get_module(self::MODNAME);
-		return $mod->Lang('task_clearcache');
+		return $this->get_module()->Lang('taskdescription_clearcache');
 	}
 
 	private function FileCacheDir(&$mod)
 	{
 		$config = \cmsms()->GetConfig();
 		$dir = $config['uploads_path'];
+		$mod = $this->get_module();
 		$rel = $mod->GetPreference('uploadsdir');
 		if ($rel) {
 			$dir .= DIRECTORY_SEPARATOR.$rel;
@@ -39,7 +43,7 @@ class Clearcache_task implements \CmsRegularTask
 
 	public function test($time='')
 	{
-		$mod = \cms_utils::get_module(self::MODNAME);
+		$mod = $this->get_module();
 		$dir = $this->FileCacheDir($mod);
 		if ($dir) {
 			foreach (new \DirectoryIterator($dir) as $fInfo) {
@@ -49,8 +53,9 @@ class Clearcache_task implements \CmsRegularTask
 			}
 		}
 		//if file-cache N/A, check for database-cache
-		$sql = 'SELECT cache_id FROM '.cms_db_prefix().'module_bkr_cache';
-		$res = $mod->dbHandle->GetOne($sql);
+		$pre = \cms_db_prefix();
+		$sql = 'SELECT cache_id FROM '.$pre.'module_bkr_cache';
+		$res = \cmsms()->GetDB()->GetOne($sql);
 		return ($res != FALSE);
 	}
 
@@ -59,7 +64,7 @@ class Clearcache_task implements \CmsRegularTask
 		if (!$time)
 			$time = time();
 		$time -= 43200; //half-day cache retention-period (as seconds)
-		$mod = \cms_utils::get_module(self::MODNAME);
+		$mod = $this->get_module();
 		$dir = $this->FileCacheDir($mod);
 		if ($dir) {
 			foreach (new \DirectoryIterator($dir) as $fInfo) {
@@ -74,8 +79,9 @@ class Clearcache_task implements \CmsRegularTask
 				}
 			}
 		}
-		$sql = 'DELETE FROM '.cms_db_prefix().'module_bkr_cache WHERE savetime+lifetime <?';
-		$mod->dbHandle->Execute($sql,[$time]);
+		$pre = \cms_db_prefix();
+		$sql = 'DELETE FROM '.$pre.'module_bkr_cache WHERE savetime+lifetime <?';
+		\cmsms()->GetDB()->Execute($sql,[$time]);
 		return TRUE;
 	}
 
