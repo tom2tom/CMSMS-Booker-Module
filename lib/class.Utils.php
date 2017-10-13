@@ -199,7 +199,7 @@ EOS;
 			if ($db->CompleteTrans()) {
 				return $ret;
 			} else {
-				$nt--;
+				--$nt;
 				usleep(50000);
 			}
 		}
@@ -236,7 +236,7 @@ EOS;
 			if ($db->CompleteTrans()) {
 				return $res;
 			} else {
-				$nt--;
+				--$nt;
 				usleep(50000);
 			}
 		}
@@ -315,8 +315,22 @@ WHERE G.child IN(%s) AND I.pickthis>0 AND I.active>0 ORDER BY G.proximity,G.like
 EOS;
 			do {
 				$groups = array_merge($groups, $rows);
-				$checks = array_column($groups, 'item_id');
-				$fillers = implode(',', array_column($rows, 'item_id'));
+				if (function_exists('array_column')) {  //PHP 5.5+
+					$checks = array_column($groups, 'item_id');
+					$fillers = implode(',', array_column($rows, 'item_id'));
+				} else {
+					$checks = [];
+					foreach ($groups as &$one) {
+						$checks[] = $one['item_id'];
+					}
+					unset($one);
+					$fillers = '';
+					foreach ($rows as &$one) {
+						$fillers .= ','.$one['item_id'];
+					}
+					unset($one);
+					$fillers = substr($fillers, 1);
+				}
 				$sql = sprintf($sql1, $fillers);
 				$rows = $mod->dbHandle->GetArray($sql1);
 				if ($rows) {
@@ -338,7 +352,13 @@ EOS;
 			$groups += $mod->dbHandle->GetArray($sql, [$currentpick]);
 		}
 
-		$choices = array_column($groups, 'item_id');
+		if (function_exists('array_column')) {  //PHP 5.5+
+			$choices = array_column($groups, 'item_id');
+		} else {
+			$choices = array_map(function ($one) {
+				return $one['item_id'];
+			}, $groups);
+		}
 		if ($currentpick < \Booker::MINGRPID) {
 			$choices[] = $currentpick;
 		}
@@ -622,12 +642,12 @@ EOS;
 						$o = 1;
 					}
 					$db->Execute("UPDATE $mod->GroupTable SET likeorder=$o WHERE gid=$gid");
-					$o++;
+					++$o;
 				}
 				if ($db->CompleteTrans()) {
 					break;
 				} else {
-					$nt--;
+					--$nt;
 				}
 			}
 
@@ -645,12 +665,12 @@ EOS;
 						$o = 1;
 					}
 					$db->Execute("UPDATE $mod->GroupTable SET proximity=$o WHERE gid=$gid");
-					$o++;
+					++$o;
 				}
 				if ($db->CompleteTrans()) {
 					break;
 				} else {
-					$nt--;
+					--$nt;
 				}
 			}
 		}
@@ -2655,12 +2675,28 @@ EOS;
 		}
 	}
 
+	/**
+	 * GetCache:
+	 * Returns: cache object or NULL
+	 */
+	public function GetCache()
+	{
+		$funcs = new \Async\Cache();
+		return $funcs->Get();
+	}
+
+	/**
+	 * SaveCart:
+	 * @cart
+	 * @cache: reference to cache object
+	 * @params: reference to request-parameters array
+	 */
 	public function SaveCart($cart, &$cache, &$params)
 	{
 		if (empty($params['cartkey'])) {
-			$params['cartkey'] = Cache::GetKey(\Booker::CARTKEY);
+			$params['cartkey'] = $cache->get(\Booker::CACHESPACE, \Booker::CARTKEY);
 		}
-		$cache->set($params['cartkey'], $cart, 43200);
+		$cache->set(\Booker::CACHESPACE, $params['cartkey'], $cart, 43200);
 	}
 
 	/**
@@ -2668,7 +2704,7 @@ EOS;
 	 * If $params['cartkey'] is present it's used, or otherwise it's created and used,
 	 * as the cache-key for the new cart-object.
 	 *
-	 * @cache: reference to Cache oject
+	 * @cache: reference to cache object
 	 * @context: mixed data about the cart, used (among other things) for setting prices
 	 * @params: reference to request-parameters array
 	 * @pricesWithTax: boolean, whether cart uses 'gross' prices, default TRUE
@@ -2679,16 +2715,16 @@ EOS;
 	{
 		if (!empty($params['cartkey'])) {
 			$key = $params['cartkey'];
-			$cart = $cache->get($key);
+			$cart = $cache->get(\Booker::CACHESPACE, $key);
 			if ($cart) {
 				return $cart;
 			}
 		} else {
-			$key = Cache::GetKey(\Booker::CARTKEY);
+			$key = $cache->get(\Booker::CACHESPACE, \Booker::CARTKEY);
 			$params['cartkey'] = $key;
 		}
 		$cart = new Cart\BookingCart($context, $pricesWithTax);
-		$cache->set($key, $cart, 43200);
+		$cache->set(\Booker::CACHESPACE, $key, $cart, 43200);
 /* DEBUG
 		$dt = new \DateTime('midnight',new \DateTimeZone('UTC'));
 		$base = $dt->getTimestamp();
