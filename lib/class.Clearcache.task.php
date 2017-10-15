@@ -25,63 +25,40 @@ class ClearcacheTask implements \CmsRegularTask
 		return $this->get_module()->Lang('taskdescription_clearcache');
 	}
 
-	private function FileCacheDir(&$mod)
-	{
-		$config = \cmsms()->GetConfig();
-		$dir = $config['uploads_path'];
-		$mod = $this->get_module();
-		$rel = $mod->GetPreference('uploadsdir');
-		if ($rel) {
-			$dir .= DIRECTORY_SEPARATOR.$rel;
-		}
-		$dir .= DIRECTORY_SEPARATOR.'file_cache';
-		if (is_dir($dir)) {
-			return $dir;
-		}
-		return FALSE;
-	}
-
 	public function test($time='')
 	{
-		$mod = $this->get_module();
-		$dir = $this->FileCacheDir($mod);
-		if ($dir) {
-			foreach (new \DirectoryIterator($dir) as $fInfo) {
-				$fn = $fInfo->getFilename();
-				if (strpos($fn,\Booker::CARTKEY) === 0)
-					return TRUE;
-			}
+		if (!$time) {
+			$time = time();
 		}
-		//if file-cache N/A, check for database-cache
-		$pre = \cms_db_prefix();
-		$sql = 'SELECT cache_id FROM '.$pre.'module_bkr_cache';
-		$res = \cmsms()->GetDB()->GetOne($sql);
-		return ($res != FALSE);
+		$last_cleared = $this->get_module()->GetPreference('lastclearcache');
+		return ($time >= $last_cleared + 43200);
 	}
 
 	public function execute($time='')
 	{
-		if (!$time)
+		if (!$time) {
 			$time = time();
-		$time -= 43200; //half-day cache retention-period (as seconds)
-		$mod = $this->get_module();
-		$dir = $this->FileCacheDir($mod);
-		if ($dir) {
-			foreach (new \DirectoryIterator($dir) as $fInfo) {
-				if ($fInfo->isFile() && !$fInfo->isDot()) {
-					$fn = $fInfo->getFilename();
-					if (strpos($fn,\Booker::CARTKEY) === 0) {
-						$mtime = $fInfo->getMTime();
-						if ($mtime < $time) {
-							@unlink($dir.DIRECTORY_SEPARATOR.$fn);
-						}
+		}
+		$funcs = new \Async\Cache();
+		$cache = $funcs->Get();
+		if ($cache instanceof \Async\MultiCache\FileCache) {
+			$arr = glob($cache->basepath.'_cache_'.PWFBrowse::ASYNCSPACE.'*', GLOB_NOSORT);
+			if ($arr) {
+				$time -= 84600; //1-day cache retention-period (as seconds)
+				clearstatcache();
+				foreach ($arr as $fn) {
+					$fp = $cache->basepath.$fn;
+					if (filemtime($fp) < $time) {
+						@unlink($fp);
 					}
 				}
 			}
+		} elseif ($cache instanceof \Async\MultiCache\DbaseCache) {
+			$sql = 'DELETE FROM '.$cache->table.' WHERE keyword LIKE \'_cache_'.PWFBrowse::ASYNCSPACE.'%\' AND savetime+lifetime < '.$time;
+			\cmsms()->GetDB()->Execute($sql);
 		}
-		$pre = \cms_db_prefix();
-		$sql = 'DELETE FROM '.$pre.'module_bkr_cache WHERE savetime+lifetime <?';
-		\cmsms()->GetDB()->Execute($sql,[$time]);
+		//TODO maybe mutexes too e.g. flock files fopen files, db records
+		$this->get_module()->SetPreference('lastclearcache', $time + 84600);
 		return TRUE;
 	}
 
