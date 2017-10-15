@@ -73,6 +73,17 @@ if ($fp && is_dir($fp)) {
 	}
 }
 
+$utils = new Booker\Utils();
+$cache = $utils->GetCache();
+if ($cache) {
+	$cache->cleanall(Booker::ASYNCSPACE);
+}
+/*$mutex = ;
+if ($mutex) {
+	$mutex->cleanall(Booker::ASYNCSPACE);
+}
+*/
+
 // remove all preferences
 $this->RemovePreference();
 // remove FormBuilder-module custom processing
