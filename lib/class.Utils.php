@@ -2697,7 +2697,7 @@ EOS;
 
 		do {
 			$hash = hash('crc32b',uniqid($seed));
-		} while (!$cache->setnew(\Booker::CACHESPACE, $hash, NULL));
+		} while (!$cache->setnew(\Booker::ASYNCSPACE, $hash, NULL));
 		return $hash;
 	}
 
@@ -2712,7 +2712,7 @@ EOS;
 		if (empty($params['cartkey'])) {
 			$params['cartkey'] = $this->GetKey($cache, \Booker::CARTKEY);
 		}
-		$cache->set(\Booker::CACHESPACE, $params['cartkey'], $cart, 43200);
+		$cache->set(\Booker::ASYNCSPACE, $params['cartkey'], $cart, 43200);
 	}
 
 	/**
@@ -2731,7 +2731,7 @@ EOS;
 	{
 		if (!empty($params['cartkey'])) {
 			$key = $params['cartkey'];
-			$cart = $cache->get(\Booker::CACHESPACE, $key);
+			$cart = $cache->get(\Booker::ASYNCSPACE, $key);
 			if ($cart) {
 				return $cart;
 			}
@@ -2740,7 +2740,7 @@ EOS;
 			$params['cartkey'] = $key;
 		}
 		$cart = new Cart\BookingCart($context, $pricesWithTax);
-		$cache->set(\Booker::CACHESPACE, $key, $cart, 43200);
+		$cache->set(\Booker::ASYNCSPACE, $key, $cart, 43200);
 /* DEBUG
 		$dt = new \DateTime('midnight',new \DateTimeZone('UTC'));
 		$base = $dt->getTimestamp();

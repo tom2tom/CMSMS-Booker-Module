@@ -98,7 +98,7 @@ class Booker extends CMSModule
 	const BULKREPT1 = 20;
 	const BULKREPTGRP = 21;
 	//cache-key seed/prefixes
-	const CACHESPACE = 'BKeR';
+	const ASYNCSPACE = 'BKeR';
 	const CARTKEY = 'Cart';
 	const PARMKEY = 'Parm';
 	const SESSIONKEY = 'Sess';

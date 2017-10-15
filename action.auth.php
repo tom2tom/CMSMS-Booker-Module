@@ -34,15 +34,15 @@ if (!function_exists('SaveBookerParms')) {
  function SaveBookerParms(&$cache, $key, $params)
  {
 	if (!$key) {
-		$key = $cache->get(\Booker::CACHESPACE, \Booker::PARMKEY);
+		$key = $cache->get(\Booker::ASYNCSPACE, \Booker::PARMKEY);
 	}
-	$cache->set(\Booker::CACHESPACE, $key, $params, 43200);
+	$cache->set(\Booker::ASYNCSPACE, $key, $params, 43200);
 	return $key;
 }
 
  function RetrieveBookerParms(&$cache, $key)
  {
-	return $cache->get(\Booker::CACHESPACE, $key);
+	return $cache->get(\Booker::ASYNCSPACE, $key);
  }
 }
 
