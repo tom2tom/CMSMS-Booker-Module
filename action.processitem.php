@@ -9,9 +9,9 @@
 $p = FALSE; //TODO relevant permission
 $funcs = new Booker\Itemops();
 
-//NB some links are diverted in DoAction to action.administer
+//NB some links are diverted in DoAction to action.openfees, .import
 if (isset($params['task'])) { //clicked link
-	$params['active_tab'] = ($params['$item_id'] >= Booker::MINGRPID) ? 'groups':'items';
+	$params['active_tab'] = ($params['item_id'] >= Booker::MINGRPID) ? 'groups':'items';
 	switch ($params['task']) {
 	 case 'add':
 	 case 'edit':
