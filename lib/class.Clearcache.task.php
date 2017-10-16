@@ -42,7 +42,7 @@ class ClearcacheTask implements \CmsRegularTask
 		$funcs = new \Async\Cache();
 		$cache = $funcs->Get();
 		if ($cache instanceof \Async\MultiCache\FileCache) {
-			$arr = glob($cache->basepath.'_cache_'.PWFBrowse::ASYNCSPACE.'*', GLOB_NOSORT);
+			$arr = glob($cache->basepath.'_cache_'.Booker::ASYNCSPACE.'*', GLOB_NOSORT);
 			if ($arr) {
 				$time -= 84600; //1-day cache retention-period (as seconds)
 				clearstatcache();
@@ -54,7 +54,7 @@ class ClearcacheTask implements \CmsRegularTask
 				}
 			}
 		} elseif ($cache instanceof \Async\MultiCache\DbaseCache) {
-			$sql = 'DELETE FROM '.$cache->table.' WHERE keyword LIKE \'_cache_'.PWFBrowse::ASYNCSPACE.'%\' AND savetime+lifetime < '.$time;
+			$sql = 'DELETE FROM '.$cache->table.' WHERE keyword LIKE \'_cache_'.Booker::ASYNCSPACE.'%\' AND savetime+lifetime < '.$time;
 			\cmsms()->GetDB()->Execute($sql);
 		}
 		//TODO maybe mutexes too e.g. flock files fopen files, db records
