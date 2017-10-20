@@ -1152,8 +1152,7 @@ if ($mod) {
 	$tplvars['addgrp'] = $this->CreateLink($id, 'processitem', $returnid,
 		 $theme->DisplayImage('icons/system/newobject.gif', $this->Lang('addgroup'), '', '', 'systemicon'),
 		 ['item_id' => -$mingrp, 'task' => 'add'], '', FALSE, FALSE, '')
-	 .' '.$this->CreateLink($id, 'processitem', $returnid,
-		 $this->Lang('addgroup'),
+	 .' '.$this->CreateLink($id, 'processitem', $returnid, $this->Lang('addgroup'),
 		 ['item_id' => -$mingrp, 'task' => 'add'], '', FALSE, FALSE, 'class="pageoptions"');
 	$tplvars['importbtn4'] = $tplvars['importbtn3'];
 	$tplvars['fimportbtn4'] = $tplvars['fimportbtn3'];
