@@ -39,9 +39,9 @@ class ClearcacheTask implements \CmsRegularTask
 		if (!$time) {
 			$time = time();
 		}
-		$funcs = new \Async\Cache();
+		$funcs = new \CMSMS\Asssts\Cache\Cache();
 		$cache = $funcs->Get();
-		if ($cache instanceof \Async\MultiCache\FileCache) {
+		if ($cache instanceof \CMSMS\Assets\Cache\FileCache) {
 			$arr = glob($cache->basepath.'_cache_'.Booker::ASYNCSPACE.'*', GLOB_NOSORT);
 			if ($arr) {
 				$time -= 84600; //1-day cache retention-period (as seconds)
@@ -53,9 +53,10 @@ class ClearcacheTask implements \CmsRegularTask
 					}
 				}
 			}
-		} elseif ($cache instanceof \Async\MultiCache\DbaseCache) {
+/*		} elseif ($cache instanceof \CMSMS\Assets\Cache\DbaseCache) {
 			$sql = 'DELETE FROM '.$cache->table.' WHERE keyword LIKE \'_cache_'.Booker::ASYNCSPACE.'%\' AND savetime+lifetime < '.$time;
 			\cmsms()->GetDB()->Execute($sql);
+*/
 		}
 		//TODO maybe mutexes too e.g. flock files fopen files, db records
 		$this->get_module()->SetPreference('lastclearcache', $time + 84600);

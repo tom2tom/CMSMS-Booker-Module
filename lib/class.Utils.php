@@ -2685,7 +2685,7 @@ EOS;
 	 */
 	public function GetCache()
 	{
-		$funcs = new \Async\Cache();
+		$funcs = new \CMSMS\Assets\Cache\Cache();
 		return $funcs->Get();
 	}
 
