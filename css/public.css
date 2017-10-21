@@ -359,18 +359,6 @@ div#authactions {
  margin-top:1em;
 }
 
-/* tooltip-equivalent for touch-devices */
-.touchtip {
- position:fixed;
- top:20px;
- left:20px;
- padding:5px;
- color:#FFF;
- background:#00004D;
- white-space:pre-line;
- z-index:9000;
-}
-
 .dateinput_container {
  display:inline-block;
  border:1px solid #999999;
@@ -385,4 +373,64 @@ div#authactions {
 .dateinput_img {
  margin:2px 2px -4px 0;
  height:1.5em;
+}
+
+/* tooltip-replacement */
+.tooltip {
+ font-family:inherit;
+ font-size:1.01em;
+ text-align:center;
+ text-shadow:0 1px rgba(0, 0, 0, .5);
+ line-height:1.5;
+ color:#fff;
+ background:#595959;
+ background:-webkit-gradient(linear, left top, left bottom, from(rgba(0, 0, 0, .6)), to(rgba(0, 0, 0, .8)));
+ background:-webkit-linear-gradient(top, rgba(0, 0, 0, .6), rgba(0, 0, 0, .8));
+ background:-moz-linear-gradient(top, rgba(0, 0, 0, .6), rgba(0, 0, 0, .8));
+ background:-ms-radial-gradient(top, rgba(0, 0, 0, .6), rgba(0, 0, 0, .8));
+ background:-o-linear-gradient(top, rgba(0, 0, 0, .6), rgba(0, 0, 0, .8));
+ background:linear-gradient(top, rgba(0, 0, 0, .6), rgba(0, 0, 0, .8));
+ -webkit-border-radius:5px;
+ -moz-border-radius:5px;
+ border-radius:5px;
+ border-top:1px solid #fff;
+ -webkit-box-shadow:0 3px 5px rgba(0, 0, 0, .3);
+ -moz-box-shadow:0 3px 5px rgba(0, 0, 0, .3);
+ box-shadow:0 3px 5px rgba(0, 0, 0, .3);
+ position:absolute;
+ padding:15px;
+ z-index:100;
+}
+
+.tooltip:after {
+ width:0;
+ height:0;
+ border-left:10px solid transparent;
+ border-right:10px solid transparent;
+ border-top:10px solid #595959;
+ border-top-color:rgba(0, 0, 0, .7);
+ content:'';
+ position:absolute;
+ left:50%;
+ bottom:-10px;
+ margin-left:-10px;
+}
+
+.tooltip.top:after {
+ border-top-color:transparent;
+ border-bottom:10px solid #595959;
+ border-bottom-color:rgba(0, 0, 0, .6);
+ top:-20px;
+ bottom:auto;
+}
+
+.tooltip.left:after {
+ left:10px;
+ margin:0;
+}
+
+.tooltip.right:after {
+ left:auto;
+ right:10px;
+ margin:0;
 }
