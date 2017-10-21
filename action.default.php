@@ -405,13 +405,6 @@ if ($showtable) {
 }
 
 $jsfuncs[] = <<<EOS
-var touchtimer=false,
- singltimer=false,
- longWait=600,
- shortWait=200,
- dblGap=500,
- lastTap=0,
- stopClick,curTap,startAtY,startAtX;
 function isTouchable() {
  var eventName='ontouchstart',
   el=document.createElement('input'),
@@ -423,81 +416,51 @@ function isTouchable() {
  el=null;
  return supported;
 }
-function touchtip(el,msg) {
- $(document.body).prepend('<div class="touchtip">' + msg + '</div>');
+function init_tooltip(target, tooltip) {
+ if ($(window).width() < tooltip.outerWidth() * 1.5)
+  tooltip.css('max-width', $(window).width() / 2);
+ else
+  tooltip.css('max-width', 340);
+
+ var pos_left = target.offset().left + (target.outerWidth() / 2) - (tooltip.outerWidth() / 2),
+  pos_top = target.offset().top - tooltip.outerHeight() - 20;
+
+ if (pos_left < 0) {
+  pos_left = target.offset().left + target.outerWidth() / 2 - 20;
+  tooltip.addClass('left');
+ } else
+  tooltip.removeClass('left');
+
+ if (pos_left + tooltip.outerWidth() > $(window).width()) {
+  pos_left = target.offset().left - tooltip.outerWidth() + target.outerWidth() / 2 + 20;
+  tooltip.addClass('right');
+ } else
+  tooltip.removeClass('right');
+
+ if (pos_top < 0) {
+  var pos_top = target.offset().top + target.outerHeight();
+  tooltip.addClass('top');
+ } else
+  tooltip.removeClass('top');
+
+ tooltip.css({
+  left: pos_left,
+  top: pos_top
+ }).animate({
+  top: '+=10',
+  opacity: 1
+ }, 50);
 }
-function un_touchtip(el) {
- var \$eltip=$('body > div:nth-child(1)');
- if (\$eltip.length > 0 && \$eltip[0].classList.contains('touchtip')) {
-  \$eltip.remove();
-  return true;
- }
- return false;
+function remove_tooltip(target, tooltip, tip) {
+ tooltip.animate({
+  top: '-=10',
+  opacity: 0
+ }, 50, function() {
+  $(this).remove();
+ });
+
+ target.attr('title', tip);
 }
-function touchstart(ev,el) {
- if (touchtimer) {
-  clearTimeout(touchtimer);
-  touchtimer=false;
- }
- if (ev.touches && ev.touches.length > 1) {
-  return;
- }
- if (el === undefined) {
-  el=this;
- }
- if ('scrollTop' in el) {
-  startAtY=el.scrollTop + ev.touches[0].pageY;
-  startAtX=el.scrollLeft + ev.touches[0].pageX;
- }
- tip=el.title;
- if (tip) {
-  touchtimer=setTimeout(function() {
-   touchtimer=false;
-   touchtip(el,tip);
-  },longWait);
- }
-}
-function touchend (ev,el,processor) {
- if (touchtimer) {
-  clearTimeout(touchtimer);
-  touchtimer=false;
- }
- if (ev.touches && ev.touches.length > 0) {
-  return;
- }
- if (el === undefined) {
-  el=this;
- }
- if (processor !== undefined && typeof processor == 'function') {
-  processor.call(this,ev,el);
- }
- if (un_touchtip(el)) {
-  stopClick = true;
-  lastTap=0;
-  ev.preventDefault();
-  return false;
- }
- stopClick = false;
-}
-function touchmove (ev,el) {
- if (touchtimer) {
-  clearTimeout(touchtimer);
-  touchtimer=false;
- }
- if (ev.touches && ev.touches.length > 1) {
-  return;
- }
- if (el === undefined) {
-  el=this;
- }
- if ('scrollTop' in el) {
-  el.scrollTop=startAtY - ev.touches[0].pageY;
-  el.scrollLeft=startAtX - ev.touches[0].pageX;
- }
-}
-EOS;
-$jsloads[] = <<<EOS
- var touchy = isTouchable();
 EOS;
 
 if ($showtable) {
@@ -562,68 +525,41 @@ EOS;
  \$table.tableHeadFixer({'left':1});
  \$table.find('th.periodname').click(col_focus);
  var \$cells = \$table.find('td');
- if (touchy) {
-  \$table.on('touchstart',touchstart).on('touchmove',touchmove);
-  \$cells.on('touchstart touchenter',touchstart)
-   .on('touchend touchleave touchcancel',function(ev) {
-    var el=this;
-    touchend(ev,el,function() {
-     if (ev.type == 'touchend') {
-      curTap=ev.timeStamp;
-      var save=lastTap,
-        tapGap=(curTap - save);
-      lastTap=curTap;
-      if (tapGap < dblGap && tapGap > 0) {
-       if (singltimer) {
-        clearTimeout(singltimer);
-        singltimer=false;
-       }
-       slot_activate(ev,el); //do doubletap stuff
-       stopClick=true;
-       ev.preventDefault();
-      } else if (save > 0) {
-       singltimer=setTimeout(function() {
-        singltimer=false;
-        slot_focus(ev,el);
-       },shortWait);
-       stopClick=true;
-       ev.preventDefault();
-      }
-     } else {
-      lastTap=0;
-     }
-    });
-  })
-  .on('click',function(ev) {
-    if (stopClick) {
-     stopClick=false;
-     ev.preventDefault();
-     return false;
-    } else {
-     slot_focus(ev,this);
-    }
-  })
-  .css('touch-action','manipulation');
- } else {
-  \$cells.click(slot_focus).dblclick(slot_activate);
+ \$cells.click(slot_focus);
+ if (!isTouchable()) {
+  \$cells.dblclick(slot_activate);
  }
 EOS;
-} //showtable
+} else { // !showtable
+	$jsloads[] = <<<EOS
+ var \$cells = [];
+EOS;
+}
 
 $jsloads[] = <<<EOS
- if (touchy) {
-  $(document).find('input.cms_submit,select')
-  .on('touchstart touchenter',touchstart)
-  .on('touchmove',touchmove)
-  .on('touchend touchleave touchcancel',touchend)
-  .on('click',function(ev) {
-   if (stopClick) {
-    stopClick=false;
-    ev.preventDefault();
-    return false;
-   }
-  }).css('font-size','16px');
- }
+ $(document).find('input.cms_submit,select').add(\$cells).on('mouseenter', function() {
+  var target = $(this),
+  titletip = target.attr('title');
+
+  if (!titletip)
+   return false;
+
+  target.removeAttr('title').on('mouseleave', function() {
+   remove_tooltip(target, tooltip, titletip);
+  });
+  
+  var tooltip = $('<div class="tooltip">'+titletip+'</div>');
+  tooltip.css('opacity', 0)
+   .appendTo('body')
+   .on('click', function () {
+    remove_tooltip(target, tooltip, titletip);
+   });
+
+ init_tooltip(target, tooltip);
+ $(window).on('resize', function () {
+   init_tooltip(target, tooltip);
+  });
+ });
 EOS;
 
 $jsincs[] = <<<EOS

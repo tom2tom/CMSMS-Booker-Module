@@ -118,114 +118,51 @@ $jsloads[] = <<<EOS
 EOS;
 
 $jsfuncs[] = <<<EOS
-var touchtimer=false,
- singltimer=false,
- longWait=600,
- shortWait=200,
- dblGap=500,
- lastTap=0,
- stopClick,curTap,startAtY,startAtX;
-function isTouchable() {
- var eventName='ontouchstart',
-  el=document.createElement('input'),
-  supported=(eventName in el);
- if (!supported) {
-  el.setAttribute(eventName,'return;');
-  supported=typeof el[eventName] == 'function';
- }
- el=null;
- return supported;
-}
-function touchtip(el,msg) {
- $(document.body).prepend('<div class="touchtip">' + msg + '</div>');
-}
-function un_touchtip(el) {
- var \$eltip=$('body > div:nth-child(1)');
- if (\$eltip.length > 0 && \$eltip[0].classList.contains('touchtip')) {
-  \$eltip.remove();
-  return true;
- }
- return false;
-}
-function touchstart(ev,el) {
- if (touchtimer) {
-  clearTimeout(touchtimer);
-  touchtimer=false;
- }
- if (ev.touches && ev.touches.length > 1) {
-  return;
- }
- if (el === undefined) {
-  el=this;
- }
- if ('scrollTop' in el) {
-  startAtY=el.scrollTop + ev.touches[0].pageY;
-  startAtX=el.scrollLeft + ev.touches[0].pageX;
- }
- tip=el.title;
- if (tip) {
-  touchtimer=setTimeout(function() {
-   touchtimer=false;
-   touchtip(el,tip);
-  },longWait);
- }
-}
-function touchend (ev,el,processor) {
- if (touchtimer) {
-  clearTimeout(touchtimer);
-  touchtimer=false;
- }
- if (ev.touches && ev.touches.length > 0) {
-  return;
- }
- if (el === undefined) {
-  el=this;
- }
- if (processor !== undefined && typeof processor == 'function') {
-  processor.call(this,ev,el);
- }
- if (un_touchtip(el)) {
-  stopClick = true;
-  lastTap=0;
-  ev.preventDefault();
-  return false;
- }
- stopClick = false;
-}
-function touchmove (ev,el) {
- if (touchtimer) {
-  clearTimeout(touchtimer);
-  touchtimer=false;
- }
- if (ev.touches && ev.touches.length > 1) {
-  return;
- }
- if (el === undefined) {
-  el=this;
- }
- if ('scrollTop' in el) {
-  el.scrollTop=startAtY - ev.touches[0].pageY;
-  el.scrollLeft=startAtX - ev.touches[0].pageX;
- }
-}
-EOS;
+function init_tooltip(target, tooltip) {
+ if ($(window).width() < tooltip.outerWidth() * 1.5)
+  tooltip.css('max-width', $(window).width() / 2);
+ else
+  tooltip.css('max-width', 340);
 
-$jsloads[] = <<<EOS
- if (isTouchable()) {
-  var \$tbl=$('#cart');
-  \$tbl.on('touchstart',touchstart).on('touchmove',touchmove);
-  $(document).find('input.cms_submit,select')
-  .on('touchstart touchenter',touchstart)
-  .on('touchmove',touchmove)
-  .on('touchend touchleave touchcancel',touchend)
-  .on('click',function(ev) {
-   if (stopClick) {
-    stopClick=false;
-    ev.preventDefault();
-    return false;
-   }
-  }).css('font-size','16px');
- }
+ var pos_left = target.offset().left + (target.outerWidth() / 2) - (tooltip.outerWidth() / 2),
+  pos_top = target.offset().top - tooltip.outerHeight() - 20;
+
+ if (pos_left < 0) {
+  pos_left = target.offset().left + target.outerWidth() / 2 - 20;
+  tooltip.addClass('left');
+ } else
+  tooltip.removeClass('left');
+
+ if (pos_left + tooltip.outerWidth() > $(window).width()) {
+  pos_left = target.offset().left - tooltip.outerWidth() + target.outerWidth() / 2 + 20;
+  tooltip.addClass('right');
+ } else
+  tooltip.removeClass('right');
+
+ if (pos_top < 0) {
+  var pos_top = target.offset().top + target.outerHeight();
+  tooltip.addClass('top');
+ } else
+  tooltip.removeClass('top');
+
+ tooltip.css({
+  left: pos_left,
+  top: pos_top
+ }).animate({
+  top: '+=10',
+  opacity: 1
+ }, 50);
+}
+function remove_tooltip(target, tooltip, tip) {
+ tooltip.animate({
+  top: '-=10',
+  opacity: 0
+ }, 50, function() {
+  $(this).remove();
+ });
+
+ target.attr('title', tip);
+}
 EOS;
 
 $hidden = $utils->FilterParameters($params,$localparams);
@@ -346,6 +283,29 @@ if (!$cart->seemsEmpty()) {
    });
   }
   return false;
+ });
+ $(document).find('input.cms_submit').on('mouseenter', function() {
+  var target = $(this),
+  titletip = target.attr('title');
+
+  if (!titletip)
+   return false;
+
+  target.removeAttr('title').on('mouseleave', function() {
+   remove_tooltip(target, tooltip, titletip);
+  });
+  
+  var tooltip = $('<div class="tooltip">'+titletip+'</div>');
+  tooltip.css('opacity', 0)
+   .appendTo('body')
+   .on('click', function () {
+    remove_tooltip(target, tooltip, titletip);
+   });
+
+ init_tooltip(target, tooltip);
+ $(window).on('resize', function () {
+   init_tooltip(target, tooltip);
+  });
  });
 EOS;
 
