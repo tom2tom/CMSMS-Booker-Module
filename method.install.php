@@ -6,7 +6,7 @@
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
 
-$fp = cms_join_path(dirname(__DIR__), 'Async', 'lib');
+$fp = cms_join_path($config['root_path'],'assets','Queue');
 if (!is_dir($fp)) {
 	return $this->Lang('err_system'); //TODO more informative message
 }
